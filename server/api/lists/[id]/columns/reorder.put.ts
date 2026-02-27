@@ -8,6 +8,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Columns array is required' })
   }
 
+  for (const col of columnOrder) {
+    if (typeof col.position !== 'number' || col.position < 0 || !Number.isInteger(col.position) || col.position > 10000) {
+      throw createError({ statusCode: 400, message: 'Position must be a non-negative integer (max 10000)' })
+    }
+  }
+
   db.transaction(() => {
     for (const col of columnOrder) {
       db.update(schema.listColumns)

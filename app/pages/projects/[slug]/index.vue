@@ -19,6 +19,7 @@ interface ProjectDetail {
   boards: Array<{ id: string, name: string, slug: string, position: number, cardCount: number, lastActivity: string | null, createdBy: { id: string, name: string } | null }>
   lists: Array<{ id: string, name: string, slug: string, position: number, cardCount: number, lastActivity: string | null, createdBy: { id: string, name: string } | null }>
 }
+const toast = useToast()
 const { data: project, error: fetchError, refresh } = await useFetch<ProjectDetail>(`/api/projects/${slug}`)
 if (fetchError.value) {
   showError(fetchError.value)
@@ -84,7 +85,7 @@ async function deleteView() {
     deleteViewTarget.value = null
     await refresh()
   } catch {
-    // Error handled silently
+    toast.add({ title: 'Failed to delete view', color: 'error' })
   } finally {
     deletingView.value = false
   }

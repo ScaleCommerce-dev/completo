@@ -105,7 +105,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     ...list,
-    tagFilters: list.tagFilters ? JSON.parse(list.tagFilters) : [],
+    tagFilters: safeParseJson(list.tagFilters, []),
     createdBy,
     role: membership.role,
     project: project ? { id: project.id, name: project.name, slug: project.slug, key: project.key, doneStatusId: project.doneStatusId, doneRetentionDays: project.doneRetentionDays } : null,

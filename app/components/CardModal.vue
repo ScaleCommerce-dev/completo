@@ -107,11 +107,6 @@ watch(() => props.card, (card) => {
   }
 }, { immediate: true })
 
-// Sync from statusId prop (create mode)
-watch(() => props.statusId, (id) => {
-  if (id && !props.card) selectedStatusId.value = id
-}, { immediate: true })
-
 function startEditingDescription() {
   editingDescription.value = true
   nextTick(() => descriptionEditorRef.value?.startEditing())
@@ -184,6 +179,10 @@ function handleKeydown(e: KeyboardEvent) {
 watch(open, (isOpen) => {
   if (isOpen) {
     document.addEventListener('keydown', handleKeydown, true)
+    // Sync statusId prop for create mode
+    if (!isEdit.value && props.statusId) {
+      selectedStatusId.value = props.statusId
+    }
   } else {
     document.removeEventListener('keydown', handleKeydown, true)
   }

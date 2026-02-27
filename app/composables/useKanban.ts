@@ -79,11 +79,10 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
         method: 'PUT',
         body: { statusId: toColumnId, position: toPosition }
       })
-      await refresh()
     } catch (e) {
       toast.add({ title: 'Failed to move card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
-      await refresh()
     }
+    await refresh()
   }
 
   const projectKey = computed(() => board.value?.project?.key || 'TK')
@@ -232,11 +231,10 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
         method: 'PUT',
         body: { columns }
       })
-      await refresh()
     } catch (e) {
       toast.add({ title: 'Failed to reorder columns', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
-      await refresh()
     }
+    await refresh()
   }
 
   async function renameBoard(name: string): Promise<string | null> {

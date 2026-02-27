@@ -9,6 +9,7 @@ interface ApiToken {
 }
 
 export function useApiTokens() {
+  const toast = useToast()
   const tokens = ref<ApiToken[]>([])
   const tokenName = ref('')
   const tokenExpiry = ref<string>('')
@@ -23,7 +24,7 @@ export function useApiTokens() {
     try {
       tokens.value = await $fetch('/api/user/tokens') as ApiToken[]
     } catch {
-      // ignore
+      toast.add({ title: 'Failed to load API tokens', color: 'error' })
     }
   }
 
@@ -83,7 +84,7 @@ export function useApiTokens() {
       await $fetch(`/api/user/tokens/${id}`, { method: 'DELETE' })
       await fetchTokens()
     } catch {
-      // ignore
+      toast.add({ title: 'Failed to delete token', color: 'error' })
     } finally {
       deletingTokenId.value = null
       deleteTokenTimer.value = null

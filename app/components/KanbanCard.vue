@@ -10,10 +10,13 @@ const props = defineProps<{
     attachmentCount?: number
     dueDate?: string | null
   }
-  projectKey?: string
-  projectSlug?: string
-  members?: Array<{ id: string, name: string, avatarUrl: string | null }>
 }>()
+
+const kanbanContext = inject<{
+  projectKey: ComputedRef<string | undefined>
+  projectSlug: ComputedRef<string | undefined>
+  members: ComputedRef<Array<{ id: string, name: string, avatarUrl: string | null }> | undefined>
+}>('kanbanContext')!
 
 const emit = defineEmits<{
   click: []
@@ -23,8 +26,8 @@ const emit = defineEmits<{
 const updatingField = ref<'priority' | 'assignee' | null>(null)
 
 const detailUrl = computed(() => {
-  if (!props.projectSlug) return null
-  return `/projects/${props.projectSlug}/cards/${formatTicketId(props.projectKey, props.card.id)}`
+  if (!kanbanContext.projectSlug.value) return null
+  return `/projects/${kanbanContext.projectSlug.value}/cards/${formatTicketId(kanbanContext.projectKey.value, props.card.id)}`
 })
 
 const assigneeInitials = computed(() => {
@@ -85,7 +88,7 @@ function assigneeMenuItems() {
       })
     }
   }]
-  for (const m of (props.members || [])) {
+  for (const m of (kanbanContext.members.value || [])) {
     items.push({
       label: m.name,
       icon: 'i-lucide-user',
@@ -131,7 +134,7 @@ const cardEl = ref<HTMLElement>()
 
     <!-- Ticket ID -->
     <span class="card-id text-zinc-500 dark:text-zinc-400 select-none mb-1 block">
-      {{ formatTicketId(projectKey, card.id) }}
+      {{ formatTicketId(kanbanContext.projectKey.value, card.id) }}
     </span>
 
     <!-- Title -->

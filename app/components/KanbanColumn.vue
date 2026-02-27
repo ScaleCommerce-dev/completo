@@ -23,9 +23,6 @@ const props = defineProps<{
   cards: KanbanCardData[]
   accentColor?: string
   isDone?: boolean
-  projectKey?: string
-  projectSlug?: string
-  members?: Array<{ id: string, name: string, avatarUrl: string | null }>
 }>()
 
 const emit = defineEmits<{
@@ -116,9 +113,6 @@ function onAreaDblClick(e: MouseEvent) {
             >
               <KanbanCard
                 :card="card"
-                :project-key="projectKey"
-                :project-slug="projectSlug"
-                :members="members"
                 @click="emit('card-click', card)"
                 @update="(cardId, updates) => emit('card-update', cardId, updates)"
               />

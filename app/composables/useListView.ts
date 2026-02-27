@@ -160,11 +160,10 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
         method: 'PUT',
         body: { columns }
       })
-      await refresh()
     } catch (e) {
       toast.add({ title: 'Failed to reorder columns', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
-      await refresh()
     }
+    await refresh()
   }
 
   const tagFilters = computed(() => list.value?.tagFilters || [])

@@ -34,6 +34,13 @@ const _props = defineProps<{
   members?: BoardMember[]
 }>()
 
+const kanbanContext = {
+  projectKey: computed(() => _props.projectKey),
+  projectSlug: computed(() => _props.projectSlug),
+  members: computed(() => _props.members)
+}
+provide('kanbanContext', kanbanContext)
+
 const emit = defineEmits<{
   'card-click': [card: BoardCard]
   'card-moved': [cardId: number, toColumnId: string, toPosition: number]
@@ -99,9 +106,6 @@ function cancelAddColumn() {
       :cards="cardsByColumn[column.id] || []"
       :accent-color="column.color || '#a1a1aa'"
       :is-done="column.id === doneStatusId"
-      :project-key="projectKey"
-      :project-slug="projectSlug"
-      :members="members"
       @card-click="(card) => emit('card-click', card)"
       @card-change="(evt) => handleCardChange(column.id, evt)"
       @card-update="(cardId, updates) => emit('card-update', cardId, updates)"

@@ -23,19 +23,27 @@ class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
+  private safePath(key: string): string {
+    const fullPath = resolve(this.dir, key)
+    if (!fullPath.startsWith(resolve(this.dir) + '/')) {
+      throw new Error('Invalid storage key')
+    }
+    return fullPath
+  }
+
   async write(key: string, data: Buffer): Promise<void> {
     this.ensureDir()
-    writeFileSync(resolve(this.dir, key), data)
+    writeFileSync(this.safePath(key), data)
   }
 
   async read(key: string): Promise<Buffer | null> {
-    const path = resolve(this.dir, key)
+    const path = this.safePath(key)
     if (!existsSync(path)) return null
     return readFileSync(path)
   }
 
   async delete(key: string): Promise<void> {
-    const path = resolve(this.dir, key)
+    const path = this.safePath(key)
     if (existsSync(path)) unlinkSync(path)
   }
 

@@ -80,7 +80,6 @@ function toggleTag(card: { id: number, tags?: Array<{ id: string }> }, tagId: st
     ? currentIds.filter(id => id !== tagId)
     : [...currentIds, tagId]
   emit('update-tags', card.id, newIds)
-  // Don't close popover — multi-select
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -117,13 +116,11 @@ function isDone(card: { statusId: string }) {
 function toggleDone(card: { id: number, statusId: string }) {
   if (!props.doneStatusId) return
   if (isDone(card)) {
-    // Uncheck: set to first non-done status
     const fallback = props.statuses.find(s => s.id !== props.doneStatusId)
     if (fallback) {
       emit('update', card.id, { statusId: fallback.id })
     }
   } else {
-    // Check: set to done status
     emit('update', card.id, { statusId: props.doneStatusId })
   }
 }
@@ -141,13 +138,7 @@ function detailUrl(card: ListCard) {
   return `/projects/${props.projectSlug}/cards/${formatTicketId(props.projectKey, card.id)}`
 }
 
-// Find priority column presence for the left-edge bar
-const _hasPriorityData = computed(() => true)
-
 // ─── Sort state ───
-// undefined = user hasn't interacted (fall back to server-saved props)
-// null = user explicitly cleared sort
-// string = user selected a field
 const userSortField = ref<string | null | undefined>(undefined)
 const userSortDirection = ref<'asc' | 'desc' | null | undefined>(undefined)
 
@@ -306,377 +297,82 @@ const sortedCards = computed(() => {
               :style="{ backgroundColor: priorityColor(card.priority) }"
             />
 
-            <!-- done -->
-            <div
+            <ListCellDone
               v-if="col.field === 'done'"
-              class="flex items-center justify-center"
-              @click.stop
-            >
-              <button
-                type="button"
-                class="flex items-center justify-center w-[18px] h-[18px] rounded border transition-all"
-                :class="isDone(card)
-                  ? 'bg-emerald-500 border-emerald-500 text-white'
-                  : 'border-zinc-300 dark:border-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-500 text-transparent'"
-                :disabled="!doneStatusId"
-                @click="toggleDone(card)"
-              >
-                <UIcon
-                  v-if="isDone(card)"
-                  name="i-lucide-check"
-                  class="text-[13px]"
-                />
-              </button>
-            </div>
+              :is-done="isDone(card)"
+              :disabled="!doneStatusId"
+              @toggle="toggleDone(card)"
+            />
 
-            <!-- ticketId -->
-            <span
+            <ListCellTicketId
               v-else-if="col.field === 'ticketId'"
-              class="card-id text-zinc-500 dark:text-zinc-400 select-none"
-            >
-              {{ formatTicketId(projectKey, card.id) }}
-            </span>
+              :project-key="projectKey"
+              :card-id="card.id"
+            />
 
-            <!-- title -->
-            <div
+            <ListCellTitle
               v-else-if="col.field === 'title'"
-              class="flex items-center gap-1.5 min-w-0"
-            >
-              <span
-                class="font-semibold truncate"
-                :class="isDone(card)
-                  ? 'line-through text-zinc-400 dark:text-zinc-500'
-                  : 'text-zinc-900 dark:text-zinc-100'"
-              >
-                {{ card.title }}
-              </span>
-              <NuxtLink
-                v-if="detailUrl(card)"
-                :to="detailUrl(card) || undefined"
-                class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-zinc-300 dark:text-zinc-600 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all"
-                title="Open detail"
-                @click.stop
-              >
-                <UIcon
-                  name="i-lucide-arrow-up-right"
-                  class="text-[13px]"
-                />
-              </NuxtLink>
-            </div>
+              :title="card.title"
+              :is-done="isDone(card)"
+              :detail-url="detailUrl(card)"
+            />
 
-            <!-- status (read-only) -->
-            <div
-              v-else-if="col.field === 'status' && readOnlyFields?.includes('status')"
-              class="flex items-center gap-1.5"
-            >
-              <template v-if="card.status">
-                <span
-                  class="block w-2 h-2 rounded-full shrink-0"
-                  :style="{
-                    backgroundColor: card.status.color || '#a1a1aa',
-                    boxShadow: `inset 0 0 0 1px ${(card.status.color || '#a1a1aa')}30`
-                  }"
-                />
-                <span class="text-zinc-600 dark:text-zinc-400 truncate text-[13.5px]">{{ card.status.name }}</span>
-              </template>
-              <span
-                v-else
-                class="text-zinc-300 dark:text-zinc-600 text-[13.5px]"
-              >&mdash;</span>
-            </div>
-
-            <!-- status (editable) -->
-            <UPopover
+            <ListCellStatus
               v-else-if="col.field === 'status'"
-              :open="isPopoverOpen(card.id, 'status')"
-              @update:open="setPopoverOpen(card.id, 'status', $event)"
-            >
-              <div
-                class="flex items-center gap-1.5 rounded px-1 -mx-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                @click.stop
-              >
-                <template v-if="card.status">
-                  <span
-                    class="block w-2 h-2 rounded-full shrink-0"
-                    :style="{
-                      backgroundColor: card.status.color || '#a1a1aa',
-                      boxShadow: `inset 0 0 0 1px ${(card.status.color || '#a1a1aa')}30`
-                    }"
-                  />
-                  <span class="text-zinc-600 dark:text-zinc-400 truncate text-[13.5px]">{{ card.status.name }}</span>
-                  <UIcon
-                    name="i-lucide-chevron-down"
-                    class="text-[10px] shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-60 transition-opacity"
-                  />
-                </template>
-                <span
-                  v-else
-                  class="text-zinc-300 dark:text-zinc-600 text-[13.5px]"
-                >&mdash;</span>
-              </div>
-              <template #content>
-                <div class="list-popover-menu py-1 min-w-[140px]">
-                  <button
-                    v-for="s in statuses"
-                    :key="s.id"
-                    type="button"
-                    class="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-[12px] transition-colors"
-                    :class="card.statusId === s.id
-                      ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400'
-                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'"
-                    @click="selectStatus(card.id, s.id)"
-                  >
-                    <span
-                      class="block w-2 h-2 rounded-full shrink-0"
-                      :style="{ backgroundColor: s.color || '#a1a1aa' }"
-                    />
-                    <span class="truncate flex-1">{{ s.name }}</span>
-                    <UIcon
-                      v-if="card.statusId === s.id"
-                      name="i-lucide-check"
-                      class="text-[13px] shrink-0 text-indigo-500"
-                    />
-                  </button>
-                </div>
-              </template>
-            </UPopover>
+              :status="card.status"
+              :status-id="card.statusId"
+              :statuses="statuses"
+              :read-only="readOnlyFields?.includes('status')"
+              :popover-open="isPopoverOpen(card.id, 'status')"
+              @select="selectStatus(card.id, $event)"
+              @update:popover-open="setPopoverOpen(card.id, 'status', $event)"
+            />
 
-            <!-- assignee (read-only) -->
-            <div
-              v-else-if="col.field === 'assignee' && readOnlyFields?.includes('assignee')"
-              class="flex items-center gap-1.5 min-h-[22px]"
-            >
-              <template v-if="card.assignee">
-                <UAvatar
-                  :alt="card.assignee.name"
-                  size="3xs"
-                />
-                <span class="text-zinc-500 dark:text-zinc-400 truncate text-[13.5px]">{{ card.assignee.name }}</span>
-              </template>
-              <span
-                v-else
-                class="text-zinc-300 dark:text-zinc-600 text-[13px]"
-              >Unassigned</span>
-            </div>
-
-            <!-- assignee (editable) -->
-            <UPopover
+            <ListCellAssignee
               v-else-if="col.field === 'assignee'"
-              :open="isPopoverOpen(card.id, 'assignee')"
-              @update:open="setPopoverOpen(card.id, 'assignee', $event)"
-            >
-              <div
-                class="flex items-center gap-1.5 rounded px-1 -mx-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer min-h-[22px]"
-                @click.stop
-              >
-                <template v-if="card.assignee">
-                  <UAvatar
-                    :alt="card.assignee.name"
-                    size="3xs"
-                  />
-                  <span class="text-zinc-500 dark:text-zinc-400 truncate text-[13.5px]">{{ card.assignee.name }}</span>
-                  <UIcon
-                    name="i-lucide-chevron-down"
-                    class="text-[10px] shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-60 transition-opacity"
-                  />
-                </template>
-                <span
-                  v-else
-                  class="text-zinc-300 dark:text-zinc-600 text-[13px]"
-                >Unassigned</span>
-              </div>
-              <template #content>
-                <div class="list-popover-menu py-1 min-w-[160px]">
-                  <button
-                    type="button"
-                    class="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-[12px] transition-colors"
-                    :class="!card.assignee
-                      ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400'
-                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'"
-                    @click="selectAssignee(card.id, null)"
-                  >
-                    <UIcon
-                      name="i-lucide-user-x"
-                      class="text-[13px] text-zinc-400 shrink-0"
-                    />
-                    <span class="flex-1">Unassigned</span>
-                    <UIcon
-                      v-if="!card.assignee"
-                      name="i-lucide-check"
-                      class="text-[13px] shrink-0 text-indigo-500"
-                    />
-                  </button>
-                  <button
-                    v-for="m in members"
-                    :key="m.id"
-                    type="button"
-                    class="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-[12px] transition-colors"
-                    :class="card.assignee?.id === m.id
-                      ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400'
-                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'"
-                    @click="selectAssignee(card.id, m.id)"
-                  >
-                    <UAvatar
-                      :alt="m.name"
-                      size="3xs"
-                    />
-                    <span class="truncate flex-1">{{ m.name }}</span>
-                    <UIcon
-                      v-if="card.assignee?.id === m.id"
-                      name="i-lucide-check"
-                      class="text-[13px] shrink-0 text-indigo-500"
-                    />
-                  </button>
-                </div>
-              </template>
-            </UPopover>
+              :assignee="card.assignee"
+              :members="members"
+              :read-only="readOnlyFields?.includes('assignee')"
+              :popover-open="isPopoverOpen(card.id, 'assignee')"
+              @select="selectAssignee(card.id, $event)"
+              @update:popover-open="setPopoverOpen(card.id, 'assignee', $event)"
+            />
 
-            <!-- priority -->
-            <UPopover
+            <ListCellPriority
               v-else-if="col.field === 'priority'"
-              :open="isPopoverOpen(card.id, 'priority')"
-              @update:open="setPopoverOpen(card.id, 'priority', $event)"
-            >
-              <div
-                class="flex items-center gap-1 text-[13px] font-medium capitalize rounded px-1 -mx-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                :class="card.priority === 'urgent' ? 'priority-urgent-pulse' : ''"
-                :style="{ color: priorityColor(card.priority) }"
-                @click.stop
-              >
-                <UIcon
-                  :name="priorityIcon(card.priority)"
-                  class="text-[13px]"
-                />
-                <span>{{ card.priority }}</span>
-                <UIcon
-                  name="i-lucide-chevron-down"
-                  class="text-[10px] shrink-0 opacity-0 group-hover:opacity-60 transition-opacity"
-                />
-              </div>
-              <template #content>
-                <div class="list-popover-menu py-1 min-w-[130px]">
-                  <button
-                    v-for="p in PRIORITIES"
-                    :key="p.value"
-                    type="button"
-                    class="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-[12px] font-medium capitalize transition-colors"
-                    :class="card.priority === p.value
-                      ? 'bg-indigo-50 dark:bg-indigo-950/30'
-                      : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'"
-                    :style="{ color: p.color }"
-                    @click="selectPriority(card.id, p.value)"
-                  >
-                    <UIcon
-                      :name="p.icon"
-                      class="text-[13px] shrink-0"
-                    />
-                    <span class="flex-1">{{ p.label }}</span>
-                    <UIcon
-                      v-if="card.priority === p.value"
-                      name="i-lucide-check"
-                      class="text-[13px] shrink-0 text-indigo-500"
-                    />
-                  </button>
-                </div>
-              </template>
-            </UPopover>
+              :priority="card.priority"
+              :popover-open="isPopoverOpen(card.id, 'priority')"
+              @select="selectPriority(card.id, $event)"
+              @update:popover-open="setPopoverOpen(card.id, 'priority', $event)"
+            />
 
-            <!-- tags (read-only) -->
-            <div
-              v-else-if="col.field === 'tags' && (!tags?.length || readOnlyFields?.includes('tags'))"
-              class="flex flex-wrap gap-1"
-            >
-              <TagPill
-                v-for="tag in (card.tags || [])"
-                :key="tag.id"
-                :name="tag.name"
-                :color="tag.color"
-              />
-            </div>
-
-            <!-- tags (editable) -->
-            <UPopover
+            <ListCellTags
               v-else-if="col.field === 'tags'"
-              :open="isPopoverOpen(card.id, 'tags')"
-              @update:open="setPopoverOpen(card.id, 'tags', $event)"
-            >
-              <div
-                class="flex flex-wrap gap-1 items-center rounded px-1 -mx-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer min-h-[22px]"
-                @click.stop
-              >
-                <template v-if="card.tags?.length">
-                  <TagPill
-                    v-for="tag in card.tags"
-                    :key="tag.id"
-                    :name="tag.name"
-                    :color="tag.color"
-                  />
-                </template>
-                <span
-                  v-else
-                  class="text-zinc-300 dark:text-zinc-600 text-[13px]"
-                >No tags</span>
-                <UIcon
-                  name="i-lucide-chevron-down"
-                  class="text-[10px] shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-60 transition-opacity"
-                />
-              </div>
-              <template #content>
-                <TagToggleList
-                  class="list-popover-menu"
-                  :tags="tags || []"
-                  :selected-ids="(card.tags || []).map(t => t.id)"
-                  @toggle="toggleTag(card, $event)"
-                />
-              </template>
-            </UPopover>
+              :card-tags="card.tags || []"
+              :tags="tags"
+              :read-only="readOnlyFields?.includes('tags')"
+              :popover-open="isPopoverOpen(card.id, 'tags')"
+              @toggle="toggleTag(card, $event)"
+              @update:popover-open="setPopoverOpen(card.id, 'tags', $event)"
+            />
 
-            <!-- dueDate -->
-            <DueDatePicker
+            <ListCellDueDate
               v-else-if="col.field === 'dueDate'"
-              :model-value="card.dueDate"
-              :open="isPopoverOpen(card.id, 'dueDate')"
-              @update:open="setPopoverOpen(card.id, 'dueDate', $event)"
-              @update:model-value="selectDueDate(card.id, $event)"
-            >
-              <div
-                class="flex items-center gap-1 rounded px-1 -mx-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-[13px] font-mono tabular-nums"
-                :style="card.dueDate ? { color: dueDateColor(getDueDateStatus(card.dueDate)) } : {}"
-                @click.stop
-              >
-                <template v-if="card.dueDate">
-                  <UIcon
-                    :name="dueDateIcon(getDueDateStatus(card.dueDate))"
-                    class="text-[12px]"
-                  />
-                  <span>{{ formatDueDate(card.dueDate) }}</span>
-                </template>
-                <span
-                  v-else
-                  class="text-zinc-300 dark:text-zinc-600"
-                >&mdash;</span>
-                <UIcon
-                  name="i-lucide-chevron-down"
-                  class="text-[10px] shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-60 transition-opacity"
-                />
-              </div>
-            </DueDatePicker>
+              :due-date="card.dueDate"
+              :popover-open="isPopoverOpen(card.id, 'dueDate')"
+              @select="selectDueDate(card.id, $event)"
+              @update:popover-open="setPopoverOpen(card.id, 'dueDate', $event)"
+            />
 
-            <!-- createdAt / updatedAt -->
-            <span
+            <ListCellTimestamp
               v-else-if="col.field === 'createdAt' || col.field === 'updatedAt'"
-              class="text-zinc-400 dark:text-zinc-500 text-[13px] font-mono tabular-nums"
-            >
-              {{ relativeTime(col.field === 'createdAt' ? card.createdAt : card.updatedAt) }}
-            </span>
+              :value="col.field === 'createdAt' ? card.createdAt : card.updatedAt"
+            />
 
-            <!-- description -->
-            <span
+            <ListCellDescription
               v-else-if="col.field === 'description'"
-              class="text-zinc-400 dark:text-zinc-500 text-[13px] line-clamp-1"
-            >
-              {{ card.description ? stripMarkdown(card.description) : '' }}
-            </span>
+              :description="card.description"
+            />
           </td>
         </tr>
 

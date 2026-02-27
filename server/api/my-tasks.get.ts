@@ -36,11 +36,7 @@ export default defineEventHandler(async (event) => {
     .all()
   const memberProjectIds = new Set(memberships.map(m => m.projectId))
 
-  // Also allow admin to see all their assigned cards
-  const isAdmin = !!user.isAdmin
-  const visibleCards = isAdmin
-    ? myCards
-    : myCards.filter(c => memberProjectIds.has(c.projectId))
+  const visibleCards = myCards.filter(c => memberProjectIds.has(c.projectId))
 
   if (!visibleCards.length) {
     return {

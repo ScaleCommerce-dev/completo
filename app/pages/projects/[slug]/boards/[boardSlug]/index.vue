@@ -39,6 +39,37 @@ watch(boardError, (err) => {
 
 const { data: projectData } = await useFetch(`/api/projects/${projectSlug}`)
 
+// Derive flat card list from cardsByColumn for the shared composable
+const allCards = computed(() => {
+  const cards = []
+  for (const colCards of Object.values(cardsByColumn.value)) {
+    cards.push(...colCards)
+  }
+  return cards
+})
+
+const {
+  activePriorityFilters,
+  activeTagFilters,
+  openCards,
+  togglePriorityFilter,
+  showCardDetail,
+  selectedCard,
+  openCardDetail,
+  showCreateCard,
+  handleCreateCard,
+  handleUpdateCard,
+  handleDeleteCard
+} = useViewPage({
+  allCards,
+  tagFilters,
+  doneStatusId,
+  updateCardTags,
+  createCard,
+  updateCard,
+  deleteCard
+})
+
 interface ViewSwitcherItem {
   label: string
   icon: string
@@ -69,30 +100,8 @@ const viewSwitcherItems = computed(() => {
   return items
 })
 
-const showCardDetail = ref(false)
-const selectedCard = ref<{
-  id: number
-  title: string
-  description?: string | null
-  priority: string
-  statusId: string
-  assigneeId?: string | null
-  dueDate?: string | null
-  tags?: Array<{ id: string, name: string, color: string }>
-} | null>(null)
 const showColumnConfig = ref(false)
-const showCreateCard = ref(false)
 const createCardStatusId = ref('')
-
-// Priority filter (multi-select)
-const activePriorityFilters = ref<Set<string>>(new Set())
-
-// Tag filter (persisted, managed via settings modal)
-const activeTagFilters = ref<Set<string>>(new Set())
-
-watch(tagFilters, (tf) => {
-  activeTagFilters.value = new Set(tf || [])
-}, { immediate: true })
 
 const filteredCardsByColumn = computed(() => {
   const hasPriority = activePriorityFilters.value.size > 0
@@ -109,84 +118,15 @@ const filteredCardsByColumn = computed(() => {
   return filtered
 })
 
-const openCards = computed(() => {
-  let count = 0
-  for (const [colId, cards] of Object.entries(cardsByColumn.value)) {
-    if (colId !== doneStatusId.value) count += cards.length
-  }
-  return count
-})
-
-const _priorityCounts = computed(() => {
-  const counts: Record<string, number> = { urgent: 0, high: 0, medium: 0, low: 0 }
-  for (const [colId, cards] of Object.entries(cardsByColumn.value)) {
-    if (colId === doneStatusId.value) continue
-    for (const card of cards) {
-      if (card.priority in counts) counts[card.priority]!++
-    }
-  }
-  return counts
-})
-
-function togglePriorityFilter(priority: string) {
-  const next = new Set(activePriorityFilters.value)
-  if (next.has(priority)) {
-    next.delete(priority)
-  } else {
-    next.add(priority)
-  }
-  activePriorityFilters.value = next
-}
-
-function openCardDetail(card: { id: number }) {
-  const fullCard = board.value?.cards?.find(c => c.id === card.id)
-  if (fullCard) {
-    selectedCard.value = fullCard
-  }
-  showCardDetail.value = true
-}
-
 function openCreateCard(statusId: string) {
   createCardStatusId.value = statusId
   showCreateCard.value = true
-}
-
-async function handleCreateCard(data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) {
-  const newCard = await createCard(data.statusId, data.title, {
-    description: data.description || undefined,
-    priority: data.priority,
-    assigneeId: data.assigneeId || undefined,
-    dueDate: data.dueDate || undefined
-  })
-  if (data.tagIds?.length && newCard) {
-    await updateCardTags((newCard as { id: number }).id, data.tagIds)
-  }
-  showCreateCard.value = false
-}
-
-async function handleUpdateCard(cardId: number, updates: Record<string, unknown>, tagIds?: string[]) {
-  await updateCard(cardId, updates as Partial<{ statusId: string, title: string, description: string | null, assigneeId: string | null, priority: string, dueDate: string | null, position: number }>)
-  if (tagIds !== undefined) {
-    await updateCardTags(cardId, tagIds)
-  }
-  if (selectedCard.value?.id === cardId) {
-    const updatedCards = board.value?.cards || []
-    const found = updatedCards.find(c => c.id === cardId)
-    selectedCard.value = found ?? null
-  }
-}
-
-async function handleDeleteCard(cardId: number) {
-  await deleteCard(cardId)
-  showCardDetail.value = false
-  selectedCard.value = null
 }
 
 function handleCardMoved(cardId: number, toColumnId: string, toPosition: number) {
   moveCard(cardId, toColumnId, toPosition)
 }
 
-// Settings modal handlers
 async function handleRenameBoard(name: string) {
   try {
     const newSlug = await renameBoard(name)

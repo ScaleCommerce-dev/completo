@@ -8,8 +8,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'statusId and position are required' })
   }
 
-  if (typeof position !== 'number' || position < 0 || !Number.isInteger(position)) {
-    throw createError({ statusCode: 400, message: 'Position must be a non-negative integer' })
+  if (typeof position !== 'number' || position < 0 || !Number.isInteger(position) || position > 10000) {
+    throw createError({ statusCode: 400, message: 'Position must be a non-negative integer (max 10000)' })
   }
 
   // Validate statusId belongs to the card's project
