@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
 
   // Count open cards per project (for project list)
   const projectIds = projects.map(p => p.id)
-  let openCardsByProject: Map<string, number> = new Map()
+  const openCardsByProject: Map<string, number> = new Map()
   if (projectIds.length > 0) {
     const allProjectCards = db.select({
       projectId: schema.cards.projectId,

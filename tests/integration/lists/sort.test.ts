@@ -6,8 +6,8 @@ import { createTestProject, createTestList, getList } from '../../setup/fixtures
 describe('List sort fields (PUT /api/lists/:id)', async () => {
   let owner: TestUser
   let member: TestUser
-  let project: any
-  let list: any
+  let project: Record<string, unknown>
+  let list: Record<string, unknown>
 
   beforeAll(async () => {
     owner = await registerTestUser()
@@ -27,7 +27,7 @@ describe('List sort fields (PUT /api/lists/:id)', async () => {
       method: 'PUT',
       body: { sortField: 'priority', sortDirection: 'asc' },
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(updated.sortField).toBe('priority')
     expect(updated.sortDirection).toBe('asc')
@@ -44,7 +44,7 @@ describe('List sort fields (PUT /api/lists/:id)', async () => {
       method: 'PUT',
       body: { sortField: null, sortDirection: null },
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(updated.sortField).toBeNull()
     expect(updated.sortDirection).toBeNull()
@@ -83,7 +83,7 @@ describe('List sort fields (PUT /api/lists/:id)', async () => {
         method: 'PUT',
         body: { sortField: field, sortDirection: 'desc' },
         headers: owner.headers
-      }) as any
+      }) as Record<string, unknown>
       expect(updated.sortField).toBe(field)
     }
   })

@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user, board } = await resolveBoard(event)
+  const { user: _user, board } = await resolveBoard(event)
   const { statusId } = await readBody<{ statusId: string }>(event)
 
   if (!statusId) {

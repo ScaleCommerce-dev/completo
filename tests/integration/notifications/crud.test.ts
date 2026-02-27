@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch, url } from '../../setup/server'
-import { registerTestUser, createAdminUser, type TestUser } from '../../setup/auth'
+import { registerTestUser, type TestUser } from '../../setup/auth'
 import { createTestProject, createTestBoard, getBoard, createTestCard } from '../../setup/fixtures'
 
 describe('Notifications', () => {
   let owner: TestUser
   let member: TestUser
-  let project: any
-  let board: any
+  let project: Record<string, unknown>
+  let board: Record<string, unknown>
   let statusId: string
 
   beforeAll(async () => {
@@ -29,7 +29,7 @@ describe('Notifications', () => {
   it('returns unread count of 0 for new user', async () => {
     const result = await $fetch('/api/notifications/unread-count', {
       headers: member.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(result.count).toBe(0)
   })
 
@@ -43,7 +43,7 @@ describe('Notifications', () => {
 
       const notifications = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       expect(notifications.length).toBe(1)
       expect(notifications[0].type).toBe('member_added')
@@ -56,7 +56,7 @@ describe('Notifications', () => {
     it('updates unread count', async () => {
       const result = await $fetch('/api/notifications/unread-count', {
         headers: member.headers
-      }) as any
+      }) as Record<string, unknown>
       expect(result.count).toBe(1)
     })
   })
@@ -70,7 +70,7 @@ describe('Notifications', () => {
 
       const notifications = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       const cardNotification = notifications.find(n => n.type === 'card_assigned')
       expect(cardNotification).toBeDefined()
@@ -91,7 +91,7 @@ describe('Notifications', () => {
 
       const notifications = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       const found = notifications.find(n => n.type === 'card_assigned' && n.message.includes('Reassignment test'))
       expect(found).toBeDefined()
@@ -100,7 +100,7 @@ describe('Notifications', () => {
     it('does not notify when assigning to self', async () => {
       const beforeNotifications = await $fetch('/api/notifications', {
         headers: owner.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
       const beforeCount = beforeNotifications.length
 
       await createTestCard(owner, board.id, statusId, {
@@ -110,7 +110,7 @@ describe('Notifications', () => {
 
       const afterNotifications = await $fetch('/api/notifications', {
         headers: owner.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       expect(afterNotifications.length).toBe(beforeCount)
     })
@@ -126,7 +126,7 @@ describe('Notifications', () => {
 
       const notifications = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       const roleNotification = notifications.find(n => n.type === 'role_changed')
       expect(roleNotification).toBeDefined()
@@ -162,7 +162,7 @@ describe('Notifications', () => {
 
       const notifications = await $fetch('/api/notifications', {
         headers: testMember.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       const removedNotification = notifications.find(n => n.type === 'member_removed')
       expect(removedNotification).toBeDefined()
@@ -175,7 +175,7 @@ describe('Notifications', () => {
     it('creates notification when user is mentioned in card description', async () => {
       const beforeNotifications = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
       const beforeCount = beforeNotifications.filter(n => n.type === 'mentioned').length
 
       await createTestCard(owner, board.id, statusId, {
@@ -185,7 +185,7 @@ describe('Notifications', () => {
 
       const afterNotifications = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       const mentionNotifications = afterNotifications.filter(n => n.type === 'mentioned')
       expect(mentionNotifications.length).toBe(beforeCount + 1)
@@ -202,7 +202,7 @@ describe('Notifications', () => {
 
       const beforeNotifications = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
       const beforeCount = beforeNotifications.filter(n => n.type === 'mentioned').length
 
       await $fetch(`/api/cards/${card.id}`, {
@@ -213,7 +213,7 @@ describe('Notifications', () => {
 
       const afterNotifications = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       const mentionNotifications = afterNotifications.filter(n => n.type === 'mentioned')
       expect(mentionNotifications.length).toBe(beforeCount + 1)
@@ -228,7 +228,7 @@ describe('Notifications', () => {
 
       const afterCreate = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
       const countAfterCreate = afterCreate.filter(n => n.type === 'mentioned').length
 
       // Re-save same description
@@ -240,7 +240,7 @@ describe('Notifications', () => {
 
       const afterResave = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
       const countAfterResave = afterResave.filter(n => n.type === 'mentioned').length
 
       expect(countAfterResave).toBe(countAfterCreate)
@@ -249,7 +249,7 @@ describe('Notifications', () => {
     it('does not notify when mentioning yourself', async () => {
       const beforeNotifications = await $fetch('/api/notifications', {
         headers: owner.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
       const beforeCount = beforeNotifications.filter(n => n.type === 'mentioned').length
 
       await createTestCard(owner, board.id, statusId, {
@@ -259,7 +259,7 @@ describe('Notifications', () => {
 
       const afterNotifications = await $fetch('/api/notifications', {
         headers: owner.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
       const afterCount = afterNotifications.filter(n => n.type === 'mentioned').length
 
       expect(afterCount).toBe(beforeCount)
@@ -269,7 +269,7 @@ describe('Notifications', () => {
       const outsider = await registerTestUser()
       const beforeNotifications = await $fetch('/api/notifications', {
         headers: outsider.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       await createTestCard(owner, board.id, statusId, {
         title: 'Non-member mention test',
@@ -278,7 +278,7 @@ describe('Notifications', () => {
 
       const afterNotifications = await $fetch('/api/notifications', {
         headers: outsider.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       expect(afterNotifications.length).toBe(beforeNotifications.length)
     })
@@ -288,7 +288,7 @@ describe('Notifications', () => {
     it('marks a notification as read', async () => {
       const notifications = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       const unread = notifications.find(n => !n.readAt)
       expect(unread).toBeDefined()
@@ -296,13 +296,13 @@ describe('Notifications', () => {
       const result = await $fetch(`/api/notifications/${unread.id}`, {
         method: 'PATCH',
         headers: member.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(result.ok).toBe(true)
 
       const updated = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       const readNotification = updated.find(n => n.id === unread.id)
       expect(readNotification.readAt).not.toBeNull()
@@ -311,7 +311,7 @@ describe('Notifications', () => {
     it('returns 404 for other user notification', async () => {
       const notifications = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       if (notifications.length > 0) {
         const res = await fetch(url(`/api/notifications/${notifications[0].id}`), {
@@ -332,7 +332,7 @@ describe('Notifications', () => {
 
       const result = await $fetch('/api/notifications/unread-count', {
         headers: member.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(result.count).toBe(0)
     })
@@ -342,7 +342,7 @@ describe('Notifications', () => {
     it('deletes all read notifications', async () => {
       const beforeNotifications = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
       const readCount = beforeNotifications.filter(n => n.readAt).length
       expect(readCount).toBeGreaterThan(0)
 
@@ -353,7 +353,7 @@ describe('Notifications', () => {
 
       const afterNotifications = await $fetch('/api/notifications', {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       // All remaining should be unread
       expect(afterNotifications.every(n => !n.readAt)).toBe(true)

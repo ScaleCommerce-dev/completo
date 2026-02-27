@@ -17,7 +17,7 @@ describe('Token Management API', async () => {
         method: 'POST',
         body: { name: 'My Token' },
         headers: user.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(result.id).toBeDefined()
       expect(result.name).toBe('My Token')
@@ -32,7 +32,7 @@ describe('Token Management API', async () => {
         method: 'POST',
         body: { name: 'Expiring Token', expiresInDays: 30 },
         headers: user.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(result.expiresAt).toBeDefined()
       const expiresAt = new Date(result.expiresAt).getTime()
@@ -95,7 +95,7 @@ describe('Token Management API', async () => {
     it('lists tokens without raw token', async () => {
       const tokens = await $fetch('/api/user/tokens', {
         headers: user.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       expect(tokens.length).toBeGreaterThanOrEqual(2)
       for (const token of tokens) {
@@ -112,7 +112,7 @@ describe('Token Management API', async () => {
     it('only shows own tokens', async () => {
       const otherTokens = await $fetch('/api/user/tokens', {
         headers: otherUser.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       // otherUser hasn't created any tokens yet
       expect(otherTokens.length).toBe(0)
@@ -125,12 +125,12 @@ describe('Token Management API', async () => {
         method: 'POST',
         body: { name: 'To Delete' },
         headers: user.headers
-      }) as any
+      }) as Record<string, unknown>
 
       const result = await $fetch(`/api/user/tokens/${created.id}`, {
         method: 'DELETE',
         headers: user.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(result.success).toBe(true)
     })
@@ -140,7 +140,7 @@ describe('Token Management API', async () => {
         method: 'POST',
         body: { name: 'Other User Token' },
         headers: otherUser.headers
-      }) as any
+      }) as Record<string, unknown>
 
       const res = await fetch(new URL(`/api/user/tokens/${created.id}`, 'http://localhost:43210'), {
         method: 'DELETE',

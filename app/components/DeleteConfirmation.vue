@@ -27,7 +27,10 @@ function onConfirm() {
 </script>
 
 <template>
-  <div v-if="show" class="rounded-lg border border-red-200/60 dark:border-red-800/40 bg-red-50/50 dark:bg-red-950/20 p-3">
+  <div
+    v-if="show"
+    class="rounded-lg border border-red-200/60 dark:border-red-800/40 bg-red-50/50 dark:bg-red-950/20 p-3"
+  >
     <p class="text-[13px] font-medium text-red-600 dark:text-red-400 mb-2">
       {{ message }} Type <span class="font-bold">{{ name }}</span> to confirm.
     </p>
@@ -37,15 +40,23 @@ function onConfirm() {
         type="text"
         :placeholder="name"
         class="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
-      />
+      >
       <button
         type="button"
         class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         :disabled="!valid || loading"
         @click="onConfirm"
       >
-        <UIcon v-if="!loading" name="i-lucide-trash-2" class="text-[13px]" />
-        <UIcon v-else name="i-lucide-loader-2" class="text-[13px] animate-spin" />
+        <UIcon
+          v-if="!loading"
+          name="i-lucide-trash-2"
+          class="text-[13px]"
+        />
+        <UIcon
+          v-else
+          name="i-lucide-loader-2"
+          class="text-[13px] animate-spin"
+        />
         Delete
       </button>
       <button

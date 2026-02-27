@@ -178,10 +178,10 @@ export async function sendProjectNotificationEmail(to: string, inviterName: stri
   const html = buildEmailHtml({
     preheader: `${inviterName} just added you to the crew.`,
     heading: 'You\'re on the board!',
-    body: `${inviterName} added you to <strong style="color:#4f46e5;">${projectName}</strong>. Everything\'s ready to start: Drap. Drop. Get Stuff Completo.`,
+    body: `${inviterName} added you to <strong style="color:#4f46e5;">${projectName}</strong>. Everything's ready to start: Drap. Drop. Get Stuff Completo.`,
     ctaUrl: projectUrl,
     ctaLabel: `Open ${projectName}`,
-    footnote: `You\'re receiving this because ${inviterName} added you to a project on Completo.`,
+    footnote: `You're receiving this because ${inviterName} added you to a project on Completo.`,
     baseUrl
   })
 
@@ -201,10 +201,10 @@ export async function sendAccountInviteEmail(to: string, inviterName: string, pr
   const html = buildEmailHtml({
     preheader: 'Your seat at the table is waiting.',
     heading: 'You\'ve been invited!',
-    body: `${inviterName} wants you on <strong style="color:#4f46e5;">${projectName}</strong>. Create your account and you\'ll land right in the project - cards piled high, toppings included.`,
+    body: `${inviterName} wants you on <strong style="color:#4f46e5;">${projectName}</strong>. Create your account and you'll land right in the project - cards piled high, toppings included.`,
     ctaUrl: registerUrl,
     ctaLabel: 'Create Account &amp; Join',
-    footnote: `This invitation expires in 7 days. If you don\'t know ${inviterName}, you can safely ignore this.`,
+    footnote: `This invitation expires in 7 days. If you don't know ${inviterName}, you can safely ignore this.`,
     baseUrl
   })
 
@@ -224,7 +224,7 @@ export async function sendAccountSetupEmail(to: string, adminName: string, setup
   const html = buildEmailHtml({
     preheader: `${adminName} set you up. Time to make it yours.`,
     heading: 'Welcome to the crew!',
-    body: `${adminName} created a Completo account for you. One quick step - set your password and you\'re in: Drag, drop, get stuff Completo.`,
+    body: `${adminName} created a Completo account for you. One quick step - set your password and you're in: Drag, drop, get stuff Completo.`,
     ctaUrl: setupUrl,
     ctaLabel: 'Set Your Password',
     footnote: 'This link expires in 24 hours. If you didn\'t expect this, you can safely ignore it.',

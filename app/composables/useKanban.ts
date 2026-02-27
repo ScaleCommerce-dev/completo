@@ -1,5 +1,3 @@
-import type { Ref } from 'vue'
-
 interface Tag {
   id: string
   name: string
@@ -199,8 +197,8 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
 
   async function updateTagFilters(tagIds: string[]) {
     try {
-      await $fetch(`/api/boards/${boardId.value}`, {
-        method: 'PUT' as any,
+      await $fetch(`/api/boards/${boardId.value}` as string, {
+        method: 'PUT' as const,
         body: { tagFilters: tagIds }
       })
       await refresh()
@@ -231,7 +229,7 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
   async function reorderColumns(columns: { id: string, position: number }[]) {
     try {
       await $fetch(`/api/boards/${boardId.value}/columns/reorder`, {
-        method: 'PUT' as any,
+        method: 'PUT',
         body: { columns }
       })
       await refresh()
@@ -244,16 +242,17 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
   async function renameBoard(name: string): Promise<string | null> {
     const slug = generateSlug(name)
     try {
-      await $fetch(`/api/boards/${boardId.value}`, {
-        method: 'PUT' as any,
+      await $fetch(`/api/boards/${boardId.value}` as string, {
+        method: 'PUT' as const,
         body: { name, slug }
       })
       toast.add({ title: 'Board renamed', color: 'success' })
       return slug
-    } catch (e: any) {
-      if (e?.data?.statusCode === 409) {
-        await $fetch(`/api/boards/${boardId.value}`, {
-          method: 'PUT' as any,
+    } catch (e: unknown) {
+      const err = e as { data?: { statusCode?: number } }
+      if (err?.data?.statusCode === 409) {
+        await $fetch(`/api/boards/${boardId.value}` as string, {
+          method: 'PUT' as const,
           body: { name }
         })
         toast.add({ title: 'Board renamed', color: 'success' })

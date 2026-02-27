@@ -7,10 +7,10 @@ describe('Resource-level authorization', async () => {
   let owner: TestUser
   let member: TestUser
   let stranger: TestUser
-  let project: { id: string; name: string; slug: string; key: string }
-  let board: { id: string; name: string; slug: string; projectId: string }
+  let project: { id: string, name: string, slug: string, key: string }
+  let board: { id: string, name: string, slug: string, projectId: string }
   let fullBoard: Awaited<ReturnType<typeof getBoard>>
-  let card: { id: number; statusId: string; projectId: string }
+  let card: { id: number, statusId: string, projectId: string }
 
   beforeAll(async () => {
     owner = await registerTestUser()
@@ -39,7 +39,7 @@ describe('Resource-level authorization', async () => {
     it('allows member access', async () => {
       const res = await $fetch(`/api/projects/${project.id}`, {
         headers: member.headers
-      }) as any
+      }) as Record<string, unknown>
       expect(res.id).toBe(project.id)
     })
 
@@ -64,7 +64,7 @@ describe('Resource-level authorization', async () => {
         method: 'PUT',
         body: { name: project.name },
         headers: owner.headers
-      }) as any
+      }) as Record<string, unknown>
       expect(res.id).toBe(project.id)
     })
 
@@ -111,7 +111,7 @@ describe('Resource-level authorization', async () => {
     it('allows member access', async () => {
       const res = await $fetch(`/api/projects/${project.id}/members`, {
         headers: member.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
       expect(res.length).toBeGreaterThanOrEqual(2)
     })
 
@@ -161,7 +161,7 @@ describe('Resource-level authorization', async () => {
     it('allows member access', async () => {
       const res = await $fetch(`/api/boards/${board.id}`, {
         headers: member.headers
-      }) as any
+      }) as Record<string, unknown>
       expect(res.id).toBe(board.id)
     })
 
@@ -249,7 +249,7 @@ describe('Resource-level authorization', async () => {
         method: 'POST',
         body: { name: `Temp Col ${Date.now()}` },
         headers: owner.headers
-      }) as any
+      }) as Record<string, unknown>
 
       const res = await fetch(url(`/api/statuses/${col.id}`), {
         method: 'DELETE',
@@ -278,7 +278,7 @@ describe('Resource-level authorization', async () => {
         method: 'PUT',
         body: { title: 'Updated by member' },
         headers: member.headers
-      }) as any
+      }) as Record<string, unknown>
       expect(res.title).toBe('Updated by member')
     })
 

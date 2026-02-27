@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'User not found' })
   }
 
-  const updates: Record<string, any> = {}
+  const updates: Record<string, Date | number | null> = {}
 
   if (typeof body.suspended === 'boolean') {
     updates.suspendedAt = body.suspended ? new Date() : null

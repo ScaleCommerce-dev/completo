@@ -9,7 +9,7 @@ const props = defineProps<{
 
 // Guard against duplicate extension registration (HMR)
 const _markedConfigured = '__markedMentionConfigured'
-if (!(globalThis as any)[_markedConfigured]) {
+if (!(globalThis as Record<string, unknown>)[_markedConfigured]) {
   marked.setOptions({
     breaks: true,
     gfm: true
@@ -29,14 +29,14 @@ if (!(globalThis as any)[_markedConfigured]) {
         }
       }
     },
-    renderer(token: any) {
+    renderer(token: { name: string }) {
       const escaped = token.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       return `<span class="mention">@${escaped}</span>`
     }
   }
 
   marked.use({ extensions: [mentionExtension] })
-  ;(globalThis as any)[_markedConfigured] = true
+  ;(globalThis as Record<string, unknown>)[_markedConfigured] = true
 }
 
 // Force rel="noopener noreferrer" on all links

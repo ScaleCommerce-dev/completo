@@ -18,7 +18,7 @@ describe('Project briefing field', () => {
         briefing: '# Project Context\nThis is a web app for managing tasks.'
       },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(project.briefing).toBe('# Project Context\nThis is a web app for managing tasks.')
   })
@@ -28,7 +28,7 @@ describe('Project briefing field', () => {
     expect(project).toBeTruthy()
     const detail = await $fetch(`/api/projects/${project.id}`, {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(detail.briefing).toBeNull()
   })
 
@@ -39,7 +39,7 @@ describe('Project briefing field', () => {
       method: 'PUT',
       body: { briefing: 'Updated briefing content' },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(updated.briefing).toBe('Updated briefing content')
   })
@@ -57,7 +57,7 @@ describe('Project briefing field', () => {
       method: 'PUT',
       body: { briefing: '' },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(updated.briefing).toBeNull()
   })
@@ -73,7 +73,7 @@ describe('Project briefing field', () => {
 
     const detail = await $fetch(`/api/projects/${project.id}`, {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(detail.briefing).toBe('## Tech Stack\nNuxt 4 + SQLite')
   })

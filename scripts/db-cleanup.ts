@@ -30,14 +30,15 @@ const db = new Database(dbPath)
 db.pragma('foreign_keys = ON')
 
 // Count orphans
-const orphanCards = db.prepare(`SELECT COUNT(*) as cnt FROM cards WHERE project_id NOT IN (SELECT id FROM projects)`).get() as any
-const orphanStatuses = db.prepare(`SELECT COUNT(*) as cnt FROM statuses WHERE project_id NOT IN (SELECT id FROM projects)`).get() as any
-const orphanBoards = db.prepare(`SELECT COUNT(*) as cnt FROM boards WHERE project_id NOT IN (SELECT id FROM projects)`).get() as any
-const orphanBoardCols = db.prepare(`SELECT COUNT(*) as cnt FROM board_columns WHERE board_id NOT IN (SELECT id FROM boards)`).get() as any
-const orphanMembers = db.prepare(`SELECT COUNT(*) as cnt FROM project_members WHERE project_id NOT IN (SELECT id FROM projects)`).get() as any
+interface CountRow { cnt: number }
+const orphanCards = db.prepare(`SELECT COUNT(*) as cnt FROM cards WHERE project_id NOT IN (SELECT id FROM projects)`).get() as CountRow
+const orphanStatuses = db.prepare(`SELECT COUNT(*) as cnt FROM statuses WHERE project_id NOT IN (SELECT id FROM projects)`).get() as CountRow
+const orphanBoards = db.prepare(`SELECT COUNT(*) as cnt FROM boards WHERE project_id NOT IN (SELECT id FROM projects)`).get() as CountRow
+const orphanBoardCols = db.prepare(`SELECT COUNT(*) as cnt FROM board_columns WHERE board_id NOT IN (SELECT id FROM boards)`).get() as CountRow
+const orphanMembers = db.prepare(`SELECT COUNT(*) as cnt FROM project_members WHERE project_id NOT IN (SELECT id FROM projects)`).get() as CountRow
 
-const expiredInvitations = db.prepare(`SELECT COUNT(*) as cnt FROM project_invitations WHERE expires_at < unixepoch() * 1000`).get() as any
-const expiredVerifTokens = db.prepare(`SELECT COUNT(*) as cnt FROM email_verification_tokens WHERE expires_at < unixepoch() * 1000`).get() as any
+const expiredInvitations = db.prepare(`SELECT COUNT(*) as cnt FROM project_invitations WHERE expires_at < unixepoch() * 1000`).get() as CountRow
+const expiredVerifTokens = db.prepare(`SELECT COUNT(*) as cnt FROM email_verification_tokens WHERE expires_at < unixepoch() * 1000`).get() as CountRow
 
 const totalOrphans = orphanCards.cnt + orphanStatuses.cnt + orphanBoards.cnt + orphanBoardCols.cnt + orphanMembers.cnt
 
@@ -83,7 +84,7 @@ try {
   const { readdirSync } = await import('node:fs')
   const files = readdirSync(uploadDir)
   const knownKeys = new Set(
-    (db.prepare('SELECT storage_key FROM attachments').all() as any[]).map(r => r.storage_key)
+    (db.prepare('SELECT storage_key FROM attachments').all() as Array<{ storage_key: string }>).map(r => r.storage_key)
   )
   let orphanFiles = 0
   for (const file of files) {
@@ -97,8 +98,8 @@ try {
   } else {
     console.log(`\nNo orphan attachment files found`)
   }
-} catch (e: any) {
-  if (e.code === 'ENOENT') {
+} catch (e: unknown) {
+  if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
     console.log(`\nNo uploads directory found (${uploadDir}), skipping attachment cleanup`)
   } else {
     throw e

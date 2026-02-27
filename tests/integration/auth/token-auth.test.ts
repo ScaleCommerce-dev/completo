@@ -15,14 +15,14 @@ describe('Token Authentication', async () => {
   it('authenticates GET /api/projects with Bearer token', async () => {
     const projects = await $fetch('/api/projects', {
       headers: tokenData.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
     expect(Array.isArray(projects)).toBe(true)
   })
 
   it('authenticates GET /api/my-tasks with Bearer token', async () => {
     const tasks = await $fetch('/api/my-tasks', {
       headers: tokenData.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(tasks).toBeDefined()
   })
 
@@ -31,7 +31,7 @@ describe('Token Authentication', async () => {
       method: 'POST',
       body: { name: `Token Project ${Date.now()}` },
       headers: tokenData.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(project.id).toBeDefined()
     expect(project.name).toContain('Token Project')
   })
@@ -52,7 +52,7 @@ describe('Token Authentication', async () => {
     // For now, verify the non-expired token works
     const result = await $fetch('/api/projects', {
       headers: expToken.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
     expect(Array.isArray(result)).toBe(true)
   })
 
@@ -62,7 +62,7 @@ describe('Token Authentication', async () => {
     // Verify it works
     const result = await $fetch('/api/projects', {
       headers: tempToken.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
     expect(Array.isArray(result)).toBe(true)
 
     // Delete the token
@@ -106,8 +106,8 @@ describe('Token Authentication', async () => {
     // Check lastUsedAt is set
     const tokens = await $fetch('/api/user/tokens', {
       headers: user.headers
-    }) as any[]
-    const found = tokens.find((t: any) => t.id === freshToken.id)
+    }) as Record<string, unknown>[]
+    const found = tokens.find((t: Record<string, unknown>) => t.id === freshToken.id)
     expect(found).toBeDefined()
     expect(found.lastUsedAt).toBeDefined()
   })

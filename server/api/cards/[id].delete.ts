@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
 
   // Clean up files on disk (best effort)
   if (attachmentKeys.length > 0) {
-    storage.deleteMany(attachmentKeys).catch(err => {
+    storage.deleteMany(attachmentKeys).catch((err) => {
       console.error('Failed to clean up attachment files:', err)
     })
   }

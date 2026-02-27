@@ -8,8 +8,8 @@ describe('Board/card GET includes tags', async () => {
   let projectId: string
   let boardId: string
   let statusId: string
-  let tag1: { id: string; name: string; color: string }
-  let tag2: { id: string; name: string; color: string }
+  let tag1: { id: string, name: string, color: string }
+  let tag2: { id: string, name: string, color: string }
 
   beforeAll(async () => {
     owner = await registerTestUser()
@@ -30,18 +30,18 @@ describe('Board/card GET includes tags', async () => {
     const card = await createTestCard(owner, boardId, statusId)
     await setCardTags(owner, card.id, [tag1.id, tag2.id])
 
-    const boardData = await getBoard(owner, boardId) as any
-    const boardCard = boardData.cards.find((c: any) => c.id === card.id)
+    const boardData = await getBoard(owner, boardId) as Record<string, unknown>
+    const boardCard = boardData.cards.find((c: Record<string, unknown>) => c.id === card.id)
 
     expect(boardCard).toBeDefined()
     expect(boardCard.tags).toHaveLength(2)
-    expect(boardCard.tags.map((t: any) => t.name).sort()).toEqual(['TagA', 'TagB'])
+    expect(boardCard.tags.map((t: Record<string, unknown>) => t.name).sort()).toEqual(['TagA', 'TagB'])
   })
 
   it('includes project tags in board response', async () => {
     const boardData = await $fetch(`/api/boards/${boardId}`, {
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(boardData.tags).toBeDefined()
     expect(boardData.tags.length).toBeGreaterThanOrEqual(2)
@@ -52,8 +52,8 @@ describe('Board/card GET includes tags', async () => {
 
   it('card with no tags has empty tags array', async () => {
     const card = await createTestCard(owner, boardId, statusId)
-    const boardData = await getBoard(owner, boardId) as any
-    const boardCard = boardData.cards.find((c: any) => c.id === card.id)
+    const boardData = await getBoard(owner, boardId) as Record<string, unknown>
+    const boardCard = boardData.cards.find((c: Record<string, unknown>) => c.id === card.id)
 
     expect(boardCard).toBeDefined()
     expect(boardCard.tags).toEqual([])
@@ -65,7 +65,7 @@ describe('Board/card GET includes tags', async () => {
 
     const cardData = await $fetch(`/api/cards/${card.id}`, {
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(cardData.tags).toHaveLength(1)
     expect(cardData.tags[0].name).toBe('TagA')
@@ -87,7 +87,7 @@ describe('Board/card GET includes tags', async () => {
     // Card should have no tags
     const cardData = await $fetch(`/api/cards/${card.id}`, {
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(cardData.tags).toHaveLength(0)
   })
 })

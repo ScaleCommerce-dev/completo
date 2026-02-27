@@ -1,8 +1,8 @@
 import { eq, and, ne } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user, board } = await resolveBoard(event)
-  const { name, slug, tagFilters } = await readBody<{ name?: string; slug?: string; tagFilters?: string[] }>(event)
+  const { user: _user, board } = await resolveBoard(event)
+  const { name, slug, tagFilters } = await readBody<{ name?: string, slug?: string, tagFilters?: string[] }>(event)
 
   if (!name && !slug && tagFilters === undefined) {
     throw createError({ statusCode: 400, message: 'Name, slug, or tagFilters is required' })

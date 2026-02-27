@@ -126,18 +126,18 @@ async function deleteAccount() {
 
 <template>
   <div class="px-8 pt-8 max-w-[640px]">
-
     <!-- Header -->
     <div class="flex items-center justify-end mb-4">
       <NotificationBell />
     </div>
 
     <!-- Profile form -->
-    <form @submit.prevent="saveProfile" @keydown="handleProfileKeydown">
-
+    <form
+      @submit.prevent="saveProfile"
+      @keydown="handleProfileKeydown"
+    >
       <!-- Profile card with integrated identity header -->
       <div class="rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 bg-white dark:bg-zinc-800/80 shadow-sm overflow-hidden">
-
         <!-- Identity header: Avatar + Name + Email -->
         <div class="flex items-center gap-4 px-5 pt-5 pb-4">
           <!-- Avatar -->
@@ -147,7 +147,7 @@ async function deleteAccount() {
               :src="gravatarUrl"
               alt="Profile photo"
               class="w-16 h-16 rounded-full ring-[3px] ring-white dark:ring-zinc-800 shadow-md shadow-zinc-900/8 dark:shadow-black/20 object-cover"
-            />
+            >
             <div
               v-else
               class="w-16 h-16 rounded-full ring-[3px] ring-white dark:ring-zinc-800 shadow-md shadow-zinc-900/8 dark:shadow-black/20 bg-gradient-to-br from-indigo-400 via-violet-400 to-purple-500 flex items-center justify-center"
@@ -162,18 +162,36 @@ async function deleteAccount() {
               type="text"
               placeholder="Your name..."
               class="w-full text-[18px] font-bold text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b-2 border-transparent hover:border-zinc-200/60 dark:hover:border-zinc-700/40 focus:border-indigo-500/40 dark:focus:border-indigo-400/30 rounded-none outline-none! ring-0! tracking-[-0.02em] leading-tight py-0.5 transition-colors"
-            />
+            >
             <div class="flex items-center gap-1.5 mt-1">
-              <UIcon name="i-lucide-mail" class="text-[11px] text-zinc-300 dark:text-zinc-600" />
+              <UIcon
+                name="i-lucide-mail"
+                class="text-[11px] text-zinc-300 dark:text-zinc-600"
+              />
               <span class="text-[13px] text-zinc-400 dark:text-zinc-500 truncate">{{ user?.email }}</span>
             </div>
-            <div v-if="profileData" class="flex items-center gap-3 mt-1.5">
-              <div v-if="profileData.createdAt" class="flex items-center gap-1">
-                <UIcon name="i-lucide-calendar" class="text-[10px] text-zinc-300 dark:text-zinc-600" />
+            <div
+              v-if="profileData"
+              class="flex items-center gap-3 mt-1.5"
+            >
+              <div
+                v-if="profileData.createdAt"
+                class="flex items-center gap-1"
+              >
+                <UIcon
+                  name="i-lucide-calendar"
+                  class="text-[10px] text-zinc-300 dark:text-zinc-600"
+                />
                 <span class="text-[11px] text-zinc-400 dark:text-zinc-500">Member since {{ formatDate(profileData.createdAt) }}</span>
               </div>
-              <div v-if="profileData.lastSeenAt" class="flex items-center gap-1">
-                <UIcon name="i-lucide-activity" class="text-[10px] text-zinc-300 dark:text-zinc-600" />
+              <div
+                v-if="profileData.lastSeenAt"
+                class="flex items-center gap-1"
+              >
+                <UIcon
+                  name="i-lucide-activity"
+                  class="text-[10px] text-zinc-300 dark:text-zinc-600"
+                />
                 <span class="text-[11px] text-zinc-400 dark:text-zinc-500">Active {{ relativeTime(profileData.lastSeenAt) }}</span>
               </div>
             </div>
@@ -190,9 +208,15 @@ async function deleteAccount() {
 
         <div class="mx-5 mt-2 rounded-lg border border-zinc-200 dark:border-zinc-700/50 divide-y divide-zinc-100 dark:divide-zinc-700/40 overflow-hidden">
           <!-- Avatar row: Gravatar detected (not overriding) -->
-          <div v-if="hasGravatar && !gravatarOverride" class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
+          <div
+            v-if="hasGravatar && !gravatarOverride"
+            class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50"
+          >
             <div class="flex items-center gap-2 w-28 shrink-0">
-              <UIcon name="i-lucide-image" class="text-sm text-zinc-400" />
+              <UIcon
+                name="i-lucide-image"
+                class="text-sm text-zinc-400"
+              />
               <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">Avatar</span>
             </div>
             <div class="flex flex-1 items-center justify-between">
@@ -207,9 +231,15 @@ async function deleteAccount() {
             </div>
           </div>
           <!-- Avatar URL row: no Gravatar or overriding -->
-          <div v-else-if="hasGravatar === false || gravatarOverride" class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
+          <div
+            v-else-if="hasGravatar === false || gravatarOverride"
+            class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50"
+          >
             <div class="flex items-center gap-2 w-28 shrink-0">
-              <UIcon name="i-lucide-image" class="text-sm text-zinc-400" />
+              <UIcon
+                name="i-lucide-image"
+                class="text-sm text-zinc-400"
+              />
               <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">Avatar URL</span>
             </div>
             <div class="flex flex-1 items-center gap-2">
@@ -218,7 +248,7 @@ async function deleteAccount() {
                 type="text"
                 placeholder="https://..."
                 class="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
-              />
+              >
               <button
                 v-if="gravatarOverride"
                 type="button"
@@ -233,7 +263,10 @@ async function deleteAccount() {
           <!-- Theme row -->
           <div class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
             <div class="flex items-center gap-2 w-28 shrink-0">
-              <UIcon name="i-lucide-sun-moon" class="text-sm text-zinc-400" />
+              <UIcon
+                name="i-lucide-sun-moon"
+                class="text-sm text-zinc-400"
+              />
               <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">Theme</span>
             </div>
             <div class="flex gap-1">
@@ -245,7 +278,10 @@ async function deleteAccount() {
                 :class="profileColorMode === option.value ? 'bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50'"
                 @click="profileColorMode = option.value"
               >
-                <UIcon :name="option.icon" class="text-[13px]" />
+                <UIcon
+                  :name="option.icon"
+                  class="text-[13px]"
+                />
                 {{ option.label }}
               </button>
             </div>
@@ -253,14 +289,26 @@ async function deleteAccount() {
         </div>
 
         <!-- Profile error -->
-        <div v-if="profileError" class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40">
-          <UIcon name="i-lucide-alert-circle" class="text-[14px] text-red-500 shrink-0" />
+        <div
+          v-if="profileError"
+          class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
+        >
+          <UIcon
+            name="i-lucide-alert-circle"
+            class="text-[14px] text-red-500 shrink-0"
+          />
           <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ profileError }}</span>
         </div>
 
         <!-- Profile success -->
-        <div v-if="profileSuccess" class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40">
-          <UIcon name="i-lucide-check-circle" class="text-[14px] text-emerald-500 shrink-0" />
+        <div
+          v-if="profileSuccess"
+          class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40"
+        >
+          <UIcon
+            name="i-lucide-check-circle"
+            class="text-[14px] text-emerald-500 shrink-0"
+          />
           <span class="text-[13px] font-medium text-emerald-600 dark:text-emerald-400">Profile updated</span>
         </div>
 
@@ -275,8 +323,16 @@ async function deleteAccount() {
               class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               :disabled="!profileName.trim() || profileLoading"
             >
-              <UIcon v-if="!profileLoading" name="i-lucide-check" class="text-[14px]" />
-              <UIcon v-else name="i-lucide-loader-2" class="text-[14px] animate-spin" />
+              <UIcon
+                v-if="!profileLoading"
+                name="i-lucide-check"
+                class="text-[14px]"
+              />
+              <UIcon
+                v-else
+                name="i-lucide-loader-2"
+                class="text-[14px] animate-spin"
+              />
               Save
             </button>
           </div>
@@ -285,7 +341,10 @@ async function deleteAccount() {
     </form>
 
     <!-- Activity & Stats card -->
-    <div v-if="profileData" class="mt-6 rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 bg-white dark:bg-zinc-800/80 shadow-sm overflow-hidden">
+    <div
+      v-if="profileData"
+      class="mt-6 rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 bg-white dark:bg-zinc-800/80 shadow-sm overflow-hidden"
+    >
       <div class="px-5 pt-4 pb-2">
         <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400 dark:text-zinc-500">Activity</span>
       </div>
@@ -298,7 +357,10 @@ async function deleteAccount() {
         </div>
 
         <!-- Stacked bar -->
-        <div v-if="profileData.totalOpen > 0" class="h-2 rounded-full overflow-hidden flex bg-zinc-100 dark:bg-zinc-700/50 mb-3">
+        <div
+          v-if="profileData.totalOpen > 0"
+          class="h-2 rounded-full overflow-hidden flex bg-zinc-100 dark:bg-zinc-700/50 mb-3"
+        >
           <div
             v-if="profileData.priorityCounts.urgent"
             class="h-full transition-all duration-500"
@@ -334,8 +396,14 @@ async function deleteAccount() {
             class="flex items-center gap-1.5 px-2 py-1 rounded-md"
             :class="p.bg"
           >
-            <UIcon :name="priorityIcon(p.key)" class="text-[15px] shrink-0" />
-            <span class="text-[12px] font-semibold tabular-nums" :class="p.text">
+            <UIcon
+              :name="priorityIcon(p.key)"
+              class="text-[15px] shrink-0"
+            />
+            <span
+              class="text-[12px] font-semibold tabular-nums"
+              :class="p.text"
+            >
               {{ (profileData.priorityCounts as unknown as PriorityCounts)[p.key as keyof PriorityCounts] || 0 }}
             </span>
             <span class="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">{{ p.label }}</span>
@@ -344,7 +412,10 @@ async function deleteAccount() {
       </div>
 
       <!-- Projects section -->
-      <div v-if="profileData.projects?.length" class="border-t border-zinc-100 dark:border-zinc-700/40">
+      <div
+        v-if="profileData.projects?.length"
+        class="border-t border-zinc-100 dark:border-zinc-700/40"
+      >
         <div class="px-5 pt-3 pb-1">
           <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400 dark:text-zinc-500">Projects</span>
         </div>
@@ -359,7 +430,10 @@ async function deleteAccount() {
               class="flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
               :style="{ backgroundColor: accentFor(project) + '14', color: accentFor(project) }"
             >
-              <UIcon :name="`i-lucide-${project.icon || 'folder'}`" class="text-[15px]" />
+              <UIcon
+                :name="`i-lucide-${project.icon || 'folder'}`"
+                class="text-[15px]"
+              />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5">
@@ -377,15 +451,24 @@ async function deleteAccount() {
                 ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 dark:text-indigo-400'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'"
             >{{ project.role }}</span>
-            <UIcon name="i-lucide-chevron-right" class="text-[14px] text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-400 dark:group-hover:text-zinc-500 transition-colors shrink-0" />
+            <UIcon
+              name="i-lucide-chevron-right"
+              class="text-[14px] text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-400 dark:group-hover:text-zinc-500 transition-colors shrink-0"
+            />
           </NuxtLink>
         </div>
       </div>
 
       <!-- Empty state -->
-      <div v-else-if="profileData.totalOpen === 0 && !profileData.projects?.length" class="px-5 pb-4">
+      <div
+        v-else-if="profileData.totalOpen === 0 && !profileData.projects?.length"
+        class="px-5 pb-4"
+      >
         <div class="flex items-center gap-2 text-[13px] text-zinc-400 dark:text-zinc-500">
-          <UIcon name="i-lucide-inbox" class="text-[15px]" />
+          <UIcon
+            name="i-lucide-inbox"
+            class="text-[15px]"
+          />
           <span>No project memberships yet</span>
         </div>
       </div>
@@ -405,7 +488,10 @@ async function deleteAccount() {
         <!-- Current password -->
         <div class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
           <div class="flex items-center gap-2 w-28 shrink-0">
-            <UIcon name="i-lucide-lock" class="text-sm text-zinc-400" />
+            <UIcon
+              name="i-lucide-lock"
+              class="text-sm text-zinc-400"
+            />
             <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">Current</span>
           </div>
           <input
@@ -414,13 +500,16 @@ async function deleteAccount() {
             placeholder="Current password"
             autocomplete="current-password"
             class="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
-          />
+          >
         </div>
 
         <!-- New password -->
         <div class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
           <div class="flex items-center gap-2 w-28 shrink-0">
-            <UIcon name="i-lucide-key-round" class="text-sm text-zinc-400" />
+            <UIcon
+              name="i-lucide-key-round"
+              class="text-sm text-zinc-400"
+            />
             <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">New</span>
           </div>
           <input
@@ -429,13 +518,16 @@ async function deleteAccount() {
             placeholder="New password (min 6 chars)"
             autocomplete="new-password"
             class="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
-          />
+          >
         </div>
 
         <!-- Confirm password -->
         <div class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
           <div class="flex items-center gap-2 w-28 shrink-0">
-            <UIcon name="i-lucide-check-circle" class="text-sm text-zinc-400" />
+            <UIcon
+              name="i-lucide-check-circle"
+              class="text-sm text-zinc-400"
+            />
             <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">Confirm</span>
           </div>
           <input
@@ -444,19 +536,31 @@ async function deleteAccount() {
             placeholder="Confirm new password"
             autocomplete="new-password"
             class="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
-          />
+          >
         </div>
       </div>
 
       <!-- Password error -->
-      <div v-if="passwordError" class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40">
-        <UIcon name="i-lucide-alert-circle" class="text-[14px] text-red-500 shrink-0" />
+      <div
+        v-if="passwordError"
+        class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
+      >
+        <UIcon
+          name="i-lucide-alert-circle"
+          class="text-[14px] text-red-500 shrink-0"
+        />
         <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ passwordError }}</span>
       </div>
 
       <!-- Password success -->
-      <div v-if="passwordSuccess" class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40">
-        <UIcon name="i-lucide-check-circle" class="text-[14px] text-emerald-500 shrink-0" />
+      <div
+        v-if="passwordSuccess"
+        class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40"
+      >
+        <UIcon
+          name="i-lucide-check-circle"
+          class="text-[14px] text-emerald-500 shrink-0"
+        />
         <span class="text-[13px] font-medium text-emerald-600 dark:text-emerald-400">Password changed</span>
       </div>
 
@@ -479,7 +583,10 @@ async function deleteAccount() {
             v-else-if="newPassword && confirmPassword && newPassword === confirmPassword && newPassword.length >= 6"
             class="flex items-center gap-1 text-[12px] font-medium text-emerald-500 dark:text-emerald-400"
           >
-            <UIcon name="i-lucide-check" class="text-[12px]" />
+            <UIcon
+              name="i-lucide-check"
+              class="text-[12px]"
+            />
             Ready
           </span>
         </div>
@@ -493,8 +600,16 @@ async function deleteAccount() {
             class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             :disabled="!currentPassword || !newPassword || newPassword !== confirmPassword || newPassword.length < 6 || passwordLoading"
           >
-            <UIcon v-if="!passwordLoading" name="i-lucide-lock" class="text-[14px]" />
-            <UIcon v-else name="i-lucide-loader-2" class="text-[14px] animate-spin" />
+            <UIcon
+              v-if="!passwordLoading"
+              name="i-lucide-lock"
+              class="text-[14px]"
+            />
+            <UIcon
+              v-else
+              name="i-lucide-loader-2"
+              class="text-[14px] animate-spin"
+            />
             Change Password
           </button>
         </div>
@@ -505,7 +620,9 @@ async function deleteAccount() {
         <div class="flex items-center justify-between">
           <div>
             <span class="text-[13px] font-medium text-zinc-600 dark:text-zinc-300">Session</span>
-            <p class="text-[12px] text-zinc-400 dark:text-zinc-500 mt-0.5">Sign out of your account on this device</p>
+            <p class="text-[12px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+              Sign out of your account on this device
+            </p>
           </div>
           <button
             type="button"
@@ -513,8 +630,16 @@ async function deleteAccount() {
             :disabled="signingOut"
             @click="signOut"
           >
-            <UIcon v-if="!signingOut" name="i-lucide-log-out" class="text-[14px]" />
-            <UIcon v-else name="i-lucide-loader-2" class="text-[14px] animate-spin" />
+            <UIcon
+              v-if="!signingOut"
+              name="i-lucide-log-out"
+              class="text-[14px]"
+            />
+            <UIcon
+              v-else
+              name="i-lucide-loader-2"
+              class="text-[14px] animate-spin"
+            />
             Sign Out
           </button>
         </div>
@@ -524,7 +649,10 @@ async function deleteAccount() {
     <!-- API Tokens card -->
     <div class="mt-6 rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 bg-white dark:bg-zinc-800/80 shadow-sm overflow-hidden">
       <div class="px-5 pt-4 pb-2 flex items-center gap-2">
-        <UIcon name="i-lucide-key-round" class="text-[14px] text-zinc-400" />
+        <UIcon
+          name="i-lucide-key-round"
+          class="text-[14px] text-zinc-400"
+        />
         <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400 dark:text-zinc-500">API Tokens</span>
       </div>
 
@@ -544,16 +672,26 @@ async function deleteAccount() {
             maxlength="100"
             class="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
             @keydown.enter.prevent="createToken"
-          />
+          >
           <select
             v-model="tokenExpiry"
             class="text-[13px] text-zinc-500 dark:text-zinc-400 bg-transparent border-0 outline-none! ring-0! cursor-pointer"
           >
-            <option value="">No expiry</option>
-            <option value="30">30 days</option>
-            <option value="60">60 days</option>
-            <option value="90">90 days</option>
-            <option value="365">1 year</option>
+            <option value="">
+              No expiry
+            </option>
+            <option value="30">
+              30 days
+            </option>
+            <option value="60">
+              60 days
+            </option>
+            <option value="90">
+              90 days
+            </option>
+            <option value="365">
+              1 year
+            </option>
           </select>
           <button
             type="button"
@@ -561,17 +699,31 @@ async function deleteAccount() {
             :disabled="!tokenName.trim() || tokenLoading"
             @click="createToken"
           >
-            <UIcon v-if="!tokenLoading" name="i-lucide-plus" class="text-[14px]" />
-            <UIcon v-else name="i-lucide-loader-2" class="text-[14px] animate-spin" />
+            <UIcon
+              v-if="!tokenLoading"
+              name="i-lucide-plus"
+              class="text-[14px]"
+            />
+            <UIcon
+              v-else
+              name="i-lucide-loader-2"
+              class="text-[14px] animate-spin"
+            />
             Create
           </button>
         </div>
       </div>
 
       <!-- Created token banner (one-time display) -->
-      <div v-if="createdToken" class="mx-5 mt-3 rounded-lg border border-emerald-200/60 dark:border-emerald-800/40 bg-emerald-50/50 dark:bg-emerald-950/20 p-3">
+      <div
+        v-if="createdToken"
+        class="mx-5 mt-3 rounded-lg border border-emerald-200/60 dark:border-emerald-800/40 bg-emerald-50/50 dark:bg-emerald-950/20 p-3"
+      >
         <div class="flex items-center gap-2 mb-2">
-          <UIcon name="i-lucide-check-circle" class="text-[14px] text-emerald-500 shrink-0" />
+          <UIcon
+            name="i-lucide-check-circle"
+            class="text-[14px] text-emerald-500 shrink-0"
+          />
           <span class="text-[13px] font-medium text-emerald-600 dark:text-emerald-400">Token "{{ createdTokenName }}" created. Copy it now — it won't be shown again.</span>
         </div>
         <div class="flex items-center gap-2">
@@ -582,7 +734,10 @@ async function deleteAccount() {
             :class="tokenCopied ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700/50'"
             @click="copyToken"
           >
-            <UIcon :name="tokenCopied ? 'i-lucide-check' : 'i-lucide-copy'" class="text-[13px]" />
+            <UIcon
+              :name="tokenCopied ? 'i-lucide-check' : 'i-lucide-copy'"
+              class="text-[13px]"
+            />
             {{ tokenCopied ? 'Copied!' : 'Copy' }}
           </button>
           <button
@@ -596,7 +751,10 @@ async function deleteAccount() {
       </div>
 
       <!-- Token list -->
-      <div v-if="tokens.length > 0" class="mx-5 mt-3 mb-5 rounded-lg border border-zinc-200 dark:border-zinc-700/50 divide-y divide-zinc-100 dark:divide-zinc-700/40 overflow-hidden">
+      <div
+        v-if="tokens.length > 0"
+        class="mx-5 mt-3 mb-5 rounded-lg border border-zinc-200 dark:border-zinc-700/50 divide-y divide-zinc-100 dark:divide-zinc-700/40 overflow-hidden"
+      >
         <div
           v-for="token in tokens"
           :key="token.id"
@@ -613,26 +771,41 @@ async function deleteAccount() {
             </div>
             <div class="flex items-center gap-3 mt-0.5">
               <span class="text-[11px] text-zinc-400 dark:text-zinc-500">Created {{ formatTokenDate(token.createdAt) }}</span>
-              <span v-if="token.expiresAt" class="text-[11px] text-zinc-400 dark:text-zinc-500">
+              <span
+                v-if="token.expiresAt"
+                class="text-[11px] text-zinc-400 dark:text-zinc-500"
+              >
                 {{ token.isExpired ? 'Expired' : 'Expires' }} {{ formatTokenDate(token.expiresAt) }}
               </span>
-              <span v-if="token.lastUsedAt" class="text-[11px] text-zinc-400 dark:text-zinc-500">Last used {{ relativeTime(token.lastUsedAt) }}</span>
+              <span
+                v-if="token.lastUsedAt"
+                class="text-[11px] text-zinc-400 dark:text-zinc-500"
+              >Last used {{ relativeTime(token.lastUsedAt) }}</span>
             </div>
           </div>
 
           <!-- Delete button / confirmation -->
           <div class="shrink-0 ml-3">
-            <UTooltip v-if="deletingTokenId !== token.id" text="Delete token">
+            <UTooltip
+              v-if="deletingTokenId !== token.id"
+              text="Delete token"
+            >
               <button
                 type="button"
                 class="flex items-center gap-1 px-2 py-1 rounded-md text-[12px] font-medium text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60"
                 style="opacity: 0.6"
                 @click="startDeleteToken(token.id)"
               >
-                <UIcon name="i-lucide-trash-2" class="text-[13px]" />
+                <UIcon
+                  name="i-lucide-trash-2"
+                  class="text-[13px]"
+                />
               </button>
             </UTooltip>
-            <div v-else class="flex items-center gap-1.5">
+            <div
+              v-else
+              class="flex items-center gap-1.5"
+            >
               <button
                 type="button"
                 class="px-2 py-1 rounded-md text-[12px] font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
@@ -653,9 +826,15 @@ async function deleteAccount() {
       </div>
 
       <!-- Empty state -->
-      <div v-else class="px-5 pb-5 pt-2">
+      <div
+        v-else
+        class="px-5 pb-5 pt-2"
+      >
         <div class="flex items-center gap-2 text-[13px] text-zinc-400 dark:text-zinc-500">
-          <UIcon name="i-lucide-key-round" class="text-[14px]" />
+          <UIcon
+            name="i-lucide-key-round"
+            class="text-[14px]"
+          />
           <span>No API tokens yet</span>
         </div>
       </div>
@@ -675,19 +854,28 @@ async function deleteAccount() {
           Permanently delete your account and all associated data. This removes your project memberships and unassigns you from any cards. This action cannot be undone.
         </p>
 
-        <div v-if="!showDeleteAccount" class="mt-3">
+        <div
+          v-if="!showDeleteAccount"
+          class="mt-3"
+        >
           <button
             type="button"
             class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
             @click="showDeleteAccount = true; deleteEmail = ''; deletePassword = ''; deleteError = ''"
           >
-            <UIcon name="i-lucide-trash-2" class="text-[14px]" />
+            <UIcon
+              name="i-lucide-trash-2"
+              class="text-[14px]"
+            />
             Delete Account
           </button>
         </div>
 
         <!-- Inline confirmation panel -->
-        <div v-else class="mt-3 rounded-lg border border-red-200/60 dark:border-red-800/40 bg-red-50/50 dark:bg-red-950/20 p-3 space-y-3">
+        <div
+          v-else
+          class="mt-3 rounded-lg border border-red-200/60 dark:border-red-800/40 bg-red-50/50 dark:bg-red-950/20 p-3 space-y-3"
+        >
           <p class="text-[13px] font-medium text-red-600 dark:text-red-400">
             Type your email <span class="font-bold">{{ user?.email }}</span> and enter your password to confirm.
           </p>
@@ -698,19 +886,25 @@ async function deleteAccount() {
               type="email"
               placeholder="Your email address"
               class="w-full text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
-            />
+            >
             <input
               v-model="deletePassword"
               type="password"
               placeholder="Your password"
               autocomplete="current-password"
               class="w-full text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
-            />
+            >
           </div>
 
           <!-- Delete error -->
-          <div v-if="deleteError" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40">
-            <UIcon name="i-lucide-alert-circle" class="text-[14px] text-red-500 shrink-0" />
+          <div
+            v-if="deleteError"
+            class="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
+          >
+            <UIcon
+              name="i-lucide-alert-circle"
+              class="text-[14px] text-red-500 shrink-0"
+            />
             <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ deleteError }}</span>
           </div>
 
@@ -721,8 +915,16 @@ async function deleteAccount() {
               :disabled="!deleteEmailValid || !deletePassword || deleteLoading"
               @click="deleteAccount"
             >
-              <UIcon v-if="!deleteLoading" name="i-lucide-trash-2" class="text-[13px]" />
-              <UIcon v-else name="i-lucide-loader-2" class="text-[13px] animate-spin" />
+              <UIcon
+                v-if="!deleteLoading"
+                name="i-lucide-trash-2"
+                class="text-[13px]"
+              />
+              <UIcon
+                v-else
+                name="i-lucide-loader-2"
+                class="text-[13px] animate-spin"
+              />
               Delete My Account
             </button>
             <button
@@ -736,6 +938,5 @@ async function deleteAccount() {
         </div>
       </div>
     </div>
-
   </div>
 </template>

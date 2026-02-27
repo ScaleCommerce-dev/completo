@@ -1,10 +1,17 @@
 <script setup lang="ts">
 const draggable = defineAsyncComponent(() => import('vuedraggable'))
 
+interface ColumnItem {
+  id: string
+  name: string
+  color?: string | null
+  position?: number
+}
+
 const props = defineProps<{
-  columns: any[]
+  columns: ColumnItem[]
   boardId: string
-  availableColumns?: any[]
+  availableColumns?: ColumnItem[]
   canAddColumns?: boolean
   tags?: Array<{ id: string, name: string, color: string }>
   activeTagFilters?: string[]
@@ -15,18 +22,18 @@ const props = defineProps<{
 const open = defineModel<boolean>('open', { default: false })
 
 const emit = defineEmits<{
-  add: [name: string, color?: string]
-  update: [columnId: string, updates: { name?: string, color?: string }]
-  delete: [columnId: string]
-  reorder: [columns: { id: string, position: number }[]]
-  link: [statusId: string]
+  'add': [name: string, color?: string]
+  'update': [columnId: string, updates: { name?: string, color?: string }]
+  'delete': [columnId: string]
+  'reorder': [columns: { id: string, position: number }[]]
+  'link': [statusId: string]
   'update-tag-filters': [tagIds: string[]]
-  rename: [name: string]
+  'rename': [name: string]
   'delete-view': []
 }>()
 
 // Local state — buffered until Save
-const localColumns = ref<any[]>([])
+const localColumns = ref<ColumnItem[]>([])
 const localTagFilters = ref<Set<string>>(new Set())
 const editName = ref('')
 
@@ -39,7 +46,7 @@ function resetToProps() {
   localColumns.value = [...props.columns]
   localTagFilters.value = new Set(props.activeTagFilters || [])
   editName.value = props.viewName || ''
-  snapshotColumnOrder.value = props.columns.map((c: any) => c.id)
+  snapshotColumnOrder.value = props.columns.map(c => c.id)
   snapshotTagFilters.value = [...(props.activeTagFilters || [])]
   snapshotName.value = props.viewName || ''
 }
@@ -58,7 +65,7 @@ watch(open, (isOpen) => {
 watch(() => props.columns, (cols) => {
   if (open.value) {
     localColumns.value = [...cols]
-    snapshotColumnOrder.value = cols.map((c: any) => c.id)
+    snapshotColumnOrder.value = cols.map(c => c.id)
   }
 }, { immediate: true })
 
@@ -98,7 +105,7 @@ function toggleTagFilter(tagId: string) {
 // Dirty detection
 const isDirty = computed(() => {
   if (editName.value.trim() !== snapshotName.value) return true
-  const currentOrder = localColumns.value.map((c: any) => c.id)
+  const currentOrder = localColumns.value.map(c => c.id)
   if (currentOrder.length !== snapshotColumnOrder.value.length
     || currentOrder.some((id, i) => id !== snapshotColumnOrder.value[i])) return true
   const currentFilters = [...localTagFilters.value].sort()
@@ -110,14 +117,17 @@ const isDirty = computed(() => {
 
 // Save — emit only what changed
 function save() {
-  if (!isDirty.value) { open.value = false; return }
+  if (!isDirty.value) {
+    open.value = false
+    return
+  }
 
   const trimmedName = editName.value.trim()
   if (trimmedName && trimmedName !== snapshotName.value) {
     emit('rename', trimmedName)
   }
 
-  const currentOrder = localColumns.value.map((c: any) => c.id)
+  const currentOrder = localColumns.value.map(c => c.id)
   const orderChanged = currentOrder.length !== snapshotColumnOrder.value.length
     || currentOrder.some((id, i) => id !== snapshotColumnOrder.value[i])
   if (orderChanged) {
@@ -183,12 +193,15 @@ function handleDeleteView() {
               placeholder="Board name..."
               class="w-full text-[16px] font-semibold text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-zinc-200 dark:focus:border-zinc-700 rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
               @keydown.enter="($event.target as HTMLInputElement).blur()"
-            />
+            >
           </div>
         </template>
 
         <div class="flex items-center gap-1.5 mb-1">
-          <UIcon name="i-lucide-columns-3" class="text-[13px] text-zinc-400 dark:text-zinc-500" />
+          <UIcon
+            name="i-lucide-columns-3"
+            class="text-[13px] text-zinc-400 dark:text-zinc-500"
+          />
           <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Columns</span>
         </div>
         <ClientOnly>
@@ -209,7 +222,10 @@ function handleDeleteView() {
                   name="i-lucide-grip-vertical"
                   class="drag-handle text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing text-[15px] shrink-0 transition-colors"
                 />
-                <UPopover v-if="canAddColumns" v-model:open="colorPopoverOpen[col.id]">
+                <UPopover
+                  v-if="canAddColumns"
+                  v-model:open="colorPopoverOpen[col.id]"
+                >
                   <button
                     type="button"
                     class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-indigo-400 transition-all cursor-pointer"
@@ -217,7 +233,10 @@ function handleDeleteView() {
                   />
                   <template #content>
                     <div class="p-2">
-                      <ColorPicker :model-value="col.color || '#a1a1aa'" @update:model-value="pickColor(col.id, $event)" />
+                      <ColorPicker
+                        :model-value="col.color || '#a1a1aa'"
+                        @update:model-value="pickColor(col.id, $event)"
+                      />
                     </div>
                   </template>
                 </UPopover>
@@ -245,7 +264,11 @@ function handleDeleteView() {
 
         <USeparator class="my-2" />
 
-        <form v-if="canAddColumns" class="flex items-center gap-2" @submit.prevent="addColumn">
+        <form
+          v-if="canAddColumns"
+          class="flex items-center gap-2"
+          @submit.prevent="addColumn"
+        >
           <UPopover v-model:open="newColorOpen">
             <button
               type="button"
@@ -258,14 +281,27 @@ function handleDeleteView() {
               </div>
             </template>
           </UPopover>
-          <UInput v-model="newColumnName" placeholder="New column name (project-wide)" class="flex-1" size="sm" />
-          <UButton type="submit" icon="i-lucide-plus" label="Add" size="sm" />
+          <UInput
+            v-model="newColumnName"
+            placeholder="New column name (project-wide)"
+            class="flex-1"
+            size="sm"
+          />
+          <UButton
+            type="submit"
+            icon="i-lucide-plus"
+            label="Add"
+            size="sm"
+          />
         </form>
 
         <template v-if="availableColumns?.length">
           <USeparator class="my-2" />
           <div class="flex items-center gap-1.5 mb-1">
-            <UIcon name="i-lucide-plus-circle" class="text-[13px] text-zinc-400 dark:text-zinc-500" />
+            <UIcon
+              name="i-lucide-plus-circle"
+              class="text-[13px] text-zinc-400 dark:text-zinc-500"
+            />
             <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Available Columns</span>
           </div>
           <div
@@ -291,9 +327,15 @@ function handleDeleteView() {
         <template v-if="tags?.length">
           <USeparator class="my-2" />
           <div class="flex items-center gap-1.5 mb-1">
-            <UIcon name="i-lucide-filter" class="text-[13px] text-zinc-400 dark:text-zinc-500" />
+            <UIcon
+              name="i-lucide-filter"
+              class="text-[13px] text-zinc-400 dark:text-zinc-500"
+            />
             <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Tag Filters</span>
-            <span v-if="!localTagFilters.size" class="ml-auto text-[11px] text-zinc-300 dark:text-zinc-600 italic">All cards shown</span>
+            <span
+              v-if="!localTagFilters.size"
+              class="ml-auto text-[11px] text-zinc-300 dark:text-zinc-600 italic"
+            >All cards shown</span>
           </div>
           <div class="flex flex-wrap gap-1.5">
             <button
@@ -320,13 +362,15 @@ function handleDeleteView() {
             </button>
           </div>
         </template>
-
       </div>
     </template>
 
     <template #footer>
       <!-- Delete confirmation replaces footer -->
-      <div v-if="showDeleteConfirm" class="px-5 pt-4 pb-5 border-t border-red-200/40 dark:border-red-800/30 bg-red-50/30 dark:bg-red-950/10">
+      <div
+        v-if="showDeleteConfirm"
+        class="px-5 pt-4 pb-5 border-t border-red-200/40 dark:border-red-800/30 bg-red-50/30 dark:bg-red-950/10"
+      >
         <p class="text-[13px] font-medium text-red-600 dark:text-red-400 mb-2">
           This will permanently delete this {{ viewType || 'view' }}. Type <span class="font-bold">{{ viewName }}</span> to confirm.
         </p>
@@ -336,15 +380,23 @@ function handleDeleteView() {
             type="text"
             :placeholder="viewName"
             class="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
-          />
+          >
           <button
             type="button"
             class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             :disabled="!deleteConfirmValid || deletingView"
             @click="handleDeleteView"
           >
-            <UIcon v-if="!deletingView" name="i-lucide-trash-2" class="text-[13px]" />
-            <UIcon v-else name="i-lucide-loader-2" class="text-[13px] animate-spin" />
+            <UIcon
+              v-if="!deletingView"
+              name="i-lucide-trash-2"
+              class="text-[13px]"
+            />
+            <UIcon
+              v-else
+              name="i-lucide-loader-2"
+              class="text-[13px] animate-spin"
+            />
             Delete
           </button>
           <button
@@ -358,8 +410,13 @@ function handleDeleteView() {
       </div>
 
       <!-- Close warning replaces footer -->
-      <div v-else-if="showCloseWarning" class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-amber-200/40 dark:border-amber-800/30 bg-amber-50/30 dark:bg-amber-950/10">
-        <p class="text-[13px] font-medium text-amber-600 dark:text-amber-400">Discard unsaved changes?</p>
+      <div
+        v-else-if="showCloseWarning"
+        class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-amber-200/40 dark:border-amber-800/30 bg-amber-50/30 dark:bg-amber-950/10"
+      >
+        <p class="text-[13px] font-medium text-amber-600 dark:text-amber-400">
+          Discard unsaved changes?
+        </p>
         <div class="flex items-center gap-2">
           <button
             type="button"
@@ -379,7 +436,10 @@ function handleDeleteView() {
       </div>
 
       <!-- Normal footer -->
-      <div v-else class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-zinc-100 dark:border-zinc-700/40">
+      <div
+        v-else
+        class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-zinc-100 dark:border-zinc-700/40"
+      >
         <div>
           <button
             v-if="viewName !== undefined"
@@ -387,7 +447,10 @@ function handleDeleteView() {
             class="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[12px] font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
             @click="showDeleteConfirm = true; deleteConfirmName = ''"
           >
-            <UIcon name="i-lucide-trash-2" class="text-[13px]" />
+            <UIcon
+              name="i-lucide-trash-2"
+              class="text-[13px]"
+            />
             Delete
           </button>
         </div>

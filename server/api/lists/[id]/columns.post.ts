@@ -3,7 +3,7 @@ import { eq, and } from 'drizzle-orm'
 const VALID_FIELDS = ['ticketId', 'title', 'status', 'assignee', 'priority', 'tags', 'dueDate', 'createdAt', 'updatedAt', 'description', 'done']
 
 export default defineEventHandler(async (event) => {
-  const { user, list } = await resolveList(event)
+  const { user: _user, list } = await resolveList(event)
   const { field } = await readBody<{ field: string }>(event)
 
   if (!field) {

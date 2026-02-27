@@ -4,7 +4,7 @@ const DEFAULT_COLUMNS = ['ticketId', 'title', 'status', 'priority', 'assignee', 
 
 export default defineEventHandler(async (event) => {
   const { user, project } = await resolveProject(event)
-  const body = await readBody<{ name: string; slug?: string; columns?: string[]; tagFilters?: string[] }>(event)
+  const body = await readBody<{ name: string, slug?: string, columns?: string[], tagFilters?: string[] }>(event)
 
   if (!body.name) {
     throw createError({ statusCode: 400, message: 'List name is required' })

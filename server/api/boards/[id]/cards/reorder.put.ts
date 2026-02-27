@@ -1,7 +1,7 @@
 import { eq, and, inArray } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user, board } = await resolveBoard(event, { columnAccess: false })
+  const { user: _user, board } = await resolveBoard(event, { columnAccess: false })
   const { moves } = await readBody<{ moves: { cardId: number, statusId: string, position: number }[] }>(event)
 
   if (!moves?.length) {

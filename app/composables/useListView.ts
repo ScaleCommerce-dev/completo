@@ -171,8 +171,8 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
 
   async function updateTagFilters(tagIds: string[]) {
     try {
-      await $fetch(`/api/lists/${listId.value}`, {
-        method: 'PUT' as any,
+      await $fetch(`/api/lists/${listId.value}` as string, {
+        method: 'PUT' as const,
         body: { tagFilters: tagIds }
       })
       await refresh()
@@ -194,8 +194,8 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
 
   async function saveSort(field: string | null, direction: 'asc' | 'desc' | null) {
     try {
-      await $fetch(`/api/lists/${listId.value}`, {
-        method: 'PUT' as any,
+      await $fetch(`/api/lists/${listId.value}` as string, {
+        method: 'PUT' as const,
         body: { sortField: field, sortDirection: direction }
       })
       await refresh()
@@ -208,16 +208,17 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
   async function renameList(name: string): Promise<string | null> {
     const slug = generateSlug(name)
     try {
-      await $fetch(`/api/lists/${listId.value}`, {
-        method: 'PUT' as any,
+      await $fetch(`/api/lists/${listId.value}` as string, {
+        method: 'PUT' as const,
         body: { name, slug }
       })
       toast.add({ title: 'List renamed', color: 'success' })
       return slug
-    } catch (e: any) {
-      if (e?.data?.statusCode === 409) {
-        await $fetch(`/api/lists/${listId.value}`, {
-          method: 'PUT' as any,
+    } catch (e: unknown) {
+      const err = e as { data?: { statusCode?: number } }
+      if (err?.data?.statusCode === 409) {
+        await $fetch(`/api/lists/${listId.value}` as string, {
+          method: 'PUT' as const,
           body: { name }
         })
         toast.add({ title: 'List renamed', color: 'success' })

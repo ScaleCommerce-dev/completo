@@ -35,7 +35,7 @@ describe('POST /api/admin/users (create user)', () => {
       headers: admin.headers
     })
 
-    const users = await $fetch('/api/admin/users', { headers: admin.headers }) as any[]
+    const users = await $fetch('/api/admin/users', { headers: admin.headers }) as Record<string, unknown>[]
     const found = users.find(u => u.email === email.toLowerCase())
     expect(found).toBeDefined()
     expect(found.name).toBe('List Check User')
@@ -114,12 +114,12 @@ describe('POST /auth/setup-account', () => {
       method: 'POST',
       body: { name: 'Setup User', email },
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
 
     // Get verification token via test endpoint
     const tokenInfo = await $fetch('/api/_test/get-verification-token', {
       params: { userId: created.id }
-    }) as any
+    }) as Record<string, unknown>
 
     // Setup account
     const setupRes = await fetch(url('/auth/setup-account'), {
@@ -156,11 +156,11 @@ describe('POST /auth/setup-account', () => {
       method: 'POST',
       body: { name: 'Short PW', email },
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
 
     const tokenInfo = await $fetch('/api/_test/get-verification-token', {
       params: { userId: created.id }
-    }) as any
+    }) as Record<string, unknown>
 
     const res = await fetch(url('/auth/setup-account'), {
       method: 'POST',
@@ -181,7 +181,7 @@ describe('POST /auth/setup-account', () => {
       method: 'POST',
       body: { name: 'Setup Inv User', email },
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
 
     // Invite that email to a project
     await fetch(url(`/api/projects/${invProject.id}/members`), {
@@ -193,7 +193,7 @@ describe('POST /auth/setup-account', () => {
     // Get verification token
     const tokenInfo = await $fetch('/api/_test/get-verification-token', {
       params: { userId: created.id }
-    }) as any
+    }) as Record<string, unknown>
 
     // Setup account
     const setupRes = await fetch(url('/auth/setup-account'), {
@@ -213,7 +213,7 @@ describe('POST /auth/setup-account', () => {
 
     const members = await $fetch(`/api/projects/${invProject.id}/members`, {
       headers: { cookie }
-    }) as any[]
+    }) as Record<string, unknown>[]
     const found = members.find(m => m.id === created.id)
     expect(found).toBeDefined()
   })

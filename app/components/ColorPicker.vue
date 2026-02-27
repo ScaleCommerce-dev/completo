@@ -72,7 +72,7 @@ function onHexBlur() {
         @input="onHexInput"
         @blur="onHexBlur"
         @keydown.enter.prevent="onHexBlur"
-      />
+      >
     </div>
   </div>
 </template>

@@ -48,7 +48,6 @@ function goHome() {
 
     <!-- Content -->
     <div class="relative z-10 w-full max-w-[380px] flex flex-col items-center text-center">
-
       <!-- Fallen card illustration -->
       <div class="error-fallen-card mb-6">
         <div class="w-[180px] rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/60 shadow-xl shadow-zinc-900/[0.06] dark:shadow-black/30 p-3.5">
@@ -85,7 +84,10 @@ function goHome() {
         class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/25 transition-all active:scale-[0.97]"
         @click="goHome"
       >
-        <UIcon name="i-lucide-arrow-left" class="text-[14px]" />
+        <UIcon
+          name="i-lucide-arrow-left"
+          class="text-[14px]"
+        />
         Back to home
       </button>
     </div>

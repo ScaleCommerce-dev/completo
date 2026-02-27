@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user, board } = await resolveBoard(event)
+  const { user: _user, board } = await resolveBoard(event)
   const { columns: columnOrder } = await readBody<{ columns: { id: string, position: number }[] }>(event)
 
   if (!columnOrder?.length) {

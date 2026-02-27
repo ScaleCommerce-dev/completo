@@ -1,11 +1,18 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
-const { data: skills, refresh } = await useFetch<any[]>('/api/admin/skills')
+interface Skill {
+  id: string
+  name: string
+  prompt: string
+  scope: 'card' | 'board'
+}
+
+const { data: skills, refresh } = await useFetch<Skill[]>('/api/admin/skills')
 
 // Create/Edit modal
 const showModal = ref(false)
-const editTarget = ref<any>(null)
+const editTarget = ref<Skill | null>(null)
 const modalName = ref('')
 const modalPrompt = ref('')
 const modalScope = ref<'card' | 'board'>('card')
@@ -23,7 +30,7 @@ function openCreate() {
   showModal.value = true
 }
 
-function openEdit(skill: any) {
+function openEdit(skill: Skill) {
   editTarget.value = skill
   modalName.value = skill.name
   modalPrompt.value = skill.prompt
@@ -41,7 +48,7 @@ async function saveSkill() {
   modalError.value = ''
   try {
     if (isEdit.value) {
-      await $fetch(`/api/admin/skills/${editTarget.value.id}`, {
+      await $fetch(`/api/admin/skills/${editTarget.value!.id}`, {
         method: 'PUT',
         body: {
           name: modalName.value.trim(),
@@ -61,8 +68,8 @@ async function saveSkill() {
     }
     showModal.value = false
     await refresh()
-  } catch (e: any) {
-    modalError.value = e?.data?.message || 'Failed to save skill'
+  } catch (e: unknown) {
+    modalError.value = getErrorMessage(e, 'Failed to save skill')
   } finally {
     modalSaving.value = false
   }
@@ -70,10 +77,10 @@ async function saveSkill() {
 
 // Delete
 const showDeleteModal = ref(false)
-const deleteTarget = ref<any>(null)
+const deleteTarget = ref<Skill | null>(null)
 const deleting = ref(false)
 
-function openDelete(skill: any) {
+function openDelete(skill: Skill) {
   deleteTarget.value = skill
   showDeleteModal.value = true
 }
@@ -82,7 +89,7 @@ async function confirmDelete() {
   if (!deleteTarget.value) return
   deleting.value = true
   try {
-    await $fetch(`/api/admin/skills/${deleteTarget.value.id}`, { method: 'DELETE' as any })
+    await $fetch(`/api/admin/skills/${deleteTarget.value.id}` as string, { method: 'DELETE' as const })
     showDeleteModal.value = false
     deleteTarget.value = null
     await refresh()
@@ -101,8 +108,12 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
   <div class="p-6 max-w-5xl h-full overflow-y-auto">
     <div class="flex items-center justify-between mb-8">
       <div>
-        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">AI Skills</h1>
-        <p class="text-[14px] text-zinc-500 dark:text-zinc-400 mt-1">Configurable prompt templates for AI writing</p>
+        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+          AI Skills
+        </h1>
+        <p class="text-[14px] text-zinc-500 dark:text-zinc-400 mt-1">
+          Configurable prompt templates for AI writing
+        </p>
       </div>
       <div class="flex items-center gap-3">
         <NotificationBell />
@@ -110,35 +121,55 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
           class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all"
           @click="openCreate"
         >
-          <UIcon name="i-lucide-plus" class="text-[14px]" />
+          <UIcon
+            name="i-lucide-plus"
+            class="text-[14px]"
+          />
           Add Skill
         </button>
       </div>
     </div>
 
     <!-- Empty state -->
-    <div v-if="!(skills as any[])?.length" class="text-center py-16">
-      <UIcon name="i-lucide-sparkles" class="text-[32px] text-zinc-300 dark:text-zinc-600 mb-3" />
-      <p class="text-[14px] text-zinc-500 dark:text-zinc-400">No AI skills configured yet</p>
+    <div
+      v-if="!skills?.length"
+      class="text-center py-16"
+    >
+      <UIcon
+        name="i-lucide-sparkles"
+        class="text-[32px] text-zinc-300 dark:text-zinc-600 mb-3"
+      />
+      <p class="text-[14px] text-zinc-500 dark:text-zinc-400">
+        No AI skills configured yet
+      </p>
       <button
         class="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-indigo-500 hover:text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 transition-all"
         @click="openCreate"
       >
-        <UIcon name="i-lucide-plus" class="text-[13px]" />
+        <UIcon
+          name="i-lucide-plus"
+          class="text-[13px]"
+        />
         Create your first skill
       </button>
     </div>
 
     <!-- Skills grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+    <div
+      v-else
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
+    >
       <div
-        v-for="skill in (skills as any[])"
+        v-for="skill in skills"
         :key="skill.id"
         class="group rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-md hover:shadow-indigo-500/5 p-4 transition-all"
       >
         <div class="flex items-start justify-between gap-2 mb-2">
           <div class="flex items-center gap-2 min-w-0">
-            <UIcon name="i-lucide-wand-sparkles" class="text-[14px] text-violet-500 shrink-0" />
+            <UIcon
+              name="i-lucide-wand-sparkles"
+              class="text-[14px] text-violet-500 shrink-0"
+            />
             <h3 class="font-bold text-[14.5px] tracking-[-0.01em] text-zinc-900 dark:text-zinc-100 truncate">
               {{ skill.name }}
             </h3>
@@ -149,7 +180,10 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
                 class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all"
                 @click="openEdit(skill)"
               >
-                <UIcon name="i-lucide-pencil" class="text-sm" />
+                <UIcon
+                  name="i-lucide-pencil"
+                  class="text-sm"
+                />
               </button>
             </UTooltip>
             <UTooltip text="Delete">
@@ -157,7 +191,10 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
                 class="p-1.5 rounded-md text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
                 @click="openDelete(skill)"
               >
-                <UIcon name="i-lucide-trash-2" class="text-sm" />
+                <UIcon
+                  name="i-lucide-trash-2"
+                  class="text-sm"
+                />
               </button>
             </UTooltip>
           </div>
@@ -179,7 +216,10 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
     </div>
 
     <!-- Create/Edit Modal -->
-    <UModal v-model:open="showModal" :ui="{ content: 'sm:max-w-[520px]' }">
+    <UModal
+      v-model:open="showModal"
+      :ui="{ content: 'sm:max-w-[520px]' }"
+    >
       <template #content>
         <div class="rounded-xl bg-white dark:bg-zinc-800/80 overflow-hidden">
           <div class="px-5 pt-5 pb-4">
@@ -198,7 +238,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
                   type="text"
                   placeholder="e.g. Generate Description"
                   class="w-full px-3 py-2 text-[14px] text-zinc-700 dark:text-zinc-200 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/60 rounded-lg outline-none focus:border-indigo-300 dark:focus:border-indigo-600 transition-colors"
-                />
+                >
               </div>
 
               <!-- Scope -->
@@ -244,8 +284,14 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
           </div>
 
           <!-- Error -->
-          <div v-if="modalError" class="mx-5 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40">
-            <UIcon name="i-lucide-alert-circle" class="text-[14px] text-red-500 shrink-0" />
+          <div
+            v-if="modalError"
+            class="mx-5 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
+          >
+            <UIcon
+              name="i-lucide-alert-circle"
+              class="text-[14px] text-red-500 shrink-0"
+            />
             <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ modalError }}</span>
           </div>
 
@@ -264,7 +310,11 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
               :disabled="!modalName.trim() || !modalPrompt.trim() || modalSaving"
               @click="saveSkill"
             >
-              <UIcon v-if="modalSaving" name="i-lucide-loader-2" class="text-[14px] animate-spin" />
+              <UIcon
+                v-if="modalSaving"
+                name="i-lucide-loader-2"
+                class="text-[14px] animate-spin"
+              />
               {{ isEdit ? 'Save' : 'Create' }}
             </button>
           </div>
@@ -279,14 +329,24 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
           <div class="px-5 pt-5 pb-4">
             <div class="flex items-center gap-3 mb-4">
               <div class="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-950/30">
-                <UIcon name="i-lucide-alert-triangle" class="text-lg text-red-500" />
+                <UIcon
+                  name="i-lucide-alert-triangle"
+                  class="text-lg text-red-500"
+                />
               </div>
               <div>
-                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">Delete Skill</h2>
-                <p class="text-[13px] text-zinc-500 dark:text-zinc-400">This action cannot be undone</p>
+                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+                  Delete Skill
+                </h2>
+                <p class="text-[13px] text-zinc-500 dark:text-zinc-400">
+                  This action cannot be undone
+                </p>
               </div>
             </div>
-            <p v-if="deleteTarget" class="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+            <p
+              v-if="deleteTarget"
+              class="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed"
+            >
               Are you sure you want to delete <strong class="text-zinc-700 dark:text-zinc-200">"{{ deleteTarget.name }}"</strong>?
             </p>
           </div>
@@ -304,8 +364,16 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
               :disabled="deleting"
               @click="confirmDelete"
             >
-              <UIcon v-if="!deleting" name="i-lucide-trash-2" class="text-[14px]" />
-              <UIcon v-else name="i-lucide-loader-2" class="text-[14px] animate-spin" />
+              <UIcon
+                v-if="!deleting"
+                name="i-lucide-trash-2"
+                class="text-[14px]"
+              />
+              <UIcon
+                v-else
+                name="i-lucide-loader-2"
+                class="text-[14px] animate-spin"
+              />
               Delete
             </button>
           </div>

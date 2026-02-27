@@ -30,8 +30,8 @@ describe('Board-level column operations', async () => {
     const full2After = await getBoard(user, board2.id)
     expect(full1After.columns).toHaveLength(4)
     expect(full2After.columns).toHaveLength(5)
-    expect(full1After.columns.find((c: any) => c.id === colToRemove.id)).toBeUndefined()
-    expect(full2After.columns.find((c: any) => c.id === colToRemove.id)).toBeTruthy()
+    expect(full1After.columns.find((c: Record<string, unknown>) => c.id === colToRemove.id)).toBeUndefined()
+    expect(full2After.columns.find((c: Record<string, unknown>) => c.id === colToRemove.id)).toBeTruthy()
   })
 
   it('unlinking a column does not delete the status or its cards', async () => {
@@ -48,12 +48,12 @@ describe('Board-level column operations', async () => {
     })
 
     const fullAfter = await getBoard(user, board.id)
-    expect(fullAfter.columns.find((c: any) => c.id === col.id)).toBeUndefined()
+    expect(fullAfter.columns.find((c: Record<string, unknown>) => c.id === col.id)).toBeUndefined()
 
     // Status should still exist at project level (visible as availableColumn)
     expect(fullAfter.availableColumns).toBeDefined()
-    const available = (fullAfter as any).availableColumns as any[]
-    expect(available.find((c: any) => c.id === col.id)).toBeTruthy()
+    const available = (fullAfter as Record<string, unknown>).availableColumns as Record<string, unknown>[]
+    expect(available.find((c: Record<string, unknown>) => c.id === col.id)).toBeTruthy()
   })
 
   it('links an existing project status to a board', async () => {
@@ -66,25 +66,25 @@ describe('Board-level column operations', async () => {
       method: 'POST',
       body: { name: 'Board1 Only', color: '#f97316' },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     const full2Before = await getBoard(user, board2.id)
-    expect(full2Before.columns.find((c: any) => c.id === newCol.id)).toBeUndefined()
-    expect((full2Before as any).availableColumns.find((c: any) => c.id === newCol.id)).toBeTruthy()
+    expect(full2Before.columns.find((c: Record<string, unknown>) => c.id === newCol.id)).toBeUndefined()
+    expect((full2Before as Record<string, unknown>).availableColumns.find((c: Record<string, unknown>) => c.id === newCol.id)).toBeTruthy()
 
     // Link it to board2
     const linked = await $fetch(`/api/boards/${board2.id}/columns/link`, {
       method: 'POST',
       body: { statusId: newCol.id },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(linked.id).toBe(newCol.id)
     expect(linked.name).toBe('Board1 Only')
 
     const full2After = await getBoard(user, board2.id)
-    expect(full2After.columns.find((c: any) => c.id === newCol.id)).toBeTruthy()
-    expect((full2After as any).availableColumns.find((c: any) => c.id === newCol.id)).toBeUndefined()
+    expect(full2After.columns.find((c: Record<string, unknown>) => c.id === newCol.id)).toBeTruthy()
+    expect((full2After as Record<string, unknown>).availableColumns.find((c: Record<string, unknown>) => c.id === newCol.id)).toBeUndefined()
   })
 
   it('rejects linking a column already on the board', async () => {
@@ -112,12 +112,12 @@ describe('Board-level column operations', async () => {
 
     const full1 = await getBoard(user, board1.id)
     const full2 = await getBoard(user, board2.id)
-    expect(full1.columns.find((c: any) => c.name === 'Project Wide')).toBeUndefined()
-    expect(full2.columns.find((c: any) => c.name === 'Project Wide')).toBeUndefined()
+    expect(full1.columns.find((c: Record<string, unknown>) => c.name === 'Project Wide')).toBeUndefined()
+    expect(full2.columns.find((c: Record<string, unknown>) => c.name === 'Project Wide')).toBeUndefined()
 
     // Status should appear in availableColumns for both boards
-    expect((full1 as any).availableColumns.find((c: any) => c.name === 'Project Wide')).toBeTruthy()
-    expect((full2 as any).availableColumns.find((c: any) => c.name === 'Project Wide')).toBeTruthy()
+    expect((full1 as Record<string, unknown>).availableColumns.find((c: Record<string, unknown>) => c.name === 'Project Wide')).toBeTruthy()
+    expect((full2 as Record<string, unknown>).availableColumns.find((c: Record<string, unknown>) => c.name === 'Project Wide')).toBeTruthy()
   })
 
   it('returns availableColumns in board GET response', async () => {
@@ -132,18 +132,18 @@ describe('Board-level column operations', async () => {
       headers: user.headers
     })
 
-    const full2 = await getBoard(user, board2.id) as any
+    const full2 = await getBoard(user, board2.id) as Record<string, unknown>
     expect(full2.availableColumns).toBeDefined()
-    expect(full2.availableColumns.find((c: any) => c.name === 'Only In Board1')).toBeTruthy()
+    expect(full2.availableColumns.find((c: Record<string, unknown>) => c.name === 'Only In Board1')).toBeTruthy()
 
-    const full1 = await getBoard(user, board1.id) as any
-    expect(full1.availableColumns.find((c: any) => c.name === 'Only In Board1')).toBeUndefined()
+    const full1 = await getBoard(user, board1.id) as Record<string, unknown>
+    expect(full1.availableColumns.find((c: Record<string, unknown>) => c.name === 'Only In Board1')).toBeUndefined()
   })
 
   it('board GET includes createdBy info', async () => {
     const project = await createTestProject(user, { name: `Creator Info ${Date.now()}` })
     const board = await createTestBoard(user, project.id, { name: 'With Creator' })
-    const full = await getBoard(user, board.id) as any
+    const full = await getBoard(user, board.id) as Record<string, unknown>
 
     expect(full.createdBy).toBeTruthy()
     expect(full.createdBy.id).toBe(user.id)
@@ -178,7 +178,7 @@ describe('Board column access authorization', async () => {
       method: 'POST',
       body: { name: 'Owner Column', color: '#3b82f6' },
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(newCol.name).toBe('Owner Column')
   })
@@ -233,7 +233,7 @@ describe('Board column access authorization', async () => {
 
     await expectError($fetch(`/api/boards/${board.id}/columns/reorder`, {
       method: 'PUT',
-      body: { columns: full.columns.map((c: any, i: number) => ({ id: c.id, position: i })) },
+      body: { columns: full.columns.map((c: Record<string, unknown>, i: number) => ({ id: c.id, position: i })) },
       headers: member.headers
     }), 403)
   })
@@ -255,7 +255,7 @@ describe('Board column access authorization', async () => {
       headers: owner.headers
     })
 
-    const full = await getBoard(owner, board.id) as any
+    const full = await getBoard(owner, board.id) as Record<string, unknown>
     const colToUnlink = full.columns[full.columns.length - 1]
     await $fetch(`/api/boards/${board.id}/columns/${colToUnlink.id}`, {
       method: 'DELETE',
@@ -286,9 +286,9 @@ describe('Board column access authorization', async () => {
     // Board creator can reorder
     const reorderResult = await $fetch(`/api/boards/${board.id}/columns/reorder`, {
       method: 'PUT',
-      body: { columns: full.columns.map((c: any, i: number) => ({ id: c.id, position: full.columns.length - 1 - i })) },
+      body: { columns: full.columns.map((c: Record<string, unknown>, i: number) => ({ id: c.id, position: full.columns.length - 1 - i })) },
       headers: member.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(reorderResult.ok).toBe(true)
 
     // Board creator can unlink
@@ -303,7 +303,7 @@ describe('Board column access authorization', async () => {
       method: 'POST',
       body: { statusId: colToUnlink.id },
       headers: member.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(linked.id).toBe(colToUnlink.id)
   })
 
@@ -322,7 +322,7 @@ describe('Board column access authorization', async () => {
       method: 'POST',
       body: { name: 'Creator Column', color: '#ff0000' },
       headers: member.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(col.name).toBe('Creator Column')
   })
@@ -344,7 +344,7 @@ describe('Board column access authorization', async () => {
       method: 'POST',
       body: { name: 'Owner Override Col' },
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(newCol.name).toBe('Owner Override Col')
   })
@@ -357,7 +357,7 @@ describe('Board column access authorization', async () => {
       method: 'POST',
       body: { name: 'Admin Column' },
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(newCol.name).toBe('Admin Column')
   })

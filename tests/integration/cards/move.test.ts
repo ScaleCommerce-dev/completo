@@ -15,8 +15,8 @@ describe('PUT /api/cards/:id/move', async () => {
     const fullBoard = await getBoard(user, board.id)
     const col = fullBoard.columns[0]
 
-    const card1 = await createTestCard(user, board.id, col.id, { title: 'First' })
-    const card2 = await createTestCard(user, board.id, col.id, { title: 'Second' })
+    const _card1 = await createTestCard(user, board.id, col.id, { title: 'First' })
+    const _card2 = await createTestCard(user, board.id, col.id, { title: 'Second' })
     const card3 = await createTestCard(user, board.id, col.id, { title: 'Third' })
 
     await $fetch(`/api/cards/${card3.id}/move`, {
@@ -43,7 +43,7 @@ describe('PUT /api/cards/:id/move', async () => {
     const sourceCol = fullBoard.columns[0]
     const targetCol = fullBoard.columns[1]
 
-    const card1 = await createTestCard(user, board.id, sourceCol.id, { title: 'Stay' })
+    const _card1 = await createTestCard(user, board.id, sourceCol.id, { title: 'Stay' })
     const card2 = await createTestCard(user, board.id, sourceCol.id, { title: 'Move Me' })
 
     await $fetch(`/api/cards/${card2.id}/move`, {
@@ -103,8 +103,8 @@ describe('PUT /api/cards/:id/move', async () => {
     const col1 = fullBoard.columns[0]
     const col2 = fullBoard.columns[1]
 
-    const targetA = await createTestCard(user, board.id, col2.id, { title: 'Target A' })
-    const targetB = await createTestCard(user, board.id, col2.id, { title: 'Target B' })
+    const _targetA = await createTestCard(user, board.id, col2.id, { title: 'Target A' })
+    const _targetB = await createTestCard(user, board.id, col2.id, { title: 'Target B' })
     const mover = await createTestCard(user, board.id, col1.id, { title: 'Inserted' })
 
     await $fetch(`/api/cards/${mover.id}/move`, {

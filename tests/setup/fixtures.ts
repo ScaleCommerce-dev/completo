@@ -20,7 +20,7 @@ function randomKey(): string {
   return key
 }
 
-export async function createTestProject(user: TestUser, overrides?: { name?: string; key?: string; slug?: string; description?: string }) {
+export async function createTestProject(user: TestUser, overrides?: { name?: string, key?: string, slug?: string, description?: string }) {
   const name = overrides?.name || `Test Project ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
   const key = overrides?.key || randomKey()
 
@@ -35,10 +35,10 @@ export async function createTestProject(user: TestUser, overrides?: { name?: str
     headers: user.headers
   })
 
-  return project as { id: string; name: string; slug: string; key: string; description: string | null }
+  return project as { id: string, name: string, slug: string, key: string, description: string | null }
 }
 
-export async function createTestBoard(user: TestUser, projectId: string, overrides?: { name?: string; slug?: string }) {
+export async function createTestBoard(user: TestUser, projectId: string, overrides?: { name?: string, slug?: string }) {
   boardCounter++
   const name = overrides?.name || `Test Board ${boardCounter}`
 
@@ -48,7 +48,7 @@ export async function createTestBoard(user: TestUser, projectId: string, overrid
     headers: user.headers
   })
 
-  return board as { id: string; name: string; slug: string; projectId: string; position: number }
+  return board as { id: string, name: string, slug: string, projectId: string, position: number }
 }
 
 export async function getBoard(user: TestUser, boardIdOrSlug: string) {
@@ -59,20 +59,20 @@ export async function getBoard(user: TestUser, boardIdOrSlug: string) {
     name: string
     slug: string
     projectId: string
-    project: { id: string; name: string; slug: string; key: string }
-    columns: Array<{ id: string; name: string; color: string | null; position: number }>
-    cards: Array<{ id: number; title: string; statusId: string; position: number; priority: string; assignee: unknown }>
-    members: Array<{ id: string; name: string }>
+    project: { id: string, name: string, slug: string, key: string }
+    columns: Array<{ id: string, name: string, color: string | null, position: number }>
+    cards: Array<{ id: number, title: string, statusId: string, position: number, priority: string, assignee: unknown }>
+    members: Array<{ id: string, name: string }>
   }
 }
 
-export async function createTestTag(user: TestUser, projectId: string, overrides?: { name?: string; color?: string }) {
+export async function createTestTag(user: TestUser, projectId: string, overrides?: { name?: string, color?: string }) {
   const name = overrides?.name || `Tag ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
   return await $fetch(`/api/projects/${projectId}/tags`, {
     method: 'POST',
     body: { name, color: overrides?.color || '#6366f1' },
     headers: user.headers
-  }) as { id: string; projectId: string; name: string; color: string }
+  }) as { id: string, projectId: string, name: string, color: string }
 }
 
 export async function setCardTags(user: TestUser, cardId: number, tagIds: string[]) {
@@ -80,12 +80,12 @@ export async function setCardTags(user: TestUser, cardId: number, tagIds: string
     method: 'PUT',
     body: { tagIds },
     headers: user.headers
-  }) as { tags: Array<{ id: string; name: string; color: string }> }
+  }) as { tags: Array<{ id: string, name: string, color: string }> }
 }
 
 let listCounter = 0
 
-export async function createTestList(user: TestUser, projectId: string, overrides?: { name?: string; slug?: string; columns?: string[] }) {
+export async function createTestList(user: TestUser, projectId: string, overrides?: { name?: string, slug?: string, columns?: string[] }) {
   listCounter++
   const name = overrides?.name || `Test List ${listCounter}`
 
@@ -95,7 +95,7 @@ export async function createTestList(user: TestUser, projectId: string, override
     headers: user.headers
   })
 
-  return list as { id: string; name: string; slug: string; projectId: string; position: number }
+  return list as { id: string, name: string, slug: string, projectId: string, position: number }
 }
 
 export async function getList(user: TestUser, listIdOrSlug: string, opts?: { projectSlug?: string }) {
@@ -108,12 +108,12 @@ export async function getList(user: TestUser, listIdOrSlug: string, opts?: { pro
     name: string
     slug: string
     projectId: string
-    project: { id: string; name: string; slug: string; key: string; doneStatusId: string | null; doneRetentionDays: number | null }
-    columns: Array<{ id: string; field: string; position: number }>
-    cards: Array<{ id: number; title: string; statusId: string; position: number; priority: string; assignee: unknown; status: { id: string; name: string; color: string | null } | null; tags: any[] }>
-    members: Array<{ id: string; name: string }>
-    statuses: Array<{ id: string; name: string; color: string | null }>
-    tags: Array<{ id: string; name: string; color: string }>
+    project: { id: string, name: string, slug: string, key: string, doneStatusId: string | null, doneRetentionDays: number | null }
+    columns: Array<{ id: string, field: string, position: number }>
+    cards: Array<{ id: number, title: string, statusId: string, position: number, priority: string, assignee: unknown, status: { id: string, name: string, color: string | null } | null, tags: unknown[] }>
+    members: Array<{ id: string, name: string }>
+    statuses: Array<{ id: string, name: string, color: string | null }>
+    tags: Array<{ id: string, name: string, color: string }>
   }
 }
 
@@ -122,10 +122,10 @@ export async function createInvitation(user: TestUser, projectId: string, email:
     method: 'POST',
     body: { email },
     headers: user.headers
-  }) as { invited: boolean; email?: string; id?: string; name?: string; role?: string }
+  }) as { invited: boolean, email?: string, id?: string, name?: string, role?: string }
 }
 
-export async function createTestCard(user: TestUser, boardId: string, statusId: string, overrides?: { title?: string; description?: string; priority?: string; assigneeId?: string; dueDate?: string }) {
+export async function createTestCard(user: TestUser, boardId: string, statusId: string, overrides?: { title?: string, description?: string, priority?: string, assigneeId?: string, dueDate?: string }) {
   const title = overrides?.title || `Test Card ${Date.now()}`
 
   return await $fetch(`/api/boards/${boardId}/cards`, {
@@ -139,13 +139,13 @@ export async function createTestCard(user: TestUser, boardId: string, statusId: 
       dueDate: overrides?.dueDate
     },
     headers: user.headers
-  }) as { id: number; title: string; statusId: string; projectId: string; position: number; priority: string; dueDate: string | null }
+  }) as { id: number, title: string, statusId: string, projectId: string, position: number, priority: string, dueDate: string | null }
 }
 
 export async function uploadAttachment(
   user: TestUser,
   cardId: number,
-  overrides?: { filename?: string; content?: string; mimeType?: string }
+  overrides?: { filename?: string, content?: string, mimeType?: string }
 ) {
   const filename = overrides?.filename || 'test.txt'
   const content = overrides?.content || 'test file content'

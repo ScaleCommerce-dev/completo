@@ -7,7 +7,7 @@ export default defineNitroPlugin(() => {
   if (process.env.NODE_ENV === 'test') return
 
   const originalWarn = console.warn
-  console.warn = (...args: any[]) => {
+  console.warn = (...args: unknown[]) => {
     const msg = typeof args[0] === 'string' ? args[0] : ''
     if (msg.includes('No match found for location with path "/_nuxt/')) return
     originalWarn.apply(console, args)

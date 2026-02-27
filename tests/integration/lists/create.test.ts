@@ -15,7 +15,7 @@ describe('POST /api/projects/:id/lists', async () => {
       method: 'POST',
       body: { name: 'All Cards' },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(list.name).toBe('All Cards')
     expect(list.slug).toBe('all-cards')
@@ -24,8 +24,8 @@ describe('POST /api/projects/:id/lists', async () => {
 
     const fullList = await getList(user, list.id)
     expect(fullList.columns).toHaveLength(7)
-    expect(fullList.columns.map((c: any) => c.field)).toEqual(['ticketId', 'title', 'status', 'priority', 'assignee', 'dueDate', 'tags'])
-    expect(fullList.columns.map((c: any) => c.position)).toEqual([0, 1, 2, 3, 4, 5, 6])
+    expect(fullList.columns.map((c: Record<string, unknown>) => c.field)).toEqual(['ticketId', 'title', 'status', 'priority', 'assignee', 'dueDate', 'tags'])
+    expect(fullList.columns.map((c: Record<string, unknown>) => c.position)).toEqual([0, 1, 2, 3, 4, 5, 6])
   })
 
   it('creates a list with custom columns', async () => {
@@ -34,11 +34,11 @@ describe('POST /api/projects/:id/lists', async () => {
       method: 'POST',
       body: { name: 'Minimal', columns: ['title', 'status'] },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     const fullList = await getList(user, list.id)
     expect(fullList.columns).toHaveLength(2)
-    expect(fullList.columns.map((c: any) => c.field)).toEqual(['title', 'status'])
+    expect(fullList.columns.map((c: Record<string, unknown>) => c.field)).toEqual(['title', 'status'])
   })
 
   it('auto-generates slug from name', async () => {
@@ -47,7 +47,7 @@ describe('POST /api/projects/:id/lists', async () => {
       method: 'POST',
       body: { name: 'My Sprint List' },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(list.slug).toBe('my-sprint-list')
   })
@@ -59,13 +59,13 @@ describe('POST /api/projects/:id/lists', async () => {
       method: 'POST',
       body: { name: 'Sprint', slug: 'sprint' },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     const list2 = await $fetch(`/api/projects/${project.id}/lists`, {
       method: 'POST',
       body: { name: 'Sprint', slug: 'sprint' },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(list1.slug).toBe('sprint')
     expect(list2.slug).toMatch(/^sprint-[a-z0-9]{4}$/)

@@ -10,8 +10,8 @@ describe('PUT /api/cards/:id/tags', async () => {
   let projectId: string
   let boardId: string
   let statusId: string
-  let tag1: { id: string; name: string; color: string }
-  let tag2: { id: string; name: string; color: string }
+  let tag1: { id: string, name: string, color: string }
+  let tag2: { id: string, name: string, color: string }
 
   beforeAll(async () => {
     owner = await registerTestUser()

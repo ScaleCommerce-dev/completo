@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user, project } = await resolveProject(event, { auth: 'owner' })
+  const { user: _user, project } = await resolveProject(event, { auth: 'owner' })
   const { name, color } = await readBody<{ name: string, color?: string }>(event)
 
   if (!name) {

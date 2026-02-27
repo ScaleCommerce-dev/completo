@@ -33,11 +33,16 @@ function insertMarkdown(type: 'bold' | 'italic' | 'code' | 'codeblock' | 'quote'
 
   if (selected) {
     switch (type) {
-      case 'bold': insert = `**${selected}**`; break
-      case 'italic': insert = `*${selected}*`; break
-      case 'code': insert = `\`${selected}\``; break
-      case 'codeblock': insert = `\n\`\`\`\n${selected}\n\`\`\`\n`; break
-      case 'quote': insert = selected.split('\n').map(l => `> ${l}`).join('\n'); break
+      case 'bold': insert = `**${selected}**`
+        break
+      case 'italic': insert = `*${selected}*`
+        break
+      case 'code': insert = `\`${selected}\``
+        break
+      case 'codeblock': insert = `\n\`\`\`\n${selected}\n\`\`\`\n`
+        break
+      case 'quote': insert = selected.split('\n').map(l => `> ${l}`).join('\n')
+        break
     }
     modelValue.value = before + insert + after
     cursorOffset = start + insert.length
@@ -92,9 +97,21 @@ function startEditing() {
 
 function onKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey)) {
-    if (e.key === 'b') { e.preventDefault(); insertMarkdown('bold'); return }
-    if (e.key === 'i') { e.preventDefault(); insertMarkdown('italic'); return }
-    if (e.key === 'e') { e.preventDefault(); insertMarkdown('code'); return }
+    if (e.key === 'b') {
+      e.preventDefault()
+      insertMarkdown('bold')
+      return
+    }
+    if (e.key === 'i') {
+      e.preventDefault()
+      insertMarkdown('italic')
+      return
+    }
+    if (e.key === 'e') {
+      e.preventDefault()
+      insertMarkdown('code')
+      return
+    }
   }
   emit('textarea-keydown', e)
 }
@@ -114,7 +131,10 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing })
           : 'text-zinc-400 dark:text-zinc-500 border-transparent hover:text-zinc-600 dark:hover:text-zinc-300'"
         @click="editTab = 'write'"
       >
-        <UIcon name="i-lucide-pencil" class="text-[12px]" />
+        <UIcon
+          name="i-lucide-pencil"
+          class="text-[12px]"
+        />
         Write
       </button>
       <button
@@ -125,7 +145,10 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing })
           : 'text-zinc-400 dark:text-zinc-500 border-transparent hover:text-zinc-600 dark:hover:text-zinc-300'"
         @click="editTab = 'preview'"
       >
-        <UIcon name="i-lucide-eye" class="text-[12px]" />
+        <UIcon
+          name="i-lucide-eye"
+          class="text-[12px]"
+        />
         Preview
       </button>
       <template v-if="$slots['toolbar-right']">
@@ -136,23 +159,71 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing })
     </div>
 
     <!-- Toolbar (write tab only) -->
-    <div v-show="editTab === 'write'" class="flex items-center gap-0.5 px-3 py-1.5 border-b border-zinc-200/80 dark:border-zinc-700/50 bg-zinc-50/50 dark:bg-zinc-800/20">
-      <button type="button" title="Bold (⌘B)" class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors" @mousedown.prevent @click="insertMarkdown('bold')">
-        <UIcon name="i-lucide-bold" class="text-[14px]" />
+    <div
+      v-show="editTab === 'write'"
+      class="flex items-center gap-0.5 px-3 py-1.5 border-b border-zinc-200/80 dark:border-zinc-700/50 bg-zinc-50/50 dark:bg-zinc-800/20"
+    >
+      <button
+        type="button"
+        title="Bold (⌘B)"
+        class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+        @mousedown.prevent
+        @click="insertMarkdown('bold')"
+      >
+        <UIcon
+          name="i-lucide-bold"
+          class="text-[14px]"
+        />
       </button>
-      <button type="button" title="Italic (⌘I)" class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors" @mousedown.prevent @click="insertMarkdown('italic')">
-        <UIcon name="i-lucide-italic" class="text-[14px]" />
+      <button
+        type="button"
+        title="Italic (⌘I)"
+        class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+        @mousedown.prevent
+        @click="insertMarkdown('italic')"
+      >
+        <UIcon
+          name="i-lucide-italic"
+          class="text-[14px]"
+        />
       </button>
       <div class="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
-      <button type="button" title="Inline code (⌘E)" class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors" @mousedown.prevent @click="insertMarkdown('code')">
-        <UIcon name="i-lucide-code" class="text-[14px]" />
+      <button
+        type="button"
+        title="Inline code (⌘E)"
+        class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+        @mousedown.prevent
+        @click="insertMarkdown('code')"
+      >
+        <UIcon
+          name="i-lucide-code"
+          class="text-[14px]"
+        />
       </button>
-      <button type="button" title="Code block" class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors" @mousedown.prevent @click="insertMarkdown('codeblock')">
-        <UIcon name="i-lucide-square-code" class="text-[14px]" />
+      <button
+        type="button"
+        title="Code block"
+        class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+        @mousedown.prevent
+        @click="insertMarkdown('codeblock')"
+      >
+        <UIcon
+          name="i-lucide-square-code"
+          class="text-[14px]"
+        />
       </button>
       <div class="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
-      <button type="button" title="Quote" class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors" @mousedown.prevent @click="insertMarkdown('quote')">
-        <UIcon name="i-lucide-text-quote" class="text-[14px]" />
+      <button
+        type="button"
+        title="Quote"
+        class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+        @mousedown.prevent
+        @click="insertMarkdown('quote')"
+      >
+        <UIcon
+          name="i-lucide-text-quote"
+          class="text-[14px]"
+        />
       </button>
       <template v-if="$slots['toolbar-append']">
         <div class="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
@@ -161,7 +232,10 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing })
     </div>
 
     <!-- Write tab -->
-    <div v-show="editTab === 'write'" class="relative">
+    <div
+      v-show="editTab === 'write'"
+      class="relative"
+    >
       <textarea
         ref="textareaEl"
         v-model="modelValue"
@@ -175,9 +249,21 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing })
     </div>
 
     <!-- Preview tab -->
-    <div v-show="editTab === 'preview'" class="px-4 py-3 bg-white dark:bg-zinc-800/60 overflow-y-auto" :style="{ minHeight: `${minHeight}px`, ...(maxHeight != null ? { maxHeight: `${maxHeight}px` } : {}) }">
-      <ProseDescription v-if="modelValue" :content="modelValue" />
-      <p v-else class="text-[14px] text-zinc-300 dark:text-zinc-600 italic">Nothing to preview</p>
+    <div
+      v-show="editTab === 'preview'"
+      class="px-4 py-3 bg-white dark:bg-zinc-800/60 overflow-y-auto"
+      :style="{ minHeight: `${minHeight}px`, ...(maxHeight != null ? { maxHeight: `${maxHeight}px` } : {}) }"
+    >
+      <ProseDescription
+        v-if="modelValue"
+        :content="modelValue"
+      />
+      <p
+        v-else
+        class="text-[14px] text-zinc-300 dark:text-zinc-600 italic"
+      >
+        Nothing to preview
+      </p>
     </div>
   </div>
 </template>

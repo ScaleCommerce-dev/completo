@@ -33,8 +33,8 @@ const db = drizzle(sqlite)
 try {
   migrate(db, { migrationsFolder })
   console.log('Migrations applied successfully')
-} catch (error: any) {
-  console.error(`Migration failed: ${error.message}`)
+} catch (error: unknown) {
+  console.error(`Migration failed: ${(error as Error).message}`)
   sqlite.close()
   process.exit(1)
 }

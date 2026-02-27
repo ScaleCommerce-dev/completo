@@ -8,7 +8,7 @@ describe('Project member management', () => {
   let member: TestUser
   let stranger: TestUser
   let admin: TestUser
-  let project: any
+  let project: Record<string, unknown>
 
   beforeAll(async () => {
     owner = await registerTestUser()
@@ -23,7 +23,7 @@ describe('Project member management', () => {
       method: 'POST',
       body: { email: member.email },
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     // Uniform response — no user existence leak
     expect(result.added).toBe(true)
@@ -32,7 +32,7 @@ describe('Project member management', () => {
   it('member list includes the new member', async () => {
     const members = await $fetch(`/api/projects/${project.id}/members`, {
       headers: owner.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
 
     const found = members.find(m => m.id === member.id)
     expect(found).toBeDefined()
@@ -52,13 +52,13 @@ describe('Project member management', () => {
     const result = await $fetch(`/api/projects/${project.id}/members/${member.id}`, {
       method: 'DELETE',
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.ok).toBe(true)
 
     const members = await $fetch(`/api/projects/${project.id}/members`, {
       headers: owner.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
     expect(members.find(m => m.id === member.id)).toBeUndefined()
   })
 
@@ -86,14 +86,14 @@ describe('Project member management', () => {
       method: 'PATCH',
       body: { role: 'owner' },
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.ok).toBe(true)
     expect(result.role).toBe('owner')
 
     const members = await $fetch(`/api/projects/${project.id}/members`, {
       headers: owner.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
     expect(members.find(m => m.id === member.id)?.role).toBe('owner')
   })
 
@@ -102,7 +102,7 @@ describe('Project member management', () => {
       method: 'PATCH',
       body: { role: 'member' },
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.ok).toBe(true)
     expect(result.role).toBe('member')
@@ -157,7 +157,7 @@ describe('Project member management', () => {
       method: 'PATCH',
       body: { role: 'owner' },
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(result.ok).toBe(true)
     expect(result.role).toBe('owner')
 
@@ -179,14 +179,14 @@ describe('Project member management', () => {
       method: 'POST',
       body: { email: stranger.email },
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(addResult.added).toBe(true)
 
     // Admin removes stranger
     const removeResult = await $fetch(`/api/projects/${project.id}/members/${stranger.id}`, {
       method: 'DELETE',
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(removeResult.ok).toBe(true)
   })
 })

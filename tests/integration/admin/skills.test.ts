@@ -18,7 +18,7 @@ describe('Admin Skills CRUD', () => {
         method: 'POST',
         body: { name: 'Test Skill', prompt: 'Do something with {title}', scope: 'card' },
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(skill.id).toBeDefined()
       expect(skill.name).toBe('Test Skill')
@@ -33,7 +33,7 @@ describe('Admin Skills CRUD', () => {
         method: 'POST',
         body: { name: 'No Scope Skill', prompt: 'A prompt' },
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(skill.scope).toBe('card')
     })
@@ -88,7 +88,7 @@ describe('Admin Skills CRUD', () => {
     it('admin gets all skills ordered by position', async () => {
       const skills = await $fetch('/api/admin/skills', {
         headers: admin.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       expect(skills.length).toBeGreaterThanOrEqual(1)
       expect(skills[0]).toHaveProperty('id')
@@ -117,7 +117,7 @@ describe('Admin Skills CRUD', () => {
         method: 'PUT',
         body: { name: 'Updated Skill' },
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(updated.name).toBe('Updated Skill')
     })
@@ -127,7 +127,7 @@ describe('Admin Skills CRUD', () => {
         method: 'PUT',
         body: { prompt: 'New prompt for {title}' },
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(updated.prompt).toBe('New prompt for {title}')
     })
@@ -137,7 +137,7 @@ describe('Admin Skills CRUD', () => {
         method: 'PUT',
         body: { scope: 'board' },
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(updated.scope).toBe('board')
 
@@ -193,12 +193,12 @@ describe('Admin Skills CRUD', () => {
         method: 'POST',
         body: { name: 'Reorder A', prompt: 'A' },
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
       const s2 = await $fetch('/api/admin/skills', {
         method: 'POST',
         body: { name: 'Reorder B', prompt: 'B' },
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       const result = await $fetch('/api/admin/skills/reorder', {
         method: 'PUT',
@@ -209,14 +209,14 @@ describe('Admin Skills CRUD', () => {
           ]
         },
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(result.ok).toBe(true)
 
       // Verify new order
-      const skills = await $fetch('/api/admin/skills', { headers: admin.headers }) as any[]
-      const s2Pos = skills.find((s: any) => s.id === s2.id)?.position
-      const s1Pos = skills.find((s: any) => s.id === s1.id)?.position
+      const skills = await $fetch('/api/admin/skills', { headers: admin.headers }) as Record<string, unknown>[]
+      const s2Pos = skills.find((s: Record<string, unknown>) => s.id === s2.id)?.position
+      const s1Pos = skills.find((s: Record<string, unknown>) => s.id === s1.id)?.position
       expect(s2Pos).toBeLessThan(s1Pos)
     })
 
@@ -254,12 +254,12 @@ describe('Admin Skills CRUD', () => {
         method: 'POST',
         body: { name: 'To Delete', prompt: 'Delete me' },
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       const result = await $fetch(`/api/admin/skills/${toDelete.id}`, {
         method: 'DELETE',
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(result.ok).toBe(true)
 
@@ -302,7 +302,7 @@ describe('GET /api/skills (public)', () => {
   it('authenticated user gets skills list', async () => {
     const skills = await $fetch('/api/skills', {
       headers: regularUser.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
 
     expect(Array.isArray(skills)).toBe(true)
     if (skills.length > 0) {
@@ -324,7 +324,7 @@ describe('GET /api/skills (public)', () => {
 
     const cardSkills = await $fetch('/api/skills?scope=card', {
       headers: regularUser.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
 
     expect(Array.isArray(cardSkills)).toBe(true)
     for (const s of cardSkills) {

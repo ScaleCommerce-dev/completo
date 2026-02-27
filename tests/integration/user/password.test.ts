@@ -10,7 +10,7 @@ describe('PUT /api/user/password', async () => {
       method: 'PUT',
       body: { currentPassword: 'oldpass123', newPassword: 'newpass456' },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.ok).toBe(true)
 

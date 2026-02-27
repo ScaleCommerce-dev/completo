@@ -60,8 +60,8 @@ async function register() {
     }
 
     registrationComplete.value = true
-  } catch (e: any) {
-    error.value = e.data?.message || 'Registration failed'
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e, 'Registration failed')
   } finally {
     loading.value = false
   }
@@ -70,12 +70,20 @@ async function register() {
 
 <template>
   <!-- Check your email confirmation -->
-  <div v-if="registrationComplete" class="auth-glass">
+  <div
+    v-if="registrationComplete"
+    class="auth-glass"
+  >
     <div class="px-7 py-7 flex flex-col items-center gap-4 text-center">
       <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-        <UIcon name="i-lucide-mail-check" class="text-emerald-600 dark:text-emerald-400 text-xl" />
+        <UIcon
+          name="i-lucide-mail-check"
+          class="text-emerald-600 dark:text-emerald-400 text-xl"
+        />
       </div>
-      <h2 class="text-base font-bold tracking-[-0.02em]">Check your email</h2>
+      <h2 class="text-base font-bold tracking-[-0.02em]">
+        Check your email
+      </h2>
       <p class="text-[13px] text-zinc-500 dark:text-zinc-400">
         We sent a verification link to <span class="font-semibold text-zinc-700 dark:text-zinc-300">{{ email }}</span>.
         Click the link to activate your account.
@@ -83,16 +91,24 @@ async function register() {
       <div class="border-t border-zinc-200/40 dark:border-zinc-700/25 pt-4 mt-2 w-full">
         <p class="text-[13px] text-zinc-500 dark:text-zinc-400">
           Already verified?
-          <NuxtLink to="/login" class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Sign in</NuxtLink>
+          <NuxtLink
+            to="/login"
+            class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+          >Sign in</NuxtLink>
         </p>
       </div>
     </div>
   </div>
 
   <!-- Registration form -->
-  <div v-else class="auth-glass">
+  <div
+    v-else
+    class="auth-glass"
+  >
     <div class="px-7 pt-7 pb-2">
-      <h2 class="text-base font-bold text-center tracking-[-0.02em]">Create your account</h2>
+      <h2 class="text-base font-bold text-center tracking-[-0.02em]">
+        Create your account
+      </h2>
     </div>
 
     <!-- Invitation banner -->
@@ -100,20 +116,30 @@ async function register() {
       v-if="invitationInfo"
       class="mx-7 mb-2 flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200/50 dark:border-indigo-800/30"
     >
-      <UIcon name="i-lucide-mail-plus" class="text-indigo-500 shrink-0" />
+      <UIcon
+        name="i-lucide-mail-plus"
+        class="text-indigo-500 shrink-0"
+      />
       <span class="text-[13px] text-indigo-700 dark:text-indigo-300">
         You've been invited to <strong>{{ invitationInfo.projectName }}</strong>
       </span>
     </div>
 
-    <form class="px-7 pb-7 flex flex-col gap-5" @submit.prevent="register">
+    <form
+      class="px-7 pb-7 flex flex-col gap-5"
+      @submit.prevent="register"
+    >
       <!-- OAuth error banner -->
       <AuthErrorBanner :error="oauthError" />
 
       <!-- Social login buttons -->
       <SocialLoginButtons />
 
-      <UFormField label="Name" class="auth-field" style="animation-delay: 0.05s">
+      <UFormField
+        label="Name"
+        class="auth-field"
+        style="animation-delay: 0.05s"
+      >
         <UInput
           v-model="name"
           placeholder="Your name"
@@ -124,7 +150,11 @@ async function register() {
         />
       </UFormField>
 
-      <UFormField label="Email" class="auth-field" style="animation-delay: 0.1s">
+      <UFormField
+        label="Email"
+        class="auth-field"
+        style="animation-delay: 0.1s"
+      >
         <UInput
           v-model="email"
           type="email"
@@ -137,7 +167,11 @@ async function register() {
         />
       </UFormField>
 
-      <UFormField label="Password" class="auth-field" style="animation-delay: 0.15s">
+      <UFormField
+        label="Password"
+        class="auth-field"
+        style="animation-delay: 0.15s"
+      >
         <UInput
           v-model="password"
           type="password"
@@ -151,8 +185,17 @@ async function register() {
 
       <AuthErrorBanner :error="error" />
 
-      <div class="auth-field" style="animation-delay: 0.2s">
-        <UButton type="submit" label="Create account" block :loading="loading" size="lg" />
+      <div
+        class="auth-field"
+        style="animation-delay: 0.2s"
+      >
+        <UButton
+          type="submit"
+          label="Create account"
+          block
+          :loading="loading"
+          size="lg"
+        />
       </div>
     </form>
 
@@ -160,7 +203,10 @@ async function register() {
       <div class="border-t border-zinc-200/40 dark:border-zinc-700/25 pt-4">
         <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400">
           Already have an account?
-          <NuxtLink to="/login" class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Sign in</NuxtLink>
+          <NuxtLink
+            to="/login"
+            class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+          >Sign in</NuxtLink>
         </p>
       </div>
     </div>

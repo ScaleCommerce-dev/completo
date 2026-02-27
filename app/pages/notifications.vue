@@ -164,7 +164,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
                   :src="n.actorAvatarUrl"
                   :alt="n.actorName || ''"
                   class="w-full h-full object-cover"
-                />
+                >
               </div>
               <div
                 v-else-if="n.actorName"
@@ -229,10 +229,16 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
       >
         <div class="relative mb-5">
           <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-800 dark:to-zinc-800/50 flex items-center justify-center shadow-sm border border-zinc-200/50 dark:border-zinc-700/30">
-            <UIcon name="i-lucide-bell-off" class="text-[28px] text-zinc-300 dark:text-zinc-600" />
+            <UIcon
+              name="i-lucide-bell-off"
+              class="text-[28px] text-zinc-300 dark:text-zinc-600"
+            />
           </div>
           <div class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-            <UIcon name="i-lucide-check" class="text-[10px] text-emerald-500" />
+            <UIcon
+              name="i-lucide-check"
+              class="text-[10px] text-emerald-500"
+            />
           </div>
         </div>
         <p class="font-bold text-zinc-900 dark:text-zinc-100 tracking-[-0.01em]">

@@ -1,7 +1,7 @@
 import { eq, and, ne } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user, project } = await resolveProject(event, { auth: 'owner' })
+  const { user: _user, project } = await resolveProject(event, { auth: 'owner' })
   const { name, description, briefing, key, slug, icon, doneStatusId, doneRetentionDays } = await readBody<{ name?: string, description?: string, briefing?: string | null, key?: string, slug?: string, icon?: string, doneStatusId?: string | null, doneRetentionDays?: number | null }>(event)
 
   if (key !== undefined) {

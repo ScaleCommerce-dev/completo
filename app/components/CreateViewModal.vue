@@ -211,7 +211,10 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         <!-- Header -->
         <div class="flex items-center gap-3 px-5 pt-5 pb-2">
           <div class="flex items-center justify-center w-8 h-8 rounded-[8px] bg-indigo-500/10 dark:bg-indigo-500/15">
-            <UIcon :name="viewStep === 1 ? 'i-lucide-layout-grid' : viewType === 'board' ? 'i-lucide-layout-dashboard' : 'i-lucide-list'" class="text-[15px] text-indigo-500" />
+            <UIcon
+              :name="viewStep === 1 ? 'i-lucide-layout-grid' : viewType === 'board' ? 'i-lucide-layout-dashboard' : 'i-lucide-list'"
+              class="text-[15px] text-indigo-500"
+            />
           </div>
           <div>
             <h2 class="text-[14px] font-bold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
@@ -224,7 +227,10 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         </div>
 
         <!-- Step 1: Pick type -->
-        <div v-if="viewStep === 1" class="px-5 py-4">
+        <div
+          v-if="viewStep === 1"
+          class="px-5 py-4"
+        >
           <div class="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -233,7 +239,10 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             >
               <div class="flex items-center gap-3 mb-2">
                 <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 text-indigo-500">
-                  <UIcon name="i-lucide-layout-dashboard" class="text-xl" />
+                  <UIcon
+                    name="i-lucide-layout-dashboard"
+                    class="text-xl"
+                  />
                 </div>
                 <span class="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">Board</span>
               </div>
@@ -248,7 +257,10 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             >
               <div class="flex items-center gap-3 mb-2">
                 <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-violet-50 dark:bg-violet-950/30 text-violet-500">
-                  <UIcon name="i-lucide-list" class="text-xl" />
+                  <UIcon
+                    name="i-lucide-list"
+                    class="text-xl"
+                  />
                 </div>
                 <span class="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">List</span>
               </div>
@@ -260,7 +272,10 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         </div>
 
         <!-- Step 2: Name + slug -->
-        <form v-if="viewStep === 2" @submit.prevent="goToStep3">
+        <form
+          v-if="viewStep === 2"
+          @submit.prevent="goToStep3"
+        >
           <div class="px-5 pt-2 pb-1">
             <input
               v-model="viewName"
@@ -268,13 +283,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               :placeholder="`${viewType === 'board' ? 'Board' : 'List'} name...`"
               autofocus
               class="w-full text-[16px] font-semibold text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-zinc-200 dark:focus:border-zinc-700 rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
-            />
+            >
           </div>
 
           <div class="mx-5 mt-4 rounded-lg border border-zinc-200 dark:border-zinc-700/60 divide-y divide-zinc-100 dark:divide-zinc-700/40 overflow-hidden">
             <div class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
               <div class="flex items-center gap-2 w-28 shrink-0">
-                <UIcon name="i-lucide-link" class="text-sm text-zinc-400" />
+                <UIcon
+                  name="i-lucide-link"
+                  class="text-sm text-zinc-400"
+                />
                 <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">Slug</span>
               </div>
               <div class="flex-1 flex items-center gap-2.5">
@@ -284,24 +302,49 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                   placeholder="my-view"
                   class="flex-1 text-[14px] font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0! tracking-wide"
                   @input="onSlugInput"
+                >
+                <UIcon
+                  v-if="slugChecking"
+                  name="i-lucide-loader-2"
+                  class="text-[14px] text-zinc-400 animate-spin shrink-0"
                 />
-                <UIcon v-if="slugChecking" name="i-lucide-loader-2" class="text-[14px] text-zinc-400 animate-spin shrink-0" />
-                <UIcon v-else-if="viewSlug && slugAvailable === true" name="i-lucide-check" class="text-[14px] text-emerald-500 shrink-0" />
-                <UIcon v-else-if="viewSlug && slugAvailable === false" name="i-lucide-x" class="text-[14px] text-red-500 shrink-0" />
+                <UIcon
+                  v-else-if="viewSlug && slugAvailable === true"
+                  name="i-lucide-check"
+                  class="text-[14px] text-emerald-500 shrink-0"
+                />
+                <UIcon
+                  v-else-if="viewSlug && slugAvailable === false"
+                  name="i-lucide-x"
+                  class="text-[14px] text-red-500 shrink-0"
+                />
               </div>
             </div>
           </div>
 
           <div class="flex items-center justify-between px-5 pt-4 pb-5 mt-4 border-t border-zinc-100 dark:border-zinc-700/40">
             <div class="flex items-center gap-1.5">
-              <span v-if="viewSlug && slugAvailable === false" class="text-[12px] font-medium text-red-500 dark:text-red-400">Slug already taken</span>
-              <span v-else-if="viewSlug && slugValid && slugAvailable === true" class="flex items-center gap-1 text-[12px] font-medium text-emerald-500 dark:text-emerald-400">
-                <UIcon name="i-lucide-check" class="text-[12px]" />
+              <span
+                v-if="viewSlug && slugAvailable === false"
+                class="text-[12px] font-medium text-red-500 dark:text-red-400"
+              >Slug already taken</span>
+              <span
+                v-else-if="viewSlug && slugValid && slugAvailable === true"
+                class="flex items-center gap-1 text-[12px] font-medium text-emerald-500 dark:text-emerald-400"
+              >
+                <UIcon
+                  name="i-lucide-check"
+                  class="text-[12px]"
+                />
                 {{ viewSlug }}
               </span>
             </div>
             <div class="flex items-center gap-2">
-              <button type="button" class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all" @click="viewStep = 1">
+              <button
+                type="button"
+                class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+                @click="viewStep = 1"
+              >
                 Back
               </button>
               <button
@@ -310,7 +353,10 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 :disabled="!viewName.trim() || !slugValid || slugAvailable === false"
               >
                 Next
-                <UIcon name="i-lucide-arrow-right" class="text-[14px]" />
+                <UIcon
+                  name="i-lucide-arrow-right"
+                  class="text-[14px]"
+                />
               </button>
             </div>
           </div>
@@ -333,7 +379,11 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                     ? 'bg-indigo-500 border-indigo-500'
                     : 'border-zinc-300 dark:border-zinc-600'"
                 >
-                  <UIcon v-if="selectedBoardColumns.has(status.id)" name="i-lucide-check" class="text-white text-[12px]" />
+                  <UIcon
+                    v-if="selectedBoardColumns.has(status.id)"
+                    name="i-lucide-check"
+                    class="text-white text-[12px]"
+                  />
                 </div>
                 <span
                   class="w-2.5 h-2.5 rounded-full shrink-0"
@@ -357,7 +407,11 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                     ? 'bg-indigo-500 border-indigo-500'
                     : 'border-zinc-300 dark:border-zinc-600'"
                 >
-                  <UIcon v-if="selectedListFields.has(f.field)" name="i-lucide-check" class="text-white text-[12px]" />
+                  <UIcon
+                    v-if="selectedListFields.has(f.field)"
+                    name="i-lucide-check"
+                    class="text-white text-[12px]"
+                  />
                 </div>
                 <span class="text-[14px] font-medium text-zinc-700 dark:text-zinc-300">{{ f.label }}</span>
               </div>
@@ -366,8 +420,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             <!-- Tag filters (both board and list) -->
             <template v-if="tags.length">
               <div class="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700/40">
-                <div class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em] mb-2">Tag Filters</div>
-                <p class="text-[12px] text-zinc-400 dark:text-zinc-500 mb-2">Only show cards matching selected tags</p>
+                <div class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em] mb-2">
+                  Tag Filters
+                </div>
+                <p class="text-[12px] text-zinc-400 dark:text-zinc-500 mb-2">
+                  Only show cards matching selected tags
+                </p>
                 <div class="flex flex-wrap gap-1.5">
                   <button
                     v-for="tag in tags"
@@ -397,8 +455,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           </div>
 
           <!-- Error -->
-          <div v-if="createError" class="mx-5 mt-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40">
-            <UIcon name="i-lucide-alert-circle" class="text-[14px] text-red-500 shrink-0" />
+          <div
+            v-if="createError"
+            class="mx-5 mt-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
+          >
+            <UIcon
+              name="i-lucide-alert-circle"
+              class="text-[14px] text-red-500 shrink-0"
+            />
             <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ createError }}</span>
           </div>
 
@@ -407,7 +471,11 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               {{ viewType === 'board' ? `${selectedBoardColumns.size} statuses` : `${selectedListFields.size} fields` }}{{ selectedTagFilters.size ? `, ${selectedTagFilters.size} tag filter${selectedTagFilters.size > 1 ? 's' : ''}` : '' }}
             </span>
             <div class="flex items-center gap-2">
-              <button type="button" class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all" @click="viewStep = 2">
+              <button
+                type="button"
+                class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+                @click="viewStep = 2"
+              >
                 Back
               </button>
               <span class="text-[10px] font-mono text-zinc-300 dark:text-zinc-600 hidden sm:block">
@@ -419,8 +487,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 :disabled="creatingView"
                 @click="createView"
               >
-                <UIcon v-if="!creatingView" name="i-lucide-plus" class="text-[14px]" />
-                <UIcon v-else name="i-lucide-loader-2" class="text-[14px] animate-spin" />
+                <UIcon
+                  v-if="!creatingView"
+                  name="i-lucide-plus"
+                  class="text-[14px]"
+                />
+                <UIcon
+                  v-else
+                  name="i-lucide-loader-2"
+                  class="text-[14px] animate-spin"
+                />
                 Create
               </button>
             </div>

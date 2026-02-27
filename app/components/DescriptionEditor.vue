@@ -7,7 +7,7 @@ const props = withDefaults(defineProps<{
   priority?: string
   projectSlug?: string
   projectKey?: string
-  members?: any[]
+  members?: Array<{ id: string, name: string, email?: string }>
   cardId?: number | null
   minHeight?: number
   maxHeight?: number
@@ -17,14 +17,14 @@ const props = withDefaults(defineProps<{
   priority: 'medium',
   cardId: null,
   minHeight: 120,
-  maxHeight: 300,
+  maxHeight: 300
 })
 
 const emit = defineEmits<{
   escape: []
 }>()
 
-const editorRef = ref<any>()
+const editorRef = ref<{ editTab: 'write' | 'preview', textareaEl?: HTMLTextAreaElement, startEditing: () => void }>()
 
 // ─── AI ───
 const { isGenerating: aiGenerating, error: aiError, pendingReview: aiPendingReview, generate: aiGenerate, cancel: aiCancel, accept: aiAcceptFn, decline: aiDeclineFn } = useAiDescription(description)
@@ -52,8 +52,9 @@ const mentionCursorPos = ref(0)
 const mentionSearchQuery = ref('')
 const mentionSearchInput = ref<HTMLInputElement>()
 const mentionIndex = ref(0)
-const mentionUserResults = ref<any[]>([])
-const mentionCardResults = ref<any[]>([])
+const mentionUserResults = ref<Array<{ id: string, name: string, email?: string }>>([])
+const mentionCardResults = ref<Array<{ id: number, title: string }>>([])
+
 let mentionSearchTimeout: ReturnType<typeof setTimeout> | null = null
 
 const mentionAllResults = computed(() => [
@@ -76,7 +77,7 @@ watch(mentionSearchQuery, (q) => {
   if (trimmed.length === 1) {
     const lower = trimmed.toLowerCase()
     mentionUserResults.value = members
-      .filter((m: any) => m.name.toLowerCase().includes(lower) || m.email?.toLowerCase().includes(lower))
+      .filter(m => m.name.toLowerCase().includes(lower) || m.email?.toLowerCase().includes(lower))
       .slice(0, 5)
     mentionCardResults.value = []
     mentionIndex.value = 0
@@ -85,10 +86,10 @@ watch(mentionSearchQuery, (q) => {
 
   mentionSearchTimeout = setTimeout(async () => {
     const [users, cards] = await Promise.all([
-      $fetch<any[]>('/api/users/search', { params: { q: trimmed } }).catch(() => []),
+      $fetch<Array<{ id: string, name: string, email?: string }>>('/api/users/search', { params: { q: trimmed } }).catch(() => [] as Array<{ id: string, name: string, email?: string }>),
       props.projectSlug
-        ? $fetch<any[]>(`/api/projects/${props.projectSlug}/cards/search`, { params: { q: trimmed } }).catch(() => [])
-        : Promise.resolve([])
+        ? $fetch<Array<{ id: number, title: string }>>(`/api/projects/${props.projectSlug}/cards/search`, { params: { q: trimmed } }).catch(() => [] as Array<{ id: number, title: string }>)
+        : Promise.resolve([] as Array<{ id: number, title: string }>)
     ])
     mentionUserResults.value = users
     mentionCardResults.value = cards
@@ -123,7 +124,7 @@ function closeMention() {
   mentionIndex.value = 0
 }
 
-function selectMention(item: any) {
+function selectMention(item: { _type: 'user' | 'card', id: string | number, name?: string, title?: string }) {
   const el = editorRef.value?.textareaEl
   if (!el) return
 
@@ -182,8 +183,9 @@ function onMentionKeydown(e: KeyboardEvent) {
   }
   if (e.key === 'Enter') {
     e.preventDefault()
-    if (results.length > 0) {
-      selectMention(results[mentionIndex.value])
+    const selected = results[mentionIndex.value]
+    if (results.length > 0 && selected) {
+      selectMention(selected)
     }
     return
   }
@@ -201,7 +203,8 @@ function onTextareaKeydown(e: KeyboardEvent) {
 
 // ─── Image Picker ───
 const imagePickerActive = ref(false)
-const imageAttachments = ref<any[]>([])
+const imageAttachments = ref<Array<{ id: string, originalName: string, mimeType?: string }>>([])
+
 const imageUrlInput = ref('')
 
 async function openImagePicker() {
@@ -210,9 +213,11 @@ async function openImagePicker() {
   imageUrlInput.value = ''
   if (props.cardId) {
     try {
-      const attachments = await $fetch<any[]>(`/api/cards/${props.cardId}/attachments`)
-      imageAttachments.value = attachments.filter((a: any) => a.mimeType?.startsWith('image/'))
-    } catch {}
+      const attachments = await $fetch<Array<{ id: string, originalName: string, mimeType?: string }>>(`/api/cards/${props.cardId}/attachments`)
+      imageAttachments.value = attachments.filter(a => a.mimeType?.startsWith('image/'))
+    } catch {
+      // ignore fetch errors
+    }
   }
 }
 
@@ -238,7 +243,7 @@ function insertImage(alt: string, url: string) {
   })
 }
 
-function selectAttachmentImage(att: any) {
+function selectAttachmentImage(att: { id: string, originalName: string }) {
   insertImage(att.originalName, `/api/attachments/${att.id}/download`)
 }
 
@@ -262,7 +267,7 @@ function onTextareaInput() {
 
 defineExpose({
   startEditing() { editorRef.value?.startEditing() },
-  get editTab() { return editorRef.value?.editTab },
+  get editTab(): 'write' | 'preview' { return editorRef.value?.editTab ?? 'write' },
   set editTab(val: 'write' | 'preview') { if (editorRef.value) editorRef.value.editTab = val }
 })
 </script>
@@ -277,7 +282,10 @@ defineExpose({
     @textarea-input="onTextareaInput"
   >
     <template #toolbar-append>
-      <UPopover v-model:open="imagePickerActive" :ui="{ content: 'w-72' }">
+      <UPopover
+        v-model:open="imagePickerActive"
+        :ui="{ content: 'w-72' }"
+      >
         <button
           type="button"
           title="Insert image"
@@ -285,13 +293,18 @@ defineExpose({
           @mousedown.prevent
           @click="openImagePicker"
         >
-          <UIcon name="i-lucide-image" class="text-[14px]" />
+          <UIcon
+            name="i-lucide-image"
+            class="text-[14px]"
+          />
         </button>
         <template #content>
           <div class="p-2">
             <!-- Card Attachments -->
             <template v-if="imageAttachments.length > 0">
-              <div class="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 dark:text-zinc-500">Card Attachments</div>
+              <div class="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 dark:text-zinc-500">
+                Card Attachments
+              </div>
               <div class="grid grid-cols-3 gap-1.5 mb-2">
                 <button
                   v-for="att in imageAttachments"
@@ -301,14 +314,20 @@ defineExpose({
                   :title="att.originalName"
                   @click="selectAttachmentImage(att)"
                 >
-                  <img :src="`/api/attachments/${att.id}/download`" :alt="att.originalName" class="w-full h-full object-cover" />
+                  <img
+                    :src="`/api/attachments/${att.id}/download`"
+                    :alt="att.originalName"
+                    class="w-full h-full object-cover"
+                  >
                 </button>
               </div>
               <div class="border-t border-zinc-200/80 dark:border-zinc-700/50 mb-2" />
             </template>
 
             <!-- External URL -->
-            <div class="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 dark:text-zinc-500">External URL</div>
+            <div class="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 dark:text-zinc-500">
+              External URL
+            </div>
             <div class="flex items-center gap-1.5">
               <input
                 v-model="imageUrlInput"
@@ -317,7 +336,7 @@ defineExpose({
                 class="flex-1 text-[13px] text-zinc-700 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md px-2 py-1.5 outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors"
                 @keydown.enter.prevent="insertUrlImage"
                 @keydown.escape.prevent="closeImagePicker"
-              />
+              >
               <button
                 type="button"
                 class="shrink-0 px-2.5 py-1.5 rounded-md text-[12px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
@@ -338,17 +357,26 @@ defineExpose({
         @mousedown.prevent
         @click="openMention(false)"
       >
-        <UIcon name="i-lucide-at-sign" class="text-[14px]" />
+        <UIcon
+          name="i-lucide-at-sign"
+          class="text-[14px]"
+        />
       </button>
     </template>
     <template #toolbar-right>
-      <div v-if="aiPendingReview" class="flex items-center gap-1">
+      <div
+        v-if="aiPendingReview"
+        class="flex items-center gap-1"
+      >
         <button
           type="button"
           class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[12px] font-medium text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
           @click="aiDecline"
         >
-          <UIcon name="i-lucide-undo-2" class="text-[13px]" />
+          <UIcon
+            name="i-lucide-undo-2"
+            class="text-[13px]"
+          />
           Discard
         </button>
         <button
@@ -356,7 +384,10 @@ defineExpose({
           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-emerald-200 dark:ring-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 transition-colors"
           @click="aiAccept"
         >
-          <UIcon name="i-lucide-check" class="text-[13px]" />
+          <UIcon
+            name="i-lucide-check"
+            class="text-[13px]"
+          />
           Keep
         </button>
       </div>
@@ -378,18 +409,23 @@ defineExpose({
         class="absolute top-1 left-2 right-2 z-20 rounded-lg border border-zinc-200/80 dark:border-zinc-700/50 bg-white dark:bg-zinc-800 shadow-lg overflow-hidden"
       >
         <div class="relative border-b border-zinc-200/80 dark:border-zinc-700/50">
-          <UIcon name="i-lucide-search" class="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-zinc-400 dark:text-zinc-500" />
+          <UIcon
+            name="i-lucide-search"
+            class="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-zinc-400 dark:text-zinc-500"
+          />
           <input
             ref="mentionSearchInput"
             v-model="mentionSearchQuery"
             placeholder="Search members or cards..."
             class="w-full pl-8 pr-3 py-2.5 text-[13px] text-zinc-700 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500 bg-transparent border-0 outline-none"
             @keydown="onMentionKeydown"
-          />
+          >
         </div>
         <div class="max-h-[240px] overflow-y-auto">
           <div v-if="mentionUserResults.length > 0">
-            <div class="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 dark:text-zinc-500">Members</div>
+            <div class="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 dark:text-zinc-500">
+              Members
+            </div>
             <button
               v-for="(user, i) in mentionUserResults"
               :key="'u-' + user.id"
@@ -401,13 +437,18 @@ defineExpose({
               @mousedown.prevent
               @click="selectMention({ ...user, _type: 'user' })"
             >
-              <UAvatar :alt="user.name" size="2xs" />
+              <UAvatar
+                :alt="user.name"
+                size="2xs"
+              />
               <span class="font-medium truncate">{{ user.name }}</span>
               <span class="ml-auto text-[11px] text-zinc-400 dark:text-zinc-500 truncate">{{ user.email }}</span>
             </button>
           </div>
           <div v-if="mentionCardResults.length > 0">
-            <div class="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 dark:text-zinc-500">Cards</div>
+            <div class="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 dark:text-zinc-500">
+              Cards
+            </div>
             <button
               v-for="(c, i) in mentionCardResults"
               :key="'c-' + c.id"

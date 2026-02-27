@@ -14,7 +14,7 @@ describe('GET /api/admin/users', () => {
   it('admin gets all users without passwordHash', async () => {
     const users = await $fetch('/api/admin/users', {
       headers: admin.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
 
     expect(users.length).toBeGreaterThanOrEqual(2)
     expect(users[0]).toHaveProperty('id')
@@ -29,9 +29,9 @@ describe('GET /api/admin/users', () => {
   it('includes lastSeenAt and suspendedAt fields', async () => {
     const users = await $fetch('/api/admin/users', {
       headers: admin.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
 
-    const found = users.find((u: any) => u.id === regularUser.id)
+    const found = users.find((u: Record<string, unknown>) => u.id === regularUser.id)
     expect(found).toBeDefined()
     expect(found).toHaveProperty('lastSeenAt')
     expect(found).toHaveProperty('suspendedAt')
@@ -66,11 +66,11 @@ describe('PATCH /api/admin/users/[id] (suspend)', () => {
       method: 'PATCH',
       body: { suspended: true },
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(result.ok).toBe(true)
 
-    const users = await $fetch('/api/admin/users', { headers: admin.headers }) as any[]
-    const found = users.find((u: any) => u.id === target.id)
+    const users = await $fetch('/api/admin/users', { headers: admin.headers }) as Record<string, unknown>[]
+    const found = users.find((u: Record<string, unknown>) => u.id === target.id)
     expect(found.suspendedAt).not.toBeNull()
   })
 
@@ -88,7 +88,7 @@ describe('PATCH /api/admin/users/[id] (suspend)', () => {
       method: 'PATCH',
       body: { suspended: false },
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(result.ok).toBe(true)
 
     // User can log in again
@@ -134,11 +134,11 @@ describe('PATCH /api/admin/users/[id] (isAdmin)', () => {
       method: 'PATCH',
       body: { isAdmin: true },
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(result.ok).toBe(true)
 
-    const users = await $fetch('/api/admin/users', { headers: admin.headers }) as any[]
-    const found = users.find((u: any) => u.id === target.id)
+    const users = await $fetch('/api/admin/users', { headers: admin.headers }) as Record<string, unknown>[]
+    const found = users.find((u: Record<string, unknown>) => u.id === target.id)
     expect(found.isAdmin).toBe(1)
   })
 
@@ -147,11 +147,11 @@ describe('PATCH /api/admin/users/[id] (isAdmin)', () => {
       method: 'PATCH',
       body: { isAdmin: false },
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(result.ok).toBe(true)
 
-    const users = await $fetch('/api/admin/users', { headers: admin.headers }) as any[]
-    const found = users.find((u: any) => u.id === target.id)
+    const users = await $fetch('/api/admin/users', { headers: admin.headers }) as Record<string, unknown>[]
+    const found = users.find((u: Record<string, unknown>) => u.id === target.id)
     expect(found.isAdmin).toBe(0)
   })
 

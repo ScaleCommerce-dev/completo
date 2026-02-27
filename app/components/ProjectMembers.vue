@@ -1,4 +1,22 @@
 <script setup lang="ts">
+interface ProjectMember {
+  id: string
+  name: string
+  avatarUrl?: string | null
+  role: 'owner' | 'member'
+}
+
+interface ProjectInvitation {
+  id: string
+  email: string
+}
+
+interface SearchUser {
+  id: string
+  name: string
+  avatarUrl?: string | null
+}
+
 const props = defineProps<{
   projectId: string
 }>()
@@ -6,23 +24,23 @@ const props = defineProps<{
 const { user: currentUser } = useUserSession()
 const toast = useToast()
 
-const { data: members, refresh } = useFetch(`/api/projects/${props.projectId}/members`)
+const { data: members, refresh } = useFetch<ProjectMember[]>(`/api/projects/${props.projectId}/members`)
 
 const sortedMembers = computed(() => {
-  return [...((members.value || []) as any[])].sort((a, b) =>
+  return [...(members.value || [])].sort((a, b) =>
     (a.name || '').localeCompare(b.name || '')
   )
 })
 
 const isOwnerOrAdmin = computed(() => {
   if (currentUser.value?.isAdmin) return true
-  const memberList = (members.value || []) as any[]
+  const memberList = members.value || []
   const me = memberList.find(m => m.id === currentUser.value?.id)
   return me?.role === 'owner'
 })
 
 // Pending invitations
-const { data: invitations, refresh: refreshInvitations } = useFetch(`/api/projects/${props.projectId}/invitations`, {
+const { data: invitations, refresh: refreshInvitations } = useFetch<ProjectInvitation[]>(`/api/projects/${props.projectId}/invitations`, {
   immediate: false
 })
 
@@ -40,8 +58,9 @@ async function resendInvitation(invitationId: string) {
       method: 'POST'
     })
     toast.add({ title: 'Invitation resent', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Failed to resend invitation', description: e?.data?.message, color: 'error' })
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    toast.add({ title: 'Failed to resend invitation', description: err?.data?.message, color: 'error' })
   } finally {
     resendingInvitation.value = null
   }
@@ -55,8 +74,9 @@ async function cancelInvitation(invitationId: string) {
     })
     await refreshInvitations()
     toast.add({ title: 'Invitation cancelled', color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Failed to cancel invitation', description: e?.data?.message, color: 'error' })
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    toast.add({ title: 'Failed to cancel invitation', description: err?.data?.message, color: 'error' })
   } finally {
     cancellingInvitation.value = null
   }
@@ -64,7 +84,7 @@ async function cancelInvitation(invitationId: string) {
 
 // Add member — search-based
 const searchQuery = ref('')
-const searchResults = ref<any[]>([])
+const searchResults = ref<SearchUser[]>([])
 const searching = ref(false)
 const addError = ref('')
 const adding = ref(false)
@@ -90,9 +110,9 @@ watch(searchQuery, (val) => {
   showResults.value = true
   searchTimeout = setTimeout(async () => {
     try {
-      const results = await $fetch<any[]>('/api/users/search', { params: { q } })
+      const results = await $fetch<SearchUser[]>('/api/users/search', { params: { q } })
       if (searchQuery.value.trim() === q) {
-        const memberIds = new Set(((members.value || []) as any[]).map(m => m.id))
+        const memberIds = new Set((members.value || []).map(m => m.id))
         searchResults.value = results.filter(u => !memberIds.has(u.id))
       }
     } catch {
@@ -103,7 +123,7 @@ watch(searchQuery, (val) => {
   }, 200)
 })
 
-async function addMember(user: any) {
+async function addMember(user: SearchUser) {
   adding.value = true
   addError.value = ''
   try {
@@ -116,8 +136,9 @@ async function addMember(user: any) {
     showResults.value = false
     await refresh()
     toast.add({ title: `${user.name} added to project`, color: 'success' })
-  } catch (e: any) {
-    addError.value = e?.data?.message || 'Failed to add member'
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    addError.value = err?.data?.message || 'Failed to add member'
   } finally {
     adding.value = false
   }
@@ -139,8 +160,9 @@ async function inviteByEmail() {
     toast.add({ title: `Added or invited ${emailVal}`, color: 'success' })
     await refresh()
     await refreshInvitations()
-  } catch (e: any) {
-    addError.value = e?.data?.message || 'Failed to invite user'
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    addError.value = err?.data?.message || 'Failed to invite user'
   } finally {
     adding.value = false
   }
@@ -158,7 +180,8 @@ function onInputKeydown(e: KeyboardEvent) {
     e.preventDefault()
     // If a search result is highlighted, add that user
     if (showResults.value && highlightIndex.value >= 0 && highlightIndex.value < searchResults.value.length) {
-      addMember(searchResults.value[highlightIndex.value])
+      const selected = searchResults.value[highlightIndex.value]
+      if (selected) addMember(selected)
       return
     }
     // If no results and looks like an email, invite
@@ -186,17 +209,17 @@ function onInputKeydown(e: KeyboardEvent) {
 const changingRole = ref<string | null>(null)
 
 const ownerCount = computed(() => {
-  return ((members.value || []) as any[]).filter(m => m.role === 'owner').length
+  return (members.value || []).filter(m => m.role === 'owner').length
 })
 
-function canChangeRole(m: any): boolean {
+function canChangeRole(m: ProjectMember): boolean {
   if (!isOwnerOrAdmin.value) return false
   // Prevent demoting the last owner
   if (m.role === 'owner' && ownerCount.value <= 1) return false
   return true
 }
 
-async function changeRole(m: any, newRole: 'owner' | 'member') {
+async function changeRole(m: ProjectMember, newRole: 'owner' | 'member') {
   if (newRole === m.role) return
   changingRole.value = m.id
   try {
@@ -206,19 +229,20 @@ async function changeRole(m: any, newRole: 'owner' | 'member') {
     })
     await refresh()
     toast.add({ title: `${m.name} is now ${newRole === 'owner' ? 'an owner' : 'a member'}`, color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Failed to change role', description: e?.data?.message, color: 'error' })
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    toast.add({ title: 'Failed to change role', description: err?.data?.message, color: 'error' })
   } finally {
     changingRole.value = null
   }
 }
 
-function roleMenuItems(m: any) {
+function roleMenuItems(m: ProjectMember) {
   const canRemove = !(m.role === 'owner' && m.id === currentUser.value?.id)
   const roleAction = m.role === 'member'
     ? { label: 'Promote to owner', icon: 'i-lucide-shield', onSelect: () => changeRole(m, 'owner') }
     : { label: 'Demote to member', icon: 'i-lucide-user', onSelect: () => changeRole(m, 'member') }
-  const items: any[][] = [[roleAction]]
+  const items: { label: string, icon: string, color?: string, onSelect: () => void }[][] = [[roleAction]]
   if (canRemove) {
     items.push([{
       label: 'Remove from project',
@@ -232,9 +256,9 @@ function roleMenuItems(m: any) {
 
 // Remove member
 const removing = ref<string | null>(null)
-const pendingRemove = ref<any>(null)
+const pendingRemove = ref<ProjectMember | null>(null)
 
-function removeMember(m: any) {
+function removeMember(m: ProjectMember) {
   pendingRemove.value = m
 }
 
@@ -249,15 +273,16 @@ async function confirmRemoveMember() {
     })
     await refresh()
     toast.add({ title: `${m.name} removed from project`, color: 'success' })
-  } catch (e: any) {
-    toast.add({ title: 'Failed to remove member', description: e?.data?.message, color: 'error' })
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    toast.add({ title: 'Failed to remove member', description: err?.data?.message, color: 'error' })
   } finally {
     removing.value = null
   }
 }
 
 // Invitation dropdown items
-function invitationMenuItems(inv: any) {
+function invitationMenuItems(inv: ProjectInvitation) {
   return [
     [{
       label: 'Resend invitation',
@@ -287,12 +312,22 @@ function invitationMenuItems(inv: any) {
           mIdx === (sortedMembers).length - 1 && !isOwnerOrAdmin ? 'rounded-b-xl' : ''
         ]"
       >
-        <UAvatar :src="m.avatarUrl" :alt="m.name" size="xs" />
+        <UAvatar
+          :src="m.avatarUrl ?? undefined"
+          :alt="m.name"
+          size="xs"
+        />
         <span class="text-[14px] font-medium flex-1 truncate">
           {{ m.name }}
-          <span v-if="m.id === currentUser?.id" class="text-[12px] text-zinc-400 dark:text-zinc-500 font-normal">(you)</span>
+          <span
+            v-if="m.id === currentUser?.id"
+            class="text-[12px] text-zinc-400 dark:text-zinc-500 font-normal"
+          >(you)</span>
         </span>
-        <UDropdownMenu v-if="canChangeRole(m)" :items="roleMenuItems(m)">
+        <UDropdownMenu
+          v-if="canChangeRole(m)"
+          :items="roleMenuItems(m)"
+        >
           <button
             type="button"
             class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-indigo-500/20 flex items-center gap-1"
@@ -301,10 +336,17 @@ function invitationMenuItems(inv: any) {
               : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'"
             :disabled="changingRole === m.id"
           >
-            <UIcon v-if="changingRole === m.id" name="i-lucide-loader-2" class="text-[10px] animate-spin" />
+            <UIcon
+              v-if="changingRole === m.id"
+              name="i-lucide-loader-2"
+              class="text-[10px] animate-spin"
+            />
             <template v-else>
               {{ m.role }}
-              <UIcon name="i-lucide-chevron-down" class="text-[10px] opacity-60" />
+              <UIcon
+                name="i-lucide-chevron-down"
+                class="text-[10px] opacity-60"
+              />
             </template>
           </button>
         </UDropdownMenu>
@@ -317,18 +359,20 @@ function invitationMenuItems(inv: any) {
         >
           {{ m.role }}
         </span>
-
       </div>
 
       <!-- Pending invitations (owner/admin only) -->
-      <template v-if="isOwnerOrAdmin && (invitations as any[])?.length">
+      <template v-if="isOwnerOrAdmin && (invitations as ProjectInvitation[] | null)?.length">
         <div class="border-t border-zinc-100 dark:border-zinc-700/40 bg-white dark:bg-zinc-800/50 px-3 py-2">
           <div
-            v-for="inv in (invitations as any[])"
+            v-for="inv in (invitations as ProjectInvitation[] | null)"
             :key="inv.id"
             class="flex items-center gap-2 py-1.5 group/inv"
           >
-            <UIcon name="i-lucide-mail" class="text-[14px] text-amber-400 shrink-0" />
+            <UIcon
+              name="i-lucide-mail"
+              class="text-[14px] text-amber-400 shrink-0"
+            />
             <span class="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 flex-1 truncate">{{ inv.email }}</span>
             <UDropdownMenu :items="invitationMenuItems(inv)">
               <button
@@ -336,10 +380,17 @@ function invitationMenuItems(inv: any) {
                 class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-amber-500/20 flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
                 :disabled="resendingInvitation === inv.id || cancellingInvitation === inv.id"
               >
-                <UIcon v-if="resendingInvitation === inv.id || cancellingInvitation === inv.id" name="i-lucide-loader-2" class="text-[10px] animate-spin" />
+                <UIcon
+                  v-if="resendingInvitation === inv.id || cancellingInvitation === inv.id"
+                  name="i-lucide-loader-2"
+                  class="text-[10px] animate-spin"
+                />
                 <template v-else>
                   Pending
-                  <UIcon name="i-lucide-chevron-down" class="text-[10px] opacity-60" />
+                  <UIcon
+                    name="i-lucide-chevron-down"
+                    class="text-[10px] opacity-60"
+                  />
                 </template>
               </button>
             </UDropdownMenu>
@@ -351,7 +402,10 @@ function invitationMenuItems(inv: any) {
       <template v-if="isOwnerOrAdmin">
         <div class="relative border-t border-zinc-100 dark:border-zinc-700/40 bg-white dark:bg-zinc-800/50 rounded-b-xl px-3 py-2">
           <div class="flex items-center gap-1.5 mb-2">
-            <UIcon name="i-lucide-user-plus" class="text-[13px] text-zinc-400" />
+            <UIcon
+              name="i-lucide-user-plus"
+              class="text-[13px] text-zinc-400"
+            />
             <span class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.08em]">Add Member</span>
           </div>
           <input
@@ -362,7 +416,7 @@ function invitationMenuItems(inv: any) {
             @focus="searchQuery.trim().length >= 2 && (showResults = true)"
             @blur="onInputBlur"
             @keydown="onInputKeydown"
-          />
+          >
           <UIcon
             v-if="searching"
             name="i-lucide-loader-2"
@@ -386,11 +440,20 @@ function invitationMenuItems(inv: any) {
               @mousedown.prevent="addMember(u)"
               @mouseenter="highlightIndex = i"
             >
-              <UAvatar :src="u.avatarUrl" :alt="u.name" size="xs" />
+              <UAvatar
+                :src="u.avatarUrl ?? undefined"
+                :alt="u.name"
+                size="xs"
+              />
               <div class="min-w-0 flex-1">
-                <div class="text-[14px] font-medium text-zinc-900 dark:text-zinc-100 truncate">{{ u.name }}</div>
+                <div class="text-[14px] font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                  {{ u.name }}
+                </div>
               </div>
-              <UIcon name="i-lucide-plus" class="text-[14px] text-zinc-400 shrink-0" />
+              <UIcon
+                name="i-lucide-plus"
+                class="text-[14px] text-zinc-400 shrink-0"
+              />
             </button>
 
             <!-- Invite by email option when no results and valid email -->
@@ -402,15 +465,23 @@ function invitationMenuItems(inv: any) {
               @mousedown.prevent="inviteByEmail"
             >
               <div class="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-500/20">
-                <UIcon name="i-lucide-send" class="text-[12px] text-indigo-500" />
+                <UIcon
+                  name="i-lucide-send"
+                  class="text-[12px] text-indigo-500"
+                />
               </div>
               <div class="min-w-0 flex-1">
                 <div class="text-[14px] font-medium text-indigo-600 dark:text-indigo-400">
                   Invite {{ searchQuery.trim() }}
                 </div>
-                <div class="text-[12px] text-zinc-400 dark:text-zinc-500">Send an invitation email</div>
+                <div class="text-[12px] text-zinc-400 dark:text-zinc-500">
+                  Send an invitation email
+                </div>
               </div>
-              <UIcon name="i-lucide-mail-plus" class="text-[14px] text-indigo-400 shrink-0" />
+              <UIcon
+                name="i-lucide-mail-plus"
+                class="text-[14px] text-indigo-400 shrink-0"
+              />
             </button>
 
             <div
@@ -422,33 +493,56 @@ function invitationMenuItems(inv: any) {
           </div>
 
           <!-- Error -->
-          <div v-if="addError" class="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40">
-            <UIcon name="i-lucide-alert-circle" class="text-[14px] text-red-500 shrink-0" />
+          <div
+            v-if="addError"
+            class="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
+          >
+            <UIcon
+              name="i-lucide-alert-circle"
+              class="text-[14px] text-red-500 shrink-0"
+            />
             <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ addError }}</span>
           </div>
         </div>
       </template>
     </div>
 
-    <div v-if="!(sortedMembers)?.length" class="py-4 text-center text-[14px] text-zinc-400 dark:text-zinc-500">
+    <div
+      v-if="!(sortedMembers)?.length"
+      class="py-4 text-center text-[14px] text-zinc-400 dark:text-zinc-500"
+    >
       No members
     </div>
 
     <!-- Remove member confirmation modal -->
-    <UModal v-model:open="pendingRemove" :ui="{ content: 'sm:max-w-[400px]' }">
+    <UModal
+      :open="!!pendingRemove"
+      :ui="{ content: 'sm:max-w-[400px]' }"
+      @update:open="(val: boolean) => { if (!val) pendingRemove = null }"
+    >
       <template #content>
         <div class="rounded-xl bg-white dark:bg-zinc-800/80 overflow-hidden">
           <div class="px-5 pt-5 pb-4">
             <div class="flex items-center gap-3 mb-4">
               <div class="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-950/30">
-                <UIcon name="i-lucide-alert-triangle" class="text-lg text-red-500" />
+                <UIcon
+                  name="i-lucide-alert-triangle"
+                  class="text-lg text-red-500"
+                />
               </div>
               <div>
-                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">Remove Member</h2>
-                <p class="text-[13px] text-zinc-500 dark:text-zinc-400">This action cannot be undone</p>
+                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+                  Remove Member
+                </h2>
+                <p class="text-[13px] text-zinc-500 dark:text-zinc-400">
+                  This action cannot be undone
+                </p>
               </div>
             </div>
-            <p v-if="pendingRemove" class="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+            <p
+              v-if="pendingRemove"
+              class="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed"
+            >
               Are you sure you want to remove <strong class="text-zinc-700 dark:text-zinc-200">{{ pendingRemove.name }}</strong> from this project?
             </p>
           </div>
@@ -466,8 +560,16 @@ function invitationMenuItems(inv: any) {
               :disabled="removing === pendingRemove?.id"
               @click="confirmRemoveMember"
             >
-              <UIcon v-if="removing !== pendingRemove?.id" name="i-lucide-user-minus" class="text-[14px]" />
-              <UIcon v-else name="i-lucide-loader-2" class="text-[14px] animate-spin" />
+              <UIcon
+                v-if="removing !== pendingRemove?.id"
+                name="i-lucide-user-minus"
+                class="text-[14px]"
+              />
+              <UIcon
+                v-else
+                name="i-lucide-loader-2"
+                class="text-[14px] animate-spin"
+              />
               Remove
             </button>
           </div>

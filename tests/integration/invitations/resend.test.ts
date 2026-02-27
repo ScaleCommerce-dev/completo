@@ -6,7 +6,7 @@ import { createTestProject, createInvitation } from '../../setup/fixtures'
 describe('POST /api/projects/[id]/invitations/[invitationId]/resend', () => {
   let owner: TestUser
   let member: TestUser
-  let project: any
+  let project: Record<string, unknown>
   let invitationId: string
   const inviteEmail = `resend-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@example.com`
 
@@ -28,7 +28,7 @@ describe('POST /api/projects/[id]/invitations/[invitationId]/resend', () => {
     // Get invitation ID
     const invitations = await $fetch(`/api/projects/${project.id}/invitations`, {
       headers: owner.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
     const inv = invitations.find(i => i.email === inviteEmail.toLowerCase())
     invitationId = inv.id
   })
@@ -37,7 +37,7 @@ describe('POST /api/projects/[id]/invitations/[invitationId]/resend', () => {
     const result = await $fetch(`/api/projects/${project.id}/invitations/${invitationId}/resend`, {
       method: 'POST',
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.ok).toBe(true)
   })
@@ -66,7 +66,7 @@ describe('POST /api/projects/[id]/invitations/[invitationId]/resend', () => {
 
     const otherInvitations = await $fetch(`/api/projects/${otherProject.id}/invitations`, {
       headers: otherOwner.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
     const otherInvId = otherInvitations.find(i => i.email === otherEmail.toLowerCase())!.id
 
     // Try to resend other project's invitation via our project
@@ -82,7 +82,7 @@ describe('POST /api/projects/[id]/invitations/[invitationId]/resend', () => {
     const result = await $fetch(`/api/projects/${project.id}/invitations/${invitationId}/resend`, {
       method: 'POST',
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.ok).toBe(true)
   })

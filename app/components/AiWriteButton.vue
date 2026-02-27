@@ -47,7 +47,10 @@ function handleCustomPrompt() {
       @mousedown.prevent
       @click="emit('cancel')"
     >
-      <UIcon name="i-lucide-loader-2" class="text-[13px] animate-spin" />
+      <UIcon
+        name="i-lucide-loader-2"
+        class="text-[13px] animate-spin"
+      />
       <span>Stop</span>
     </button>
 
@@ -65,14 +68,20 @@ function handleCustomPrompt() {
           : 'text-white dark:text-white ring-0'"
         @mousedown.prevent
       >
-        <UIcon name="i-lucide-sparkles" class="text-[13px]" />
+        <UIcon
+          name="i-lucide-sparkles"
+          class="text-[13px]"
+        />
         <span>AI</span>
       </button>
 
       <template #content>
         <div class="min-w-[220px] max-w-[280px]">
           <!-- Skills list -->
-          <div v-if="(skills as any[])?.length" class="py-1">
+          <div
+            v-if="(skills as any[])?.length"
+            class="py-1"
+          >
             <button
               v-for="skill in (skills as any[])"
               :key="skill.id"
@@ -80,7 +89,10 @@ function handleCustomPrompt() {
               class="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors text-left"
               @click="handleSkill(skill.id)"
             >
-              <UIcon name="i-lucide-wand-sparkles" class="text-[14px] text-violet-500 shrink-0" />
+              <UIcon
+                name="i-lucide-wand-sparkles"
+                class="text-[14px] text-violet-500 shrink-0"
+              />
               <span class="font-medium truncate">{{ skill.name }}</span>
             </button>
           </div>
@@ -101,14 +113,17 @@ function handleCustomPrompt() {
                 class="flex-1 min-w-0 px-2.5 py-1.5 text-[13px] text-zinc-700 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500 bg-zinc-50 dark:bg-zinc-700/50 border border-zinc-200 dark:border-zinc-600/50 rounded-lg outline-none focus:border-indigo-300 dark:focus:border-indigo-600 transition-colors"
                 @keydown.enter.prevent="handleCustomPrompt"
                 @keydown.stop
-              />
+              >
               <button
                 type="button"
                 class="p-1.5 rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 :disabled="!customPrompt.trim()"
                 @click="handleCustomPrompt"
               >
-                <UIcon name="i-lucide-send" class="text-[14px]" />
+                <UIcon
+                  name="i-lucide-send"
+                  class="text-[14px]"
+                />
               </button>
             </div>
           </div>

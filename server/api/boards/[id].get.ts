@@ -66,20 +66,20 @@ export default defineEventHandler(async (event) => {
   // Fetch cards where statusId is in the board's column set
   const allBoardCards = statusIds.length
     ? db.select().from(schema.cards)
-      .leftJoin(schema.users, eq(schema.cards.assigneeId, schema.users.id))
-      .where(inArray(schema.cards.statusId, statusIds))
-      .all()
-      .map(row => ({
-        ...row.cards,
-        assignee: row.users ? { id: row.users.id, name: row.users.name, avatarUrl: row.users.avatarUrl } : null
-      }))
+        .leftJoin(schema.users, eq(schema.cards.assigneeId, schema.users.id))
+        .where(inArray(schema.cards.statusId, statusIds))
+        .all()
+        .map(row => ({
+          ...row.cards,
+          assignee: row.users ? { id: row.users.id, name: row.users.name, avatarUrl: row.users.avatarUrl } : null
+        }))
     : []
 
   // Filter out done cards past retention window
   let boardCards = allBoardCards
   if (project?.doneStatusId && project.doneRetentionDays != null) {
     const cutoff = Date.now() - project.doneRetentionDays * 86400000
-    boardCards = allBoardCards.filter(card => {
+    boardCards = allBoardCards.filter((card) => {
       if (card.statusId !== project.doneStatusId) return true
       return card.updatedAt.getTime() >= cutoff
     })
@@ -89,9 +89,9 @@ export default defineEventHandler(async (event) => {
   const cardIds = boardCards.map(c => c.id)
   const allCardTags = cardIds.length
     ? db.select().from(schema.cardTags)
-      .innerJoin(schema.tags, eq(schema.cardTags.tagId, schema.tags.id))
-      .where(inArray(schema.cardTags.cardId, cardIds))
-      .all()
+        .innerJoin(schema.tags, eq(schema.cardTags.tagId, schema.tags.id))
+        .where(inArray(schema.cardTags.cardId, cardIds))
+        .all()
     : []
 
   const tagsByCard = new Map<number, Array<{ id: string, name: string, color: string }>>()
@@ -108,13 +108,13 @@ export default defineEventHandler(async (event) => {
   // Bulk-fetch attachment counts
   const attachmentCounts = cardIds.length
     ? db.select({
-      cardId: schema.attachments.cardId,
-      count: sql<number>`count(*)`
-    })
-      .from(schema.attachments)
-      .where(inArray(schema.attachments.cardId, cardIds))
-      .groupBy(schema.attachments.cardId)
-      .all()
+        cardId: schema.attachments.cardId,
+        count: sql<number>`count(*)`
+      })
+        .from(schema.attachments)
+        .where(inArray(schema.attachments.cardId, cardIds))
+        .groupBy(schema.attachments.cardId)
+        .all()
     : []
   const attachCountByCard = new Map(attachmentCounts.map(r => [r.cardId, r.count]))
 

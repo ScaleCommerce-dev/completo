@@ -1,7 +1,7 @@
 import { eq, inArray } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user, project, membership } = await resolveProject(event)
+  const { user: _user, project, membership } = await resolveProject(event)
 
   const projectBoards = db.select().from(schema.boards)
     .where(eq(schema.boards.projectId, project.id))

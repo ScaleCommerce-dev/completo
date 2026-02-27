@@ -19,7 +19,7 @@ describe('POST /api/projects', async () => {
       method: 'POST',
       body: { name: unique },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(project.name).toBe(unique)
     expect(project.key).toMatch(/^[A-Z]{1,5}$/)
@@ -35,7 +35,7 @@ describe('POST /api/projects', async () => {
       method: 'POST',
       body: { name: 'Custom Project', key, slug },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(project.key).toBe(key)
     expect(project.slug).toBe(slug)
@@ -48,13 +48,13 @@ describe('POST /api/projects', async () => {
       method: 'POST',
       body: { name: `Owner Test ${Date.now()}`, key },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     const members = await $fetch(`/api/projects/${project.id}/members`, {
       headers: user.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
 
-    const owner = members.find((m: any) => m.id === user.id)
+    const owner = members.find((m: Record<string, unknown>) => m.id === user.id)
     expect(owner).toBeTruthy()
     expect(owner!.role).toBe('owner')
   })
@@ -102,10 +102,10 @@ describe('POST /api/projects', async () => {
     const project = await createTestProject(user, { name: `Done Col ${Date.now()}` })
     const detail = await $fetch(`/api/projects/${project.id}`, {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(detail.doneStatusId).toBeTruthy()
-    const doneStatus = detail.statuses.find((c: any) => c.id === detail.doneStatusId)
+    const doneStatus = detail.statuses.find((c: Record<string, unknown>) => c.id === detail.doneStatusId)
     expect(doneStatus).toBeTruthy()
     expect(doneStatus.name).toBe('Done')
   })
@@ -117,7 +117,7 @@ describe('POST /api/projects', async () => {
       method: 'POST',
       body: { name: `Retention ${Date.now()}`, key, doneRetentionDays: 14 },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(project.doneRetentionDays).toBe(14)
   })

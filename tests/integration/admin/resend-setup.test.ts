@@ -17,12 +17,12 @@ describe('POST /api/admin/users/[id]/resend-setup', () => {
       method: 'POST',
       body: { name: 'Resend Setup User', email },
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
 
     const result = await $fetch(`/api/admin/users/${created.id}/resend-setup`, {
       method: 'POST',
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.ok).toBe(true)
   })
@@ -52,7 +52,7 @@ describe('POST /api/admin/users/[id]/resend-setup', () => {
       method: 'POST',
       body: { name: 'Another User', email },
       headers: admin.headers
-    }) as any
+    }) as Record<string, unknown>
 
     const res = await fetch(url(`/api/admin/users/${created.id}/resend-setup`), {
       method: 'POST',

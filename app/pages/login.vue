@@ -37,8 +37,8 @@ async function login() {
     })
     await refreshSession()
     await navigateTo('/projects')
-  } catch (e: any) {
-    const msg = e.data?.message || 'Login failed'
+  } catch (e: unknown) {
+    const msg = getErrorMessage(e, 'Login failed')
     error.value = msg
     if (msg.includes('verify your email')) {
       isUnverified.value = true
@@ -70,16 +70,24 @@ async function resendVerification() {
 <template>
   <div class="auth-glass">
     <div class="px-7 pt-7 pb-2">
-      <h2 class="text-base font-bold text-center tracking-[-0.02em]">Sign in to your account</h2>
+      <h2 class="text-base font-bold text-center tracking-[-0.02em]">
+        Sign in to your account
+      </h2>
     </div>
 
-    <form class="px-7 pb-7 flex flex-col gap-5" @submit.prevent="login">
+    <form
+      class="px-7 pb-7 flex flex-col gap-5"
+      @submit.prevent="login"
+    >
       <!-- Verification success banner -->
       <div
         v-if="verifiedSuccess"
         class="auth-field flex items-center gap-2 text-[13px] text-emerald-600 dark:text-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/30 rounded-lg px-3 py-2.5 backdrop-blur-sm border border-emerald-200/50 dark:border-emerald-800/30"
       >
-        <UIcon name="i-lucide-check-circle" class="shrink-0" />
+        <UIcon
+          name="i-lucide-check-circle"
+          class="shrink-0"
+        />
         Email verified! You can now sign in.
       </div>
 
@@ -88,7 +96,10 @@ async function resendVerification() {
         v-if="tokenError"
         class="auth-field flex items-center gap-2 text-[13px] text-red-600 dark:text-red-400 bg-red-50/80 dark:bg-red-950/30 rounded-lg px-3 py-2.5 backdrop-blur-sm border border-red-200/50 dark:border-red-800/30"
       >
-        <UIcon name="i-lucide-alert-circle" class="shrink-0" />
+        <UIcon
+          name="i-lucide-alert-circle"
+          class="shrink-0"
+        />
         <div>
           {{ tokenError }}
           <template v-if="isTokenExpired">
@@ -101,7 +112,10 @@ async function resendVerification() {
             >
               {{ resendLoading ? 'Sending...' : 'Resend verification email' }}
             </button>
-            <span v-if="resendSuccess" class="block mt-1 text-emerald-600 dark:text-emerald-400">
+            <span
+              v-if="resendSuccess"
+              class="block mt-1 text-emerald-600 dark:text-emerald-400"
+            >
               Verification email sent!
             </span>
           </template>
@@ -114,7 +128,11 @@ async function resendVerification() {
       <!-- Social login buttons -->
       <SocialLoginButtons />
 
-      <UFormField label="Email" class="auth-field" style="animation-delay: 0.05s">
+      <UFormField
+        label="Email"
+        class="auth-field"
+        style="animation-delay: 0.05s"
+      >
         <UInput
           v-model="email"
           type="email"
@@ -126,7 +144,11 @@ async function resendVerification() {
         />
       </UFormField>
 
-      <UFormField label="Password" class="auth-field" style="animation-delay: 0.1s">
+      <UFormField
+        label="Password"
+        class="auth-field"
+        style="animation-delay: 0.1s"
+      >
         <UInput
           v-model="password"
           type="password"
@@ -138,7 +160,10 @@ async function resendVerification() {
         />
       </UFormField>
 
-      <div class="auth-field flex justify-end -mt-2" style="animation-delay: 0.12s">
+      <div
+        class="auth-field flex justify-end -mt-2"
+        style="animation-delay: 0.12s"
+      >
         <NuxtLink
           to="/auth/forgot-password"
           class="text-[13px] text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
@@ -151,7 +176,10 @@ async function resendVerification() {
         v-if="error"
         class="auth-field flex items-center gap-2 text-[13px] text-red-600 dark:text-red-400 bg-red-50/80 dark:bg-red-950/30 rounded-lg px-3 py-2.5 backdrop-blur-sm border border-red-200/50 dark:border-red-800/30"
       >
-        <UIcon name="i-lucide-alert-circle" class="shrink-0" />
+        <UIcon
+          name="i-lucide-alert-circle"
+          class="shrink-0"
+        />
         <div>
           {{ error }}
           <button
@@ -163,14 +191,26 @@ async function resendVerification() {
           >
             {{ resendLoading ? 'Sending...' : 'Resend verification email' }}
           </button>
-          <span v-if="resendSuccess" class="block mt-1 text-emerald-600 dark:text-emerald-400">
+          <span
+            v-if="resendSuccess"
+            class="block mt-1 text-emerald-600 dark:text-emerald-400"
+          >
             Verification email sent!
           </span>
         </div>
       </div>
 
-      <div class="auth-field" style="animation-delay: 0.15s">
-        <UButton type="submit" label="Sign in" block :loading="loading" size="lg" />
+      <div
+        class="auth-field"
+        style="animation-delay: 0.15s"
+      >
+        <UButton
+          type="submit"
+          label="Sign in"
+          block
+          :loading="loading"
+          size="lg"
+        />
       </div>
     </form>
 
@@ -178,7 +218,10 @@ async function resendVerification() {
       <div class="border-t border-zinc-200/40 dark:border-zinc-700/25 pt-4">
         <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400">
           Don't have an account?
-          <NuxtLink to="/register" class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Register</NuxtLink>
+          <NuxtLink
+            to="/register"
+            class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+          >Register</NuxtLink>
         </p>
       </div>
     </div>

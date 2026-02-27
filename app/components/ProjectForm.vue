@@ -20,11 +20,11 @@ const props = withDefaults(defineProps<{
 }>(), {
   loadingStatuses: false,
   loading: false,
-  deleting: false,
+  deleting: false
 })
 
 const emit = defineEmits<{
-  submit: [data: Record<string, any>]
+  submit: [data: Record<string, unknown>]
   cancel: []
   delete: []
 }>()
@@ -250,7 +250,7 @@ function onSubmit() {
     description: formDescription.value.trim(),
     briefing: formBriefing.value.trim() || null,
     icon: formIcon.value === 'folder' ? null : formIcon.value,
-    doneRetentionDays: doneRetentionDays.value,
+    doneRetentionDays: doneRetentionDays.value
   }
 
   if (props.mode === 'create') {
@@ -282,7 +282,7 @@ function confirmDelete() {
         placeholder="Project name..."
         autofocus
         class="w-full text-[16px] font-semibold text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-zinc-200 dark:focus:border-zinc-700 rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
-      />
+      >
     </div>
 
     <!-- Description -->
@@ -303,12 +303,18 @@ function confirmDelete() {
         class="flex items-center gap-1.5 text-[12px] font-semibold text-violet-500 dark:text-violet-400 hover:text-violet-600 dark:hover:text-violet-300 transition-colors"
         @click="showBriefingEditor = true"
       >
-        <UIcon name="i-lucide-sparkles" class="text-[12px]" />
+        <UIcon
+          name="i-lucide-sparkles"
+          class="text-[12px]"
+        />
         {{ formBriefing ? 'Edit agent briefing' : 'Add agent briefing' }}
       </button>
       <template v-if="showBriefingEditor">
         <div class="flex items-center gap-1.5 mb-1.5">
-          <UIcon name="i-lucide-sparkles" class="text-[12px] text-violet-500" />
+          <UIcon
+            name="i-lucide-sparkles"
+            class="text-[12px] text-violet-500"
+          />
           <span class="text-[11px] font-semibold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">
             Agent Briefing
           </span>
@@ -334,11 +340,17 @@ function confirmDelete() {
           @click="showIconPicker = !showIconPicker"
         >
           <div class="flex items-center gap-2 w-28 shrink-0">
-            <UIcon name="i-lucide-smile" class="text-sm text-zinc-400" />
+            <UIcon
+              name="i-lucide-smile"
+              class="text-sm text-zinc-400"
+            />
             <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">Icon</span>
           </div>
           <div class="flex-1 flex items-center gap-2.5">
-            <UIcon :name="`i-lucide-${formIcon}`" class="text-[16px] text-zinc-700 dark:text-zinc-200" />
+            <UIcon
+              :name="`i-lucide-${formIcon}`"
+              class="text-[16px] text-zinc-700 dark:text-zinc-200"
+            />
             <span class="text-[14px] font-medium text-zinc-600 dark:text-zinc-300">{{ formIcon }}</span>
             <span class="ml-auto text-[12px] font-semibold text-indigo-500 dark:text-indigo-400 transition-colors">
               {{ showIconPicker ? 'Close' : 'Change' }}
@@ -346,14 +358,17 @@ function confirmDelete() {
           </div>
         </div>
         <!-- Icon picker panel -->
-        <div v-if="showIconPicker" class="px-3 pb-3 space-y-2.5">
+        <div
+          v-if="showIconPicker"
+          class="px-3 pb-3 space-y-2.5"
+        >
           <input
             v-model="iconFilter"
             type="text"
             placeholder="Search or type any icon name..."
             class="w-full text-[13px] text-zinc-600 dark:text-zinc-300 placeholder-zinc-300 dark:placeholder-zinc-600 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/50 rounded-md px-2.5 py-1.5 outline-none focus:border-indigo-300 dark:focus:border-indigo-600 transition-colors"
             @keydown.enter.prevent="applyFilterAsIcon"
-          />
+          >
           <div class="grid grid-cols-8 gap-1">
             <button
               v-for="ic in filteredIcons"
@@ -366,10 +381,16 @@ function confirmDelete() {
               :title="ic"
               @click.stop="selectIcon(ic)"
             >
-              <UIcon :name="`i-lucide-${ic}`" class="text-[16px]" />
+              <UIcon
+                :name="`i-lucide-${ic}`"
+                class="text-[16px]"
+              />
             </button>
           </div>
-          <div v-if="filteredIcons.length === 0" class="text-center py-2 text-[12px] text-zinc-400">
+          <div
+            v-if="filteredIcons.length === 0"
+            class="text-center py-2 text-[12px] text-zinc-400"
+          >
             No matching icons — press Enter to use "{{ iconFilter }}"
           </div>
           <p class="text-[12px] text-zinc-400 dark:text-zinc-500">
@@ -378,7 +399,10 @@ function confirmDelete() {
               href="https://lucide.dev/icons"
               target="_blank"
               class="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300"
-            >lucide.dev/icons<UIcon name="i-lucide-external-link" class="text-[9px] ml-0.5 inline-block align-[1px]" /></a>
+            >lucide.dev/icons<UIcon
+              name="i-lucide-external-link"
+              class="text-[9px] ml-0.5 inline-block align-[1px]"
+            /></a>
           </p>
         </div>
       </div>
@@ -386,7 +410,10 @@ function confirmDelete() {
       <!-- Key row -->
       <div class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
         <div class="flex items-center gap-2 w-28 shrink-0">
-          <UIcon name="i-lucide-key-round" class="text-sm text-zinc-400" />
+          <UIcon
+            name="i-lucide-key-round"
+            class="text-sm text-zinc-400"
+          />
           <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">Key</span>
         </div>
         <div class="flex-1 flex items-center gap-2.5">
@@ -397,7 +424,7 @@ function confirmDelete() {
             maxlength="5"
             class="flex-1 text-[14px] font-semibold text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0! uppercase tracking-wide"
             @input="onKeyInput"
-          />
+          >
           <span
             class="font-mono text-[10.5px] font-medium px-1.5 py-0.5 rounded transition-colors shrink-0"
             :class="formKey
@@ -406,16 +433,31 @@ function confirmDelete() {
           >
             {{ keyPreview }}
           </span>
-          <UIcon v-if="keyChecking" name="i-lucide-loader-2" class="text-[14px] text-zinc-400 animate-spin shrink-0" />
-          <UIcon v-else-if="formKey && keyValid && keyAvailable === true" name="i-lucide-check" class="text-[14px] text-emerald-500 shrink-0" />
-          <UIcon v-else-if="formKey && keyValid && keyAvailable === false" name="i-lucide-x" class="text-[14px] text-red-500 shrink-0" />
+          <UIcon
+            v-if="keyChecking"
+            name="i-lucide-loader-2"
+            class="text-[14px] text-zinc-400 animate-spin shrink-0"
+          />
+          <UIcon
+            v-else-if="formKey && keyValid && keyAvailable === true"
+            name="i-lucide-check"
+            class="text-[14px] text-emerald-500 shrink-0"
+          />
+          <UIcon
+            v-else-if="formKey && keyValid && keyAvailable === false"
+            name="i-lucide-x"
+            class="text-[14px] text-red-500 shrink-0"
+          />
         </div>
       </div>
 
       <!-- Slug row -->
       <div class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
         <div class="flex items-center gap-2 w-28 shrink-0">
-          <UIcon name="i-lucide-link" class="text-sm text-zinc-400" />
+          <UIcon
+            name="i-lucide-link"
+            class="text-sm text-zinc-400"
+          />
           <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">Slug</span>
         </div>
         <div class="flex-1 flex items-center gap-2.5">
@@ -425,17 +467,32 @@ function confirmDelete() {
             placeholder="my-project"
             class="flex-1 text-[14px] font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0! tracking-wide"
             @input="onSlugInput"
+          >
+          <UIcon
+            v-if="slugChecking"
+            name="i-lucide-loader-2"
+            class="text-[14px] text-zinc-400 animate-spin shrink-0"
           />
-          <UIcon v-if="slugChecking" name="i-lucide-loader-2" class="text-[14px] text-zinc-400 animate-spin shrink-0" />
-          <UIcon v-else-if="formSlug && slugAvailable === true" name="i-lucide-check" class="text-[14px] text-emerald-500 shrink-0" />
-          <UIcon v-else-if="formSlug && slugAvailable === false" name="i-lucide-x" class="text-[14px] text-red-500 shrink-0" />
+          <UIcon
+            v-else-if="formSlug && slugAvailable === true"
+            name="i-lucide-check"
+            class="text-[14px] text-emerald-500 shrink-0"
+          />
+          <UIcon
+            v-else-if="formSlug && slugAvailable === false"
+            name="i-lucide-x"
+            class="text-[14px] text-red-500 shrink-0"
+          />
         </div>
       </div>
 
       <!-- Done status row — inline retention -->
       <div class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
         <div class="flex items-center gap-2 w-28 shrink-0">
-          <UIcon name="i-lucide-circle-check-big" class="text-sm text-zinc-400" />
+          <UIcon
+            name="i-lucide-circle-check-big"
+            class="text-sm text-zinc-400"
+          />
           <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">Done status</span>
         </div>
         <div class="flex-1 flex items-center gap-3">
@@ -445,19 +502,37 @@ function confirmDelete() {
             v-model="doneStatusName"
             class="text-[14px] font-medium text-zinc-900 dark:text-zinc-100 bg-transparent border-0 outline-none cursor-pointer"
           >
-            <option v-for="col in defaultStatusNames" :key="col" :value="col">{{ col }}</option>
+            <option
+              v-for="col in defaultStatusNames"
+              :key="col"
+              :value="col"
+            >
+              {{ col }}
+            </option>
           </select>
           <!-- Edit mode: select by ID from actual statuses -->
           <template v-else>
-            <UIcon v-if="loadingStatuses" name="i-lucide-loader-2" class="text-[14px] text-zinc-400 animate-spin" />
+            <UIcon
+              v-if="loadingStatuses"
+              name="i-lucide-loader-2"
+              class="text-[14px] text-zinc-400 animate-spin"
+            />
             <select
               v-else
               :value="doneStatusId || ''"
               class="text-[14px] font-medium text-zinc-900 dark:text-zinc-100 bg-transparent border-0 outline-none cursor-pointer"
               @change="doneStatusId = ($event.target as HTMLSelectElement).value || null"
             >
-              <option value="">None</option>
-              <option v-for="col in statuses" :key="col.id" :value="col.id">{{ col.name }}</option>
+              <option value="">
+                None
+              </option>
+              <option
+                v-for="col in statuses"
+                :key="col.id"
+                :value="col.id"
+              >
+                {{ col.name }}
+              </option>
             </select>
           </template>
           <span class="text-zinc-200 dark:text-zinc-700">·</span>
@@ -470,7 +545,7 @@ function confirmDelete() {
               placeholder="∞"
               class="w-12 text-[13px] font-semibold text-center text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-zinc-100 dark:bg-zinc-700/50 border-0 outline-none! ring-0! rounded-md py-0.5"
               @input="doneRetentionDays = ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null"
-            />
+            >
             <span class="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">days</span>
           </div>
         </div>
@@ -478,8 +553,14 @@ function confirmDelete() {
     </div>
 
     <!-- Error -->
-    <div v-if="error" class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40">
-      <UIcon name="i-lucide-alert-circle" class="text-[14px] text-red-500 shrink-0" />
+    <div
+      v-if="error"
+      class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
+    >
+      <UIcon
+        name="i-lucide-alert-circle"
+        class="text-[14px] text-red-500 shrink-0"
+      />
       <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ error }}</span>
     </div>
 
@@ -500,14 +581,20 @@ function confirmDelete() {
       :class="mode === 'edit' ? 'justify-between' : 'justify-end'"
     >
       <!-- Delete button (edit mode only) -->
-      <div v-if="mode === 'edit'" class="flex items-center gap-1.5">
+      <div
+        v-if="mode === 'edit'"
+        class="flex items-center gap-1.5"
+      >
         <button
           v-if="!showDeleteConfirm"
           type="button"
           class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
           @click="showDeleteConfirm = true"
         >
-          <UIcon name="i-lucide-trash-2" class="text-[14px]" />
+          <UIcon
+            name="i-lucide-trash-2"
+            class="text-[14px]"
+          />
           Delete
         </button>
       </div>
@@ -528,8 +615,16 @@ function confirmDelete() {
           class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           :disabled="!canSubmit"
         >
-          <UIcon v-if="!loading" :name="mode === 'create' ? 'i-lucide-plus' : 'i-lucide-check'" class="text-[14px]" />
-          <UIcon v-else name="i-lucide-loader-2" class="text-[14px] animate-spin" />
+          <UIcon
+            v-if="!loading"
+            :name="mode === 'create' ? 'i-lucide-plus' : 'i-lucide-check'"
+            class="text-[14px]"
+          />
+          <UIcon
+            v-else
+            name="i-lucide-loader-2"
+            class="text-[14px] animate-spin"
+          />
           {{ mode === 'create' ? 'Create' : 'Save' }}
         </button>
       </div>

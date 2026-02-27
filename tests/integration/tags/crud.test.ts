@@ -30,7 +30,7 @@ describe('Tag CRUD', async () => {
       method: 'POST',
       body: { name: 'Bug', color: '#ef4444' },
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(tag.id).toBeDefined()
     expect(tag.projectId).toBe(projectId)
@@ -43,7 +43,7 @@ describe('Tag CRUD', async () => {
       method: 'POST',
       body: { name: 'Feature' },
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(tag.color).toBe('#6366f1')
   })
@@ -80,7 +80,7 @@ describe('Tag CRUD', async () => {
   it('lists all tags for a project', async () => {
     const tags = await $fetch(`/api/projects/${projectId}/tags`, {
       headers: owner.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
 
     expect(tags.length).toBeGreaterThanOrEqual(2)
     expect(tags[0]).toHaveProperty('id')
@@ -91,7 +91,7 @@ describe('Tag CRUD', async () => {
   it('allows any project member to list tags', async () => {
     const tags = await $fetch(`/api/projects/${projectId}/tags`, {
       headers: member.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
 
     expect(tags.length).toBeGreaterThanOrEqual(2)
   })
@@ -100,10 +100,10 @@ describe('Tag CRUD', async () => {
     const project2 = await createTestProject(owner)
     const tags = await $fetch(`/api/projects/${project2.id}/tags`, {
       headers: owner.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
 
     expect(tags.length).toBe(3)
-    expect(tags.map((t: any) => t.name).sort()).toEqual(['Bug', 'Discuss', 'Feature'])
+    expect(tags.map((t: Record<string, unknown>) => t.name).sort()).toEqual(['Bug', 'Discuss', 'Feature'])
   })
 
   // ─── PUT /api/tags/:id ───
@@ -114,7 +114,7 @@ describe('Tag CRUD', async () => {
       method: 'PUT',
       body: { name: 'Updated Name' },
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(updated.name).toBe('Updated Name')
     expect(updated.color).toBe(tag.color)
@@ -126,7 +126,7 @@ describe('Tag CRUD', async () => {
       method: 'PUT',
       body: { color: '#10b981' },
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(updated.color).toBe('#10b981')
     expect(updated.name).toBe(tag.name)
@@ -158,7 +158,7 @@ describe('Tag CRUD', async () => {
     const result = await $fetch(`/api/tags/${tag.id}`, {
       method: 'DELETE',
       headers: owner.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.ok).toBe(true)
 

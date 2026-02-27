@@ -41,7 +41,7 @@ export interface TestUser {
 /**
  * Register a unique test user, auto-verify email, and return their session cookie + headers.
  */
-export async function registerTestUser(overrides?: { name?: string; email?: string; password?: string }): Promise<TestUser> {
+export async function registerTestUser(overrides?: { name?: string, email?: string, password?: string }): Promise<TestUser> {
   counter++
   const name = overrides?.name || `Test User ${counter}`
   const email = overrides?.email || `test${counter}-${Date.now()}@example.com`
@@ -84,7 +84,7 @@ export async function registerTestUser(overrides?: { name?: string; email?: stri
   const setCookie = loginResponse.headers.get('set-cookie') || ''
   const cookie = setCookie.split(';')[0]
 
-  const loginBody = await loginResponse.json() as { user: { id: string; email: string; name: string } }
+  const loginBody = await loginResponse.json() as { user: { id: string, email: string, name: string } }
 
   return {
     id: loginBody.user.id,

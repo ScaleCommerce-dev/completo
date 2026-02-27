@@ -14,7 +14,7 @@ describe('GET /api/lists/check-slug', async () => {
     const result = await $fetch('/api/lists/check-slug', {
       params: { slug: 'fresh-slug', projectId: project.id },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.available).toBe(true)
   })
@@ -26,7 +26,7 @@ describe('GET /api/lists/check-slug', async () => {
     const result = await $fetch('/api/lists/check-slug', {
       params: { slug: 'taken', projectId: project.id },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.available).toBe(false)
   })
@@ -38,7 +38,7 @@ describe('GET /api/lists/check-slug', async () => {
     const result = await $fetch('/api/lists/check-slug', {
       params: { slug: 'my-slug', projectId: project.id, exclude: list.id },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.available).toBe(true)
   })
@@ -48,7 +48,7 @@ describe('GET /api/lists/check-slug', async () => {
     const result = await $fetch('/api/lists/check-slug', {
       params: { slug: '', projectId: project.id },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.available).toBe(false)
   })

@@ -11,7 +11,7 @@ export function useNavigation() {
   const { user } = useUserSession()
 
   const navItems = computed(() => {
-    const sections: any[][] = [
+    const sections: Array<Array<{ label: string, icon: string, to: string }>> = [
       [
         {
           label: 'My Tasks',
@@ -29,7 +29,7 @@ export function useNavigation() {
     const projectList = projects.value || []
     if (projectList.length > 0) {
       sections.push(
-        projectList.map((p: any) => ({
+        projectList.map(p => ({
           label: p.name,
           to: `/projects/${p.slug}`,
           icon: `i-lucide-${p.icon || 'folder'}`

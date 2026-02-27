@@ -1,20 +1,37 @@
 <script setup lang="ts">
 const draggable = defineAsyncComponent(() => import('vuedraggable'))
 
+interface KanbanColumnData {
+  id: string
+  name: string
+  color?: string | null
+}
+
+interface KanbanCardData {
+  id: number
+  title: string
+  description?: string | null
+  priority: string
+  assignee: { id: string, name: string, avatarUrl: string | null } | null
+  tags?: Array<{ id: string, name: string, color: string }>
+  attachmentCount?: number
+  dueDate?: string | null
+}
+
 const props = defineProps<{
-  column: any
-  cards: any[]
+  column: KanbanColumnData
+  cards: KanbanCardData[]
   accentColor?: string
   isDone?: boolean
   projectKey?: string
   projectSlug?: string
-  members?: any[]
+  members?: Array<{ id: string, name: string, avatarUrl: string | null }>
 }>()
 
 const emit = defineEmits<{
-  'card-click': [card: any]
-  'card-change': [evt: any]
-  'card-update': [cardId: number, updates: Record<string, any>]
+  'card-click': [card: KanbanCardData]
+  'card-change': [evt: Record<string, unknown>]
+  'card-update': [cardId: number, updates: Record<string, unknown>]
   'add-card': []
 }>()
 
@@ -69,12 +86,18 @@ function onAreaDblClick(e: MouseEvent) {
         class="flex items-center justify-center w-7 h-7 rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/40 transition-all"
         @click="emit('add-card')"
       >
-        <UIcon name="i-lucide-plus" class="text-sm" />
+        <UIcon
+          name="i-lucide-plus"
+          class="text-sm"
+        />
       </button>
     </div>
 
     <!-- Cards area -->
-    <div class="flex-1 overflow-y-auto px-2 pb-1.5 min-h-[3rem]" @dblclick="onAreaDblClick">
+    <div
+      class="flex-1 overflow-y-auto px-2 pb-1.5 min-h-[3rem]"
+      @dblclick="onAreaDblClick"
+    >
       <ClientOnly>
         <draggable
           :model-value="localCards"
@@ -84,14 +107,21 @@ function onAreaDblClick(e: MouseEvent) {
           ghost-class="sortable-ghost"
           chosen-class="sortable-chosen"
           drag-class="sortable-drag"
-          @change="(evt: any) => emit('card-change', evt)"
+          @change="(evt: Record<string, unknown>) => emit('card-change', evt)"
         >
           <template #item="{ element: card, index }">
             <div
               class="kanban-card-enter"
               :style="{ 'animation-delay': `${index * 30}ms` }"
             >
-              <KanbanCard :card="card" :project-key="projectKey" :project-slug="projectSlug" :members="members" @click="emit('card-click', card)" @update="(cardId, updates) => emit('card-update', cardId, updates)" />
+              <KanbanCard
+                :card="card"
+                :project-key="projectKey"
+                :project-slug="projectSlug"
+                :members="members"
+                @click="emit('card-click', card)"
+                @update="(cardId, updates) => emit('card-update', cardId, updates)"
+              />
             </div>
           </template>
         </draggable>
@@ -104,7 +134,10 @@ function onAreaDblClick(e: MouseEvent) {
         class="w-full flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-medium text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/40 transition-all"
         @click="emit('add-card')"
       >
-        <UIcon name="i-lucide-plus" class="text-sm" />
+        <UIcon
+          name="i-lucide-plus"
+          class="text-sm"
+        />
         New card
       </button>
     </div>

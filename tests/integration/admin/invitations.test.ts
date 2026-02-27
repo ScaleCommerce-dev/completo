@@ -7,7 +7,7 @@ describe('GET /api/admin/invitations', () => {
   let admin: TestUser
   let regularUser: TestUser
   let owner: TestUser
-  let project: any
+  let project: Record<string, unknown>
   const inviteEmail = `admin-inv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@example.com`
 
   beforeAll(async () => {
@@ -23,7 +23,7 @@ describe('GET /api/admin/invitations', () => {
   it('admin can list pending invitations', async () => {
     const invitations = await $fetch('/api/admin/invitations', {
       headers: admin.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
 
     expect(Array.isArray(invitations)).toBe(true)
     const found = invitations.find(i => i.email === inviteEmail.toLowerCase())
@@ -52,7 +52,7 @@ describe('GET /api/admin/invitations', () => {
     // for a non-registered email IS shown.
     const invitations = await $fetch('/api/admin/invitations', {
       headers: admin.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
 
     // Our non-registered email should be present
     const found = invitations.find(i => i.email === inviteEmail.toLowerCase())

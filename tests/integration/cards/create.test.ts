@@ -74,7 +74,7 @@ describe('POST /api/boards/:id/cards', async () => {
       method: 'POST',
       body: { statusId: col.id, title: 'Creator Test', assigneeId: user.id },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(card.createdById).toBe(user.id)
   })

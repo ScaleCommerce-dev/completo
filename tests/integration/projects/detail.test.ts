@@ -15,7 +15,7 @@ describe('GET /api/projects/[id] — enriched response', async () => {
   it('returns zero card stats for a new project with default board', async () => {
     const result = await $fetch(`/api/projects/${project.slug}`, {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.totalCards).toBe(0)
     expect(result.priorityCounts).toEqual({ urgent: 0, high: 0, medium: 0, low: 0 })
@@ -35,9 +35,9 @@ describe('GET /api/projects/[id] — enriched response', async () => {
 
     const result = await $fetch(`/api/projects/${project.slug}`, {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
-    const enrichedBoard = result.boards.find((b: any) => b.id === board.id)
+    const enrichedBoard = result.boards.find((b: Record<string, unknown>) => b.id === board.id)
     expect(enrichedBoard).toBeDefined()
     expect(enrichedBoard.cardCount).toBe(2)
     expect(enrichedBoard.lastActivity).toBeTruthy()
@@ -48,7 +48,7 @@ describe('GET /api/projects/[id] — enriched response', async () => {
   it('returns correct project-level totalCards and priorityCounts', async () => {
     const result = await $fetch(`/api/projects/${project.slug}`, {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.totalCards).toBe(2)
     expect(result.priorityCounts.high).toBe(1)
@@ -63,9 +63,9 @@ describe('GET /api/projects/[id] — enriched response', async () => {
 
     const result = await $fetch(`/api/projects/${project.slug}`, {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
-    const enrichedBoard2 = result.boards.find((b: any) => b.id === board2.id)
+    const enrichedBoard2 = result.boards.find((b: Record<string, unknown>) => b.id === board2.id)
     expect(enrichedBoard2).toBeDefined()
     // Board2 shares project statuses, so it sees the same cards
     expect(enrichedBoard2.cardCount).toBe(2)

@@ -9,7 +9,7 @@ describe('GET /api/user/profile', async () => {
 
     const result = await $fetch('/api/user/profile', {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.createdAt).toBeTruthy()
     expect(new Date(result.createdAt).getTime()).toBeGreaterThan(0)
@@ -31,7 +31,7 @@ describe('GET /api/user/profile', async () => {
 
     const result = await $fetch('/api/user/profile', {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.priorityCounts).toBeDefined()
     expect(result.priorityCounts.urgent).toBe(1)
@@ -41,7 +41,7 @@ describe('GET /api/user/profile', async () => {
     expect(result.totalOpen).toBe(3)
     expect(result.projects).toBeDefined()
     expect(result.projects.length).toBeGreaterThanOrEqual(1)
-    const p = result.projects.find((pr: any) => pr.id === project.id)
+    const p = result.projects.find((pr: Record<string, unknown>) => pr.id === project.id)
     expect(p).toBeTruthy()
     expect(p.role).toBe('owner')
     expect(p.openCards).toBeGreaterThanOrEqual(3)
@@ -64,7 +64,7 @@ describe('GET /api/user/profile', async () => {
 
     const result = await $fetch('/api/user/profile', {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     // The done card should be excluded - only the open card counted
     expect(result.priorityCounts.high).toBe(1)

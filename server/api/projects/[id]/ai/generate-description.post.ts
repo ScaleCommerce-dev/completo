@@ -6,10 +6,10 @@ const REJECTED_LOG = resolve(process.cwd(), 'ai-prompts-rejected.log')
 
 export default defineEventHandler(async (event) => {
   // Resolve project from URL — also checks membership
-  const { user, project } = await resolveProject(event)
+  const { user: _user, project } = await resolveProject(event)
 
   const body = await readBody(event)
-  const { title, description, tags, priority, mode, skillId, userPrompt, pageUrl } = body || {}
+  const { title, description, tags, priority, mode, skillId, userPrompt, pageUrl: _pageUrl } = body || {}
 
   if (!title || typeof title !== 'string' || !title.trim()) {
     throw createError({ statusCode: 400, message: 'Title is required' })

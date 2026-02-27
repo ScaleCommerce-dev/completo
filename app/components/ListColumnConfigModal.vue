@@ -12,11 +12,11 @@ const props = defineProps<{
 const open = defineModel<boolean>('open', { default: false })
 
 const emit = defineEmits<{
-  add: [field: string]
-  remove: [columnId: string]
-  reorder: [columns: { id: string, position: number }[]]
+  'add': [field: string]
+  'remove': [columnId: string]
+  'reorder': [columns: { id: string, position: number }[]]
   'update-tag-filters': [tagIds: string[]]
-  rename: [name: string]
+  'rename': [name: string]
   'delete-view': []
 }>()
 
@@ -114,7 +114,10 @@ const isDirty = computed(() => {
 
 // Save — emit only what changed
 function save() {
-  if (!isDirty.value) { open.value = false; return }
+  if (!isDirty.value) {
+    open.value = false
+    return
+  }
 
   const trimmedName = editName.value.trim()
   if (trimmedName && trimmedName !== snapshotName.value) {
@@ -187,12 +190,15 @@ function handleDeleteView() {
               placeholder="List name..."
               class="w-full text-[16px] font-semibold text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-zinc-200 dark:focus:border-zinc-700 rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
               @keydown.enter="($event.target as HTMLInputElement).blur()"
-            />
+            >
           </div>
         </template>
 
         <div class="flex items-center gap-1.5 mb-1">
-          <UIcon name="i-lucide-columns-3" class="text-[13px] text-zinc-400 dark:text-zinc-500" />
+          <UIcon
+            name="i-lucide-columns-3"
+            class="text-[13px] text-zinc-400 dark:text-zinc-500"
+          />
           <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Active Columns</span>
         </div>
         <ClientOnly>
@@ -237,7 +243,10 @@ function handleDeleteView() {
         <template v-if="availableFields.length">
           <USeparator class="my-2" />
           <div class="flex items-center gap-1.5 mb-1">
-            <UIcon name="i-lucide-plus-circle" class="text-[13px] text-zinc-400 dark:text-zinc-500" />
+            <UIcon
+              name="i-lucide-plus-circle"
+              class="text-[13px] text-zinc-400 dark:text-zinc-500"
+            />
             <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Available Fields</span>
           </div>
           <div
@@ -263,9 +272,15 @@ function handleDeleteView() {
         <template v-if="tags?.length">
           <USeparator class="my-2" />
           <div class="flex items-center gap-1.5 mb-1">
-            <UIcon name="i-lucide-filter" class="text-[13px] text-zinc-400 dark:text-zinc-500" />
+            <UIcon
+              name="i-lucide-filter"
+              class="text-[13px] text-zinc-400 dark:text-zinc-500"
+            />
             <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Tag Filters</span>
-            <span v-if="!localTagFilters.size" class="ml-auto text-[11px] text-zinc-300 dark:text-zinc-600 italic">All cards shown</span>
+            <span
+              v-if="!localTagFilters.size"
+              class="ml-auto text-[11px] text-zinc-300 dark:text-zinc-600 italic"
+            >All cards shown</span>
           </div>
           <div class="flex flex-wrap gap-1.5">
             <button
@@ -292,13 +307,15 @@ function handleDeleteView() {
             </button>
           </div>
         </template>
-
       </div>
     </template>
 
     <template #footer>
       <!-- Delete confirmation replaces footer -->
-      <div v-if="showDeleteConfirm" class="px-5 pt-4 pb-5 border-t border-red-200/40 dark:border-red-800/30 bg-red-50/30 dark:bg-red-950/10">
+      <div
+        v-if="showDeleteConfirm"
+        class="px-5 pt-4 pb-5 border-t border-red-200/40 dark:border-red-800/30 bg-red-50/30 dark:bg-red-950/10"
+      >
         <p class="text-[13px] font-medium text-red-600 dark:text-red-400 mb-2">
           This will permanently delete this {{ viewType || 'view' }}. Type <span class="font-bold">{{ viewName }}</span> to confirm.
         </p>
@@ -308,15 +325,23 @@ function handleDeleteView() {
             type="text"
             :placeholder="viewName"
             class="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
-          />
+          >
           <button
             type="button"
             class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             :disabled="!deleteConfirmValid || deletingView"
             @click="handleDeleteView"
           >
-            <UIcon v-if="!deletingView" name="i-lucide-trash-2" class="text-[13px]" />
-            <UIcon v-else name="i-lucide-loader-2" class="text-[13px] animate-spin" />
+            <UIcon
+              v-if="!deletingView"
+              name="i-lucide-trash-2"
+              class="text-[13px]"
+            />
+            <UIcon
+              v-else
+              name="i-lucide-loader-2"
+              class="text-[13px] animate-spin"
+            />
             Delete
           </button>
           <button
@@ -330,8 +355,13 @@ function handleDeleteView() {
       </div>
 
       <!-- Close warning replaces footer -->
-      <div v-else-if="showCloseWarning" class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-amber-200/40 dark:border-amber-800/30 bg-amber-50/30 dark:bg-amber-950/10">
-        <p class="text-[13px] font-medium text-amber-600 dark:text-amber-400">Discard unsaved changes?</p>
+      <div
+        v-else-if="showCloseWarning"
+        class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-amber-200/40 dark:border-amber-800/30 bg-amber-50/30 dark:bg-amber-950/10"
+      >
+        <p class="text-[13px] font-medium text-amber-600 dark:text-amber-400">
+          Discard unsaved changes?
+        </p>
         <div class="flex items-center gap-2">
           <button
             type="button"
@@ -351,7 +381,10 @@ function handleDeleteView() {
       </div>
 
       <!-- Normal footer -->
-      <div v-else class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-zinc-100 dark:border-zinc-700/40">
+      <div
+        v-else
+        class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-zinc-100 dark:border-zinc-700/40"
+      >
         <div>
           <button
             v-if="viewName !== undefined"
@@ -359,7 +392,10 @@ function handleDeleteView() {
             class="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[12px] font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
             @click="showDeleteConfirm = true; deleteConfirmName = ''"
           >
-            <UIcon name="i-lucide-trash-2" class="text-[13px]" />
+            <UIcon
+              name="i-lucide-trash-2"
+              class="text-[13px]"
+            />
             Delete
           </button>
         </div>

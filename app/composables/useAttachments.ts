@@ -41,8 +41,8 @@ export function useAttachments(cardId: Ref<number | null | undefined>) {
       attachments.value = [...attachments.value, attachment]
       toast.add({ title: 'File uploaded', color: 'success' })
       return attachment
-    } catch (e: any) {
-      const message = e?.data?.message || 'Failed to upload file'
+    } catch (e: unknown) {
+      const message = getErrorMessage(e, 'Failed to upload file')
       toast.add({ title: message, color: 'error' })
       throw e
     } finally {

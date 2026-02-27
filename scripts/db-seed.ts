@@ -38,7 +38,7 @@ const db = new Database(dbPath)
 db.pragma('foreign_keys = ON')
 
 // --- Demo user + project ---
-const existingDemo = db.prepare('SELECT id FROM users WHERE email = ?').get('demo@example.com') as any
+const existingDemo = db.prepare('SELECT id FROM users WHERE email = ?').get('demo@example.com') as { id: string } | undefined
 if (existingDemo) {
   console.log('Demo user already exists — skipping')
 } else {
@@ -133,7 +133,7 @@ if (existingDemo) {
 }
 
 // --- Admin user ---
-const existingAdmin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@example.com') as any
+const existingAdmin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@example.com') as { id: string } | undefined
 if (existingAdmin) {
   console.log('Admin user already exists — skipping')
 } else {
@@ -146,7 +146,7 @@ if (existingAdmin) {
 }
 
 // --- Default AI skills ---
-const skillCount = db.prepare('SELECT COUNT(*) as count FROM ai_skills').get() as any
+const skillCount = db.prepare('SELECT COUNT(*) as count FROM ai_skills').get() as { count: number }
 if (skillCount.count > 0) {
   console.log('AI skills already exist — skipping')
 } else {

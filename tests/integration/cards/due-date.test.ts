@@ -38,7 +38,7 @@ describe('Card due date', async () => {
       method: 'PUT',
       body: { dueDate: '2026-05-15' },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(updated.dueDate).toBeTruthy()
   })
 
@@ -53,7 +53,7 @@ describe('Card due date', async () => {
       method: 'PUT',
       body: { dueDate: null },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(updated.dueDate).toBeNull()
   })
 
@@ -64,7 +64,7 @@ describe('Card due date', async () => {
     })
     const detail = await $fetch(`/api/cards/${card.id}`, {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(detail.dueDate).toBeTruthy()
   })
 })

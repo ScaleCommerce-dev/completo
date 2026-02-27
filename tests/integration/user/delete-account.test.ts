@@ -11,7 +11,7 @@ describe('DELETE /api/user/account', async () => {
       method: 'DELETE',
       body: { password: 'deleteMe123' },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.ok).toBe(true)
 
@@ -70,8 +70,8 @@ describe('DELETE /api/user/account', async () => {
     // Verify member is listed
     const membersBefore = await $fetch(`/api/projects/${project.id}/members`, {
       headers: owner.headers
-    }) as any[]
-    expect(membersBefore.some((m: any) => m.id === member.id)).toBe(true)
+    }) as Record<string, unknown>[]
+    expect(membersBefore.some((m: Record<string, unknown>) => m.id === member.id)).toBe(true)
 
     // Delete member's account
     await $fetch('/api/user/account', {
@@ -83,8 +83,8 @@ describe('DELETE /api/user/account', async () => {
     // Verify membership is gone
     const membersAfter = await $fetch(`/api/projects/${project.id}/members`, {
       headers: owner.headers
-    }) as any[]
-    expect(membersAfter.some((m: any) => m.id === member.id)).toBe(false)
+    }) as Record<string, unknown>[]
+    expect(membersAfter.some((m: Record<string, unknown>) => m.id === member.id)).toBe(false)
   })
 
   it('rejects unauthenticated requests', async () => {

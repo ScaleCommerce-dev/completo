@@ -19,7 +19,11 @@ async function onFileInputChange(e: Event) {
   const files = input.files
   if (files?.length) {
     for (const file of files) {
-      try { await upload(file) } catch {}
+      try {
+        await upload(file)
+      } catch {
+        // upload errors handled by composable
+      }
     }
   }
   input.value = ''
@@ -36,7 +40,10 @@ let dropLeaveTimeout: ReturnType<typeof setTimeout> | null = null
 function onDropZoneDragEnter(e: DragEvent) {
   if (props.readonly || !e.dataTransfer?.types.includes('Files')) return
   e.preventDefault()
-  if (dropLeaveTimeout) { clearTimeout(dropLeaveTimeout); dropLeaveTimeout = null }
+  if (dropLeaveTimeout) {
+    clearTimeout(dropLeaveTimeout)
+    dropLeaveTimeout = null
+  }
   dropActive.value = true
 }
 
@@ -47,7 +54,9 @@ function onDropZoneDragOver(e: DragEvent) {
 
 function onDropZoneDragLeave() {
   if (dropLeaveTimeout) clearTimeout(dropLeaveTimeout)
-  dropLeaveTimeout = setTimeout(() => { dropActive.value = false }, 50)
+  dropLeaveTimeout = setTimeout(() => {
+    dropActive.value = false
+  }, 50)
 }
 
 async function onDropZoneDrop(e: DragEvent) {
@@ -57,7 +66,11 @@ async function onDropZoneDrop(e: DragEvent) {
   const files = e.dataTransfer?.files
   if (!files?.length) return
   for (const file of files) {
-    try { await upload(file) } catch {}
+    try {
+      await upload(file)
+    } catch {
+      // upload errors handled by composable
+    }
   }
 }
 
@@ -72,11 +85,14 @@ defineExpose({ upload, uploading })
       multiple
       class="hidden"
       @change="onFileInputChange"
-    />
+    >
 
     <!-- Header -->
     <div class="flex items-center gap-1.5 mb-2">
-      <UIcon name="i-lucide-paperclip" class="text-[13px] text-zinc-400 dark:text-zinc-500" />
+      <UIcon
+        name="i-lucide-paperclip"
+        class="text-[13px] text-zinc-400 dark:text-zinc-500"
+      />
       <span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Attachments</span>
       <span
         v-if="attachments.length"
@@ -91,12 +107,18 @@ defineExpose({ upload, uploading })
       v-if="uploading"
       class="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-indigo-300 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/20 mb-2"
     >
-      <UIcon name="i-lucide-loader-2" class="text-[14px] text-indigo-500 animate-spin" />
+      <UIcon
+        name="i-lucide-loader-2"
+        class="text-[14px] text-indigo-500 animate-spin"
+      />
       <span class="text-[12px] font-medium text-indigo-500">Uploading...</span>
     </div>
 
     <!-- Attachment list -->
-    <div v-if="attachments.length" class="rounded-lg border border-zinc-200 dark:border-zinc-700/60 bg-white dark:bg-zinc-800/50 divide-y divide-zinc-100 dark:divide-zinc-700/40">
+    <div
+      v-if="attachments.length"
+      class="rounded-lg border border-zinc-200 dark:border-zinc-700/60 bg-white dark:bg-zinc-800/50 divide-y divide-zinc-100 dark:divide-zinc-700/40"
+    >
       <div
         v-for="attachment in attachments"
         :key="attachment.id"
@@ -109,7 +131,7 @@ defineExpose({ upload, uploading })
             :src="downloadUrl(attachment.id)"
             :alt="attachment.originalName"
             class="w-full h-full object-cover"
-          />
+          >
           <UIcon
             v-else
             :name="fileIcon(attachment.mimeType)"
@@ -133,14 +155,20 @@ defineExpose({ upload, uploading })
         </div>
 
         <!-- Actions -->
-        <div v-if="!readonly" class="flex items-center gap-1 shrink-0">
+        <div
+          v-if="!readonly"
+          class="flex items-center gap-1 shrink-0"
+        >
           <a
             :href="downloadUrl(attachment.id)"
             target="_blank"
             class="p-1 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all"
             title="Download"
           >
-            <UIcon name="i-lucide-download" class="text-[13px]" />
+            <UIcon
+              name="i-lucide-download"
+              class="text-[13px]"
+            />
           </a>
           <button
             type="button"
@@ -148,7 +176,10 @@ defineExpose({ upload, uploading })
             title="Remove"
             @click="remove(attachment.id)"
           >
-            <UIcon name="i-lucide-trash-2" class="text-[13px]" />
+            <UIcon
+              name="i-lucide-trash-2"
+              class="text-[13px]"
+            />
           </button>
         </div>
       </div>

@@ -29,8 +29,20 @@ function accentFor(project: { id: string, name: string }): string {
 }
 
 // Edit project
+interface EditProjectData {
+  id: string
+  name: string
+  key: string
+  slug: string
+  description: string | null
+  briefing: string | null
+  icon: string | null
+  doneStatusId: string | null
+  doneRetentionDays: number | null
+}
+
 const showEditProject = ref(false)
-const editProjectData = ref<Record<string, any> | undefined>(undefined)
+const editProjectData = ref<EditProjectData | undefined>(undefined)
 const editStatuses = ref<Array<{ id: string, name: string, color: string | null }>>([])
 const loadingStatuses = ref(false)
 const editError = ref('')
@@ -52,7 +64,7 @@ async function openEditProject(project: ProjectListItem, e?: Event) {
     briefing: project.briefing || null,
     icon: project.icon || null,
     doneStatusId: project.doneStatusId || null,
-    doneRetentionDays: project.doneRetentionDays ?? null,
+    doneRetentionDays: project.doneRetentionDays ?? null
   }
   editStatuses.value = []
   loadingStatuses.value = true
@@ -63,10 +75,10 @@ async function openEditProject(project: ProjectListItem, e?: Event) {
     const detail = await $fetch(`/api/projects/${project.id}`) as { statuses?: Array<{ id: string, name: string, color: string | null }>, doneStatusId?: string | null, doneRetentionDays?: number | null, briefing?: string | null }
     editStatuses.value = detail.statuses || []
     editProjectData.value = {
-      ...editProjectData.value,
+      ...editProjectData.value!,
       doneStatusId: detail.doneStatusId || null,
       doneRetentionDays: detail.doneRetentionDays ?? null,
-      briefing: detail.briefing || null,
+      briefing: detail.briefing || null
     }
   } catch {
     // ignore — statuses selector will be empty
@@ -85,20 +97,20 @@ onMounted(() => {
   }
 })
 
-async function saveProject(data: Record<string, any>) {
+async function saveProject(data: Record<string, unknown>) {
   if (!editProjectData.value?.id) return
   saving.value = true
   editError.value = ''
   try {
-    await $fetch(`/api/projects/${editProjectData.value.id}`, {
-      method: 'PUT' as any,
+    await $fetch(`/api/projects/${editProjectData.value.id}` as string, {
+      method: 'PUT' as const,
       body: data
     })
     showEditProject.value = false
     await Promise.all([refresh(), refreshProjects()])
     // If opened via ?edit= param (e.g. from project detail), navigate back
     if (route.query.edit) {
-      await navigateTo(`/projects/${data.slug}`)
+      await navigateTo(`/projects/${data.slug as string}`)
     }
   } catch (e: unknown) {
     editError.value = getErrorMessage(e, 'Failed to update project')
@@ -111,7 +123,7 @@ async function deleteProject() {
   if (!editProjectData.value?.id) return
   deleting.value = true
   try {
-    await $fetch(`/api/projects/${editProjectData.value.id}`, { method: 'DELETE' as any })
+    await $fetch(`/api/projects/${editProjectData.value.id}` as string, { method: 'DELETE' as const })
     showEditProject.value = false
     await Promise.all([refresh(), refreshProjects()])
   } catch (e: unknown) {
@@ -132,8 +144,12 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
     <!-- Header -->
     <div class="flex items-start justify-between mb-2">
       <div>
-        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">Projects</h1>
-        <p class="text-[14px] text-zinc-500 dark:text-zinc-400 mt-0.5">Manage your project boards</p>
+        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+          Projects
+        </h1>
+        <p class="text-[14px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+          Manage your project boards
+        </p>
       </div>
       <NotificationBell />
     </div>
@@ -143,17 +159,26 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
       class="flex items-center gap-4 mb-6 mt-4 px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-700/60"
     >
       <div class="flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 dark:text-zinc-400">
-        <UIcon name="i-lucide-folder" class="text-[14px]" />
+        <UIcon
+          name="i-lucide-folder"
+          class="text-[14px]"
+        />
         <span>{{ totalProjects }} {{ totalProjects === 1 ? 'project' : 'projects' }}</span>
       </div>
       <div class="w-px h-3.5 bg-zinc-200 dark:bg-zinc-700" />
       <div class="flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 dark:text-zinc-400">
-        <UIcon name="i-lucide-layout-dashboard" class="text-[14px]" />
+        <UIcon
+          name="i-lucide-layout-dashboard"
+          class="text-[14px]"
+        />
         <span>{{ totalBoards }} {{ totalBoards === 1 ? 'board' : 'boards' }}</span>
       </div>
       <div class="w-px h-3.5 bg-zinc-200 dark:bg-zinc-700" />
       <div class="flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 dark:text-zinc-400">
-        <UIcon name="i-lucide-layers" class="text-[14px]" />
+        <UIcon
+          name="i-lucide-layers"
+          class="text-[14px]"
+        />
         <span>{{ totalOpenCards }} open {{ totalOpenCards === 1 ? 'card' : 'cards' }}</span>
       </div>
     </div>
@@ -177,7 +202,10 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
               class="flex items-center justify-center w-9 h-9 rounded-lg shrink-0"
               :style="{ backgroundColor: accentFor(project) + '14', color: accentFor(project) }"
             >
-              <UIcon :name="`i-lucide-${project.icon || 'folder'}`" class="text-lg" />
+              <UIcon
+                :name="`i-lucide-${project.icon || 'folder'}`"
+                class="text-lg"
+              />
             </div>
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5">
@@ -200,27 +228,42 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
               class="opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 p-1 rounded-md text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-all shrink-0"
               @click="openEditProject(project, $event)"
             >
-              <UIcon name="i-lucide-settings" class="text-sm" />
+              <UIcon
+                name="i-lucide-settings"
+                class="text-sm"
+              />
             </button>
           </div>
 
           <!-- Stats row -->
           <div class="flex items-center gap-3 mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700/40 text-[12px] font-medium text-zinc-400 dark:text-zinc-500">
             <span class="flex items-center gap-1">
-              <UIcon name="i-lucide-layers" class="text-[12px]" />
+              <UIcon
+                name="i-lucide-layers"
+                class="text-[12px]"
+              />
               {{ project.openCards || 0 }}
             </span>
             <span class="flex items-center gap-1">
-              <UIcon name="i-lucide-layout-dashboard" class="text-[12px]" />
+              <UIcon
+                name="i-lucide-layout-dashboard"
+                class="text-[12px]"
+              />
               {{ project.boardCount || 0 }}
             </span>
             <span class="flex items-center gap-1">
-              <UIcon name="i-lucide-users" class="text-[12px]" />
+              <UIcon
+                name="i-lucide-users"
+                class="text-[12px]"
+              />
               {{ project.memberCount || 0 }}
             </span>
             <template v-if="project.lastActivity">
               <span class="flex items-center gap-1">
-                <UIcon name="i-lucide-clock" class="text-[12px]" />
+                <UIcon
+                  name="i-lucide-clock"
+                  class="text-[12px]"
+                />
                 {{ relativeTime(project.lastActivity) }}
               </span>
             </template>
@@ -236,7 +279,10 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
               >
                 {{ project.role }}
               </span>
-              <div v-if="project.memberAvatars?.length" class="flex items-center -space-x-1.5">
+              <div
+                v-if="project.memberAvatars?.length"
+                class="flex items-center -space-x-1.5"
+              >
                 <UAvatar
                   v-for="(m, mIdx) in project.memberAvatars"
                   :key="mIdx"
@@ -265,7 +311,10 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         <div class="rounded-xl border-2 border-dashed border-zinc-200/70 dark:border-zinc-600/50 p-4 h-full hover:border-indigo-300 dark:hover:border-indigo-500/40 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10 transition-all flex items-center">
           <div class="flex items-center gap-3">
             <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/30 group-hover:text-indigo-500 transition-colors shrink-0">
-              <UIcon name="i-lucide-plus" class="text-lg" />
+              <UIcon
+                name="i-lucide-plus"
+                class="text-lg"
+              />
             </div>
             <span class="text-[14px] font-medium text-zinc-400 dark:text-zinc-500 group-hover:text-indigo-500 transition-colors">
               New Project
@@ -280,7 +329,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
       <template #content>
         <ProjectForm
           mode="edit"
-          :initial-data="editProjectData as any"
+          :initial-data="editProjectData"
           :statuses="editStatuses"
           :loading-statuses="loadingStatuses"
           :loading="saving"

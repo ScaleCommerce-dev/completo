@@ -6,7 +6,7 @@ import { createTestProject } from '../../setup/fixtures'
 describe('Project invitations', () => {
   let owner: TestUser
   let admin: TestUser
-  let project: any
+  let project: Record<string, unknown>
 
   beforeAll(async () => {
     owner = await registerTestUser()
@@ -71,7 +71,7 @@ describe('Project invitations', () => {
     it('pending invitation appears in GET list', async () => {
       const invitations = await $fetch(`/api/projects/${project.id}/invitations`, {
         headers: owner.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       const found = invitations.find(i => i.email === inviteEmail.toLowerCase())
       expect(found).toBeDefined()
@@ -82,9 +82,9 @@ describe('Project invitations', () => {
     it('public invitation info endpoint returns project + inviter', async () => {
       const inv = await $fetch(`/api/_test/get-invitation`, {
         params: { email: inviteEmail }
-      }) as any
+      }) as Record<string, unknown>
 
-      const info = await $fetch(`/api/invitations/${inv.token}`) as any
+      const info = await $fetch(`/api/invitations/${inv.token}`) as Record<string, unknown>
       expect(info.email).toBe(inviteEmail.toLowerCase())
       expect(info.projectName).toBe(project.name)
       expect(info.inviterName).toBe(owner.name)
@@ -101,20 +101,20 @@ describe('Project invitations', () => {
 
       const invitations = await $fetch(`/api/projects/${project.id}/invitations`, {
         headers: owner.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
       const inv = invitations.find(i => i.email === cancelEmail.toLowerCase())
       expect(inv).toBeDefined()
 
       const result = await $fetch(`/api/projects/${project.id}/invitations/${inv.id}`, {
         method: 'DELETE',
         headers: owner.headers
-      }) as any
+      }) as Record<string, unknown>
       expect(result.ok).toBe(true)
 
       // Should be gone
       const after = await $fetch(`/api/projects/${project.id}/invitations`, {
         headers: owner.headers
-      }) as any[]
+      }) as Record<string, unknown>[]
       expect(after.find(i => i.email === cancelEmail.toLowerCase())).toBeUndefined()
     })
   })
@@ -133,7 +133,7 @@ describe('Project invitations', () => {
       // Get the invitation token
       const inv = await $fetch(`/api/_test/get-invitation`, {
         params: { email: regEmail }
-      }) as any
+      }) as Record<string, unknown>
 
       // Register with invitation token
       const regRes = await fetch(url('/auth/register'), {
@@ -147,7 +147,7 @@ describe('Project invitations', () => {
         })
       })
       expect(regRes.status).toBe(200)
-      const regBody = await regRes.json() as any
+      const regBody = await regRes.json() as Record<string, unknown>
 
       // Verify email
       await $fetch('/api/_test/verify-email', {
@@ -167,7 +167,7 @@ describe('Project invitations', () => {
       // Check membership
       const members = await $fetch(`/api/projects/${project.id}/members`, {
         headers: { cookie }
-      }) as any[]
+      }) as Record<string, unknown>[]
 
       const found = members.find(m => m.id === regBody.user.id)
       expect(found).toBeDefined()
@@ -209,7 +209,7 @@ describe('Project invitations', () => {
       // Get invitation token
       const inv = await $fetch(`/api/_test/get-invitation`, {
         params: { email: invitedEmail }
-      }) as any
+      }) as Record<string, unknown>
 
       // Register with invitation — should bypass domain check
       const regRes = await fetch(url('/auth/register'), {

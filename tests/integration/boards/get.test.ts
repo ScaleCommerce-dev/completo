@@ -68,7 +68,7 @@ describe('GET /api/boards/:id', async () => {
   it('returns doneStatusId and doneRetentionDays in project', async () => {
     const project = await createTestProject(user, { name: `Done Info ${Date.now()}` })
     const board = await createTestBoard(user, project.id)
-    const result = await getBoard(user, board.id) as any
+    const result = await getBoard(user, board.id) as Record<string, unknown>
 
     expect(result.project.doneStatusId).toBeTruthy()
     expect(result.project.doneRetentionDays).toBe(30)

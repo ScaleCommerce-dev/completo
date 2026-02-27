@@ -24,7 +24,7 @@ describe('Admin Settings', () => {
     it('admin gets settings with defaults', async () => {
       const settings = await $fetch('/api/admin/settings', {
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(settings).toHaveProperty('allowedEmailDomains')
       expect(Array.isArray(settings.allowedEmailDomains)).toBe(true)
@@ -49,7 +49,7 @@ describe('Admin Settings', () => {
         method: 'PUT',
         body: { allowedEmailDomains: ['example.com', 'test.org'] },
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(result.allowedEmailDomains).toEqual(['example.com', 'test.org'])
     })
@@ -59,7 +59,7 @@ describe('Admin Settings', () => {
         method: 'PUT',
         body: { allowedEmailDomains: ['Example.COM', 'example.com', 'Test.Org'] },
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(result.allowedEmailDomains).toEqual(['example.com', 'test.org'])
     })
@@ -69,7 +69,7 @@ describe('Admin Settings', () => {
         method: 'PUT',
         body: { allowedEmailDomains: ['example.com', '', '  ', 'test.org'] },
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(result.allowedEmailDomains).toEqual(['example.com', 'test.org'])
     })
@@ -79,7 +79,7 @@ describe('Admin Settings', () => {
         method: 'PUT',
         body: { allowedEmailDomains: [] },
         headers: admin.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(result.allowedEmailDomains).toEqual([])
     })

@@ -3,7 +3,7 @@ import { eq, and, ne } from 'drizzle-orm'
 const SORTABLE_FIELDS = new Set(['ticketId', 'title', 'status', 'priority', 'assignee', 'createdAt', 'updatedAt'])
 
 export default defineEventHandler(async (event) => {
-  const { user, list } = await resolveList(event)
+  const { user: _user, list } = await resolveList(event)
   const { name, slug, sortField, sortDirection, tagFilters } = await readBody<{
     name?: string
     slug?: string

@@ -13,10 +13,10 @@ describe('My Tasks Columns', async () => {
   it('GET /api/my-tasks seeds default columns', async () => {
     const data = await $fetch('/api/my-tasks', {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(data.columns.length).toBe(7)
-    expect(data.columns.map((c: any) => c.field)).toEqual([
+    expect(data.columns.map((c: Record<string, unknown>) => c.field)).toEqual([
       'done', 'ticketId', 'title', 'status', 'priority', 'dueDate', 'tags'
     ])
   })
@@ -26,7 +26,7 @@ describe('My Tasks Columns', async () => {
       method: 'POST',
       body: { field: 'createdAt' },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(col.field).toBe('createdAt')
     expect(col.id).toBeTruthy()
@@ -35,8 +35,8 @@ describe('My Tasks Columns', async () => {
     // Verify it appears in GET
     const data = await $fetch('/api/my-tasks', {
       headers: user.headers
-    }) as any
-    expect(data.columns.some((c: any) => c.field === 'createdAt')).toBe(true)
+    }) as Record<string, unknown>
+    expect(data.columns.some((c: Record<string, unknown>) => c.field === 'createdAt')).toBe(true)
   })
 
   it('POST /api/my-tasks/columns rejects invalid field', async () => {
@@ -63,20 +63,20 @@ describe('My Tasks Columns', async () => {
       method: 'POST',
       body: { field: 'description' },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     const result = await $fetch(`/api/my-tasks/columns/${col.id}`, {
       method: 'DELETE',
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.ok).toBe(true)
 
     // Verify it's gone
     const data = await $fetch('/api/my-tasks', {
       headers: user.headers
-    }) as any
-    expect(data.columns.some((c: any) => c.field === 'description')).toBe(false)
+    }) as Record<string, unknown>
+    expect(data.columns.some((c: Record<string, unknown>) => c.field === 'description')).toBe(false)
   })
 
   it('DELETE /api/my-tasks/columns/:id returns 404 for non-existent', async () => {
@@ -90,9 +90,9 @@ describe('My Tasks Columns', async () => {
   it('PUT /api/my-tasks/columns/reorder reorders columns', async () => {
     const data = await $fetch('/api/my-tasks', {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
-    const reversed = data.columns.map((c: any, i: number) => ({
+    const reversed = data.columns.map((c: Record<string, unknown>, i: number) => ({
       id: c.id,
       position: data.columns.length - 1 - i
     }))
@@ -101,13 +101,13 @@ describe('My Tasks Columns', async () => {
       method: 'PUT',
       body: { columns: reversed },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(result.ok).toBe(true)
 
     const updated = await $fetch('/api/my-tasks', {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     // First column should now be what was last
     expect(updated.columns[0].id).toBe(data.columns[data.columns.length - 1].id)
@@ -145,13 +145,13 @@ describe('My Tasks Collapse', async () => {
       method: 'POST',
       body: { projectId: project.id },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(result1.collapsed).toBe(true)
 
     // Verify it appears in GET
     const data1 = await $fetch('/api/my-tasks', {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(data1.collapsedProjectIds).toContain(project.id)
 
     // Uncollapse
@@ -159,13 +159,13 @@ describe('My Tasks Collapse', async () => {
       method: 'POST',
       body: { projectId: project.id },
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(result2.collapsed).toBe(false)
 
     // Verify it's removed
     const data2 = await $fetch('/api/my-tasks', {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
     expect(data2.collapsedProjectIds).not.toContain(project.id)
   })
 

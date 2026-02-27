@@ -1,5 +1,5 @@
 import { execSync, spawn, type ChildProcess } from 'node:child_process'
-import { writeFileSync, unlinkSync, existsSync, rmSync } from 'node:fs'
+import { writeFileSync, unlinkSync, rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -24,7 +24,9 @@ export async function setup() {
   // Remove stale test DB and push schema fresh
   const testDbPath = resolve(ROOT, TEST_DB)
   for (const suffix of ['', '-wal', '-shm']) {
-    try { unlinkSync(testDbPath + suffix) } catch {}
+    try {
+      unlinkSync(testDbPath + suffix)
+    } catch { /* ignore */ }
   }
   console.log('[global-setup] Creating test database...')
   execSync(`DATABASE_URL=${TEST_DB} npx drizzle-kit push --force`, {
@@ -33,7 +35,9 @@ export async function setup() {
   })
 
   // Kill any stale server from a previous crashed run
-  try { execSync(`lsof -ti:${PORT} | xargs kill -9`, { stdio: 'ignore' }) } catch {}
+  try {
+    execSync(`lsof -ti:${PORT} | xargs kill -9`, { stdio: 'ignore' })
+  } catch { /* ignore */ }
 
   // Start the built server
   console.log('[global-setup] Starting server...')
@@ -94,6 +98,10 @@ export async function teardown() {
     await new Promise(r => setTimeout(r, 500))
     if (!server.killed) server.kill('SIGKILL')
   }
-  try { unlinkSync(URL_FILE) } catch {}
-  try { rmSync(TEST_UPLOAD_DIR, { recursive: true, force: true }) } catch {}
+  try {
+    unlinkSync(URL_FILE)
+  } catch { /* ignore */ }
+  try {
+    rmSync(TEST_UPLOAD_DIR, { recursive: true, force: true })
+  } catch { /* ignore */ }
 }

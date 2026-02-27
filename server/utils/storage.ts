@@ -1,6 +1,5 @@
-import { resolve } from 'node:path'
+import { resolve, extname } from 'node:path'
 import { mkdirSync, readFileSync, writeFileSync, unlinkSync, existsSync } from 'node:fs'
-import { extname } from 'node:path'
 
 export interface StorageAdapter {
   write(key: string, data: Buffer, mimeType: string): Promise<void>

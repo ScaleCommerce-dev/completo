@@ -37,7 +37,7 @@ const db = new Database(dbPath)
 db.pragma('foreign_keys = ON')
 
 // Check for existing user
-const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as any
+const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as { id: string } | undefined
 if (existing) {
   console.error(`User already exists with email: ${email}`)
   db.close()

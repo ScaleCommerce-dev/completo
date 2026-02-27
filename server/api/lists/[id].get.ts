@@ -1,7 +1,7 @@
 import { eq, inArray, sql } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user, list, membership } = await resolveList(event, { columnAccess: false })
+  const { user: _user, list, membership } = await resolveList(event, { columnAccess: false })
 
   // Fetch list creator info
   const createdBy = list.createdById
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   let cards = allProjectCards
   if (project?.doneStatusId && project.doneRetentionDays != null) {
     const cutoff = Date.now() - project.doneRetentionDays * 86400000
-    cards = allProjectCards.filter(card => {
+    cards = allProjectCards.filter((card) => {
       if (card.statusId !== project.doneStatusId) return true
       return card.updatedAt.getTime() >= cutoff
     })
@@ -48,9 +48,9 @@ export default defineEventHandler(async (event) => {
   const cardIds = cards.map(c => c.id)
   const allCardTags = cardIds.length
     ? db.select().from(schema.cardTags)
-      .innerJoin(schema.tags, eq(schema.cardTags.tagId, schema.tags.id))
-      .where(inArray(schema.cardTags.cardId, cardIds))
-      .all()
+        .innerJoin(schema.tags, eq(schema.cardTags.tagId, schema.tags.id))
+        .where(inArray(schema.cardTags.cardId, cardIds))
+        .all()
     : []
 
   const tagsByCard = new Map<number, Array<{ id: string, name: string, color: string }>>()
@@ -67,13 +67,13 @@ export default defineEventHandler(async (event) => {
   // Bulk-fetch attachment counts
   const attachmentCounts = cardIds.length
     ? db.select({
-      cardId: schema.attachments.cardId,
-      count: sql<number>`count(*)`
-    })
-      .from(schema.attachments)
-      .where(inArray(schema.attachments.cardId, cardIds))
-      .groupBy(schema.attachments.cardId)
-      .all()
+        cardId: schema.attachments.cardId,
+        count: sql<number>`count(*)`
+      })
+        .from(schema.attachments)
+        .where(inArray(schema.attachments.cardId, cardIds))
+        .groupBy(schema.attachments.cardId)
+        .all()
     : []
   const attachCountByCard = new Map(attachmentCounts.map(r => [r.cardId, r.count]))
 

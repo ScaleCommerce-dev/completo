@@ -54,7 +54,7 @@ describe('Card Attachments', async () => {
   it('downloads an attachment with correct content', async () => {
     const attachments = await $fetch(`/api/cards/${cardId}/attachments`, {
       headers: user.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
     const attachmentId = attachments[0].id
 
     const res = await fetch(url(`/api/attachments/${attachmentId}/download`), {
@@ -72,7 +72,7 @@ describe('Card Attachments', async () => {
 
     const attachments = await $fetch(`/api/cards/${cardId}/attachments`, {
       headers: user.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
 
     expect(attachments.length).toBeGreaterThanOrEqual(2)
   })
@@ -119,7 +119,7 @@ describe('Card Attachments', async () => {
   it('returns 404 for non-member on download', async () => {
     const attachments = await $fetch(`/api/cards/${cardId}/attachments`, {
       headers: user.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
     const attachmentId = attachments[0].id
 
     const res = await fetch(url(`/api/attachments/${attachmentId}/download`), {
@@ -131,7 +131,7 @@ describe('Card Attachments', async () => {
   it('returns 404 for non-member on delete', async () => {
     const attachments = await $fetch(`/api/cards/${cardId}/attachments`, {
       headers: user.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
     const attachmentId = attachments[0].id
 
     const res = await fetch(url(`/api/attachments/${attachmentId}`), {
@@ -144,7 +144,7 @@ describe('Card Attachments', async () => {
   it('admin can access attachments on any project', async () => {
     const attachments = await $fetch(`/api/cards/${cardId}/attachments`, {
       headers: admin.headers
-    }) as any[]
+    }) as Record<string, unknown>[]
 
     expect(attachments.length).toBeGreaterThanOrEqual(1)
 
@@ -195,8 +195,8 @@ describe('Card Attachments', async () => {
   })
 
   it('includes attachmentCount in board response', async () => {
-    const fullBoard = await getBoard(user, boardId) as any
-    const cardWithAttachments = fullBoard.cards.find((c: any) => c.id === cardId)
+    const fullBoard = await getBoard(user, boardId) as Record<string, unknown>
+    const cardWithAttachments = fullBoard.cards.find((c: Record<string, unknown>) => c.id === cardId)
     expect(cardWithAttachments).toBeDefined()
     expect(cardWithAttachments.attachmentCount).toBeGreaterThanOrEqual(1)
   })

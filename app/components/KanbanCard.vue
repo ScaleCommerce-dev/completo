@@ -17,7 +17,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   click: []
-  update: [cardId: number, updates: Record<string, any>]
+  update: [cardId: number, updates: Record<string, unknown>]
 }>()
 
 const updatingField = ref<'priority' | 'assignee' | null>(null)
@@ -54,14 +54,24 @@ function priorityMenuItems() {
         if (props.card.priority === p.value) return
         updatingField.value = 'priority'
         emit('update', props.card.id, { priority: p.value })
-        nextTick(() => { updatingField.value = null })
+        nextTick(() => {
+          updatingField.value = null
+        })
       }
     }))
   ]]
 }
 
+interface AssigneeMenuItem {
+  label: string
+  icon: string
+  type: string
+  checked: boolean
+  onSelect: () => void
+}
+
 function assigneeMenuItems() {
-  const items: any[] = [{
+  const items: AssigneeMenuItem[] = [{
     label: 'Unassigned',
     icon: 'i-lucide-user-x',
     type: 'checkbox',
@@ -70,7 +80,9 @@ function assigneeMenuItems() {
       if (!props.card.assignee) return
       updatingField.value = 'assignee'
       emit('update', props.card.id, { assigneeId: null })
-      nextTick(() => { updatingField.value = null })
+      nextTick(() => {
+        updatingField.value = null
+      })
     }
   }]
   for (const m of (props.members || [])) {
@@ -83,7 +95,9 @@ function assigneeMenuItems() {
         if (props.card.assignee?.id === m.id) return
         updatingField.value = 'assignee'
         emit('update', props.card.id, { assigneeId: m.id })
-        nextTick(() => { updatingField.value = null })
+        nextTick(() => {
+          updatingField.value = null
+        })
       }
     })
   }
@@ -109,7 +123,10 @@ const cardEl = ref<HTMLElement>()
       title="Open detail view"
       @click.stop
     >
-      <UIcon name="i-lucide-expand" class="text-[14px]" />
+      <UIcon
+        name="i-lucide-expand"
+        class="text-[14px]"
+      />
     </NuxtLink>
 
     <!-- Ticket ID -->
@@ -131,15 +148,26 @@ const cardEl = ref<HTMLElement>()
     </p>
 
     <!-- Tags -->
-    <div v-if="card.tags?.length" class="flex flex-wrap gap-1 mt-2">
-      <TagPill v-for="tag in card.tags" :key="tag.id" :name="tag.name" :color="tag.color" />
+    <div
+      v-if="card.tags?.length"
+      class="flex flex-wrap gap-1 mt-2"
+    >
+      <TagPill
+        v-for="tag in card.tags"
+        :key="tag.id"
+        :name="tag.name"
+        :color="tag.color"
+      />
     </div>
 
     <!-- Footer row -->
     <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-zinc-100 dark:border-zinc-700/40">
       <div class="flex items-center gap-2.5 min-w-0">
         <!-- Priority dropdown (icon only) -->
-        <UDropdownMenu :items="priorityMenuItems()" :content="{ align: 'start', side: 'bottom', sideOffset: 4, collisionPadding: 8 }">
+        <UDropdownMenu
+          :items="priorityMenuItems()"
+          :content="{ align: 'start', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
+        >
           <button
             type="button"
             class="flex items-center justify-center w-5 h-5 cursor-pointer transition-all hover:ring-2 hover:ring-indigo-500/20 rounded-md"
@@ -148,8 +176,16 @@ const cardEl = ref<HTMLElement>()
             :title="card.priority"
             @click.stop
           >
-            <UIcon v-if="updatingField === 'priority'" name="i-lucide-loader-2" class="text-[16px] animate-spin" />
-            <UIcon v-else :name="priorityIcon(card.priority)" class="text-[16px]" />
+            <UIcon
+              v-if="updatingField === 'priority'"
+              name="i-lucide-loader-2"
+              class="text-[16px] animate-spin"
+            />
+            <UIcon
+              v-else
+              :name="priorityIcon(card.priority)"
+              class="text-[16px]"
+            />
           </button>
         </UDropdownMenu>
 
@@ -167,7 +203,10 @@ const cardEl = ref<HTMLElement>()
             :title="formatDueDate(card.dueDate)"
             @click.stop
           >
-            <UIcon :name="dueDateIcon(getDueDateStatus(card.dueDate))" class="text-[12px]" />
+            <UIcon
+              :name="dueDateIcon(getDueDateStatus(card.dueDate))"
+              class="text-[12px]"
+            />
             <span class="select-none">{{ formatDueDate(card.dueDate) }}</span>
           </button>
         </DueDatePicker>
@@ -177,13 +216,19 @@ const cardEl = ref<HTMLElement>()
           v-if="card.attachmentCount"
           class="flex items-center gap-0.5 text-zinc-400 dark:text-zinc-500 whitespace-nowrap"
         >
-          <UIcon name="i-lucide-paperclip" class="text-[12px]" />
+          <UIcon
+            name="i-lucide-paperclip"
+            class="text-[12px]"
+          />
           <span class="card-id select-none">{{ card.attachmentCount }}</span>
         </span>
       </div>
 
       <!-- Assignee dropdown -->
-      <UDropdownMenu :items="assigneeMenuItems()" :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }">
+      <UDropdownMenu
+        :items="assigneeMenuItems()"
+        :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
+      >
         <button
           type="button"
           class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide cursor-pointer transition-all hover:ring-2 hover:ring-indigo-500/20 rounded-full px-1.5 py-0.5 shrink-0"
@@ -192,9 +237,16 @@ const cardEl = ref<HTMLElement>()
             : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500'"
           @click.stop
         >
-          <UIcon v-if="updatingField === 'assignee'" name="i-lucide-loader-2" class="text-[11px] animate-spin" />
+          <UIcon
+            v-if="updatingField === 'assignee'"
+            name="i-lucide-loader-2"
+            class="text-[11px] animate-spin"
+          />
           <template v-else>
-            <UIcon name="i-lucide-user" class="text-[11px]" />
+            <UIcon
+              name="i-lucide-user"
+              class="text-[11px]"
+            />
             <span>{{ assigneeInitials }}</span>
           </template>
         </button>

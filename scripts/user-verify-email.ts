@@ -26,7 +26,7 @@ console.log(`Database: ${dbPath}`)
 const db = new Database(dbPath)
 db.pragma('foreign_keys = ON')
 
-const user = db.prepare('SELECT id, name, email, email_verified_at FROM users WHERE email = ?').get(email) as any
+const user = db.prepare('SELECT id, name, email, email_verified_at FROM users WHERE email = ?').get(email) as { id: string, name: string, email: string, email_verified_at: number | null } | undefined
 
 if (!user) {
   console.error(`No user found with email: ${email}`)

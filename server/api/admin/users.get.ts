@@ -1,7 +1,7 @@
 import { desc } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user } = await requireAdmin(event)
+  const { user: _user } = await requireAdmin(event)
 
   const users = db.select({
     id: schema.users.id,

@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const updates: Record<string, any> = {}
+  const updates: Record<string, string | Date> = {}
 
   if (body.name !== undefined) {
     if (typeof body.name !== 'string' || !body.name.trim()) {

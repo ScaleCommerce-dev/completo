@@ -89,8 +89,8 @@ function cancelDeleteStatus() {
 }
 
 async function setDoneStatus(statusId: string | null) {
-  await $fetch(`/api/projects/${props.projectId}`, {
-    method: 'PUT' as any,
+  await $fetch(`/api/projects/${props.projectId}` as string, {
+    method: 'PUT' as const,
     body: { doneStatusId: statusId }
   })
   emit('refresh')
@@ -99,7 +99,10 @@ async function setDoneStatus(statusId: string | null) {
 
 <template>
   <div class="flex items-center gap-1.5 px-3 py-2 overflow-x-auto">
-    <template v-for="col in statuses" :key="col.id">
+    <template
+      v-for="col in statuses"
+      :key="col.id"
+    >
       <!-- Editing inline -->
       <div
         v-if="editingColId === col.id"
@@ -115,13 +118,28 @@ async function setDoneStatus(statusId: string | null) {
           class="w-24 text-[12px] font-medium text-zinc-900 dark:text-zinc-100 bg-transparent border-0 outline-none! ring-0! py-0"
           @keydown.enter="saveEditStatus"
           @keydown.escape="cancelEditStatus"
+        >
+        <UButton
+          icon="i-lucide-check"
+          variant="ghost"
+          color="neutral"
+          size="xs"
+          @click="saveEditStatus"
         />
-        <UButton icon="i-lucide-check" variant="ghost" color="neutral" size="xs" @click="saveEditStatus" />
-        <UButton icon="i-lucide-x" variant="ghost" color="neutral" size="xs" @click="cancelEditStatus" />
+        <UButton
+          icon="i-lucide-x"
+          variant="ghost"
+          color="neutral"
+          size="xs"
+          @click="cancelEditStatus"
+        />
       </div>
 
       <!-- Status chip — display state -->
-      <UPopover v-else-if="isOwnerOrAdmin" v-model:open="colColorPopoverOpen[col.id]">
+      <UPopover
+        v-else-if="isOwnerOrAdmin"
+        v-model:open="colColorPopoverOpen[col.id]"
+      >
         <button
           type="button"
           class="group/chip flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 transition-colors"
@@ -140,12 +158,14 @@ async function setDoneStatus(statusId: string | null) {
             class="block w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10"
             :style="{ backgroundColor: col.color || '#a1a1aa' }"
           />
-          <span class="text-[12px] font-medium"
+          <span
+            class="text-[12px] font-medium"
             :class="col.id === doneStatusId
               ? 'text-emerald-700 dark:text-emerald-300'
               : 'text-zinc-600 dark:text-zinc-400'"
           >{{ col.name }}</span>
-          <span class="text-[11px] font-semibold tabular-nums"
+          <span
+            class="text-[11px] font-semibold tabular-nums"
             :class="col.id === doneStatusId
               ? 'text-emerald-500/70 dark:text-emerald-400/70'
               : 'text-zinc-400 dark:text-zinc-500'"
@@ -153,15 +173,24 @@ async function setDoneStatus(statusId: string | null) {
         </button>
         <template #content>
           <div class="p-2.5 w-44">
-            <p class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Color</p>
-            <ColorPicker :model-value="col.color || '#a1a1aa'" class="mb-3" @update:model-value="updateStatusColor(col.id, $event)" />
+            <p class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
+              Color
+            </p>
+            <ColorPicker
+              :model-value="col.color || '#a1a1aa'"
+              class="mb-3"
+              @update:model-value="updateStatusColor(col.id, $event)"
+            />
             <div class="flex flex-col gap-0.5 border-t border-zinc-100 dark:border-zinc-700/40 pt-2">
               <button
                 type="button"
                 class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-[12px] font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
                 @click="colColorPopoverOpen[col.id] = false; startEditStatus(col)"
               >
-                <UIcon name="i-lucide-pencil" class="text-[12px]" />
+                <UIcon
+                  name="i-lucide-pencil"
+                  class="text-[12px]"
+                />
                 Rename
               </button>
               <button
@@ -170,14 +199,29 @@ async function setDoneStatus(statusId: string | null) {
                 class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-[12px] font-medium text-zinc-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
                 @click="setDoneStatus(col.id); colColorPopoverOpen[col.id] = false"
               >
-                <UIcon name="i-lucide-circle-check-big" class="text-[12px]" />
+                <UIcon
+                  name="i-lucide-circle-check-big"
+                  class="text-[12px]"
+                />
                 Set as Done
               </button>
               <template v-if="confirmDeleteColId === col.id">
                 <div class="flex items-center gap-1 px-2 py-1.5">
                   <span class="text-[11px] font-medium text-red-500">Delete?</span>
-                  <UButton icon="i-lucide-check" variant="ghost" color="error" size="xs" @click="deleteProjectStatus(col.id); colColorPopoverOpen[col.id] = false" />
-                  <UButton icon="i-lucide-x" variant="ghost" color="neutral" size="xs" @click="cancelDeleteStatus" />
+                  <UButton
+                    icon="i-lucide-check"
+                    variant="ghost"
+                    color="error"
+                    size="xs"
+                    @click="deleteProjectStatus(col.id); colColorPopoverOpen[col.id] = false"
+                  />
+                  <UButton
+                    icon="i-lucide-x"
+                    variant="ghost"
+                    color="neutral"
+                    size="xs"
+                    @click="cancelDeleteStatus"
+                  />
                 </div>
               </template>
               <button
@@ -186,7 +230,10 @@ async function setDoneStatus(statusId: string | null) {
                 class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-[12px] font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                 @click="requestDeleteStatus(col.id)"
               >
-                <UIcon name="i-lucide-trash-2" class="text-[12px]" />
+                <UIcon
+                  name="i-lucide-trash-2"
+                  class="text-[12px]"
+                />
                 Delete
               </button>
             </div>
@@ -212,12 +259,14 @@ async function setDoneStatus(statusId: string | null) {
           class="block w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10"
           :style="{ backgroundColor: col.color || '#a1a1aa' }"
         />
-        <span class="text-[12px] font-medium"
+        <span
+          class="text-[12px] font-medium"
           :class="col.id === doneStatusId
             ? 'text-emerald-700 dark:text-emerald-300'
             : 'text-zinc-600 dark:text-zinc-400'"
         >{{ col.name }}</span>
-        <span class="text-[11px] font-semibold tabular-nums"
+        <span
+          class="text-[11px] font-semibold tabular-nums"
           :class="col.id === doneStatusId
             ? 'text-emerald-500/70 dark:text-emerald-400/70'
             : 'text-zinc-400 dark:text-zinc-500'"
@@ -226,17 +275,28 @@ async function setDoneStatus(statusId: string | null) {
     </template>
 
     <!-- Add status (owner/admin) -->
-    <UPopover v-if="isOwnerOrAdmin" v-model:open="showAddColPopover">
+    <UPopover
+      v-if="isOwnerOrAdmin"
+      v-model:open="showAddColPopover"
+    >
       <button
         type="button"
         class="flex items-center gap-1 px-2 py-1 rounded-md text-[12px] font-medium text-zinc-400 dark:text-zinc-500 hover:text-indigo-500 hover:bg-white dark:hover:bg-zinc-700/50 transition-colors shrink-0"
       >
-        <UIcon name="i-lucide-plus" class="text-[12px]" />
+        <UIcon
+          name="i-lucide-plus"
+          class="text-[12px]"
+        />
         <span>Status</span>
       </button>
       <template #content>
-        <form class="p-3 w-52" @submit.prevent="addProjectStatus(); showAddColPopover = false">
-          <p class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">New status</p>
+        <form
+          class="p-3 w-52"
+          @submit.prevent="addProjectStatus(); showAddColPopover = false"
+        >
+          <p class="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
+            New status
+          </p>
           <div class="flex items-center gap-2 mb-2">
             <UPopover v-model:open="newColColorOpen">
               <button
@@ -256,15 +316,27 @@ async function setDoneStatus(statusId: string | null) {
               placeholder="Status name..."
               class="flex-1 text-[13px] font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-md px-2 py-1 outline-none! ring-0! focus:border-indigo-300 dark:focus:border-indigo-500 transition-colors"
               @keydown.enter.prevent="addProjectStatus(); showAddColPopover = false"
-            />
+            >
           </div>
-          <UButton type="submit" size="xs" color="primary" variant="solid" :disabled="!newColName.trim()" class="w-full justify-center">
+          <UButton
+            type="submit"
+            size="xs"
+            color="primary"
+            variant="solid"
+            :disabled="!newColName.trim()"
+            class="w-full justify-center"
+          >
             Add Status
           </UButton>
         </form>
       </template>
     </UPopover>
 
-    <p v-if="statuses.length === 0 && !isOwnerOrAdmin" class="text-[12px] text-zinc-400 dark:text-zinc-500">No statuses configured.</p>
+    <p
+      v-if="statuses.length === 0 && !isOwnerOrAdmin"
+      class="text-[12px] text-zinc-400 dark:text-zinc-500"
+    >
+      No statuses configured.
+    </p>
   </div>
 </template>

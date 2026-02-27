@@ -1,5 +1,4 @@
 <script setup lang="ts">
-
 const SORTABLE_FIELDS = new Set(['ticketId', 'title', 'status', 'priority', 'assignee', 'dueDate', 'createdAt', 'updatedAt'])
 
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
@@ -143,7 +142,7 @@ function detailUrl(card: ListCard) {
 }
 
 // Find priority column presence for the left-edge bar
-const hasPriorityData = computed(() => true)
+const _hasPriorityData = computed(() => true)
 
 // ─── Sort state ───
 // undefined = user hasn't interacted (fall back to server-saved props)
@@ -239,7 +238,7 @@ const sortedCards = computed(() => {
           v-for="col in columns"
           :key="col.id"
           :style="colWidth(col.field) ? { width: colWidth(col.field) } : undefined"
-        />
+        >
       </colgroup>
 
       <!-- Header -->
@@ -256,8 +255,14 @@ const sortedCards = computed(() => {
             ]"
             @click="toggleSort(col.field)"
           >
-            <span class="inline-flex items-center gap-1" :class="col.field === 'done' ? 'flex justify-center w-full min-h-[1lh] translate-y-px' : ''">
-              <template v-if="col.field === 'done'"><UIcon name="i-lucide-circle-check-big" class="text-[11px]" /></template>
+            <span
+              class="inline-flex items-center gap-1"
+              :class="col.field === 'done' ? 'flex justify-center w-full min-h-[1lh] translate-y-px' : ''"
+            >
+              <template v-if="col.field === 'done'"><UIcon
+                name="i-lucide-circle-check-big"
+                class="text-[11px]"
+              /></template>
               <template v-else>{{ fieldLabel(col.field) }}</template>
               <UIcon
                 v-if="localSortField === col.field && localSortDirection === 'asc'"
@@ -316,7 +321,11 @@ const sortedCards = computed(() => {
                 :disabled="!doneStatusId"
                 @click="toggleDone(card)"
               >
-                <UIcon v-if="isDone(card)" name="i-lucide-check" class="text-[13px]" />
+                <UIcon
+                  v-if="isDone(card)"
+                  name="i-lucide-check"
+                  class="text-[13px]"
+                />
               </button>
             </div>
 
@@ -329,7 +338,10 @@ const sortedCards = computed(() => {
             </span>
 
             <!-- title -->
-            <div v-else-if="col.field === 'title'" class="flex items-center gap-1.5 min-w-0">
+            <div
+              v-else-if="col.field === 'title'"
+              class="flex items-center gap-1.5 min-w-0"
+            >
               <span
                 class="font-semibold truncate"
                 :class="isDone(card)
@@ -345,7 +357,10 @@ const sortedCards = computed(() => {
                 title="Open detail"
                 @click.stop
               >
-                <UIcon name="i-lucide-arrow-up-right" class="text-[13px]" />
+                <UIcon
+                  name="i-lucide-arrow-up-right"
+                  class="text-[13px]"
+                />
               </NuxtLink>
             </div>
 
@@ -364,7 +379,10 @@ const sortedCards = computed(() => {
                 />
                 <span class="text-zinc-600 dark:text-zinc-400 truncate text-[13.5px]">{{ card.status.name }}</span>
               </template>
-              <span v-else class="text-zinc-300 dark:text-zinc-600 text-[13.5px]">&mdash;</span>
+              <span
+                v-else
+                class="text-zinc-300 dark:text-zinc-600 text-[13.5px]"
+              >&mdash;</span>
             </div>
 
             <!-- status (editable) -->
@@ -386,9 +404,15 @@ const sortedCards = computed(() => {
                     }"
                   />
                   <span class="text-zinc-600 dark:text-zinc-400 truncate text-[13.5px]">{{ card.status.name }}</span>
-                  <UIcon name="i-lucide-chevron-down" class="text-[10px] shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-60 transition-opacity" />
+                  <UIcon
+                    name="i-lucide-chevron-down"
+                    class="text-[10px] shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-60 transition-opacity"
+                  />
                 </template>
-                <span v-else class="text-zinc-300 dark:text-zinc-600 text-[13.5px]">&mdash;</span>
+                <span
+                  v-else
+                  class="text-zinc-300 dark:text-zinc-600 text-[13.5px]"
+                >&mdash;</span>
               </div>
               <template #content>
                 <div class="list-popover-menu py-1 min-w-[140px]">
@@ -423,10 +447,16 @@ const sortedCards = computed(() => {
               class="flex items-center gap-1.5 min-h-[22px]"
             >
               <template v-if="card.assignee">
-                <UAvatar :alt="card.assignee.name" size="3xs" />
+                <UAvatar
+                  :alt="card.assignee.name"
+                  size="3xs"
+                />
                 <span class="text-zinc-500 dark:text-zinc-400 truncate text-[13.5px]">{{ card.assignee.name }}</span>
               </template>
-              <span v-else class="text-zinc-300 dark:text-zinc-600 text-[13px]">Unassigned</span>
+              <span
+                v-else
+                class="text-zinc-300 dark:text-zinc-600 text-[13px]"
+              >Unassigned</span>
             </div>
 
             <!-- assignee (editable) -->
@@ -440,11 +470,20 @@ const sortedCards = computed(() => {
                 @click.stop
               >
                 <template v-if="card.assignee">
-                  <UAvatar :alt="card.assignee.name" size="3xs" />
+                  <UAvatar
+                    :alt="card.assignee.name"
+                    size="3xs"
+                  />
                   <span class="text-zinc-500 dark:text-zinc-400 truncate text-[13.5px]">{{ card.assignee.name }}</span>
-                  <UIcon name="i-lucide-chevron-down" class="text-[10px] shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-60 transition-opacity" />
+                  <UIcon
+                    name="i-lucide-chevron-down"
+                    class="text-[10px] shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-60 transition-opacity"
+                  />
                 </template>
-                <span v-else class="text-zinc-300 dark:text-zinc-600 text-[13px]">Unassigned</span>
+                <span
+                  v-else
+                  class="text-zinc-300 dark:text-zinc-600 text-[13px]"
+                >Unassigned</span>
               </div>
               <template #content>
                 <div class="list-popover-menu py-1 min-w-[160px]">
@@ -456,7 +495,10 @@ const sortedCards = computed(() => {
                       : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'"
                     @click="selectAssignee(card.id, null)"
                   >
-                    <UIcon name="i-lucide-user-x" class="text-[13px] text-zinc-400 shrink-0" />
+                    <UIcon
+                      name="i-lucide-user-x"
+                      class="text-[13px] text-zinc-400 shrink-0"
+                    />
                     <span class="flex-1">Unassigned</span>
                     <UIcon
                       v-if="!card.assignee"
@@ -474,7 +516,10 @@ const sortedCards = computed(() => {
                       : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'"
                     @click="selectAssignee(card.id, m.id)"
                   >
-                    <UAvatar :alt="m.name" size="3xs" />
+                    <UAvatar
+                      :alt="m.name"
+                      size="3xs"
+                    />
                     <span class="truncate flex-1">{{ m.name }}</span>
                     <UIcon
                       v-if="card.assignee?.id === m.id"
@@ -498,9 +543,15 @@ const sortedCards = computed(() => {
                 :style="{ color: priorityColor(card.priority) }"
                 @click.stop
               >
-                <UIcon :name="priorityIcon(card.priority)" class="text-[13px]" />
+                <UIcon
+                  :name="priorityIcon(card.priority)"
+                  class="text-[13px]"
+                />
                 <span>{{ card.priority }}</span>
-                <UIcon name="i-lucide-chevron-down" class="text-[10px] shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
+                <UIcon
+                  name="i-lucide-chevron-down"
+                  class="text-[10px] shrink-0 opacity-0 group-hover:opacity-60 transition-opacity"
+                />
               </div>
               <template #content>
                 <div class="list-popover-menu py-1 min-w-[130px]">
@@ -515,7 +566,10 @@ const sortedCards = computed(() => {
                     :style="{ color: p.color }"
                     @click="selectPriority(card.id, p.value)"
                   >
-                    <UIcon :name="p.icon" class="text-[13px] shrink-0" />
+                    <UIcon
+                      :name="p.icon"
+                      class="text-[13px] shrink-0"
+                    />
                     <span class="flex-1">{{ p.label }}</span>
                     <UIcon
                       v-if="card.priority === p.value"
@@ -532,7 +586,12 @@ const sortedCards = computed(() => {
               v-else-if="col.field === 'tags' && (!tags?.length || readOnlyFields?.includes('tags'))"
               class="flex flex-wrap gap-1"
             >
-              <TagPill v-for="tag in (card.tags || [])" :key="tag.id" :name="tag.name" :color="tag.color" />
+              <TagPill
+                v-for="tag in (card.tags || [])"
+                :key="tag.id"
+                :name="tag.name"
+                :color="tag.color"
+              />
             </div>
 
             <!-- tags (editable) -->
@@ -546,10 +605,21 @@ const sortedCards = computed(() => {
                 @click.stop
               >
                 <template v-if="card.tags?.length">
-                  <TagPill v-for="tag in card.tags" :key="tag.id" :name="tag.name" :color="tag.color" />
+                  <TagPill
+                    v-for="tag in card.tags"
+                    :key="tag.id"
+                    :name="tag.name"
+                    :color="tag.color"
+                  />
                 </template>
-                <span v-else class="text-zinc-300 dark:text-zinc-600 text-[13px]">No tags</span>
-                <UIcon name="i-lucide-chevron-down" class="text-[10px] shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-60 transition-opacity" />
+                <span
+                  v-else
+                  class="text-zinc-300 dark:text-zinc-600 text-[13px]"
+                >No tags</span>
+                <UIcon
+                  name="i-lucide-chevron-down"
+                  class="text-[10px] shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-60 transition-opacity"
+                />
               </div>
               <template #content>
                 <TagToggleList
@@ -575,11 +645,20 @@ const sortedCards = computed(() => {
                 @click.stop
               >
                 <template v-if="card.dueDate">
-                  <UIcon :name="dueDateIcon(getDueDateStatus(card.dueDate))" class="text-[12px]" />
+                  <UIcon
+                    :name="dueDateIcon(getDueDateStatus(card.dueDate))"
+                    class="text-[12px]"
+                  />
                   <span>{{ formatDueDate(card.dueDate) }}</span>
                 </template>
-                <span v-else class="text-zinc-300 dark:text-zinc-600">&mdash;</span>
-                <UIcon name="i-lucide-chevron-down" class="text-[10px] shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-60 transition-opacity" />
+                <span
+                  v-else
+                  class="text-zinc-300 dark:text-zinc-600"
+                >&mdash;</span>
+                <UIcon
+                  name="i-lucide-chevron-down"
+                  class="text-[10px] shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-60 transition-opacity"
+                />
               </div>
             </DueDatePicker>
 
@@ -599,36 +678,56 @@ const sortedCards = computed(() => {
               {{ card.description ? stripMarkdown(card.description) : '' }}
             </span>
           </td>
-
         </tr>
 
         <!-- Empty state: filtered -->
         <tr v-if="sortedCards.length === 0 && isFiltered">
-          <td :colspan="columns.length" class="text-center py-16">
+          <td
+            :colspan="columns.length"
+            class="text-center py-16"
+          >
             <div class="flex flex-col items-center gap-2">
-              <UIcon name="i-lucide-filter-x" class="text-2xl text-zinc-300 dark:text-zinc-600" />
-              <p class="text-[13px] text-zinc-400 dark:text-zinc-500">No cards match the active filters</p>
+              <UIcon
+                name="i-lucide-filter-x"
+                class="text-2xl text-zinc-300 dark:text-zinc-600"
+              />
+              <p class="text-[13px] text-zinc-400 dark:text-zinc-500">
+                No cards match the active filters
+              </p>
             </div>
           </td>
         </tr>
 
         <!-- Empty state: no cards -->
         <tr v-else-if="sortedCards.length === 0">
-          <td :colspan="columns.length" class="text-center py-16">
+          <td
+            :colspan="columns.length"
+            class="text-center py-16"
+          >
             <div class="flex flex-col items-center gap-2.5">
               <div class="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                <UIcon name="i-lucide-inbox" class="text-xl text-zinc-400 dark:text-zinc-500" />
+                <UIcon
+                  name="i-lucide-inbox"
+                  class="text-xl text-zinc-400 dark:text-zinc-500"
+                />
               </div>
               <div>
-                <p class="text-[14px] font-medium text-zinc-500 dark:text-zinc-400">No cards yet</p>
-                <p class="text-[12px] text-zinc-400 dark:text-zinc-500 mt-0.5">Get started by creating your first card</p>
+                <p class="text-[14px] font-medium text-zinc-500 dark:text-zinc-400">
+                  No cards yet
+                </p>
+                <p class="text-[12px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                  Get started by creating your first card
+                </p>
               </div>
               <button
                 type="button"
                 class="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-indigo-500 hover:text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 transition-all"
                 @click="emit('add-card')"
               >
-                <UIcon name="i-lucide-plus" class="text-[13px]" />
+                <UIcon
+                  name="i-lucide-plus"
+                  class="text-[13px]"
+                />
                 New Card
               </button>
             </div>
@@ -718,7 +817,6 @@ const sortedCards = computed(() => {
   background: oklch(0.6 0 0 / 0.12);
   border-radius: 99px;
 }
-
 </style>
 
 <style>

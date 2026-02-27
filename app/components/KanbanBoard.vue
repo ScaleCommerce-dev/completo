@@ -1,26 +1,49 @@
 <script setup lang="ts">
-const props = defineProps<{
-  columns: any[]
-  cardsByColumn: Record<string, any[]>
+interface BoardColumn {
+  id: string
+  name: string
+  color?: string | null
+}
+
+interface BoardCard {
+  id: number
+  title: string
+  description?: string | null
+  priority: string
+  assignee: { id: string, name: string, avatarUrl: string | null } | null
+  tags?: Array<{ id: string, name: string, color: string }>
+  attachmentCount?: number
+  dueDate?: string | null
+}
+
+interface BoardMember {
+  id: string
+  name: string
+  avatarUrl: string | null
+}
+
+const _props = defineProps<{
+  columns: BoardColumn[]
+  cardsByColumn: Record<string, BoardCard[]>
   projectKey?: string
   projectSlug?: string
   doneStatusId?: string | null
   canConfigureColumns?: boolean
   canAddColumns?: boolean
-  availableColumns?: any[]
-  members?: any[]
+  availableColumns?: BoardColumn[]
+  members?: BoardMember[]
 }>()
 
 const emit = defineEmits<{
-  'card-click': [card: any]
+  'card-click': [card: BoardCard]
   'card-moved': [cardId: number, toColumnId: string, toPosition: number]
-  'card-update': [cardId: number, updates: Record<string, any>]
+  'card-update': [cardId: number, updates: Record<string, unknown>]
   'add-card': [columnId: string]
   'add-column': [name: string, color?: string]
   'link-column': [columnId: string]
 }>()
 
-function handleCardChange(columnId: string, evt: any) {
+function handleCardChange(columnId: string, evt: { added?: { element: { id: number }, newIndex: number }, moved?: { element: { id: number }, newIndex: number } }) {
   if (evt.added) {
     emit('card-moved', evt.added.element.id, columnId, evt.added.newIndex)
   } else if (evt.moved) {
@@ -70,7 +93,7 @@ function cancelAddColumn() {
 <template>
   <div class="flex gap-3 overflow-x-auto px-5 py-4 flex-1 min-h-0 kanban-scroll">
     <KanbanColumn
-      v-for="(column, index) in columns"
+      v-for="column in columns"
       :key="column.id"
       :column="column"
       :cards="cardsByColumn[column.id] || []"
@@ -86,13 +109,19 @@ function cancelAddColumn() {
     />
 
     <!-- Add column -->
-    <div v-if="canConfigureColumns" class="shrink-0 w-[280px]">
+    <div
+      v-if="canConfigureColumns"
+      class="shrink-0 w-[280px]"
+    >
       <button
         v-if="!showAddColumn"
         class="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-200/70 dark:border-zinc-700/50 py-10 text-[13px] font-medium text-zinc-400 dark:text-zinc-500 hover:border-indigo-300 hover:text-indigo-500 dark:hover:border-indigo-500/50 dark:hover:text-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10 transition-all"
         @click="openAddColumn"
       >
-        <UIcon name="i-lucide-plus" class="text-base" />
+        <UIcon
+          name="i-lucide-plus"
+          class="text-base"
+        />
         Add column
       </button>
 
@@ -103,7 +132,10 @@ function cancelAddColumn() {
       >
         <!-- Pick from available columns -->
         <template v-if="mode === 'pick'">
-          <div v-if="availableColumns?.length" class="flex flex-col gap-1">
+          <div
+            v-if="availableColumns?.length"
+            class="flex flex-col gap-1"
+          >
             <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.06em] mb-0.5">Available columns</span>
             <button
               v-for="col in availableColumns"
@@ -119,18 +151,27 @@ function cancelAddColumn() {
               {{ col.name }}
             </button>
           </div>
-          <div v-else class="text-[13px] text-zinc-400 dark:text-zinc-500 py-2 text-center">
+          <div
+            v-else
+            class="text-[13px] text-zinc-400 dark:text-zinc-500 py-2 text-center"
+          >
             No unlinked columns available
           </div>
 
           <template v-if="canAddColumns">
-            <div v-if="availableColumns?.length" class="border-t border-zinc-200/80 dark:border-zinc-700/50 my-0.5" />
+            <div
+              v-if="availableColumns?.length"
+              class="border-t border-zinc-200/80 dark:border-zinc-700/50 my-0.5"
+            />
             <button
               type="button"
               class="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] font-medium text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-colors"
               @click="switchToCreate"
             >
-              <UIcon name="i-lucide-plus" class="text-sm" />
+              <UIcon
+                name="i-lucide-plus"
+                class="text-sm"
+              />
               Create new column <span class="text-[10px] text-zinc-400 dark:text-zinc-500 font-normal">(project-wide)</span>
             </button>
           </template>
@@ -147,14 +188,20 @@ function cancelAddColumn() {
         </template>
 
         <!-- Create new column form (project owner/admin only) -->
-        <form v-else @submit.prevent="submitColumn">
+        <form
+          v-else
+          @submit.prevent="submitColumn"
+        >
           <div class="flex flex-col gap-2.5">
             <button
               type="button"
               class="flex items-center gap-1 text-[12px] text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors self-start"
               @click="mode = 'pick'"
             >
-              <UIcon name="i-lucide-arrow-left" class="text-[12px]" />
+              <UIcon
+                name="i-lucide-arrow-left"
+                class="text-[12px]"
+              />
               Back
             </button>
             <input
@@ -164,7 +211,7 @@ function cancelAddColumn() {
               placeholder="Column name"
               class="w-full text-[14px] font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 bg-transparent border border-zinc-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors"
               @keydown.escape="cancelAddColumn"
-            />
+            >
             <div class="flex items-center gap-2">
               <UPopover v-model:open="newColorOpen">
                 <button
@@ -192,7 +239,10 @@ function cancelAddColumn() {
                 class="flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 :disabled="!newColumnName.trim()"
               >
-                <UIcon name="i-lucide-plus" class="text-[12px]" />
+                <UIcon
+                  name="i-lucide-plus"
+                  class="text-[12px]"
+                />
                 Add
               </button>
             </div>

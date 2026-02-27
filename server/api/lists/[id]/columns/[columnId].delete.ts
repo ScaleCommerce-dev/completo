@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user, list } = await resolveList(event)
+  const { user: _user, list } = await resolveList(event)
   const columnId = getRouterParam(event, 'columnId')
 
   const column = db.select().from(schema.listColumns)

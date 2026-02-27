@@ -30,14 +30,24 @@
           <div class="absolute -inset-4 rounded-full bg-indigo-400/20 dark:bg-indigo-400/10 blur-2xl auth-icon-glow" />
           <!-- Icon -->
           <div class="relative w-[72px] h-[72px] rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-500/25 dark:shadow-indigo-500/10 ring-1 ring-white/20">
-            <img src="/completo-icon.svg" alt="Completo" class="w-14 h-14 invert" />
+            <img
+              src="/completo-icon.svg"
+              alt="Completo"
+              class="w-14 h-14 invert"
+            >
           </div>
         </div>
         <div>
-          <h1 class="sidebar-brand text-[28px] font-extrabold tracking-[-0.04em] leading-none text-zinc-900 dark:text-zinc-100">Completo</h1>
+          <h1 class="sidebar-brand text-[28px] font-extrabold tracking-[-0.04em] leading-none text-zinc-900 dark:text-zinc-100">
+            Completo
+          </h1>
           <div class="mt-2 flex flex-col gap-px">
-            <p class="font-mono text-[11.5px] font-semibold uppercase tracking-[0.1em] text-indigo-500/80 dark:text-indigo-400/70">All the toppings</p>
-            <p class="font-mono text-[11.5px] font-medium uppercase tracking-[0.1em] text-zinc-500/80 dark:text-zinc-400/70">None of the mess</p>
+            <p class="font-mono text-[11.5px] font-semibold uppercase tracking-[0.1em] text-indigo-500/80 dark:text-indigo-400/70">
+              All the toppings
+            </p>
+            <p class="font-mono text-[11.5px] font-medium uppercase tracking-[0.1em] text-zinc-500/80 dark:text-zinc-400/70">
+              None of the mess
+            </p>
           </div>
         </div>
       </div>

@@ -32,9 +32,11 @@ async function save() {
 
     await refresh()
     success.value = true
-    setTimeout(() => { success.value = false }, 3000)
-  } catch (e: any) {
-    error.value = e?.data?.message || 'Failed to save settings'
+    setTimeout(() => {
+      success.value = false
+    }, 3000)
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e, 'Failed to save settings')
   } finally {
     saving.value = false
   }
@@ -64,7 +66,10 @@ const hasChanges = computed(() => {
     <!-- Allowed Email Domains Section -->
     <div class="rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 p-5">
       <div class="flex items-center gap-2 mb-1">
-        <UIcon name="i-lucide-shield" class="text-[16px] text-indigo-500" />
+        <UIcon
+          name="i-lucide-shield"
+          class="text-[16px] text-indigo-500"
+        />
         <h2 class="text-[15px] font-bold tracking-[-0.01em] text-zinc-900 dark:text-zinc-100">
           Allowed Email Domains
         </h2>
@@ -94,7 +99,10 @@ const hasChanges = computed(() => {
         v-if="error"
         class="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
       >
-        <UIcon name="i-lucide-alert-circle" class="text-[14px] text-red-500 shrink-0" />
+        <UIcon
+          name="i-lucide-alert-circle"
+          class="text-[14px] text-red-500 shrink-0"
+        />
         <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ error }}</span>
       </div>
 
@@ -103,7 +111,10 @@ const hasChanges = computed(() => {
         v-if="success"
         class="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40"
       >
-        <UIcon name="i-lucide-check-circle" class="text-[14px] text-emerald-500 shrink-0" />
+        <UIcon
+          name="i-lucide-check-circle"
+          class="text-[14px] text-emerald-500 shrink-0"
+        />
         <span class="text-[13px] font-medium text-emerald-600 dark:text-emerald-400">Settings saved</span>
       </div>
 
@@ -115,8 +126,16 @@ const hasChanges = computed(() => {
           :disabled="saving || !hasChanges"
           @click="save"
         >
-          <UIcon v-if="saving" name="i-lucide-loader-2" class="text-[14px] animate-spin" />
-          <UIcon v-else name="i-lucide-save" class="text-[14px]" />
+          <UIcon
+            v-if="saving"
+            name="i-lucide-loader-2"
+            class="text-[14px] animate-spin"
+          />
+          <UIcon
+            v-else
+            name="i-lucide-save"
+            class="text-[14px]"
+          />
           Save Changes
         </button>
       </div>

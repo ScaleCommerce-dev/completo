@@ -12,7 +12,7 @@ describe('GET /api/my-tasks', async () => {
   it('returns empty groups when user has no assigned cards', async () => {
     const data = await $fetch('/api/my-tasks', {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
     expect(data.groups).toEqual([])
     expect(data.columns).toBeDefined()
@@ -32,9 +32,9 @@ describe('GET /api/my-tasks', async () => {
 
     const data = await $fetch('/api/my-tasks', {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
-    const group = data.groups.find((g: any) => g.project.id === project.id)
+    const group = data.groups.find((g: Record<string, unknown>) => g.project.id === project.id)
     expect(group).toBeTruthy()
     expect(group.cards).toHaveLength(1)
     expect(group.cards[0].title).toBe('Assigned Task')
@@ -72,11 +72,11 @@ describe('GET /api/my-tasks', async () => {
 
     const data = await $fetch('/api/my-tasks', {
       headers: user.headers
-    }) as any
+    }) as Record<string, unknown>
 
-    const group = data.groups.find((g: any) => g.project.id === project.id)
+    const group = data.groups.find((g: Record<string, unknown>) => g.project.id === project.id)
     if (group) {
-      const user2Task = group.cards.find((t: any) => t.title === 'User2 Task')
+      const user2Task = group.cards.find((t: Record<string, unknown>) => t.title === 'User2 Task')
       expect(user2Task).toBeUndefined()
     }
   })

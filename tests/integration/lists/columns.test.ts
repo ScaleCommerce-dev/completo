@@ -18,14 +18,14 @@ describe('List columns', async () => {
         method: 'POST',
         body: { field: 'priority' },
         headers: user.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(col.field).toBe('priority')
       expect(col.position).toBe(2) // after title(0) and status(1)
 
       const fullList = await getList(user, list.id)
       expect(fullList.columns).toHaveLength(3)
-      expect(fullList.columns.map((c: any) => c.field)).toContain('priority')
+      expect(fullList.columns.map((c: Record<string, unknown>) => c.field)).toContain('priority')
     })
 
     it('rejects invalid field', async () => {
@@ -73,13 +73,13 @@ describe('List columns', async () => {
       const result = await $fetch(`/api/lists/${list.id}/columns/${colToRemove.id}`, {
         method: 'DELETE',
         headers: user.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(result.ok).toBe(true)
 
       const updated = await getList(user, list.id)
       expect(updated.columns).toHaveLength(fullList.columns.length - 1)
-      expect(updated.columns.find((c: any) => c.id === colToRemove.id)).toBeFalsy()
+      expect(updated.columns.find((c: Record<string, unknown>) => c.id === colToRemove.id)).toBeFalsy()
     })
 
     it('returns 404 for non-existent column', async () => {
@@ -100,7 +100,7 @@ describe('List columns', async () => {
       const list = await createTestList(user, project.id, { columns: ['title', 'status', 'priority'] })
 
       const fullList = await getList(user, list.id)
-      const reversed = fullList.columns.map((c: any, i: number) => ({
+      const reversed = fullList.columns.map((c: Record<string, unknown>, i: number) => ({
         id: c.id,
         position: fullList.columns.length - 1 - i
       }))
@@ -109,7 +109,7 @@ describe('List columns', async () => {
         method: 'PUT',
         body: { columns: reversed },
         headers: user.headers
-      }) as any
+      }) as Record<string, unknown>
 
       expect(result.ok).toBe(true)
 

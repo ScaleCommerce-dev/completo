@@ -23,8 +23,8 @@ async function resetPassword() {
     const { fetch: refreshSession } = useUserSession()
     await refreshSession()
     navigateTo('/projects')
-  } catch (e: any) {
-    error.value = e.data?.message || 'Failed to reset password'
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e, 'Failed to reset password')
   } finally {
     loading.value = false
   }
@@ -34,12 +34,23 @@ async function resetPassword() {
 <template>
   <div class="auth-glass">
     <div class="px-7 pt-7 pb-2">
-      <h2 class="text-base font-bold text-center tracking-[-0.02em]">Set a new password</h2>
-      <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400 mt-1">Choose a new password for your account</p>
+      <h2 class="text-base font-bold text-center tracking-[-0.02em]">
+        Set a new password
+      </h2>
+      <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400 mt-1">
+        Choose a new password for your account
+      </p>
     </div>
 
-    <form class="px-7 pb-7 flex flex-col gap-5" @submit.prevent="resetPassword">
-      <UFormField label="New Password" class="auth-field" style="animation-delay: 0.05s">
+    <form
+      class="px-7 pb-7 flex flex-col gap-5"
+      @submit.prevent="resetPassword"
+    >
+      <UFormField
+        label="New Password"
+        class="auth-field"
+        style="animation-delay: 0.05s"
+      >
         <UInput
           v-model="password"
           type="password"
@@ -53,8 +64,18 @@ async function resetPassword() {
 
       <AuthErrorBanner :error="error" />
 
-      <div class="auth-field" style="animation-delay: 0.1s">
-        <UButton type="submit" label="Reset Password & Sign In" block :loading="loading" size="lg" :disabled="!token" />
+      <div
+        class="auth-field"
+        style="animation-delay: 0.1s"
+      >
+        <UButton
+          type="submit"
+          label="Reset Password & Sign In"
+          block
+          :loading="loading"
+          size="lg"
+          :disabled="!token"
+        />
       </div>
     </form>
 
@@ -62,7 +83,10 @@ async function resetPassword() {
       <div class="border-t border-zinc-200/40 dark:border-zinc-700/25 pt-4">
         <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400">
           Link expired?
-          <NuxtLink to="/auth/forgot-password" class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Request a new one</NuxtLink>
+          <NuxtLink
+            to="/auth/forgot-password"
+            class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+          >Request a new one</NuxtLink>
         </p>
       </div>
     </div>
