@@ -87,7 +87,7 @@ export default defineEventHandler(async (event) => {
 
         // Log rejected prompts for improvement
         const responseText = fullResponse.join('')
-        if (responseText.toLowerCase().includes('please provide a prompt related to')) {
+        if (process.env.LOG_REJECTED_PROMPTS === 'true' && responseText.toLowerCase().includes('please provide a prompt related to')) {
           try {
             const timestamp = new Date().toISOString()
             const logEntry = JSON.stringify({
