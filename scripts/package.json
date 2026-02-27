@@ -1,0 +1,20 @@
+{
+  "name": "completo-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "help": "echo '\nCompleto CLI\n\n  npm run db:migrate        Apply pending SQL migrations\n  npm run db:seed           Seed demo data (users, project, AI skills)\n  npm run db:cleanup        Remove orphans, expired tokens + VACUUM\n  npm run user:create       Create user: npm run user:create -- <email> <password> [name]\n  npm run user:verify-email Verify email: npm run user:verify-email -- <email>\n'",
+    "db:migrate": "npx tsx db-migrate.ts",
+    "db:seed": "npx tsx db-seed.ts",
+    "db:cleanup": "npx tsx db-cleanup.ts",
+    "user:create": "npx tsx user-create.ts",
+    "user:verify-email": "npx tsx user-verify-email.ts",
+    "user:set-role": "npx tsx user-set-role.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.45.1",
+    "tsx": "^4.19.0"
+  }
+}

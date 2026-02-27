@@ -1,0 +1,43 @@
+# Build outputs
+.output
+.nuxt
+.nitro
+.cache
+.data
+dist
+
+# Dependencies
+node_modules
+
+# Environment
+.env
+.env.*
+
+# Database
+*.db
+*.db-wal
+*.db-shm
+
+# Logs
+*.log
+
+# Uploads
+data/
+
+# IDE / Editor
+.DS_Store
+.fleet
+.idea
+.vscode
+.editorconfig
+
+# Claude Code
+.claude
+
+# Playwright
+.playwright
+.playwright-mcp
+
+# Session Stuff
+TODO/
+prompts/

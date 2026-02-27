@@ -1,0 +1,55 @@
+{
+  "name": "completo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "typecheck": "nuxt typecheck",
+    "test": "vitest",
+    "test:unit": "vitest --project unit",
+    "test:integration": "vitest --project integration",
+    "db:cleanup": "npx tsx scripts/db-cleanup.ts",
+    "db:migrate": "npx tsx scripts/db-migrate.ts",
+    "db:seed": "npx tsx scripts/db-seed.ts",
+    "user:verify-email": "npx tsx scripts/user-verify-email.ts",
+    "user:create": "npx tsx scripts/user-create.ts",
+    "user:set-role": "npx tsx scripts/user-set-role.ts"
+  },
+  "dependencies": {
+    "@iconify-json/lucide": "^1.2.90",
+    "@nuxt/ui": "^4.4.0",
+    "@tailwindcss/typography": "^0.5.19",
+    "better-sqlite3": "^12.6.2",
+    "dompurify": "^3.3.1",
+    "drizzle-orm": "^0.45.1",
+    "marked": "^17.0.3",
+    "nodemailer": "^8.0.1",
+    "nuxt": "^4.3.1",
+    "nuxt-auth-utils": "^0.5.29",
+    "tailwindcss": "^4.1.18",
+    "vuedraggable": "^4.1.0"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.15.1",
+    "@nuxt/test-utils": "^4.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/dompurify": "^3.2.0",
+    "@types/nodemailer": "^7.0.11",
+    "drizzle-kit": "^0.31.9",
+    "eslint": "^10.0.0",
+    "happy-dom": "^20.7.0",
+    "swagger-ui-dist": "^5.31.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "vue-tsc": "^3.2.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
+  }
+}
