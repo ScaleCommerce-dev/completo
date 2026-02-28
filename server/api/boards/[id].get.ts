@@ -1,4 +1,4 @@
-import { eq, or, and, inArray, sql } from 'drizzle-orm'
+import { eq, or, and, inArray } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
@@ -85,44 +85,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Fetch tags for all board cards in one bulk query (no N+1)
-  const cardIds = boardCards.map(c => c.id)
-  const allCardTags = cardIds.length
-    ? db.select().from(schema.cardTags)
-        .innerJoin(schema.tags, eq(schema.cardTags.tagId, schema.tags.id))
-        .where(inArray(schema.cardTags.cardId, cardIds))
-        .all()
-    : []
-
-  const tagsByCard = new Map<number, Array<{ id: string, name: string, color: string }>>()
-  for (const row of allCardTags) {
-    const cardId = row.card_tags.cardId
-    if (!tagsByCard.has(cardId)) tagsByCard.set(cardId, [])
-    tagsByCard.get(cardId)!.push({
-      id: row.tags.id,
-      name: row.tags.name,
-      color: row.tags.color
-    })
-  }
-
-  // Bulk-fetch attachment counts
-  const attachmentCounts = cardIds.length
-    ? db.select({
-        cardId: schema.attachments.cardId,
-        count: sql<number>`count(*)`
-      })
-        .from(schema.attachments)
-        .where(inArray(schema.attachments.cardId, cardIds))
-        .groupBy(schema.attachments.cardId)
-        .all()
-    : []
-  const attachCountByCard = new Map(attachmentCounts.map(r => [r.cardId, r.count]))
-
-  const cardsWithTags = boardCards.map(card => ({
-    ...card,
-    tags: tagsByCard.get(card.id) || [],
-    attachmentCount: attachCountByCard.get(card.id) || 0
-  }))
+  const cardsWithTags = enrichCardsWithMetadata(boardCards)
 
   // Fetch project-level tags for the picker
   const projectTags = db.select().from(schema.tags)

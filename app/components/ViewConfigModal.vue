@@ -1,8 +1,19 @@
 <script setup lang="ts">
 const draggable = defineAsyncComponent(() => import('vuedraggable'))
 
+interface ColumnItem {
+  id: string
+  name?: string
+  color?: string | null
+  position?: number
+  field?: string
+}
+
 const props = defineProps<{
-  columns: Array<{ id: string, field: string, position: number }>
+  mode: 'board' | 'list'
+  columns: ColumnItem[]
+  availableColumns?: ColumnItem[]
+  canAddColumns?: boolean
   tags?: Array<{ id: string, name: string, color: string }>
   activeTagFilters?: string[]
   viewName?: string
@@ -12,14 +23,17 @@ const props = defineProps<{
 const open = defineModel<boolean>('open', { default: false })
 
 const emit = defineEmits<{
-  'add': [field: string]
-  'remove': [columnId: string]
+  'add': [nameOrField: string, color?: string]
+  'update': [columnId: string, updates: { name?: string, color?: string }]
+  'delete': [columnId: string]
   'reorder': [columns: { id: string, position: number }[]]
+  'link': [statusId: string]
   'update-tag-filters': [tagIds: string[]]
   'rename': [name: string]
   'delete-view': []
 }>()
 
+// ─── List-mode field metadata ───
 const ALL_FIELDS = [
   { field: 'done', label: 'Done', icon: 'i-lucide-circle-check-big' },
   { field: 'ticketId', label: 'Ticket ID', icon: 'i-lucide-hash' },
@@ -34,8 +48,21 @@ const ALL_FIELDS = [
   { field: 'description', label: 'Description', icon: 'i-lucide-text' }
 ]
 
-// Local state — buffered until Save
-const localColumns = ref<Array<{ id: string, field: string, position: number }>>([])
+const activeFields = computed(() => new Set(localColumns.value.map(c => c.field)))
+const availableFields = computed(() =>
+  ALL_FIELDS.filter(f => !activeFields.value.has(f.field))
+)
+
+function fieldLabel(field: string) {
+  return ALL_FIELDS.find(f => f.field === field)?.label || field
+}
+
+function fieldIcon(field: string) {
+  return ALL_FIELDS.find(f => f.field === field)?.icon || 'i-lucide-columns-3'
+}
+
+// ─── Local state — buffered until Save ───
+const localColumns = ref<ColumnItem[]>([])
 const localTagFilters = ref<Set<string>>(new Set())
 const editName = ref('')
 
@@ -63,7 +90,7 @@ watch(open, (isOpen) => {
   }
 })
 
-// Also sync when props change while open (e.g. after add/remove which are immediate)
+// Also sync when props change while open (e.g. after add/delete/link which are immediate)
 watch(() => props.columns, (cols) => {
   if (open.value) {
     localColumns.value = [...cols]
@@ -75,20 +102,27 @@ function onDragEnd() {
   // Just reorder locally — emitted on save
 }
 
-const activeFields = computed(() => new Set(localColumns.value.map(c => c.field)))
+// ─── Board-mode: new column ───
+const newColumnName = ref('')
+const newColumnColor = ref('#6366f1')
+const newColorOpen = ref(false)
 
-const availableFields = computed(() =>
-  ALL_FIELDS.filter(f => !activeFields.value.has(f.field))
-)
-
-function fieldLabel(field: string) {
-  return ALL_FIELDS.find(f => f.field === field)?.label || field
+function addBoardColumn() {
+  if (!newColumnName.value.trim()) return
+  emit('add', newColumnName.value.trim(), newColumnColor.value)
+  newColumnName.value = ''
+  newColumnColor.value = '#6366f1'
 }
 
-function fieldIcon(field: string) {
-  return ALL_FIELDS.find(f => f.field === field)?.icon || 'i-lucide-columns-3'
+// Track which column's color popover is open
+const colorPopoverOpen = ref<Record<string, boolean>>({})
+
+function pickColor(colId: string, color: string) {
+  colorPopoverOpen.value[colId] = false
+  emit('update', colId, { color })
 }
 
+// ─── Tag filter toggle ───
 function toggleTagFilter(tagId: string) {
   const next = new Set(localTagFilters.value)
   if (next.has(tagId)) {
@@ -99,7 +133,7 @@ function toggleTagFilter(tagId: string) {
   localTagFilters.value = next
 }
 
-// Dirty detection
+// ─── Dirty detection ───
 const isDirty = computed(() => {
   if (editName.value.trim() !== snapshotName.value) return true
   const currentOrder = localColumns.value.map(c => c.id)
@@ -112,7 +146,7 @@ const isDirty = computed(() => {
   return false
 })
 
-// Save — emit only what changed
+// ─── Save — emit only what changed ───
 function save() {
   if (!isDirty.value) {
     open.value = false
@@ -157,7 +191,7 @@ function discardAndClose() {
   open.value = false
 }
 
-// Delete — CardModal-style: button → inline confirmation
+// ─── Delete view — inline confirmation ───
 const showDeleteConfirm = ref(false)
 const deleteConfirmName = ref('')
 const deletingView = ref(false)
@@ -176,7 +210,7 @@ function handleDeleteView() {
 <template>
   <UModal
     v-model:open="open"
-    :title="viewName !== undefined ? undefined : 'List Settings'"
+    :title="viewName !== undefined ? undefined : (mode === 'board' ? 'Board Settings' : 'List Settings')"
     :ui="viewName !== undefined ? { header: 'hidden', body: 'pt-0 sm:pt-0', footer: 'p-0 sm:p-0' } : { footer: 'p-0 sm:p-0' }"
   >
     <template #body>
@@ -187,7 +221,7 @@ function handleDeleteView() {
             <input
               v-model="editName"
               type="text"
-              placeholder="List name..."
+              :placeholder="mode === 'board' ? 'Board name...' : 'List name...'"
               class="w-full text-[16px] font-semibold text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-zinc-200 dark:focus:border-zinc-700 rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
               @keydown.enter="($event.target as HTMLInputElement).blur()"
             >
@@ -199,7 +233,9 @@ function handleDeleteView() {
             name="i-lucide-columns-3"
             class="text-[13px] text-zinc-400 dark:text-zinc-500"
           />
-          <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Active Columns</span>
+          <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">
+            {{ mode === 'board' ? 'Columns' : 'Active Columns' }}
+          </span>
         </div>
         <ClientOnly>
           <draggable
@@ -219,11 +255,41 @@ function handleDeleteView() {
                   name="i-lucide-grip-vertical"
                   class="drag-handle text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing text-[15px] shrink-0 transition-colors"
                 />
+                <!-- Board mode: color dot (editable if canAddColumns) -->
+                <template v-if="mode === 'board'">
+                  <UPopover
+                    v-if="canAddColumns"
+                    v-model:open="colorPopoverOpen[col.id]"
+                  >
+                    <button
+                      type="button"
+                      class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-indigo-400 transition-all cursor-pointer"
+                      :style="{ backgroundColor: col.color || '#a1a1aa' }"
+                    />
+                    <template #content>
+                      <div class="p-2">
+                        <ColorPicker
+                          :model-value="col.color || '#a1a1aa'"
+                          @update:model-value="pickColor(col.id, $event)"
+                        />
+                      </div>
+                    </template>
+                  </UPopover>
+                  <div
+                    v-else
+                    class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10"
+                    :style="{ backgroundColor: col.color || '#a1a1aa' }"
+                  />
+                </template>
+                <!-- List mode: field icon -->
                 <UIcon
-                  :name="fieldIcon(col.field)"
+                  v-if="mode === 'list'"
+                  :name="fieldIcon(col.field || '')"
                   class="text-[14px] text-zinc-400 dark:text-zinc-500 shrink-0"
                 />
-                <span class="text-[14px] font-medium flex-1">{{ fieldLabel(col.field) }}</span>
+                <span class="text-[14px] font-medium flex-1">
+                  {{ mode === 'board' ? col.name : fieldLabel(col.field || '') }}
+                </span>
                 <div class="flex items-center gap-0.5 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-opacity">
                   <UTooltip text="Remove column">
                     <UButton
@@ -231,7 +297,7 @@ function handleDeleteView() {
                       variant="ghost"
                       color="error"
                       size="xs"
-                      @click="emit('remove', col.id)"
+                      @click="emit('delete', col.id)"
                     />
                   </UTooltip>
                 </div>
@@ -240,8 +306,72 @@ function handleDeleteView() {
           </draggable>
         </ClientOnly>
 
-        <template v-if="availableFields.length">
+        <USeparator class="my-2" />
+
+        <!-- Board mode: add new column -->
+        <form
+          v-if="mode === 'board' && canAddColumns"
+          class="flex items-center gap-2"
+          @submit.prevent="addBoardColumn"
+        >
+          <UPopover v-model:open="newColorOpen">
+            <button
+              type="button"
+              class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-indigo-400 transition-all cursor-pointer"
+              :style="{ backgroundColor: newColumnColor }"
+            />
+            <template #content>
+              <div class="p-2">
+                <ColorPicker v-model="newColumnColor" />
+              </div>
+            </template>
+          </UPopover>
+          <UInput
+            v-model="newColumnName"
+            placeholder="New column name (project-wide)"
+            class="flex-1"
+            size="sm"
+          />
+          <UButton
+            type="submit"
+            icon="i-lucide-plus"
+            label="Add"
+            size="sm"
+          />
+        </form>
+
+        <!-- Board mode: available columns to link -->
+        <template v-if="mode === 'board' && availableColumns?.length">
           <USeparator class="my-2" />
+          <div class="flex items-center gap-1.5 mb-1">
+            <UIcon
+              name="i-lucide-plus-circle"
+              class="text-[13px] text-zinc-400 dark:text-zinc-500"
+            />
+            <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Available Columns</span>
+          </div>
+          <div
+            v-for="col in availableColumns"
+            :key="col.id"
+            class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group"
+          >
+            <div
+              class="w-2 h-2 rounded-full shrink-0"
+              :style="{ backgroundColor: col.color || '#a1a1aa' }"
+            />
+            <span class="text-[14px] font-medium flex-1 text-zinc-400 dark:text-zinc-500">{{ col.name }}</span>
+            <UButton
+              icon="i-lucide-plus"
+              variant="ghost"
+              color="neutral"
+              size="xs"
+              @click="emit('link', col.id)"
+            />
+          </div>
+        </template>
+
+        <!-- List mode: available fields -->
+        <template v-if="mode === 'list' && availableFields.length">
           <div class="flex items-center gap-1.5 mb-1">
             <UIcon
               name="i-lucide-plus-circle"
@@ -269,6 +399,7 @@ function handleDeleteView() {
           </div>
         </template>
 
+        <!-- Tag filters (shared) -->
         <template v-if="tags?.length">
           <USeparator class="my-2" />
           <div class="flex items-center gap-1.5 mb-1">

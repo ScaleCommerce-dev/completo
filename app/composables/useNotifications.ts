@@ -13,7 +13,7 @@ interface Notification {
 }
 
 export function useNotifications() {
-  const toast = useToast()
+  const { mutate, toast } = useMutation()
 
   const { data: notifications, refresh: refreshNotifications, status } = useFetch<Notification[]>('/api/notifications')
   const { data: unreadData, refresh: refreshUnreadCount } = useFetch<{ count: number }>('/api/notifications/unread-count')
@@ -28,29 +28,38 @@ export function useNotifications() {
 
   async function markAsRead(id: string) {
     try {
-      await $fetch(`/api/notifications/${id}`, { method: 'PATCH' })
-      refresh()
-    } catch (e) {
-      toast.add({ title: 'Failed to mark notification as read', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+      await mutate(
+        () => $fetch(`/api/notifications/${id}`, { method: 'PATCH' }),
+        'Failed to mark notification as read'
+      )
+    } catch {
+      // error already toasted
     }
+    refresh()
   }
 
   async function markAllRead() {
     try {
-      await $fetch('/api/notifications/mark-all-read', { method: 'POST' })
-      refresh()
-    } catch (e) {
-      toast.add({ title: 'Failed to mark all as read', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+      await mutate(
+        () => $fetch('/api/notifications/mark-all-read', { method: 'POST' }),
+        'Failed to mark all as read'
+      )
+    } catch {
+      // error already toasted
     }
+    refresh()
   }
 
   async function cleanup() {
     try {
-      await $fetch('/api/notifications/cleanup', { method: 'DELETE' })
+      await mutate(
+        () => $fetch('/api/notifications/cleanup', { method: 'DELETE' }),
+        'Failed to clean up notifications'
+      )
       refresh()
       toast.add({ title: 'Read notifications cleaned up', color: 'success' })
-    } catch (e) {
-      toast.add({ title: 'Failed to clean up notifications', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+    } catch {
+      // error already toasted
     }
   }
 

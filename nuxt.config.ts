@@ -6,7 +6,7 @@ export default defineNuxtConfig({
     'nuxt-auth-utils'
   ],
 
-  ssr: true,
+  ssr: false,
 
   devtools: {
     enabled: true
@@ -51,18 +51,7 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    '/': { redirect: '/projects' },
-    '/login': { ssr: false },
-    '/register': { ssr: false },
-    '/logout': { ssr: false },
-    '/auth/setup-account': { ssr: false },
-    '/auth/forgot-password': { ssr: false },
-    '/auth/reset-password': { ssr: false },
-    '/projects/**': { ssr: false },
-    '/my-tasks': { ssr: false },
-    '/notifications': { ssr: false },
-    '/profile': { ssr: false },
-    '/admin/**': { ssr: false }
+    '/': { redirect: '/projects' }
   },
 
   devServer: {

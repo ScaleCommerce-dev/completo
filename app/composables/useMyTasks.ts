@@ -33,7 +33,7 @@ interface MyTasksData {
 }
 
 export function useMyTasks() {
-  const toast = useToast()
+  const { mutate } = useMutation()
   const { data, refresh, status } = useFetch<MyTasksData>('/api/my-tasks')
 
   const columns = computed(() =>
@@ -49,62 +49,64 @@ export function useMyTasks() {
   // ─── Column CRUD ───
   async function addColumn(field: string) {
     try {
-      await $fetch('/api/my-tasks/columns', {
-        method: 'POST',
-        body: { field }
-      })
-      await refresh()
-    } catch (e) {
-      toast.add({ title: 'Failed to add column', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+      await mutate(
+        () => $fetch('/api/my-tasks/columns', { method: 'POST', body: { field } }),
+        'Failed to add column'
+      )
+    } catch {
+      // error already toasted
     }
+    await refresh()
   }
 
   async function removeColumn(columnId: string) {
     try {
-      await $fetch(`/api/my-tasks/columns/${columnId}`, { method: 'DELETE' })
-      await refresh()
-    } catch (e) {
-      toast.add({ title: 'Failed to remove column', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+      await mutate(
+        () => $fetch(`/api/my-tasks/columns/${columnId}`, { method: 'DELETE' }),
+        'Failed to remove column'
+      )
+    } catch {
+      // error already toasted
     }
+    await refresh()
   }
 
   async function reorderColumns(cols: { id: string, position: number }[]) {
     try {
-      await $fetch('/api/my-tasks/columns/reorder', {
-        method: 'PUT',
-        body: { columns: cols }
-      })
-      await refresh()
-    } catch (e) {
-      toast.add({ title: 'Failed to reorder columns', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
-      await refresh()
+      await mutate(
+        () => $fetch('/api/my-tasks/columns/reorder', { method: 'PUT', body: { columns: cols } }),
+        'Failed to reorder columns'
+      )
+    } catch {
+      // error already toasted
     }
+    await refresh()
   }
 
   // ─── Collapse toggle ───
   async function toggleCollapse(projectId: string) {
     try {
-      await $fetch('/api/my-tasks/collapse', {
-        method: 'POST',
-        body: { projectId }
-      })
-      await refresh()
-    } catch (e) {
-      toast.add({ title: 'Failed to update collapse state', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+      await mutate(
+        () => $fetch('/api/my-tasks/collapse', { method: 'POST', body: { projectId } }),
+        'Failed to update collapse state'
+      )
+    } catch {
+      // error already toasted
     }
+    await refresh()
   }
 
   // ─── Card updates (inline priority + done) ───
   async function updateCard(cardId: number, updates: Record<string, unknown>) {
     try {
-      await $fetch(`/api/cards/${cardId}`, {
-        method: 'PUT',
-        body: updates
-      })
-      await refresh()
-    } catch (e) {
-      toast.add({ title: 'Failed to update card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+      await mutate(
+        () => $fetch(`/api/cards/${cardId}`, { method: 'PUT', body: updates }),
+        'Failed to update card'
+      )
+    } catch {
+      // error already toasted
     }
+    await refresh()
   }
 
   return {

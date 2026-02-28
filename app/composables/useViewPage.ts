@@ -1,21 +1,12 @@
-interface ViewPageCard {
-  id: number
-  title: string
-  description?: string | null
-  priority: string
-  statusId: string
-  assigneeId?: string | null
-  dueDate?: string | null
-  tags?: Array<{ id: string, name: string, color: string }>
-}
+import type { BaseCard } from '~/types/card'
 
 interface ViewPageOptions {
-  allCards: ComputedRef<ViewPageCard[]>
+  allCards: ComputedRef<BaseCard[]>
   tagFilters: ComputedRef<string[]>
   doneStatusId: ComputedRef<string | null>
   updateCardTags: (cardId: number, tagIds: string[]) => Promise<void>
   createCard: (statusId: string, title: string, opts?: { description?: string, priority?: string, assigneeId?: string, dueDate?: string | null }) => Promise<unknown>
-  updateCard: (cardId: number, updates: Partial<ViewPageCard>) => Promise<unknown>
+  updateCard: (cardId: number, updates: Partial<BaseCard>) => Promise<unknown>
   deleteCard: (cardId: number) => Promise<void>
 }
 
@@ -58,7 +49,7 @@ export function useViewPage(opts: ViewPageOptions) {
 
   // Card detail modal
   const showCardDetail = ref(false)
-  const selectedCard = ref<ViewPageCard | null>(null)
+  const selectedCard = ref<BaseCard | null>(null)
 
   function openCardDetail(card: { id: number }) {
     const fullCard = allCards.value.find(c => c.id === card.id)
@@ -85,7 +76,7 @@ export function useViewPage(opts: ViewPageOptions) {
   }
 
   async function handleUpdateCard(cardId: number, updates: Record<string, unknown>, tagIds?: string[]) {
-    await updateCard(cardId, updates as Partial<ViewPageCard>)
+    await updateCard(cardId, updates as Partial<BaseCard>)
     if (tagIds !== undefined) {
       await updateCardTags(cardId, tagIds)
     }
