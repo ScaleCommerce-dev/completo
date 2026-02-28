@@ -41,6 +41,7 @@ jobs:
           tags: |
             ghcr.io/scalecommerce-dev/completo:${{ steps.version.outputs.version }}
             ghcr.io/scalecommerce-dev/completo:latest
+          provenance: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
