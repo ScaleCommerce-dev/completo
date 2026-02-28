@@ -1,10 +1,16 @@
-# Completo
+<p align="center">
+  <img src="docs/logo.jpg" width="480" alt="Completo — All the Toppings. None of the Mess." />
+</p>
 
-**All the toppings. None of the mess.**
+<p align="center">
+  <a href="https://github.com/ScaleCommerce-dev/completo/releases"><img src="https://img.shields.io/github/v/release/ScaleCommerce-dev/completo?style=flat-square&color=6366f1" alt="Release"></a>
+  <a href="https://github.com/ScaleCommerce-dev/completo/blob/main/LICENSE"><img src="https://img.shields.io/github/license/ScaleCommerce-dev/completo?style=flat-square&color=6366f1" alt="License"></a>
+  <a href="https://github.com/ScaleCommerce-dev/completo/pkgs/container/completo"><img src="https://img.shields.io/badge/ghcr.io-completo-6366f1?style=flat-square&logo=docker&logoColor=white" alt="Docker"></a>
+</p>
 
 ---
 
-Completo is a self-hosted project board for teams who just want to get things done. Named after the legendary Chilean hot dog, piled high with everything: avocado, tomato, mayo, sauerkraut. Your project starts the same way. Tasks stacked, ideas overflowing, endless opinions - too much of everything. Completo's boards help you make sense of the chaos. No setup marathons, no learning curve — just open a board and go. Get your stuff done. Drag. Drop. Completo.
+A self-hosted project board for teams who just want to get things done. Named after the legendary Chilean hot dog, piled high with everything: avocado, tomato, mayo, sauerkraut. Your project starts the same way — tasks stacked, ideas overflowing, endless opinions. Too much of everything. Completo helps you make sense of the chaos. No setup marathons, no learning curve. Just open a board and go.
 
 ### Free. Open Source. One command.
 
