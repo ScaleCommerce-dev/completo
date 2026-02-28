@@ -51,12 +51,15 @@ Demo: `demo@example.com` / `demo1234` | Admin: `admin@example.com` / `admin1234`
 ### Do
 
 - **Fetch:** Pages use `useFetch()`, composables use `$fetch()`. Refresh after mutations.
-- **Composables:** `useKanban()`/`useListView()` accept slug-or-ID + optional `{ projectSlug }` to prevent cross-project slug collisions.
+- **Composables:** `useKanban()`/`useListView()` accept slug-or-ID + optional `{ projectSlug }` to prevent cross-project slug collisions. Both extend `useViewData()` which holds shared logic (CRUD, tags, members, permissions). Use `useMutation()` for try/catch/toast error handling in composables — don't hand-roll `try { ... } catch { toast.add(...) }`.
+- **Shared types:** `app/types/card.ts` defines `BaseCard`, `CardWithStatus`, `Tag`, `Member`, `CardStatus`. Import from `~/types/card` — don't redeclare card interfaces.
 - **Transactions:** `db.transaction()` for multi-step DB operations.
-- **SSR:** `ssr: true` with `routeRules`. Auth routes `ssr: false`. vuedraggable via `defineAsyncComponent` + `<ClientOnly>`.
+- **SSR:** `ssr: false` globally (SPA mode). vuedraggable via `defineAsyncComponent` + `<ClientOnly>`.
 - **DB access:** `db` + `schema` auto-imported. `server/utils/` is auto-imported — don't use `~/server/utils/...` (Nuxt 4: `~` = `app/`).
 - **Database schema:** `server/database/schema.ts` — all tables, columns, relations. Migrations in `server/database/migrations/`.
-- **OpenAPI spec** (`server/api/openapi.get.ts`) must stay in sync with endpoints. Only covers headless API usage — frontend-internal endpoints (slug/key validation, UI column config, notifications, OAuth redirects, registration flows) are intentionally omitted.
+- **OpenAPI spec** (`server/assets/openapi.json`, served by `server/api/openapi.get.ts`) must stay in sync with endpoints. Only covers headless API usage — frontend-internal endpoints (slug/key validation, UI column config, notifications, OAuth redirects, registration flows) are intentionally omitted.
+- **Server utils:** `enrichCardsWithMetadata()` and `fetchCardMetadata()` in `server/utils/card-metadata.ts` handle bulk tag + attachment count enrichment. Use these instead of inline tag/attachment queries in endpoints.
+- **View components:** `ViewConfigModal` uses a `mode: 'board' | 'list'` prop — don't create separate config modals. `ViewHeader` is the shared header for board/list pages with a `#actions` slot for view-specific buttons.
 - **Write tests** for new features. Run `pnpm test` and `pnpm lint` after changes.
 
 ### Don't
