@@ -1,6 +1,6 @@
 #!/bin/sh
 set -a
-source .env
+[ -f .env ] && source .env
 set +a
 
 set -e
