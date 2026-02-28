@@ -1,6 +1,6 @@
 # Completo - All the Toppings. None of the Mess.
 
-> **About this file:** CLAUDE.md is for agent guidance — architectural decisions, rules, conventions, and gotchas that can't be inferred from reading code. Don't bloat it with code-level details (file listings, prop docs, full API specs) that agents can discover by reading the source. Focus on the "why", not the "what".
+> **About this file:** CLAUDE.md is for agent guidance - architectural decisions, rules, conventions, and gotchas that can't be inferred from reading code. Don't bloat it with code-level details (file listings, prop docs, full API specs) that agents can discover by reading the source. Focus on the "why", not the "what".
 
 Kanban board app. Nuxt 4 + Nuxt UI 4 + Tailwind 4 + Drizzle ORM + SQLite. Plus Jakarta Sans + JetBrains Mono. Lucide icons (`i-lucide-*`). pnpm.
 
@@ -104,6 +104,16 @@ pnpm user:verify-email <email>
 npx drizzle-kit push          # Dev only — diffs schema against DB
 npx drizzle-kit generate      # Generate migration SQL from schema changes
 ```
+
+### Releasing
+
+**Before tagging a release:** bump `version` in `package.json`, update `README.md` with any user-facing changes, and commit those changes.
+
+**To release:** `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag push triggers two workflows:
+- **CI** (`ci.yml`) — runs lint + tests against the tag.
+- **Release** (`release.yml`) — builds multi-arch Docker image (`linux/amd64` + `linux/arm64`), pushes to GHCR (`ghcr.io/scalecommerce-dev/completo`), and creates a GitHub Release with auto-generated notes.
+
+**To re-tag** (e.g. after a fix): delete the GitHub release (`gh release delete vX.Y.Z --yes`), delete remote + local tag (`git push origin --delete vX.Y.Z && git tag -d vX.Y.Z`), then re-tag and push.
 
 ### Schema Changes & Migrations
 
