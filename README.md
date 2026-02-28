@@ -58,6 +58,40 @@ Gantt charts. Time tracking. Burndown charts. Sprint velocity. Story points. Epi
 
 You're welcome.
 
+### Configuration
+
+The only required environment variable is `NUXT_SESSION_PASSWORD` (min 32 characters). Everything else is optional and falls back to sensible defaults.
+
+| Variable | What it does | Default |
+|----------|-------------|---------|
+| `NUXT_SESSION_PASSWORD` | Session encryption key (required) | — |
+| `DATABASE_URL` | SQLite database path | `sqlite.db` |
+| `UPLOAD_DIR` | File attachment storage | `data/uploads` |
+| `SMTP_HOST` | SMTP server for email (empty = email disabled) | — |
+| `SMTP_PORT` | SMTP port | `587` |
+| `SMTP_FROM` | Sender address | — |
+| `APP_URL` | Public URL (used in emails) | — |
+| `AI_PROVIDER` | `anthropic`, `openai`, or `openrouter` (empty = AI disabled) | — |
+| `NUXT_OAUTH_GITHUB_CLIENT_ID/SECRET` | GitHub OAuth (empty = disabled) | — |
+| `NUXT_OAUTH_GOOGLE_CLIENT_ID/SECRET` | Google OAuth (empty = disabled) | — |
+| `NUXT_OAUTH_MICROSOFT_CLIENT_ID/SECRET` | Microsoft OAuth (empty = disabled) | — |
+
+### CLI commands
+
+Manage your instance from the command line. All commands work with both `npm run` and `pnpm`.
+
+```bash
+# Database
+pnpm db:migrate          # Apply pending migrations (production)
+pnpm db:seed             # Seed demo data (demo + admin users, sample project)
+pnpm db:cleanup          # Remove expired sessions and soft-deleted data
+
+# User management
+pnpm user:create <email> <password> [name] [admin]   # Create a user ("admin" = admin role)
+pnpm user:set-role <email> <admin|user>               # Promote or demote a user
+pnpm user:verify-email <email>                        # Manually verify a user's email
+```
+
 ### The philosophy
 
 Your board should be empty at the end of the week. That's it. That's the philosophy. Every feature in Completo exists to help you get there faster. Everything that doesn't was never added in the first place.
