@@ -44,6 +44,7 @@
     "drizzle-kit": "^0.31.9",
     "eslint": "^10.0.0",
     "happy-dom": "^20.7.0",
+    "ofetch": "^1.5.1",
     "swagger-ui-dist": "^5.31.2",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18",

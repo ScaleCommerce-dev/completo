@@ -72,6 +72,9 @@ importers:
       happy-dom:
         specifier: ^20.7.0
         version: 20.7.0
+      ofetch:
+        specifier: ^1.5.1
+        version: 1.5.1
       swagger-ui-dist:
         specifier: ^5.31.2
         version: 5.31.2
