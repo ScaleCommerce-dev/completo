@@ -63,7 +63,6 @@ export default defineEventHandler(async (event) => {
       { role: 'system', content: systemPrompt },
       { role: 'user', content: effectiveUserPrompt }
     ],
-    maxTokens: 1500,
     temperature: 0.7
   })
 

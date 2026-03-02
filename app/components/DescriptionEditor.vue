@@ -403,6 +403,24 @@ defineExpose({
         @cancel="aiCancel"
       />
     </template>
+    <template #preview-empty>
+      <div
+        v-if="aiGenerating"
+        class="flex items-center gap-2.5 text-[13px] text-zinc-400 dark:text-zinc-500"
+      >
+        <UIcon
+          name="i-lucide-loader-2"
+          class="text-[16px] animate-spin text-indigo-400"
+        />
+        <span>Generating description<span class="loading-dots" /></span>
+      </div>
+      <p
+        v-else
+        class="text-[14px] text-zinc-300 dark:text-zinc-600 italic"
+      >
+        Nothing to preview
+      </p>
+    </template>
     <template #after-textarea>
       <div
         v-if="mentionActive"
@@ -477,3 +495,17 @@ defineExpose({
     </template>
   </MarkdownEditor>
 </template>
+
+<style scoped>
+.loading-dots::after {
+  content: '';
+  animation: dots 1.4s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+</style>

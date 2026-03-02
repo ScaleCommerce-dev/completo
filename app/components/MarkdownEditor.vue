@@ -271,12 +271,14 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
         v-if="modelValue"
         :content="modelValue"
       />
-      <p
+      <slot
         v-else
-        class="text-[14px] text-zinc-300 dark:text-zinc-600 italic"
+        name="preview-empty"
       >
-        Nothing to preview
-      </p>
+        <p class="text-[14px] text-zinc-300 dark:text-zinc-600 italic">
+          Nothing to preview
+        </p>
+      </slot>
     </div>
   </div>
 </template>

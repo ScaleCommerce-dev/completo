@@ -71,6 +71,12 @@ export async function* streamAiResponse(options: AiStreamOptions): AsyncGenerato
     throw createError({ statusCode: 501, message: 'AI not configured. Set AI_PROVIDER and the corresponding API key.' })
   }
 
+  // Apply configured max tokens default (env AI_MAX_TOKENS, fallback 8192)
+  if (!options.maxTokens) {
+    const runtimeConfig = useRuntimeConfig()
+    options.maxTokens = runtimeConfig.aiMaxTokens || 8192
+  }
+
   const debug = isAiDebug()
   if (debug) {
     aiLog('REQUEST', JSON.stringify({
@@ -106,7 +112,7 @@ async function* streamAnthropic(config: AiProviderConfig, options: AiStreamOptio
 
   const body: Record<string, unknown> = {
     model: config.model,
-    max_tokens: options.maxTokens || 2048,
+    max_tokens: options.maxTokens,
     stream: true,
     messages: userMessages.map(m => ({ role: m.role, content: m.content }))
   }
@@ -144,7 +150,7 @@ async function* streamAnthropic(config: AiProviderConfig, options: AiStreamOptio
 async function* streamOpenAiCompatible(config: AiProviderConfig, options: AiStreamOptions): AsyncGenerator<string> {
   const body: Record<string, unknown> = {
     model: config.model,
-    max_tokens: options.maxTokens || 2048,
+    max_tokens: options.maxTokens,
     stream: true,
     messages: options.messages.map(m => ({ role: m.role, content: m.content }))
   }

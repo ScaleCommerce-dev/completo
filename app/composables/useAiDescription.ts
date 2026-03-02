@@ -68,6 +68,7 @@ export function useAiDescription(descriptionRef: Ref<string>) {
 
       const decoder = new TextDecoder()
       let buffer = ''
+      let accumulated = ''
 
       // Clear for streaming
       descriptionRef.value = ''
@@ -91,7 +92,7 @@ export function useAiDescription(descriptionRef: Ref<string>) {
                 throw new Error(data.error)
               }
               if (data.text) {
-                descriptionRef.value += data.text
+                accumulated += data.text
               }
             } catch (e: unknown) {
               if (e instanceof Error && !e.message.includes('JSON')) {
@@ -100,10 +101,20 @@ export function useAiDescription(descriptionRef: Ref<string>) {
             }
           }
         }
+
+        // Update ref once per chunk (avoids lost intermediate values with defineModel chains)
+        if (accumulated !== descriptionRef.value) {
+          descriptionRef.value = accumulated
+        }
       }
-      // Detect off-topic refusal and restore original description
+      // Detect empty response (e.g. reasoning model consumed all tokens)
       const result = descriptionRef.value.trim()
-      if (result.toLowerCase().includes('please provide a prompt related to')) {
+      if (!result) {
+        descriptionRef.value = previousDescription.value
+        error.value = 'AI returned an empty response. Try again or use a different model.'
+        toast.add({ title: 'AI returned an empty response', color: 'error' })
+      } else if (result.toLowerCase().includes('please provide a prompt related to')) {
+        // Detect off-topic refusal and restore original description
         descriptionRef.value = previousDescription.value
         error.value = 'Please provide a prompt related to this card'
         toast.add({ title: 'Please provide a prompt related to this card', color: 'warning' })

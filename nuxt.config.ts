@@ -48,7 +48,8 @@ export default defineNuxtConfig({
     openaiBaseUrl: process.env.OPENAI_BASE_URL || '',
     openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
     openrouterModel: process.env.OPENROUTER_MODEL || '',
-    openrouterBaseUrl: process.env.OPENROUTER_BASE_URL || ''
+    openrouterBaseUrl: process.env.OPENROUTER_BASE_URL || '',
+    aiMaxTokens: Number(process.env.AI_MAX_TOKENS) || 0
   },
 
   routeRules: {
