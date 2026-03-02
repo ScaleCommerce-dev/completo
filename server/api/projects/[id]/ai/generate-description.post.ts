@@ -67,51 +67,50 @@ export default defineEventHandler(async (event) => {
     temperature: 0.7
   })
 
-  setResponseHeader(event, 'Content-Type', 'text/event-stream')
-  setResponseHeader(event, 'Cache-Control', 'no-cache')
-  setResponseHeader(event, 'Connection', 'keep-alive')
-
   // Capture prompt source for rejection logging
   const promptSource = userPrompt?.trim() || (skillId ? `[skill:${skillId}]` : `[mode:${mode || 'auto'}]`)
 
-  const encoder = new TextEncoder()
-  const readable = new ReadableStream({
-    async start(controller) {
-      try {
-        const fullResponse: string[] = []
-        for await (const chunk of stream) {
-          fullResponse.push(chunk)
-          const sseData = `data: ${JSON.stringify({ text: chunk })}\n\n`
-          controller.enqueue(encoder.encode(sseData))
-        }
+  const eventStream = createEventStream(event)
 
-        // Log rejected prompts for improvement
-        const responseText = fullResponse.join('')
-        if (process.env.LOG_REJECTED_PROMPTS === 'true' && responseText.toLowerCase().includes('please provide a prompt related to')) {
-          try {
-            const timestamp = new Date().toISOString()
-            const logEntry = JSON.stringify({
-              timestamp,
-              prompt: promptSource
-            })
-            appendFileSync(REJECTED_LOG, logEntry + '\n')
-          } catch {
-            // Don't fail the request if logging fails
-          }
-        }
-
-        controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-        controller.close()
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'AI generation failed'
-        const errorData = `data: ${JSON.stringify({ error: message })}\n\n`
-        controller.enqueue(encoder.encode(errorData))
-        controller.close()
+  // Stream AI chunks — runs in background, eventStream flushes each push
+  const streamPromise = (async () => {
+    try {
+      const fullResponse: string[] = []
+      for await (const chunk of stream) {
+        fullResponse.push(chunk)
+        await eventStream.push(JSON.stringify({ text: chunk }))
       }
+
+      // Log rejected prompts for improvement
+      const responseText = fullResponse.join('')
+      if (process.env.LOG_REJECTED_PROMPTS === 'true' && responseText.toLowerCase().includes('please provide a prompt related to')) {
+        try {
+          const timestamp = new Date().toISOString()
+          const logEntry = JSON.stringify({
+            timestamp,
+            prompt: promptSource
+          })
+          appendFileSync(REJECTED_LOG, logEntry + '\n')
+        } catch {
+          // Don't fail the request if logging fails
+        }
+      }
+
+      await eventStream.push('[DONE]')
+      await eventStream.close()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'AI generation failed'
+      await eventStream.push(JSON.stringify({ error: message }))
+      await eventStream.close()
     }
+  })()
+
+  // Clean up if client disconnects early
+  eventStream.onClosed(() => {
+    streamPromise.catch(() => {})
   })
 
-  return sendStream(event, readable)
+  return eventStream.send()
 })
 
 function interpolatePrompt(template: string, vars: Record<string, string>): string {

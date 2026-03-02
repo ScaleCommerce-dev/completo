@@ -79,16 +79,29 @@ function insertMarkdown(type: 'bold' | 'italic' | 'code' | 'codeblock' | 'quote'
   })
 }
 
+function autoResize() {
+  const el = textareaEl.value
+  if (!el) return
+  el.style.height = 'auto'
+  const computed = props.maxHeight != null
+    ? Math.max(props.minHeight, Math.min(el.scrollHeight, props.maxHeight))
+    : Math.max(props.minHeight, el.scrollHeight)
+  el.style.height = computed + 'px'
+}
+
+// Auto-resize textarea when switching to write tab (e.g. after AI generation fills content while on preview)
+watch(editTab, (tab) => {
+  if (tab === 'write') {
+    nextTick(() => autoResize())
+  }
+})
+
 function startEditing() {
   editTab.value = 'write'
   nextTick(() => {
+    autoResize()
     const el = textareaEl.value
     if (!el) return
-    el.style.height = 'auto'
-    const computed = props.maxHeight != null
-      ? Math.max(props.minHeight, Math.min(el.scrollHeight, props.maxHeight))
-      : Math.max(props.minHeight, el.scrollHeight)
-    el.style.height = computed + 'px'
     el.setSelectionRange(0, 0)
     el.focus()
     el.scrollTop = 0
@@ -116,7 +129,7 @@ function onKeydown(e: KeyboardEvent) {
   emit('textarea-keydown', e)
 }
 
-defineExpose({ textareaEl, insertMarkdown, editTab, startEditing })
+defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
 </script>
 
 <template>
