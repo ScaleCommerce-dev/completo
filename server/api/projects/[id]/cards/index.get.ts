@@ -36,11 +36,13 @@ export default defineEventHandler(async (event) => {
     conditions.push(eq(schema.cards.assigneeId, assigneeId))
   }
   if (priority) {
-    const priorities = priority.split(',').map(p => p.trim()).filter(Boolean)
+    const valid = new Set(['low', 'medium', 'high', 'urgent'])
+    const priorities = priority.split(',').map(p => p.trim()).filter(p => valid.has(p))
     if (priorities.length === 1) {
-      conditions.push(eq(schema.cards.priority, priorities[0]))
+      conditions.push(sql`${schema.cards.priority} = ${priorities[0]}`)
     } else if (priorities.length > 1) {
-      conditions.push(inArray(schema.cards.priority, priorities))
+      const placeholders = priorities.map(p => sql`${p}`)
+      conditions.push(sql`${schema.cards.priority} IN (${sql.join(placeholders, sql`, `)})`)
     }
   }
   if (dueBefore) {
@@ -77,14 +79,14 @@ export default defineEventHandler(async (event) => {
     const direction = order === 'desc' ? sql`DESC` : sql`ASC`
     orderBy = sql`CASE ${schema.cards.priority} WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END ${direction}`
   } else {
-    const sortColumns: Record<string, typeof schema.cards.position> = {
+    const col = {
       position: schema.cards.position,
       title: schema.cards.title,
       dueDate: schema.cards.dueDate,
       createdAt: schema.cards.createdAt,
       updatedAt: schema.cards.updatedAt
-    }
-    orderBy = orderFn(sortColumns[sort])
+    }[sort]!
+    orderBy = orderFn(col)
   }
 
   // Execute query
