@@ -80,32 +80,26 @@ The status name must match exactly. Run `completo statuses` to see available sta
 
 ### Step 3: Implement
 
-Work through the card's requirements. If the description contains a checklist, update items as you complete them:
-
-```bash
-# Read current description, check off completed items, write back
-completo get TK-27
-# ... edit the description to mark items as [x] ...
-completo update TK-27 --description-file /tmp/updated-desc.md
-```
-
-To update the description:
-1. Get the current card with `completo get TK-27`
-2. Copy the description, update the checklist items (`- [ ]` -> `- [x]`)
-3. Write the updated description to a temp file
-4. Run `completo update TK-27 --description-file /tmp/updated-desc.md`
+Work through the card's requirements. Use the description and any checklist items as your implementation plan. Do NOT update the ticket description during implementation — that happens later after the user reviews.
 
 ### Step 4: Hand off
 
-When implementation is complete, move the card to the handoff status:
+When implementation is complete:
 
-```bash
-completo move TK-27 "Review"
-```
+1. **Move the card** to the handoff status:
+   ```bash
+   completo move TK-27 "Review"
+   ```
+   Use the `HANDOFF_STATUS` from `.completo` if set. If that status doesn't exist, try "Review", then "Done" as fallbacks. Run `completo statuses` to check what's available.
 
-Use the `HANDOFF_STATUS` from `.completo` if set. If that status doesn't exist, try "Review", then "Done" as fallbacks. Run `completo statuses` to check what's available.
+2. **Summarize your work** to the user. Explain what you implemented and list any ticket updates that should be made (e.g. checklist items to check off, description changes). Do NOT update the ticket description or checklist yourself.
 
-Do NOT move directly to the project's "Done" status - the user needs to review and test first.
+3. **Ask the user to review.** Something like:
+   > Here's what I've done: [summary]. The ticket needs the following updates: [list changes]. Want to test first, or should I go ahead and update the ticket?
+
+4. **Wait for confirmation.** Only update the ticket (checklist, description) after the user explicitly tells you to. If they give feedback instead, address it first, then ask again.
+
+Do NOT move directly to the project's "Done" status — the user needs to review and test first. Do NOT update the ticket description or checklist without the user's go-ahead.
 
 ## Available Commands
 
