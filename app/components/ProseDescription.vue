@@ -67,7 +67,7 @@ const rendered = computed(() => {
   <div
     class="prose prose-sm dark:prose-invert prose-description"
     :class="props.class"
-    v-html="rendered" <!-- eslint-disable-line vue/no-v-html -- sanitized via DOMPurify -->
+    v-html="rendered"
   />
 </template>
 

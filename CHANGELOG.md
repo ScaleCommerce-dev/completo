@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.4.0
+
+### App
+- Add view filters for status, priority, assignee, and tags on both boards and lists
+- Filter state persisted per view via settings modal with pill toggles and multi-select
+- Compact filter badge in header with tooltip summary replaces priority buttons and tag pills
+- Redesigned View Settings modal: Name, Columns, and Filters sections
+- Fix pre-existing ESLint v-html warning in ProseDescription component
+
 ## v0.3.0
 
 ### App
