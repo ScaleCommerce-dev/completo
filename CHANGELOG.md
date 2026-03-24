@@ -8,6 +8,9 @@
 ### CLI
 - Mask API token in `completo config` prompt
 
+### Infra
+- Gate release builds (Docker, CLI binaries) behind CI checks
+
 ## v0.2.0
 
 ### App
