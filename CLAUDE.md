@@ -83,7 +83,14 @@ Demo: `demo@example.com` / `demo1234` | Admin: `admin@example.com` / `admin1234`
 
 ## Testing
 
-Two vitest projects: `unit` (fast) + `integration` (sequential, 30s timeout). Test DB on `:43210`.
+**When to run which tests:**
+- **App changes** (anything under `app/`, `server/`, `shared/`): `pnpm test` — runs vitest unit + integration tests.
+- **CLI changes** (anything under `cli/`): `cd cli && go test ./...` — runs Go unit tests.
+- **Before releasing:** run both.
+
+**App tests:** Two vitest projects: `unit` (fast) + `integration` (sequential, 30s timeout). Test DB on `:43210`.
+
+**CLI tests:** Go unit tests covering semver comparison, env file parsing, config precedence, and output formatting. No HTTP integration tests — the CLI is a thin API client; the API is tested by the vitest integration suite.
 
 **Gotchas:**
 - `fetch(url('/path'))` for raw responses (ofetch throws on non-2xx)
@@ -105,15 +112,23 @@ npx drizzle-kit push          # Dev only — diffs schema against DB
 npx drizzle-kit generate      # Generate migration SQL from schema changes
 ```
 
+### Changelog
+
+`CHANGELOG.md` uses `## vX.Y.Z` sections (latest on top) with `### App` and `### CLI` subsections. When making changes, add entries under `## Unreleased` at the top. If no `## Unreleased` section exists, create one. Use concise, user-facing language (not commit messages). At release time, rename `## Unreleased` to `## vX.Y.Z` with the date and add a fresh `## Unreleased` section.
+
 ### Releasing
 
-**Before tagging a release:** bump `version` in `package.json`, update `README.md` with any user-facing changes, and commit those changes.
+**Before tagging a release:** bump `version` in `package.json`, rename `## Unreleased` to `## vX.Y.Z` in `CHANGELOG.md`, update `README.md` with any user-facing changes, and commit those changes.
 
 **To release:** `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag push triggers two workflows:
 - **CI** (`ci.yml`) — runs lint + tests against the tag.
-- **Release** (`release.yml`) — builds multi-arch Docker image (`linux/amd64` + `linux/arm64`), pushes to GHCR (`ghcr.io/scalecommerce-dev/completo`), and creates a GitHub Release with auto-generated notes.
+- **Release** (`release.yml`) — builds multi-arch Docker image, cross-compiles Go CLI binaries (5 targets), pushes Docker to GHCR (`ghcr.io/scalecommerce-dev/completo`), and creates a GitHub Release with changelog notes and CLI binaries attached.
 
 **To re-tag** (e.g. after a fix): delete the GitHub release (`gh release delete vX.Y.Z --yes`), delete remote + local tag (`git push origin --delete vX.Y.Z && git tag -d vX.Y.Z`), then re-tag and push.
+
+### CLI (`cli/`)
+
+Go CLI for interacting with Completo from the terminal or AI agents. Uses Cobra. Config: `~/.completo/.env` (credentials) + `.completo` (project-scoped). Build: `cd cli && go build -o completo .`
 
 ### Schema Changes & Migrations
 

@@ -92,6 +92,35 @@ pnpm user:set-role <email> <admin|user>               # Promote or demote a user
 pnpm user:verify-email <email>                        # Manually verify a user's email
 ```
 
+### Agent Integration
+
+Completo is agent-compatible. AI coding agents (Claude Code, Cursor, Cline, etc.) can pick up cards, move them through your workflow, and update descriptions as they work.
+
+**1. Install the CLI:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/scalecommerce-dev/completo/main/install.sh | sh
+completo config  # Set your URL, API token, and email
+```
+
+**2. Install the skill:**
+
+```bash
+npx skills add scalecommerce-dev/completo
+```
+
+**3. Add a `.completo` file to your project:**
+
+```env
+PROJECT=my-saas-app
+TODO_STATUS=To Do
+IN_PROGRESS_STATUS=In Progress
+HANDOFF_STATUS=Review
+INSTRUCTIONS=Create feature branches named <ticket-id>-<slug>. Run tests before handing off.
+```
+
+Now tell your agent: *"grab the next ticket"* or *"work on TK-27"*.
+
 ### The philosophy
 
 Your board should be empty at the end of the week. That's it. That's the philosophy. Every feature in Completo exists to help you get there faster. Everything that doesn't was never added in the first place.

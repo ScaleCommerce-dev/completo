@@ -3,7 +3,7 @@
   "info": {
     "title": "Completo API",
     "version": "1.0.0",
-    "description": "REST API for Completo — Kanban board management.\n\nThis spec covers endpoints useful for headless (non-browser) API usage. Frontend-internal endpoints (slug/key validation, UI column config, notifications, OAuth redirects, registration flows) are omitted.\n\nAuthenticate via session cookie (POST /auth/login) or Bearer token (create one at POST /api/user/tokens)."
+    "description": "REST API for Completo \u2014 Kanban board management.\n\nThis spec covers endpoints useful for headless (non-browser) API usage. Frontend-internal endpoints (slug/key validation, UI column config, notifications, OAuth redirects, registration flows) are omitted.\n\nAuthenticate via session cookie (POST /auth/login) or Bearer token (create one at POST /api/user/tokens)."
   },
   "servers": [
     {
@@ -351,6 +351,10 @@
                             "type": "string",
                             "format": "date-time",
                             "nullable": true
+                          },
+                          "listCount": {
+                            "type": "integer",
+                            "description": "Number of list views in the project"
                           }
                         }
                       }
@@ -516,6 +520,12 @@
                               },
                               "slug": {
                                 "type": "string"
+                              },
+                              "cardCount": {
+                                "type": "integer"
+                              },
+                              "createdBy": {
+                                "$ref": "#/components/schemas/UserSummary"
                               }
                             }
                           }
@@ -719,19 +729,31 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/Member"
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
                       },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "user": {
-                            "$ref": "#/components/schemas/UserSummary"
-                          }
-                        }
+                      "email": {
+                        "type": "string",
+                        "format": "email"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "avatarUrl": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "owner",
+                          "member"
+                        ]
                       }
-                    ]
+                    }
                   }
                 }
               }
@@ -781,42 +803,31 @@
         },
         "responses": {
           "200": {
-            "description": "Existing user added directly",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/Member"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "invited": {
-                          "type": "boolean",
-                          "example": false
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Invitation created for non-registered user",
+            "description": "Member added or invitation sent",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "invited": {
+                    "added": {
                       "type": "boolean",
                       "example": true
-                    },
-                    "email": {
-                      "type": "string",
-                      "format": "email"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Member added or invitation sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "added": {
+                      "type": "boolean",
+                      "example": true
                     }
                   }
                 }
@@ -1482,6 +1493,14 @@
                             "$ref": "#/components/schemas/Status"
                           },
                           "description": "Project statuses not currently linked to this board"
+                        },
+                        "tagFilters": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "description": "Tag IDs used to filter cards on this board"
                         }
                       }
                     }
@@ -1858,6 +1877,14 @@
                       "type": "string"
                     },
                     "description": "Field names. Defaults to ticketId, title, status, priority, assignee, tags."
+                  },
+                  "tagFilters": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "description": "Tag IDs to filter cards in this list"
                   }
                 }
               }
@@ -1866,7 +1893,45 @@
         },
         "responses": {
           "201": {
-            "description": "Created list"
+            "description": "Created list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/List"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "columns": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "listId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "field": {
+                                "type": "string"
+                              },
+                              "position": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -1903,7 +1968,128 @@
         ],
         "responses": {
           "200": {
-            "description": "List with columns, cards, members, statuses, tags"
+            "description": "List with columns, cards, members, statuses, tags",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/List"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "tagFilters": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "description": "Tag IDs used to filter cards in this list"
+                        },
+                        "createdBy": {
+                          "$ref": "#/components/schemas/UserSummary"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "owner",
+                            "member",
+                            "admin"
+                          ],
+                          "description": "Current user's role in the project"
+                        },
+                        "project": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "slug": {
+                              "type": "string"
+                            },
+                            "key": {
+                              "type": "string"
+                            },
+                            "doneStatusId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "nullable": true
+                            },
+                            "doneRetentionDays": {
+                              "type": "integer",
+                              "nullable": true
+                            }
+                          }
+                        },
+                        "columns": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "listId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "field": {
+                                "type": "string"
+                              },
+                              "position": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        },
+                        "cards": {
+                          "type": "array",
+                          "items": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/Card"
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "status": {
+                                    "$ref": "#/components/schemas/Status"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "members": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/UserSummary"
+                          }
+                        },
+                        "statuses": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Status"
+                          }
+                        },
+                        "tags": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Tag"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -4106,6 +4292,179 @@
           }
         }
       }
+    },
+    "/api/projects/{id}/cards": {
+      "get": {
+        "tags": [
+          "Cards"
+        ],
+        "summary": "List project cards",
+        "description": "Returns all cards in a project with optional filtering, sorting, and pagination. Applies done-card retention filtering by default.",
+        "operationId": "listProjectCards",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Project ID or slug",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "statusId",
+            "in": "query",
+            "description": "Filter by status UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "assigneeId",
+            "in": "query",
+            "description": "Filter by assignee UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Filter by priority (comma-separated for multiple: 'high,urgent')",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tagId",
+            "in": "query",
+            "description": "Filter by tag UUIDs (comma-separated)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dueBefore",
+            "in": "query",
+            "description": "Filter cards with due date on or before this date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "dueAfter",
+            "in": "query",
+            "description": "Filter cards with due date on or after this date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results (default 50, max 200)",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of results to skip for pagination",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sort field",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "position",
+                "priority",
+                "dueDate",
+                "createdAt",
+                "updatedAt",
+                "title"
+              ],
+              "default": "position"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "Sort order",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "asc"
+            }
+          },
+          {
+            "name": "includeDone",
+            "in": "query",
+            "description": "Include done cards past the retention window (default: false)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of enriched cards",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/Card"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "$ref": "#/components/schemas/Status"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid sort field or order"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Project not found or user is not a member"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4245,6 +4604,10 @@
             "type": "string",
             "nullable": true,
             "description": "Hex color code"
+          },
+          "position": {
+            "type": "integer",
+            "description": "Position of the status when used as a board column"
           }
         }
       },
@@ -4311,6 +4674,13 @@
             "items": {
               "$ref": "#/components/schemas/Tag"
             }
+          },
+          "attachmentCount": {
+            "type": "integer",
+            "description": "Number of file attachments on this card"
+          },
+          "assignee": {
+            "$ref": "#/components/schemas/UserSummary"
           }
         }
       },
@@ -4462,26 +4832,6 @@
           }
         }
       },
-      "Member": {
-        "type": "object",
-        "properties": {
-          "projectId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "role": {
-            "type": "string",
-            "enum": [
-              "owner",
-              "member"
-            ]
-          }
-        }
-      },
       "AiSkill": {
         "type": "object",
         "properties": {
@@ -4574,11 +4924,50 @@
             ]
           }
         }
+      },
+      "List": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "sortField": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortDirection": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdById": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     },
     "responses": {
       "BadRequest": {
-        "description": "Bad request — invalid or missing parameters",
+        "description": "Bad request \u2014 invalid or missing parameters",
         "content": {
           "application/json": {
             "schema": {
@@ -4588,7 +4977,7 @@
         }
       },
       "Unauthorized": {
-        "description": "Unauthorized — authentication required",
+        "description": "Unauthorized \u2014 authentication required",
         "content": {
           "application/json": {
             "schema": {
@@ -4598,7 +4987,7 @@
         }
       },
       "Forbidden": {
-        "description": "Forbidden — insufficient permissions",
+        "description": "Forbidden \u2014 insufficient permissions",
         "content": {
           "application/json": {
             "schema": {
@@ -4618,7 +5007,7 @@
         }
       },
       "Conflict": {
-        "description": "Conflict — resource already exists",
+        "description": "Conflict \u2014 resource already exists",
         "content": {
           "application/json": {
             "schema": {

@@ -10,7 +10,7 @@ permissions:
   packages: write
 
 jobs:
-  release:
+  build-docker:
     runs-on: ubuntu-latest
 
     steps:
@@ -45,7 +45,96 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  build-cli:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            suffix: linux-amd64
+          - goos: linux
+            goarch: arm64
+            suffix: linux-arm64
+          - goos: darwin
+            goarch: amd64
+            suffix: darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            suffix: darwin-arm64
+          - goos: windows
+            goarch: amd64
+            suffix: windows-amd64.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+
+      - name: Build
+        working-directory: cli
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          VERSION=${GITHUB_REF_NAME}
+          BUILD_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          LDFLAGS="-s -w -X github.com/scalecommerce-dev/completo/cli/cmd.Version=${VERSION} -X github.com/scalecommerce-dev/completo/cli/cmd.BuildTime=${BUILD_TIME}"
+          go build -ldflags "${LDFLAGS}" -o ../completo-${{ matrix.suffix }} .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: completo-${{ matrix.suffix }}
+          path: completo-${{ matrix.suffix }}
+
+  release:
+    needs: [build-docker, build-cli]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download CLI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Extract release notes from CHANGELOG.md
+        id: changelog
+        run: |
+          # Extract the first version section from CHANGELOG.md
+          VERSION=${GITHUB_REF_NAME}
+          NOTES=$(awk "/^## ${VERSION}/{found=1; next} /^## v/{if(found) exit} found" CHANGELOG.md)
+          if [ -z "$NOTES" ]; then
+            NOTES="Release ${VERSION}"
+          fi
+          # Write to file for the release body
+          cat > release-body.md << 'HEADER'
+          ## Install CLI
+
+          **macOS / Linux:**
+          ```bash
+          curl -fsSL https://raw.githubusercontent.com/scalecommerce-dev/completo/main/install.sh | sh
+          ```
+
+          **Windows:** Download `completo-windows-amd64.exe` from the assets below.
+
+          ---
+
+          HEADER
+          printf '%s\n' "$NOTES" >> release-body.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          body_path: release-body.md
+          files: dist/completo-*
