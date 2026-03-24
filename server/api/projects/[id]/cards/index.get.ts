@@ -1,4 +1,4 @@
-import { eq, and, lte, gte, inArray, sql, asc, desc } from 'drizzle-orm'
+import { eq, and, lte, gte, sql, asc, desc } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { project } = await resolveProject(event)
