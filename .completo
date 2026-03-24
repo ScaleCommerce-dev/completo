@@ -1,0 +1,5 @@
+PROJECT=Completo Feedback
+TODO_STATUS=To Do
+IN_PROGRESS_STATUS=In Progress
+HANDOFF_STATUS=Review
+INSTRUCTIONS=ALways plan before implementing. Run tests before handing off.
