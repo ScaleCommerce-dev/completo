@@ -41,7 +41,21 @@ var configCmd = &cobra.Command{
 		reader := bufio.NewReader(os.Stdin)
 
 		url := prompt(reader, "Completo URL", existing["COMPLETO_URL"])
-		token := prompt(reader, "API Token", existing["COMPLETO_TOKEN"])
+		tokenDefault := existing["COMPLETO_TOKEN"]
+		tokenHint := ""
+		if tokenDefault != "" {
+			// Mask the token, only show prefix
+			if len(tokenDefault) > 8 {
+				tokenHint = tokenDefault[:8] + "..."
+			} else {
+				tokenHint = "****"
+			}
+		}
+		token := prompt(reader, "API Token", tokenHint)
+		if token == tokenHint {
+			// User pressed enter without changing - keep existing token
+			token = tokenDefault
+		}
 		user := prompt(reader, "Your email (for card assignment)", existing["COMPLETO_USER"])
 
 		if err := os.MkdirAll(dir, 0700); err != nil {

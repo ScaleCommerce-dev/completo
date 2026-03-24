@@ -49,7 +49,10 @@ export default defineNuxtConfig({
     openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
     openrouterModel: process.env.OPENROUTER_MODEL || '',
     openrouterBaseUrl: process.env.OPENROUTER_BASE_URL || '',
-    aiMaxTokens: Number(process.env.AI_MAX_TOKENS) || 0
+    aiMaxTokens: Number(process.env.AI_MAX_TOKENS) || 0,
+    public: {
+      appVersion: process.env.npm_package_version || ''
+    }
   },
 
   routeRules: {

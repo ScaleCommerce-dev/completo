@@ -1,6 +1,8 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
 
+const { public: { appVersion } } = useRuntimeConfig()
+
 const { data: profileData } = useFetch<{
   createdAt: string | null
   lastSeenAt: string | null
@@ -33,5 +35,12 @@ const { data: profileData } = useFetch<{
     <ProfileSecurity />
     <ProfileTokens />
     <ProfileDangerZone />
+
+    <div
+      v-if="appVersion"
+      class="mt-6 mb-8 text-center text-[11px] text-zinc-400 dark:text-zinc-500"
+    >
+      Completo v{{ appVersion }}
+    </div>
   </div>
 </template>

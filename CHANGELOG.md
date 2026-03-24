@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.0
+
+### App
+- Display app version on profile page
+
+### CLI
+- Mask API token in `completo config` prompt
+
 ## v0.2.0
 
 ### App
