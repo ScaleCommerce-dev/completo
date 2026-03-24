@@ -2,10 +2,17 @@ import { eq, and, ne } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user: _user, board } = await resolveBoard(event)
-  const { name, slug, tagFilters } = await readBody<{ name?: string, slug?: string, tagFilters?: string[] }>(event)
+  const { name, slug, tagFilters, statusFilters, assigneeFilters, priorityFilters } = await readBody<{
+    name?: string
+    slug?: string
+    tagFilters?: string[]
+    statusFilters?: string[]
+    assigneeFilters?: string[]
+    priorityFilters?: string[]
+  }>(event)
 
-  if (!name && !slug && tagFilters === undefined) {
-    throw createError({ statusCode: 400, message: 'Name, slug, or tagFilters is required' })
+  if (!name && !slug && tagFilters === undefined && statusFilters === undefined && assigneeFilters === undefined && priorityFilters === undefined) {
+    throw createError({ statusCode: 400, message: 'Name, slug, or filters required' })
   }
 
   const updates: Record<string, string | null> = {}
@@ -35,6 +42,18 @@ export default defineEventHandler(async (event) => {
 
   if (tagFilters !== undefined) {
     updates.tagFilters = tagFilters.length ? JSON.stringify(tagFilters) : null
+  }
+
+  if (statusFilters !== undefined) {
+    updates.statusFilters = statusFilters.length ? JSON.stringify(statusFilters) : null
+  }
+
+  if (assigneeFilters !== undefined) {
+    updates.assigneeFilters = assigneeFilters.length ? JSON.stringify(assigneeFilters) : null
+  }
+
+  if (priorityFilters !== undefined) {
+    updates.priorityFilters = priorityFilters.length ? JSON.stringify(priorityFilters) : null
   }
 
   db.update(schema.boards).set(updates).where(eq(schema.boards.id, board.id)).run()

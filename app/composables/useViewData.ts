@@ -4,6 +4,9 @@ import type { BaseCard, Tag, Member } from '~/types/card'
 interface ViewDataResponse {
   id: string
   tagFilters: string[]
+  statusFilters: string[]
+  assigneeFilters: string[]
+  priorityFilters: string[]
   createdBy: { id: string, name: string, avatarUrl: string | null } | null
   role: string
   project: { id: string, name: string, slug: string, key: string, doneStatusId: string | null, doneRetentionDays: number | null } | null
@@ -34,6 +37,9 @@ export function useViewData<T extends ViewDataResponse>(
   const membersData = computed((): Member[] => data.value?.members || [])
   const tagsData = computed((): Tag[] => data.value?.tags || [])
   const tagFilters = computed((): string[] => data.value?.tagFilters || [])
+  const statusFilters = computed((): string[] => data.value?.statusFilters || [])
+  const assigneeFilters = computed((): string[] => data.value?.assigneeFilters || [])
+  const priorityFilters = computed((): string[] => data.value?.priorityFilters || [])
   const projectKey = computed(() => data.value?.project?.key || 'TK')
   const doneStatusId = computed(() => data.value?.project?.doneStatusId || null)
 
@@ -96,13 +102,18 @@ export function useViewData<T extends ViewDataResponse>(
     await refresh()
   }
 
-  async function updateTagFilters(tagIds: string[]) {
+  async function updateFilters(filters: {
+    tagFilters?: string[]
+    statusFilters?: string[]
+    assigneeFilters?: string[]
+    priorityFilters?: string[]
+  }) {
     await mutate(
       () => $fetch(`/api/${viewType}/${viewId.value}` as string, {
         method: 'PUT' as const,
-        body: { tagFilters: tagIds }
+        body: filters
       }),
-      'Failed to update tag filters'
+      'Failed to update filters'
     )
     await refresh()
   }
@@ -120,6 +131,9 @@ export function useViewData<T extends ViewDataResponse>(
     membersData,
     tagsData,
     tagFilters,
+    statusFilters,
+    assigneeFilters,
+    priorityFilters,
     projectKey,
     doneStatusId,
     canConfigureColumns,
@@ -130,6 +144,6 @@ export function useViewData<T extends ViewDataResponse>(
     updateCardTags,
     // View operations
     reorderColumns,
-    updateTagFilters
+    updateFilters
   }
 }

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { Tag } from '~/types/card'
-
 interface ViewSwitcherItem {
   label: string
   icon: string
@@ -15,14 +13,12 @@ defineProps<{
   viewIcon: string
   viewSwitcherItems: ViewSwitcherItem[][]
   openCards: number
-  activePriorityFilters: Set<string>
-  activeTagFilters: Set<string>
-  tags: Tag[]
+  activeFilterCount: number
+  filterSummary: string
   canConfigure: boolean
 }>()
 
 defineEmits<{
-  'toggle-priority': [priority: string]
   'open-settings': []
 }>()
 </script>
@@ -81,42 +77,22 @@ defineEmits<{
     </div>
 
     <div class="flex items-center gap-2">
-      <!-- Priority quick-filters -->
-      <div class="flex items-center gap-0.5 mr-1.5">
+      <!-- Active filter indicator -->
+      <UTooltip
+        v-if="activeFilterCount > 0"
+        :text="filterSummary"
+      >
         <button
-          v-for="p in ['urgent', 'high', 'medium', 'low']"
-          :key="p"
-          class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium capitalize transition-all"
-          :class="activePriorityFilters.has(p)
-            ? ''
-            : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'"
-          :style="activePriorityFilters.has(p) ? { color: PRIORITY_COLOR_MAP[p] } : {}"
-          @click="$emit('toggle-priority', p)"
+          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold font-mono tabular-nums text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors cursor-pointer"
+          @click="$emit('open-settings')"
         >
           <UIcon
-            :name="priorityIcon(p)"
-            class="text-[15px]"
+            name="i-lucide-filter"
+            class="size-3.5"
           />
-          {{ p }}
+          {{ activeFilterCount }} {{ activeFilterCount === 1 ? 'filter' : 'filters' }}
         </button>
-      </div>
-
-      <!-- Active tag filters (read-only) -->
-      <div
-        v-if="activeTagFilters.size"
-        class="flex items-center gap-1 mr-1"
-      >
-        <span
-          v-for="tag in tags.filter(t => activeTagFilters.has(t.id))"
-          :key="tag.id"
-          class="tag-pill inline-flex items-center px-1.5 py-[3px] rounded-full text-[10.5px] font-bold leading-none tracking-wide uppercase"
-          :style="{
-            color: tag.color,
-            backgroundColor: tag.color + '25',
-            boxShadow: `inset 0 0 0 1px ${tag.color}40`
-          }"
-        >{{ tag.name }}</span>
-      </div>
+      </UTooltip>
 
       <NotificationBell />
       <button

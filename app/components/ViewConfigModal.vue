@@ -15,7 +15,12 @@ const props = defineProps<{
   availableColumns?: ColumnItem[]
   canAddColumns?: boolean
   tags?: Array<{ id: string, name: string, color: string }>
+  statuses?: Array<{ id: string, name: string, color: string | null }>
+  members?: Array<{ id: string, name: string, avatarUrl: string | null }>
   activeTagFilters?: string[]
+  activeStatusFilters?: string[]
+  activeAssigneeFilters?: string[]
+  activePriorityFilters?: string[]
   viewName?: string
   viewType?: 'board' | 'list'
 }>()
@@ -28,7 +33,7 @@ const emit = defineEmits<{
   'delete': [columnId: string]
   'reorder': [columns: { id: string, position: number }[]]
   'link': [statusId: string]
-  'update-tag-filters': [tagIds: string[]]
+  'update-filters': [filters: { tagFilters?: string[], statusFilters?: string[], assigneeFilters?: string[], priorityFilters?: string[] }]
   'rename': [name: string]
   'delete-view': []
 }>()
@@ -61,22 +66,55 @@ function fieldIcon(field: string) {
   return ALL_FIELDS.find(f => f.field === field)?.icon || 'i-lucide-columns-3'
 }
 
+// ─── Filter toggle helpers ───
+const PRIORITY_LABELS: Record<string, string> = {
+  urgent: 'Urgent',
+  high: 'High',
+  medium: 'Medium',
+  low: 'Low'
+}
+
+const memberItems = computed(() =>
+  (props.members || []).map(m => ({ value: m.id, label: m.name }))
+)
+
+function toggleFilter(list: Ref<string[]>, value: string) {
+  const idx = list.value.indexOf(value)
+  if (idx >= 0) {
+    list.value = list.value.filter(v => v !== value)
+  } else {
+    list.value = [...list.value, value]
+  }
+}
+
 // ─── Local state — buffered until Save ───
 const localColumns = ref<ColumnItem[]>([])
-const localTagFilters = ref<Set<string>>(new Set())
+const localTagFilters = ref<string[]>([])
+const localStatusFilters = ref<string[]>([])
+const localAssigneeFilters = ref<string[]>([])
+const localPriorityFilters = ref<string[]>([])
 const editName = ref('')
 
 // Snapshot on open to detect changes
 const snapshotColumnOrder = ref<string[]>([])
 const snapshotTagFilters = ref<string[]>([])
+const snapshotStatusFilters = ref<string[]>([])
+const snapshotAssigneeFilters = ref<string[]>([])
+const snapshotPriorityFilters = ref<string[]>([])
 const snapshotName = ref('')
 
 function resetToProps() {
   localColumns.value = [...props.columns]
-  localTagFilters.value = new Set(props.activeTagFilters || [])
+  localTagFilters.value = [...(props.activeTagFilters || [])]
+  localStatusFilters.value = [...(props.activeStatusFilters || [])]
+  localAssigneeFilters.value = [...(props.activeAssigneeFilters || [])]
+  localPriorityFilters.value = [...(props.activePriorityFilters || [])]
   editName.value = props.viewName || ''
   snapshotColumnOrder.value = props.columns.map(c => c.id)
   snapshotTagFilters.value = [...(props.activeTagFilters || [])]
+  snapshotStatusFilters.value = [...(props.activeStatusFilters || [])]
+  snapshotAssigneeFilters.value = [...(props.activeAssigneeFilters || [])]
+  snapshotPriorityFilters.value = [...(props.activePriorityFilters || [])]
   snapshotName.value = props.viewName || ''
 }
 
@@ -122,27 +160,22 @@ function pickColor(colId: string, color: string) {
   emit('update', colId, { color })
 }
 
-// ─── Tag filter toggle ───
-function toggleTagFilter(tagId: string) {
-  const next = new Set(localTagFilters.value)
-  if (next.has(tagId)) {
-    next.delete(tagId)
-  } else {
-    next.add(tagId)
-  }
-  localTagFilters.value = next
+// ─── Dirty detection ───
+function filtersChanged(current: string[], snapshot: string[]) {
+  const a = [...current].sort()
+  const b = [...snapshot].sort()
+  return a.length !== b.length || a.some((id, i) => id !== b[i])
 }
 
-// ─── Dirty detection ───
 const isDirty = computed(() => {
   if (editName.value.trim() !== snapshotName.value) return true
   const currentOrder = localColumns.value.map(c => c.id)
   if (currentOrder.length !== snapshotColumnOrder.value.length
     || currentOrder.some((id, i) => id !== snapshotColumnOrder.value[i])) return true
-  const currentFilters = [...localTagFilters.value].sort()
-  const prevFilters = [...snapshotTagFilters.value].sort()
-  if (currentFilters.length !== prevFilters.length
-    || currentFilters.some((id, i) => id !== prevFilters[i])) return true
+  if (filtersChanged(localTagFilters.value, snapshotTagFilters.value)) return true
+  if (filtersChanged(localStatusFilters.value, snapshotStatusFilters.value)) return true
+  if (filtersChanged(localAssigneeFilters.value, snapshotAssigneeFilters.value)) return true
+  if (filtersChanged(localPriorityFilters.value, snapshotPriorityFilters.value)) return true
   return false
 })
 
@@ -165,12 +198,21 @@ function save() {
     emit('reorder', localColumns.value.map((c, i) => ({ id: c.id, position: i })))
   }
 
-  const currentFilters = [...localTagFilters.value].sort()
-  const prevFilters = [...snapshotTagFilters.value].sort()
-  const filtersChanged = currentFilters.length !== prevFilters.length
-    || currentFilters.some((id, i) => id !== prevFilters[i])
-  if (filtersChanged) {
-    emit('update-tag-filters', [...localTagFilters.value])
+  const filterUpdates: { tagFilters?: string[], statusFilters?: string[], assigneeFilters?: string[], priorityFilters?: string[] } = {}
+  if (filtersChanged(localTagFilters.value, snapshotTagFilters.value)) {
+    filterUpdates.tagFilters = [...localTagFilters.value]
+  }
+  if (filtersChanged(localStatusFilters.value, snapshotStatusFilters.value)) {
+    filterUpdates.statusFilters = [...localStatusFilters.value]
+  }
+  if (filtersChanged(localAssigneeFilters.value, snapshotAssigneeFilters.value)) {
+    filterUpdates.assigneeFilters = [...localAssigneeFilters.value]
+  }
+  if (filtersChanged(localPriorityFilters.value, snapshotPriorityFilters.value)) {
+    filterUpdates.priorityFilters = [...localPriorityFilters.value]
+  }
+  if (Object.keys(filterUpdates).length) {
+    emit('update-filters', filterUpdates)
   }
 
   open.value = false
@@ -210,25 +252,33 @@ function handleDeleteView() {
 <template>
   <UModal
     v-model:open="open"
-    :title="viewName !== undefined ? undefined : (mode === 'board' ? 'Board Settings' : 'List Settings')"
-    :ui="viewName !== undefined ? { header: 'hidden', body: 'pt-0 sm:pt-0', footer: 'p-0 sm:p-0' } : { footer: 'p-0 sm:p-0' }"
+    :ui="{ header: 'hidden', body: 'pt-0 sm:pt-0', footer: 'p-0 sm:p-0' }"
   >
     <template #body>
       <div class="flex flex-col gap-1">
-        <!-- Editable name as title -->
+        <!-- Name -->
         <template v-if="viewName !== undefined">
-          <div class="pt-5 pb-1 px-1">
-            <input
-              v-model="editName"
-              type="text"
-              :placeholder="mode === 'board' ? 'Board name...' : 'List name...'"
-              class="w-full text-[16px] font-semibold text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-zinc-200 dark:focus:border-zinc-700 rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
-              @keydown.enter="($event.target as HTMLInputElement).blur()"
-            >
+          <div class="flex items-center gap-1.5 mb-1 pt-5">
+            <UIcon
+              name="i-lucide-type"
+              class="text-[13px] text-zinc-400 dark:text-zinc-500"
+            />
+            <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Name</span>
           </div>
+          <UInput
+            v-model="editName"
+            :placeholder="mode === 'board' ? 'Board name...' : 'List name...'"
+            size="sm"
+            class="mb-1"
+            @keydown.enter="($event.target as HTMLInputElement).blur()"
+          />
+          <USeparator class="my-2" />
         </template>
 
-        <div class="flex items-center gap-1.5 mb-1">
+        <div
+          class="flex items-center gap-1.5 mb-1"
+          :class="viewName === undefined ? 'pt-5' : ''"
+        >
           <UIcon
             name="i-lucide-columns-3"
             class="text-[13px] text-zinc-400 dark:text-zinc-500"
@@ -305,8 +355,6 @@ function handleDeleteView() {
             </template>
           </draggable>
         </ClientOnly>
-
-        <USeparator class="my-2" />
 
         <!-- Board mode: add new column -->
         <form
@@ -399,43 +447,127 @@ function handleDeleteView() {
           </div>
         </template>
 
-        <!-- Tag filters (shared) -->
-        <template v-if="tags?.length">
+        <!-- Filters -->
+        <template v-if="statuses?.length || members?.length || tags?.length">
           <USeparator class="my-2" />
-          <div class="flex items-center gap-1.5 mb-1">
+          <div class="flex items-center gap-1.5 mb-2.5">
             <UIcon
               name="i-lucide-filter"
               class="text-[13px] text-zinc-400 dark:text-zinc-500"
             />
-            <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Tag Filters</span>
-            <span
-              v-if="!localTagFilters.size"
-              class="ml-auto text-[11px] text-zinc-300 dark:text-zinc-600 italic"
-            >All cards shown</span>
+            <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Filters</span>
           </div>
-          <div class="flex flex-wrap gap-1.5">
-            <button
-              v-for="tag in tags"
-              :key="tag.id"
-              type="button"
-              class="tag-toggle inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold transition-all duration-150 active:scale-95"
-              :class="localTagFilters.has(tag.id)
-                ? ''
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 tag-toggle-inactive'"
-              :style="localTagFilters.has(tag.id) ? {
-                color: tag.color,
-                backgroundColor: tag.color + '22',
-                boxShadow: `inset 0 0 0 1.5px ${tag.color}`
-              } : {}"
-              @click="toggleTagFilter(tag.id)"
+
+          <div class="flex flex-col gap-2.5">
+            <!-- Status -->
+            <div
+              v-if="statuses?.length"
+              class="flex items-start gap-2"
             >
-              <UIcon
-                :name="localTagFilters.has(tag.id) ? 'i-lucide-check' : 'i-lucide-circle'"
-                class="text-[10px]"
-                :style="localTagFilters.has(tag.id) ? {} : { color: tag.color }"
+              <span class="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 pt-[5px] w-16 shrink-0 text-right">Status</span>
+              <div class="flex flex-wrap gap-1.5">
+                <button
+                  v-for="s in statuses"
+                  :key="s.id"
+                  type="button"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold transition-all duration-150 active:scale-95"
+                  :class="localStatusFilters.includes(s.id)
+                    ? ''
+                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'"
+                  :style="localStatusFilters.includes(s.id) ? {
+                    color: s.color || '#6366f1',
+                    backgroundColor: (s.color || '#6366f1') + '22',
+                    boxShadow: `inset 0 0 0 1.5px ${s.color || '#6366f1'}`
+                  } : {}"
+                  @click="toggleFilter(localStatusFilters, s.id)"
+                >
+                  <UIcon
+                    :name="localStatusFilters.includes(s.id) ? 'i-lucide-check' : 'i-lucide-circle'"
+                    class="text-[10px]"
+                    :style="localStatusFilters.includes(s.id) ? {} : { color: s.color || '#6366f1' }"
+                  />
+                  {{ s.name }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Priority -->
+            <div class="flex items-start gap-2">
+              <span class="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 pt-[5px] w-16 shrink-0 text-right">Priority</span>
+              <div class="flex flex-wrap gap-1.5">
+                <button
+                  v-for="p in ['urgent', 'high', 'medium', 'low']"
+                  :key="p"
+                  type="button"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold transition-all duration-150 active:scale-95"
+                  :class="localPriorityFilters.includes(p)
+                    ? ''
+                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'"
+                  :style="localPriorityFilters.includes(p) ? {
+                    color: PRIORITY_COLOR_MAP[p],
+                    backgroundColor: PRIORITY_COLOR_MAP[p] + '22',
+                    boxShadow: `inset 0 0 0 1.5px ${PRIORITY_COLOR_MAP[p]}`
+                  } : {}"
+                  @click="toggleFilter(localPriorityFilters, p)"
+                >
+                  <UIcon
+                    :name="localPriorityFilters.includes(p) ? 'i-lucide-check' : priorityIcon(p)"
+                    class="text-[10px]"
+                    :style="localPriorityFilters.includes(p) ? {} : { color: PRIORITY_COLOR_MAP[p] }"
+                  />
+                  {{ PRIORITY_LABELS[p] }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Tags -->
+            <div
+              v-if="tags?.length"
+              class="flex items-start gap-2"
+            >
+              <span class="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 pt-[5px] w-16 shrink-0 text-right">Tags</span>
+              <div class="flex flex-wrap gap-1.5">
+                <button
+                  v-for="tag in tags"
+                  :key="tag.id"
+                  type="button"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold transition-all duration-150 active:scale-95"
+                  :class="localTagFilters.includes(tag.id)
+                    ? ''
+                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'"
+                  :style="localTagFilters.includes(tag.id) ? {
+                    color: tag.color,
+                    backgroundColor: tag.color + '22',
+                    boxShadow: `inset 0 0 0 1.5px ${tag.color}`
+                  } : {}"
+                  @click="toggleFilter(localTagFilters, tag.id)"
+                >
+                  <UIcon
+                    :name="localTagFilters.includes(tag.id) ? 'i-lucide-check' : 'i-lucide-circle'"
+                    class="text-[10px]"
+                    :style="localTagFilters.includes(tag.id) ? {} : { color: tag.color }"
+                  />
+                  {{ tag.name }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Assignee -->
+            <div
+              v-if="members?.length"
+              class="flex items-start gap-2"
+            >
+              <span class="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 pt-[7px] w-16 shrink-0 text-right">Assignee</span>
+              <USelectMenu
+                v-model="localAssigneeFilters"
+                :items="memberItems"
+                multiple
+                value-key="value"
+                placeholder="Any member"
+                size="sm"
+                class="flex-1"
               />
-              {{ tag.name }}
-            </button>
+            </div>
           </div>
         </template>
       </div>

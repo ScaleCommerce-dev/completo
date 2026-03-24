@@ -4,16 +4,19 @@ const SORTABLE_FIELDS = new Set(['ticketId', 'title', 'status', 'priority', 'ass
 
 export default defineEventHandler(async (event) => {
   const { user: _user, list } = await resolveList(event)
-  const { name, slug, sortField, sortDirection, tagFilters } = await readBody<{
+  const { name, slug, sortField, sortDirection, tagFilters, statusFilters, assigneeFilters, priorityFilters } = await readBody<{
     name?: string
     slug?: string
     sortField?: string | null
     sortDirection?: string | null
     tagFilters?: string[]
+    statusFilters?: string[]
+    assigneeFilters?: string[]
+    priorityFilters?: string[]
   }>(event)
 
-  if (!name && !slug && sortField === undefined && sortDirection === undefined && tagFilters === undefined) {
-    throw createError({ statusCode: 400, message: 'Name, slug, sort fields, or tagFilters required' })
+  if (!name && !slug && sortField === undefined && sortDirection === undefined && tagFilters === undefined && statusFilters === undefined && assigneeFilters === undefined && priorityFilters === undefined) {
+    throw createError({ statusCode: 400, message: 'Name, slug, sort fields, or filters required' })
   }
 
   const updates: Record<string, string | null> = {}
@@ -57,6 +60,18 @@ export default defineEventHandler(async (event) => {
 
   if (tagFilters !== undefined) {
     updates.tagFilters = tagFilters.length ? JSON.stringify(tagFilters) : null
+  }
+
+  if (statusFilters !== undefined) {
+    updates.statusFilters = statusFilters.length ? JSON.stringify(statusFilters) : null
+  }
+
+  if (assigneeFilters !== undefined) {
+    updates.assigneeFilters = assigneeFilters.length ? JSON.stringify(assigneeFilters) : null
+  }
+
+  if (priorityFilters !== undefined) {
+    updates.priorityFilters = priorityFilters.length ? JSON.stringify(priorityFilters) : null
   }
 
   db.update(schema.lists).set(updates).where(eq(schema.lists.id, list.id)).run()

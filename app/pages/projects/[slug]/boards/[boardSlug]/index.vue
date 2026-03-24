@@ -13,6 +13,9 @@ const {
   membersData,
   tagsData,
   tagFilters,
+  statusFilters,
+  assigneeFilters,
+  priorityFilters,
   projectKey,
   doneStatusId,
   availableColumns,
@@ -30,7 +33,7 @@ const {
   linkColumn,
   reorderColumns,
   updateCardTags,
-  updateTagFilters,
+  updateFilters,
   renameBoard
 } = useKanban(boardSlug, { projectSlug })
 watch(boardError, (err) => {
@@ -49,10 +52,8 @@ const allCards = computed(() => {
 })
 
 const {
-  activePriorityFilters,
   activeTagFilters,
   openCards,
-  togglePriorityFilter,
   showCardDetail,
   selectedCard,
   openCardDetail,
@@ -63,6 +64,9 @@ const {
 } = useViewPage({
   allCards,
   tagFilters,
+  statusFilters,
+  assigneeFilters,
+  priorityFilters,
   doneStatusId,
   updateCardTags,
   createCard,
@@ -103,14 +107,50 @@ const viewSwitcherItems = computed(() => {
 const showColumnConfig = ref(false)
 const createCardStatusId = ref('')
 
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (statusFilters.value.length) count += statusFilters.value.length
+  if (priorityFilters.value.length) count += priorityFilters.value.length
+  if (assigneeFilters.value.length) count += assigneeFilters.value.length
+  if (activeTagFilters.value.size) count += activeTagFilters.value.size
+  return count
+})
+
+const filterSummary = computed(() => {
+  const lines: string[] = []
+  if (statusFilters.value.length) {
+    const names = statusFilters.value.map(id => columnsData.value.find(s => s.id === id)?.name).filter(Boolean)
+    if (names.length) lines.push(`Status: ${names.join(', ')}`)
+  }
+  if (priorityFilters.value.length) {
+    lines.push(`Priority: ${priorityFilters.value.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}`)
+  }
+  if (assigneeFilters.value.length) {
+    const names = assigneeFilters.value.map(id => membersData.value.find(m => m.id === id)?.name).filter(Boolean)
+    if (names.length) lines.push(`Assignee: ${names.join(', ')}`)
+  }
+  if (activeTagFilters.value.size) {
+    const names = [...activeTagFilters.value].map(id => tagsData.value.find(t => t.id === id)?.name).filter(Boolean)
+    if (names.length) lines.push(`Tags: ${names.join(', ')}`)
+  }
+  return lines.join('\n')
+})
+
 const filteredCardsByColumn = computed(() => {
-  const hasPriority = activePriorityFilters.value.size > 0
+  const hasStatus = statusFilters.value.length > 0
+  const hasPriority = priorityFilters.value.length > 0
+  const hasAssignee = assigneeFilters.value.length > 0
   const hasTag = activeTagFilters.value.size > 0
-  if (!hasPriority && !hasTag) return cardsByColumn.value
+  if (!hasStatus && !hasPriority && !hasAssignee && !hasTag) return cardsByColumn.value
+  const statusSet = hasStatus ? new Set(statusFilters.value) : null
+  const prioritySet = hasPriority ? new Set(priorityFilters.value) : null
+  const assigneeSet = hasAssignee ? new Set(assigneeFilters.value) : null
   const filtered: typeof cardsByColumn.value = {}
   for (const [colId, cards] of Object.entries(cardsByColumn.value)) {
     filtered[colId] = cards.filter((c) => {
-      if (hasPriority && !activePriorityFilters.value.has(c.priority)) return false
+      if (statusSet && !statusSet.has(c.statusId)) return false
+      if (prioritySet && !prioritySet.has(c.priority)) return false
+      if (assigneeSet && !(c.assigneeId && assigneeSet.has(c.assigneeId))) return false
       if (hasTag && !(c.tags || []).some(t => activeTagFilters.value.has(t.id))) return false
       return true
     })
@@ -160,11 +200,9 @@ async function handleDeleteBoard() {
       view-icon="i-lucide-layout-dashboard"
       :view-switcher-items="viewSwitcherItems"
       :open-cards="openCards"
-      :active-priority-filters="activePriorityFilters"
-      :active-tag-filters="activeTagFilters"
-      :tags="tagsData"
+      :active-filter-count="activeFilterCount"
+      :filter-summary="filterSummary"
       :can-configure="canConfigureColumns"
-      @toggle-priority="togglePriorityFilter"
       @open-settings="showColumnConfig = true"
     />
 
@@ -206,7 +244,12 @@ async function handleDeleteBoard() {
       :available-columns="availableColumns"
       :can-add-columns="canAddColumns"
       :tags="tagsData"
+      :statuses="columnsData"
+      :members="membersData"
       :active-tag-filters="[...activeTagFilters]"
+      :active-status-filters="[...statusFilters]"
+      :active-assignee-filters="[...assigneeFilters]"
+      :active-priority-filters="[...priorityFilters]"
       :view-name="board?.name || ''"
       :view-type="'board'"
       @add="addColumn"
@@ -214,7 +257,7 @@ async function handleDeleteBoard() {
       @delete="deleteColumn"
       @reorder="reorderColumns"
       @link="linkColumn"
-      @update-tag-filters="(ids: string[]) => { activeTagFilters = new Set(ids); updateTagFilters(ids) }"
+      @update-filters="(filters) => { if (filters.tagFilters) activeTagFilters = new Set(filters.tagFilters); updateFilters(filters) }"
       @rename="handleRenameBoard"
       @delete-view="handleDeleteBoard"
     />

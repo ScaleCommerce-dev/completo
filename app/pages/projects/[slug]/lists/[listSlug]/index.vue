@@ -14,6 +14,9 @@ const {
   membersData,
   tagsData,
   tagFilters,
+  statusFilters,
+  assigneeFilters,
+  priorityFilters,
   projectKey,
   doneStatusId,
   sortField,
@@ -26,7 +29,7 @@ const {
   updateCard,
   deleteCard,
   updateCardTags,
-  updateTagFilters,
+  updateFilters,
   addColumn,
   removeColumn,
   reorderColumns,
@@ -40,11 +43,9 @@ watch(listError, (err) => {
 const { data: projectData } = await useFetch(`/api/projects/${projectSlug}`)
 
 const {
-  activePriorityFilters,
   activeTagFilters,
   isFiltered,
   openCards,
-  togglePriorityFilter,
   showCardDetail,
   selectedCard,
   openCardDetail,
@@ -55,6 +56,9 @@ const {
 } = useViewPage({
   allCards,
   tagFilters,
+  statusFilters,
+  assigneeFilters,
+  priorityFilters,
   doneStatusId,
   updateCardTags,
   createCard,
@@ -94,16 +98,53 @@ const viewSwitcherItems = computed(() => {
 
 const showColumnConfig = ref(false)
 
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (statusFilters.value.length) count += statusFilters.value.length
+  if (priorityFilters.value.length) count += priorityFilters.value.length
+  if (assigneeFilters.value.length) count += assigneeFilters.value.length
+  if (activeTagFilters.value.size) count += activeTagFilters.value.size
+  return count
+})
+
+const filterSummary = computed(() => {
+  const lines: string[] = []
+  if (statusFilters.value.length) {
+    const names = statusFilters.value.map(id => statusesData.value.find(s => s.id === id)?.name).filter(Boolean)
+    if (names.length) lines.push(`Status: ${names.join(', ')}`)
+  }
+  if (priorityFilters.value.length) {
+    lines.push(`Priority: ${priorityFilters.value.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}`)
+  }
+  if (assigneeFilters.value.length) {
+    const names = assigneeFilters.value.map(id => membersData.value.find(m => m.id === id)?.name).filter(Boolean)
+    if (names.length) lines.push(`Assignee: ${names.join(', ')}`)
+  }
+  if (activeTagFilters.value.size) {
+    const names = [...activeTagFilters.value].map(id => tagsData.value.find(t => t.id === id)?.name).filter(Boolean)
+    if (names.length) lines.push(`Tags: ${names.join(', ')}`)
+  }
+  return lines.join('\n')
+})
+
 const filteredCards = computed(() => {
-  const cards = allCards.value
-  const hasPriority = activePriorityFilters.value.size > 0
-  const hasTag = activeTagFilters.value.size > 0
-  if (!hasPriority && !hasTag) return cards
-  return cards.filter((c) => {
-    if (hasPriority && !activePriorityFilters.value.has(c.priority)) return false
-    if (hasTag && !(c.tags || []).some(t => activeTagFilters.value.has(t.id))) return false
-    return true
-  })
+  let cards = allCards.value
+  if (statusFilters.value.length) {
+    const set = new Set(statusFilters.value)
+    cards = cards.filter(c => set.has(c.statusId))
+  }
+  if (priorityFilters.value.length) {
+    const set = new Set(priorityFilters.value)
+    cards = cards.filter(c => set.has(c.priority))
+  }
+  if (assigneeFilters.value.length) {
+    const set = new Set(assigneeFilters.value)
+    cards = cards.filter(c => c.assigneeId && set.has(c.assigneeId))
+  }
+  if (activeTagFilters.value.size) {
+    cards = cards.filter(c => (c.tags || []).some(t => activeTagFilters.value.has(t.id)))
+  }
+  return cards
 })
 
 function openCreateCard() {
@@ -157,11 +198,9 @@ async function handleDeleteList() {
       view-icon="i-lucide-list"
       :view-switcher-items="viewSwitcherItems"
       :open-cards="openCards"
-      :active-priority-filters="activePriorityFilters"
-      :active-tag-filters="activeTagFilters"
-      :tags="tagsData"
+      :active-filter-count="activeFilterCount"
+      :filter-summary="filterSummary"
       :can-configure="canConfigureColumns"
-      @toggle-priority="togglePriorityFilter"
       @open-settings="showColumnConfig = true"
     >
       <template #actions>
@@ -215,13 +254,18 @@ async function handleDeleteList() {
       mode="list"
       :columns="columnsData"
       :tags="tagsData"
+      :statuses="statusesData"
+      :members="membersData"
       :active-tag-filters="[...activeTagFilters]"
+      :active-status-filters="[...statusFilters]"
+      :active-assignee-filters="[...assigneeFilters]"
+      :active-priority-filters="[...priorityFilters]"
       :view-name="list?.name || ''"
       :view-type="'list'"
       @add="addColumn"
       @delete="removeColumn"
       @reorder="reorderColumns"
-      @update-tag-filters="(ids: string[]) => { activeTagFilters = new Set(ids); updateTagFilters(ids) }"
+      @update-filters="(filters) => { if (filters.tagFilters) activeTagFilters = new Set(filters.tagFilters); updateFilters(filters) }"
       @rename="handleRenameList"
       @delete-view="handleDeleteList"
     />

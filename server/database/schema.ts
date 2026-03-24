@@ -41,6 +41,9 @@ export const boards = sqliteTable('boards', {
   slug: text('slug').notNull().default(''),
   position: integer('position').notNull().default(0),
   tagFilters: text('tag_filters'),
+  statusFilters: text('status_filters'),
+  assigneeFilters: text('assignee_filters'),
+  priorityFilters: text('priority_filters'),
   createdById: text('created_by_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })
@@ -68,6 +71,9 @@ export const lists = sqliteTable('lists', {
   sortField: text('sort_field'),
   sortDirection: text('sort_direction'),
   tagFilters: text('tag_filters'),
+  statusFilters: text('status_filters'),
+  assigneeFilters: text('assignee_filters'),
+  priorityFilters: text('priority_filters'),
   createdById: text('created_by_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })

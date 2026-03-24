@@ -16,6 +16,9 @@ interface Board {
   slug: string
   projectId: string
   tagFilters: string[]
+  statusFilters: string[]
+  assigneeFilters: string[]
+  priorityFilters: string[]
   createdBy: { id: string, name: string, avatarUrl: string | null } | null
   role: string
   project: { id: string, name: string, slug: string, key: string, doneStatusId: string | null, doneRetentionDays: number | null } | null
@@ -38,6 +41,9 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
     membersData,
     tagsData,
     tagFilters,
+    statusFilters,
+    assigneeFilters,
+    priorityFilters,
     projectKey,
     doneStatusId,
     canConfigureColumns,
@@ -46,7 +52,7 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
     deleteCard,
     updateCardTags,
     reorderColumns,
-    updateTagFilters
+    updateFilters
   } = useViewData<Board>('boards', boardSlugOrId, opts)
 
   const columnsData = computed(() => {
@@ -150,6 +156,9 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
     membersData,
     tagsData,
     tagFilters,
+    statusFilters,
+    assigneeFilters,
+    priorityFilters,
     projectKey,
     doneStatusId,
     availableColumns,
@@ -167,7 +176,7 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
     linkColumn,
     reorderColumns,
     updateCardTags,
-    updateTagFilters,
+    updateFilters,
     renameBoard
   }
 }

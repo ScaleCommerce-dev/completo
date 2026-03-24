@@ -3,6 +3,9 @@ import type { BaseCard } from '~/types/card'
 interface ViewPageOptions {
   allCards: ComputedRef<BaseCard[]>
   tagFilters: ComputedRef<string[]>
+  statusFilters: ComputedRef<string[]>
+  assigneeFilters: ComputedRef<string[]>
+  priorityFilters: ComputedRef<string[]>
   doneStatusId: ComputedRef<string | null>
   updateCardTags: (cardId: number, tagIds: string[]) => Promise<void>
   createCard: (statusId: string, title: string, opts?: { description?: string, priority?: string, assigneeId?: string, dueDate?: string | null }) => Promise<unknown>
@@ -14,6 +17,9 @@ export function useViewPage(opts: ViewPageOptions) {
   const {
     allCards,
     tagFilters,
+    statusFilters,
+    assigneeFilters,
+    priorityFilters,
     doneStatusId,
     updateCardTags,
     createCard,
@@ -21,31 +27,23 @@ export function useViewPage(opts: ViewPageOptions) {
     deleteCard
   } = opts
 
-  // Priority filter (multi-select)
-  const activePriorityFilters = ref<Set<string>>(new Set())
-
-  // Tag filter (persisted, managed via settings modal)
+  // All filters are persisted on the view, synced from props
   const activeTagFilters = ref<Set<string>>(new Set())
 
   watch(tagFilters, (tf) => {
     activeTagFilters.value = new Set(tf || [])
   }, { immediate: true })
 
-  const isFiltered = computed(() => activePriorityFilters.value.size > 0 || activeTagFilters.value.size > 0)
+  const isFiltered = computed(() =>
+    activeTagFilters.value.size > 0
+    || (statusFilters.value?.length ?? 0) > 0
+    || (assigneeFilters.value?.length ?? 0) > 0
+    || (priorityFilters.value?.length ?? 0) > 0
+  )
 
   const openCards = computed(() => {
     return allCards.value.filter(c => c.statusId !== doneStatusId.value).length
   })
-
-  function togglePriorityFilter(priority: string) {
-    const next = new Set(activePriorityFilters.value)
-    if (next.has(priority)) {
-      next.delete(priority)
-    } else {
-      next.add(priority)
-    }
-    activePriorityFilters.value = next
-  }
 
   // Card detail modal
   const showCardDetail = ref(false)
@@ -93,11 +91,9 @@ export function useViewPage(opts: ViewPageOptions) {
   }
 
   return {
-    activePriorityFilters,
     activeTagFilters,
     isFiltered,
     openCards,
-    togglePriorityFilter,
     showCardDetail,
     selectedCard,
     openCardDetail,

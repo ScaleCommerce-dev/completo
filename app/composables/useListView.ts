@@ -18,6 +18,9 @@ interface ListView {
   sortField: string | null
   sortDirection: string | null
   tagFilters: string[]
+  statusFilters: string[]
+  assigneeFilters: string[]
+  priorityFilters: string[]
   createdBy: { id: string, name: string, avatarUrl: string | null } | null
   role: string
   project: { id: string, name: string, slug: string, key: string, doneStatusId: string | null, doneRetentionDays: number | null } | null
@@ -40,6 +43,9 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
     membersData,
     tagsData,
     tagFilters,
+    statusFilters,
+    assigneeFilters,
+    priorityFilters,
     projectKey,
     doneStatusId,
     canConfigureColumns,
@@ -48,7 +54,7 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
     deleteCard,
     updateCardTags,
     reorderColumns,
-    updateTagFilters
+    updateFilters
   } = useViewData<ListView>('lists', listSlugOrId, opts)
 
   const columnsData = computed(() => {
@@ -125,6 +131,9 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
     membersData,
     tagsData,
     tagFilters,
+    statusFilters,
+    assigneeFilters,
+    priorityFilters,
     projectKey,
     doneStatusId,
     sortField,
@@ -137,7 +146,7 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
     updateCard,
     deleteCard,
     updateCardTags,
-    updateTagFilters,
+    updateFilters,
     addColumn,
     removeColumn,
     reorderColumns,
