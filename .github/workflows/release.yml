@@ -151,18 +151,32 @@ jobs:
           fi
           # Write to file for the release body
           cat > release-body.md << 'HEADER'
-          ## Install CLI
+## Quick start
 
-          **macOS / Linux:**
-          ```bash
-          curl -fsSL https://raw.githubusercontent.com/scalecommerce-dev/completo/main/install.sh | sh
-          ```
+```bash
+docker run -p 3000:3000 \
+  -e NUXT_SESSION_PASSWORD=$(openssl rand -base64 32) \
+  -v completo-data:/data \
+  ghcr.io/scalecommerce-dev/completo:latest
+```
 
-          **Windows:** Download `completo-windows-amd64.exe` from the assets below.
+Open `localhost:3000` — demo data included.
 
-          ---
+<details>
+<summary>CLI for AI agents</summary>
 
-          HEADER
+**macOS / Linux:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/scalecommerce-dev/completo/main/install.sh | sh
+```
+
+**Windows:** Download `completo-windows-amd64.exe` from the assets below.
+
+</details>
+
+---
+
+HEADER
           printf '%s\n' "$NOTES" >> release-body.md
 
       - name: Create GitHub Release
