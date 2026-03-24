@@ -33,6 +33,16 @@ const projectKey = computed(() => cardData.value?.project?.key || 'TK')
 
 const projectTagsData = computed(() => cardData.value?.projectTags || [])
 
+const ticketIdCopied = ref(false)
+async function copyTicketId() {
+  if (!card.value) return
+  await navigator.clipboard.writeText(formatTicketId(projectKey.value, card.value.id))
+  ticketIdCopied.value = true
+  setTimeout(() => {
+    ticketIdCopied.value = false
+  }, 2000)
+}
+
 const UNASSIGNED = '__unassigned__'
 const title = ref('')
 const description = ref('')
@@ -343,9 +353,18 @@ async function confirmDelete() {
           <div class="rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 bg-white dark:bg-zinc-800/80 shadow-sm overflow-hidden">
             <!-- Card ID header -->
             <div class="px-4 pt-3.5 pb-3 border-b border-zinc-100 dark:border-zinc-700/40">
-              <span class="font-mono text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+              <button
+                class="group/copy inline-flex items-center gap-1 font-mono text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+                :title="ticketIdCopied ? 'Copied!' : 'Copy ticket ID'"
+                @click="copyTicketId"
+              >
                 {{ formatTicketId(projectKey, card.id) }}
-              </span>
+                <UIcon
+                  :name="ticketIdCopied ? 'i-lucide-check' : 'i-lucide-copy'"
+                  class="text-[12px] opacity-0 group-hover/copy:opacity-100 transition-opacity"
+                  :class="{ '!opacity-100 text-green-500': ticketIdCopied }"
+                />
+              </button>
             </div>
 
             <!-- Properties -->

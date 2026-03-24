@@ -42,6 +42,16 @@ const emit = defineEmits<{
 
 const isEdit = computed(() => !!props.card)
 
+const modalTicketIdCopied = ref(false)
+async function copyModalTicketId() {
+  if (!props.card) return
+  await navigator.clipboard.writeText(formatTicketId(props.projectKey, props.card.id))
+  modalTicketIdCopied.value = true
+  setTimeout(() => {
+    modalTicketIdCopied.value = false
+  }, 2000)
+}
+
 const title = ref('')
 const description = ref('')
 const priority = ref('medium')
@@ -218,9 +228,19 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           v-if="isEdit"
           class="flex items-center justify-between px-5 pt-5 pb-2"
         >
-          <span class="font-mono text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+          <button
+            class="group/copy inline-flex items-center gap-1 font-mono text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+            type="button"
+            :title="modalTicketIdCopied ? 'Copied!' : 'Copy ticket ID'"
+            @click="copyModalTicketId"
+          >
             {{ formatTicketId(projectKey, card!.id) }}
-          </span>
+            <UIcon
+              :name="modalTicketIdCopied ? 'i-lucide-check' : 'i-lucide-copy'"
+              class="text-[12px] opacity-0 group-hover/copy:opacity-100 transition-opacity"
+              :class="{ '!opacity-100 text-green-500': modalTicketIdCopied }"
+            />
+          </button>
           <NuxtLink
             v-if="projectSlug"
             :to="`/projects/${projectSlug}/cards/${formatTicketId(projectKey, card!.id)}`"
