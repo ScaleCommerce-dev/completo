@@ -78,13 +78,25 @@ const memberItems = computed(() =>
   (props.members || []).map(m => ({ value: m.id, label: m.name }))
 )
 
-function toggleFilter(list: Ref<string[]>, value: string) {
-  const idx = list.value.indexOf(value)
-  if (idx >= 0) {
-    list.value = list.value.filter(v => v !== value)
-  } else {
-    list.value = [...list.value, value]
-  }
+function toggleStatusFilter(value: string) {
+  const idx = localStatusFilters.value.indexOf(value)
+  localStatusFilters.value = idx >= 0
+    ? localStatusFilters.value.filter(v => v !== value)
+    : [...localStatusFilters.value, value]
+}
+
+function togglePriorityFilter(value: string) {
+  const idx = localPriorityFilters.value.indexOf(value)
+  localPriorityFilters.value = idx >= 0
+    ? localPriorityFilters.value.filter(v => v !== value)
+    : [...localPriorityFilters.value, value]
+}
+
+function toggleTagFilter(value: string) {
+  const idx = localTagFilters.value.indexOf(value)
+  localTagFilters.value = idx >= 0
+    ? localTagFilters.value.filter(v => v !== value)
+    : [...localTagFilters.value, value]
 }
 
 // ─── Local state — buffered until Save ───
@@ -479,7 +491,7 @@ function handleDeleteView() {
                     backgroundColor: (s.color || '#6366f1') + '22',
                     boxShadow: `inset 0 0 0 1.5px ${s.color || '#6366f1'}`
                   } : {}"
-                  @click="toggleFilter(localStatusFilters, s.id)"
+                  @click="toggleStatusFilter(s.id)"
                 >
                   <UIcon
                     :name="localStatusFilters.includes(s.id) ? 'i-lucide-check' : 'i-lucide-circle'"
@@ -508,7 +520,7 @@ function handleDeleteView() {
                     backgroundColor: PRIORITY_COLOR_MAP[p] + '22',
                     boxShadow: `inset 0 0 0 1.5px ${PRIORITY_COLOR_MAP[p]}`
                   } : {}"
-                  @click="toggleFilter(localPriorityFilters, p)"
+                  @click="togglePriorityFilter(p)"
                 >
                   <UIcon
                     :name="localPriorityFilters.includes(p) ? 'i-lucide-check' : priorityIcon(p)"
@@ -540,7 +552,7 @@ function handleDeleteView() {
                     backgroundColor: tag.color + '22',
                     boxShadow: `inset 0 0 0 1.5px ${tag.color}`
                   } : {}"
-                  @click="toggleFilter(localTagFilters, tag.id)"
+                  @click="toggleTagFilter(tag.id)"
                 >
                   <UIcon
                     :name="localTagFilters.includes(tag.id) ? 'i-lucide-check' : 'i-lucide-circle'"
