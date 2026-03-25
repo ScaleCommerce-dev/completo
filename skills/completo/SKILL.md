@@ -78,9 +78,21 @@ completo move TK-27 "In Progress"
 
 The status name must match exactly. Run `completo statuses` to see available statuses if unsure. Use the `IN_PROGRESS_STATUS` from `.completo` if set.
 
-### Step 3: Implement
+### Step 3: Plan before implementing
 
-Work through the card's requirements. Use the description and any checklist items as your implementation plan. Do NOT update the ticket description during implementation — that happens later after the user reviews.
+Tickets are often written by non-technical users, product managers, or as quick notes — they may lack architectural context, have unclear scope, or suggest an approach that doesn't fit the codebase. Don't blindly implement what the ticket says. Think critically and align with the user first.
+
+**Review the ticket** and share your assessment with the user:
+- Is the scope clear? Are there ambiguities or missing details?
+- Does the proposed approach make sense given the codebase architecture?
+- Are there simpler alternatives or better ways to solve the underlying problem?
+- What are the potential impacts (other features, performance, breaking changes)?
+- If the ticket has a checklist, are the items complete and in a sensible order?
+- **Are the dependencies in place?** Check whether the APIs, endpoints, data models, or infrastructure the ticket assumes actually exist. If the clean implementation path isn't available and you'd need a workaround, flag it. The user may prefer to fix the root cause first (e.g., add a missing API endpoint) rather than build on a hacky foundation.
+
+**Discuss with the user.** Present your assessment concisely — what you'd do, what concerns you have, and any alternatives worth considering. Let the user weigh in before you start coding. If the ticket is straightforward and you have no concerns, say so briefly and confirm you're ready to proceed.
+
+**Then implement** with the agreed approach. Use plan mode for non-trivial work. Do NOT update the ticket description during implementation — that happens later after the user reviews.
 
 ### Step 4: Hand off
 
