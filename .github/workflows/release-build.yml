@@ -7,9 +7,6 @@ on:
         description: 'Tag to build (e.g. v0.4.0)'
         required: false
         type: string
-  push:
-    tags:
-      - 'v*'
 
 permissions:
   contents: write
