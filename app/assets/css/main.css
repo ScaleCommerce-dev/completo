@@ -281,6 +281,24 @@
   letter-spacing: -0.03em;
 }
 
+/* Wider collapsed sidebar so logo + divider toggle don't overlap */
+.sidebar-collapse-toggle[data-collapsed="true"] {
+  min-width: 4.5rem; /* 72px — snug but enough clearance for logo + toggle */
+}
+
+/* Larger, more prominent nav icons in collapsed sidebar */
+.sidebar-collapse-toggle[data-collapsed="true"] [data-slot="item-leading"] {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+/* Bigger click targets for collapsed nav items */
+.sidebar-collapse-toggle[data-collapsed="true"] [data-slot="item"] a,
+.sidebar-collapse-toggle[data-collapsed="true"] [data-slot="item"] button {
+  padding: 0.625rem;
+  justify-content: center;
+}
+
 /* ─── Notification bell ring ─── */
 @keyframes bell-ring {
   0% { transform: rotate(0deg); }
