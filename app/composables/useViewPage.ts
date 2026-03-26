@@ -2,8 +2,8 @@ import type { BaseCard } from '~/types/card'
 import { filterCards, hasActiveFilters, countActiveFilters, buildFilterSummary } from '~/utils/card-filters'
 import type { CardFilterState } from '~/utils/card-filters'
 
-interface ViewPageOptions {
-  allCards: ComputedRef<BaseCard[]>
+interface ViewPageOptions<T extends BaseCard = BaseCard> {
+  allCards: ComputedRef<T[]>
   tagFilters: ComputedRef<string[]>
   statusFilters: ComputedRef<string[]>
   assigneeFilters: ComputedRef<string[]>
@@ -17,7 +17,7 @@ interface ViewPageOptions {
   deleteCard: (cardId: number) => Promise<void>
 }
 
-export function useViewPage(opts: ViewPageOptions) {
+export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions<T>) {
   const {
     allCards,
     tagFilters,
@@ -49,11 +49,11 @@ export function useViewPage(opts: ViewPageOptions) {
 
   const isFiltered = computed(() => hasActiveFilters(filterState.value))
 
-  function applyFilters(cards: BaseCard[]): BaseCard[] {
-    return filterCards(cards, filterState.value)
+  function applyFilters<C extends BaseCard>(cards: C[]): C[] {
+    return filterCards(cards, filterState.value) as C[]
   }
 
-  const filteredCards = computed(() => applyFilters(allCards.value))
+  const filteredCards = computed<T[]>(() => applyFilters(allCards.value))
 
   const visibleCardCount = computed(() => filteredCards.value.length)
 
