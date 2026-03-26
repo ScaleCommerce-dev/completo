@@ -94,24 +94,35 @@ Tickets are often written by non-technical users, product managers, or as quick 
 
 **Then implement** with the agreed approach. Use plan mode for non-trivial work. Do NOT update the ticket description during implementation — that happens later after the user reviews.
 
-### Step 4: Hand off
+### Step 4: Hand off for review
 
-When implementation is complete:
+This step has a strict sequence — do each action in order, don't skip ahead.
 
-1. **Move the card** to the handoff status:
-   ```bash
-   completo move TK-27 "Review"
-   ```
-   Use the `HANDOFF_STATUS` from `.completo` if set. If that status doesn't exist, try "Review", then "Done" as fallbacks. Run `completo statuses` to check what's available.
+**4a. Move the card to review FIRST, before anything else:**
+```bash
+completo move TK-27 "Review"
+```
+Use the `HANDOFF_STATUS` from `.completo` if set. If that status doesn't exist, try "Review" as a fallback. Run `completo statuses` to check what's available. The card must be in the review status before you present your summary — the user may want to test immediately.
 
-2. **Summarize your work** to the user. Explain what you implemented and list any ticket updates that should be made (e.g. checklist items to check off, description changes). Do NOT update the ticket description or checklist yourself.
+**4b. Summarize your work** to the user. Explain what you implemented and list any ticket updates that should be made (e.g. checklist items to check off, description changes). Do NOT update the ticket description or checklist yourself yet.
 
-3. **Ask the user to review.** Something like:
-   > Here's what I've done: [summary]. The ticket needs the following updates: [list changes]. Want to test first, or should I go ahead and update the ticket?
+**4c. Ask the user to review.** Something like:
+> I've moved CF-97 to Review. Here's what I did: [summary]. The ticket needs these updates: [list changes]. Want to test first, or should I update the ticket now?
 
-4. **Wait for confirmation.** Only update the ticket (checklist, description) after the user explicitly tells you to. If they give feedback instead, address it first, then ask again.
+**4d. Wait for the user's go-ahead**, then update the ticket:
+```bash
+completo update TK-27 --description-file /tmp/updated-desc.md
+```
+Only update the ticket (checklist, description) after the user explicitly tells you to. If they give feedback instead, address it first, then ask again.
 
-Do NOT move directly to the project's "Done" status — the user needs to review and test first. Do NOT update the ticket description or checklist without the user's go-ahead.
+### Step 5: Move to Done
+
+After the user has approved the ticket updates and confirmed they're satisfied (e.g. "looks good", "we're done", "ship it"), move the card to Done:
+```bash
+completo move TK-27 "Done"
+```
+
+Don't move to Done on your own — wait for explicit confirmation that the user is finished with the ticket. But also don't forget this step: once the user signals they're done, move the card immediately. A ticket left in Review after sign-off creates confusion about what still needs attention.
 
 ## Available Commands
 
