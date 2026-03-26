@@ -60,17 +60,31 @@ export function useViewPage(opts: ViewPageOptions) {
   // Create card modal
   const showCreateCard = ref(false)
 
-  async function handleCreateCard(data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) {
+  async function createCardFromFormData(data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }): Promise<number> {
     const newCard = await createCard(data.statusId, data.title, {
       description: data.description || undefined,
       priority: data.priority,
       assigneeId: data.assigneeId || undefined,
       dueDate: data.dueDate || undefined
     })
-    if (data.tagIds?.length && newCard) {
-      await updateCardTags((newCard as { id: number }).id, data.tagIds)
+    const cardId = (newCard as { id: number }).id
+    if (data.tagIds?.length) {
+      await updateCardTags(cardId, data.tagIds)
     }
+    return cardId
+  }
+
+  async function ensureCardForDraft(data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }): Promise<number> {
+    return createCardFromFormData(data)
+  }
+
+  async function handleCreateCard(data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) {
+    await createCardFromFormData(data)
     showCreateCard.value = false
+  }
+
+  async function deleteDraftCard(cardId: number) {
+    await deleteCard(cardId)
   }
 
   async function handleUpdateCard(cardId: number, updates: Record<string, unknown>, tagIds?: string[]) {
@@ -98,8 +112,10 @@ export function useViewPage(opts: ViewPageOptions) {
     selectedCard,
     openCardDetail,
     showCreateCard,
+    ensureCardForDraft,
     handleCreateCard,
     handleUpdateCard,
-    handleDeleteCard
+    handleDeleteCard,
+    deleteDraftCard
   }
 }

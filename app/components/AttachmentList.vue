@@ -2,6 +2,7 @@
 const props = defineProps<{
   cardId: number | null | undefined
   readonly?: boolean
+  onBeforeUpload?: () => Promise<void>
 }>()
 
 const cardIdRef = computed(() => props.cardId ?? null)
@@ -14,10 +15,26 @@ function openFilePicker() {
   fileInputRef.value?.click()
 }
 
+async function ensureCard() {
+  if (!cardIdRef.value && props.onBeforeUpload) {
+    await props.onBeforeUpload()
+  }
+}
+
 async function onFileInputChange(e: Event) {
   const input = e.target as HTMLInputElement
   const files = input.files
   if (files?.length) {
+    try {
+      await ensureCard()
+    } catch {
+      input.value = ''
+      return
+    }
+    if (!cardIdRef.value) {
+      input.value = ''
+      return
+    }
     for (const file of files) {
       try {
         await upload(file)
@@ -65,6 +82,12 @@ async function onDropZoneDrop(e: DragEvent) {
   if (props.readonly || uploading.value) return
   const files = e.dataTransfer?.files
   if (!files?.length) return
+  try {
+    await ensureCard()
+  } catch {
+    return
+  }
+  if (!cardIdRef.value) return
   for (const file of files) {
     try {
       await upload(file)
@@ -78,7 +101,7 @@ defineExpose({ upload, uploading })
 </script>
 
 <template>
-  <div v-if="cardId">
+  <div v-if="cardId || onBeforeUpload">
     <input
       ref="fileInputRef"
       type="file"

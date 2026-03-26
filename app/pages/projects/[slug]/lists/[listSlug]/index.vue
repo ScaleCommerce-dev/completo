@@ -50,9 +50,11 @@ const {
   selectedCard,
   openCardDetail,
   showCreateCard,
+  ensureCardForDraft,
   handleCreateCard,
   handleUpdateCard,
-  handleDeleteCard
+  handleDeleteCard,
+  deleteDraftCard
 } = useViewPage({
   allCards,
   tagFilters,
@@ -277,7 +279,10 @@ async function handleDeleteList() {
       :tags="tagsData"
       :project-key="projectKey"
       :project-slug="(route.params.slug as string)"
+      :on-ensure-card="ensureCardForDraft"
       @create="handleCreateCard"
+      @update="handleUpdateCard"
+      @delete-draft="deleteDraftCard"
     />
   </div>
 </template>

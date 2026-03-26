@@ -58,9 +58,11 @@ const {
   selectedCard,
   openCardDetail,
   showCreateCard,
+  ensureCardForDraft,
   handleCreateCard,
   handleUpdateCard,
-  handleDeleteCard
+  handleDeleteCard,
+  deleteDraftCard
 } = useViewPage({
   allCards,
   tagFilters,
@@ -270,7 +272,10 @@ async function handleDeleteBoard() {
       :status-id="createCardStatusId"
       :project-key="projectKey"
       :project-slug="(route.params.slug as string)"
+      :on-ensure-card="ensureCardForDraft"
       @create="handleCreateCard"
+      @update="handleUpdateCard"
+      @delete-draft="deleteDraftCard"
     />
   </div>
 </template>

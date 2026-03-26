@@ -30,14 +30,38 @@ const props = defineProps<{
   statusId?: string
   projectKey?: string
   projectSlug?: string
+  onEnsureCard?: (data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) => Promise<number>
 }>()
 
-const open = defineModel<boolean>('open', { default: false })
+const openModel = defineModel<boolean>('open', { default: false })
+
+const hasUnsavedWork = computed(() =>
+  !!title.value.trim()
+  || !!description.value.trim()
+  || selectedTagIds.value.length > 0
+  || selectedAssigneeId.value !== UNASSIGNED
+  || selectedDueDate.value !== null
+  || priority.value !== 'medium'
+  || !!draftCardId.value
+)
+
+const open = computed({
+  get: () => openModel.value,
+  set: (val: boolean) => {
+    if (!val && !isEdit.value && hasUnsavedWork.value) {
+      // Intercept close — show discard confirmation instead
+      showDraftDiscardConfirm.value = true
+      return
+    }
+    openModel.value = val
+  }
+})
 
 const emit = defineEmits<{
   create: [data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }]
   update: [cardId: number, updates: Record<string, unknown>, tagIds: string[]]
   delete: [cardId: number]
+  deleteDraft: [cardId: number]
 }>()
 
 const isEdit = computed(() => !!props.card)
@@ -65,8 +89,40 @@ const editingDescription = ref(false)
 const titleInput = ref<HTMLInputElement>()
 const descriptionEditorRef = ref<{ startEditing: () => void }>()
 const showDeleteConfirm = ref(false)
+const draftCardId = ref<number | null>(null)
+const showDraftDiscardConfirm = ref(false)
 
 const selectedTagNames = computed(() => (props.tags || []).filter(t => selectedTagIds.value.includes(t.id)).map(t => t.name))
+
+const attachmentCardId = computed(() => draftCardId.value ?? props.card?.id ?? null)
+
+function getFormData() {
+  const assigneeId = selectedAssigneeId.value === UNASSIGNED ? null : selectedAssigneeId.value
+  return {
+    title: title.value.trim() || 'Untitled',
+    description: description.value.trim(),
+    priority: priority.value,
+    statusId: selectedStatusId.value,
+    assigneeId,
+    tagIds: selectedTagIds.value,
+    dueDate: selectedDueDate.value || null
+  }
+}
+
+let ensureCardPromise: Promise<void> | null = null
+
+async function handleBeforeUpload() {
+  if (draftCardId.value || !props.onEnsureCard) return
+  if (ensureCardPromise) {
+    await ensureCardPromise
+    return
+  }
+  ensureCardPromise = props.onEnsureCard(getFormData()).then((id) => {
+    draftCardId.value = id
+  })
+  await ensureCardPromise
+  ensureCardPromise = null
+}
 
 const priorityColorMap: Record<string, 'error' | 'warning' | 'primary' | 'neutral'> = {
   urgent: 'error',
@@ -140,6 +196,8 @@ function reset() {
   selectedDueDate.value = null
   editingDescription.value = false
   showDeleteConfirm.value = false
+  draftCardId.value = null
+  showDraftDiscardConfirm.value = false
 }
 
 function submit() {
@@ -156,6 +214,17 @@ function submit() {
       assigneeId,
       dueDate: selectedDueDate.value || null
     }, selectedTagIds.value)
+  } else if (draftCardId.value) {
+    // Draft was auto-created for attachments — update it with final form data
+    emit('update', draftCardId.value, {
+      title: title.value.trim(),
+      description: description.value.trim(),
+      priority: priority.value,
+      statusId: selectedStatusId.value,
+      assigneeId,
+      dueDate: selectedDueDate.value || null
+    }, selectedTagIds.value)
+    reset()
   } else {
     emit('create', {
       title: title.value.trim(),
@@ -178,6 +247,19 @@ function confirmDelete() {
   emit('delete', props.card.id)
 }
 
+function confirmDiscardDraft() {
+  const id = draftCardId.value
+  showDraftDiscardConfirm.value = false
+  draftCardId.value = null
+  if (id) emit('deleteDraft', id)
+  openModel.value = false
+  // reset() is called by the watch(open) handler when openModel becomes false
+}
+
+function cancelDiscardDraft() {
+  showDraftDiscardConfirm.value = false
+}
+
 function handleKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
     e.preventDefault()
@@ -198,7 +280,9 @@ watch(open, (isOpen) => {
   }
   if (!isOpen) {
     showDeleteConfirm.value = false
-    if (!isEdit.value) reset()
+    if (!isEdit.value) {
+      reset()
+    }
   }
   if (isOpen && !isEdit.value) {
     nextTick(() => titleInput.value?.focus())
@@ -278,7 +362,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               :project-slug="projectSlug"
               :project-key="projectKey"
               :members="members"
-              :card-id="card?.id"
+              :card-id="attachmentCardId"
               :min-height="120"
               :max-height="300"
             />
@@ -468,12 +552,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           </UPopover>
         </div>
 
-        <!-- Attachments (edit mode only) -->
-        <div
-          v-if="isEdit"
-          class="mx-5 mt-3"
-        >
-          <AttachmentList :card-id="card?.id" />
+        <!-- Attachments -->
+        <div class="mx-5 mt-3">
+          <AttachmentList
+            :card-id="attachmentCardId"
+            :on-before-upload="!isEdit ? handleBeforeUpload : undefined"
+          />
         </div>
 
         <!-- Delete confirmation (edit mode only) -->
@@ -500,6 +584,36 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               type="button"
               class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
               @click="showDeleteConfirm = false"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+
+        <!-- Draft discard confirmation (create mode with draft) -->
+        <div
+          v-if="showDraftDiscardConfirm"
+          class="mx-5 mt-3 rounded-lg border border-orange-200/60 dark:border-orange-800/40 bg-orange-50/50 dark:bg-orange-950/20 p-3 flex flex-col gap-2"
+        >
+          <p class="text-[12px] font-medium text-orange-600 dark:text-orange-400 leading-relaxed">
+            You have unsaved changes. Discard this card?
+          </p>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-all"
+              @click="confirmDiscardDraft"
+            >
+              <UIcon
+                name="i-lucide-trash-2"
+                class="text-[13px]"
+              />
+              Discard
+            </button>
+            <button
+              type="button"
+              class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              @click="cancelDiscardDraft"
             >
               Cancel
             </button>

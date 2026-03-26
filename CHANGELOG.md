@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.5.0
+
+### App
+- Add attachment upload to create card form with auto-save on first file upload
+- Image picker in description editor works with draft cards during creation
+- Discard confirmation when closing create card form with unsaved changes
+- Race condition protection for concurrent draft card creation
+
 ## v0.4.0
 
 ### App
