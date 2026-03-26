@@ -5,7 +5,7 @@ import { createTestProject, createTestBoard, createTestCard, getBoard } from '..
 
 describe('Card due date', async () => {
   let user: TestUser
-  let boardId: string
+  let projectId: string
   let colId: string
 
   beforeAll(async () => {
@@ -13,12 +13,12 @@ describe('Card due date', async () => {
     const project = await createTestProject(user, { name: `DueDate ${Date.now()}` })
     const board = await createTestBoard(user, project.id)
     const fullBoard = await getBoard(user, board.id)
-    boardId = board.id
+    projectId = project.id
     colId = fullBoard.columns[0].id
   })
 
   it('creates a card with a due date', async () => {
-    const card = await createTestCard(user, boardId, colId, {
+    const card = await createTestCard(user, projectId, colId, {
       title: 'With Due Date',
       dueDate: '2026-04-01'
     })
@@ -26,14 +26,14 @@ describe('Card due date', async () => {
   })
 
   it('creates a card without a due date (null)', async () => {
-    const card = await createTestCard(user, boardId, colId, {
+    const card = await createTestCard(user, projectId, colId, {
       title: 'No Due Date'
     })
     expect(card.dueDate).toBeNull()
   })
 
   it('updates card due date', async () => {
-    const card = await createTestCard(user, boardId, colId, { title: 'Update Due' })
+    const card = await createTestCard(user, projectId, colId, { title: 'Update Due' })
     const updated = await $fetch(`/api/cards/${card.id}`, {
       method: 'PUT',
       body: { dueDate: '2026-05-15' },
@@ -43,7 +43,7 @@ describe('Card due date', async () => {
   })
 
   it('clears card due date with null', async () => {
-    const card = await createTestCard(user, boardId, colId, {
+    const card = await createTestCard(user, projectId, colId, {
       title: 'Clear Due',
       dueDate: '2026-06-01'
     })
@@ -58,7 +58,7 @@ describe('Card due date', async () => {
   })
 
   it('returns dueDate in card detail', async () => {
-    const card = await createTestCard(user, boardId, colId, {
+    const card = await createTestCard(user, projectId, colId, {
       title: 'Detail Due',
       dueDate: '2026-07-20'
     })

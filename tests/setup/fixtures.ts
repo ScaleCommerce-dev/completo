@@ -125,10 +125,10 @@ export async function createInvitation(user: TestUser, projectId: string, email:
   }) as { invited: boolean, email?: string, id?: string, name?: string, role?: string }
 }
 
-export async function createTestCard(user: TestUser, boardId: string, statusId: string, overrides?: { title?: string, description?: string, priority?: string, assigneeId?: string, dueDate?: string }) {
+export async function createTestCard(user: TestUser, projectId: string, statusId: string, overrides?: { title?: string, description?: string, priority?: string, assigneeId?: string, dueDate?: string }) {
   const title = overrides?.title || `Test Card ${Date.now()}`
 
-  return await $fetch(`/api/boards/${boardId}/cards`, {
+  return await $fetch(`/api/projects/${projectId}/cards`, {
     method: 'POST',
     body: {
       statusId,
@@ -139,7 +139,7 @@ export async function createTestCard(user: TestUser, boardId: string, statusId: 
       dueDate: overrides?.dueDate
     },
     headers: user.headers
-  }) as { id: number, title: string, statusId: string, projectId: string, position: number, priority: string, dueDate: string | null }
+  }) as { id: number, title: string, statusId: string, projectId: string, position: number, priority: string, dueDate: string | null, createdById: string }
 }
 
 export async function uploadAttachment(

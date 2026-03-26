@@ -51,8 +51,8 @@ describe('GET /api/boards/:id', async () => {
     const fullBoard = await getBoard(user, board.id)
 
     const col = fullBoard.columns[0]
-    await createTestCard(user, board.id, col.id, { title: 'Card A' })
-    await createTestCard(user, board.id, col.id, { title: 'Card B' })
+    await createTestCard(user, project.id, col.id, { title: 'Card A' })
+    await createTestCard(user, project.id, col.id, { title: 'Card B' })
 
     const result = await getBoard(user, board.id)
     expect(result.cards).toHaveLength(2)
@@ -84,8 +84,8 @@ describe('GET /api/boards/:id', async () => {
     const otherCol = fullBoard.columns[0]
 
     // Create cards: one in done status, one in another status
-    await createTestCard(user, board.id, doneCol.id, { title: 'Done Card' })
-    await createTestCard(user, board.id, otherCol.id, { title: 'Other Card' })
+    await createTestCard(user, project.id, doneCol.id, { title: 'Done Card' })
+    await createTestCard(user, project.id, otherCol.id, { title: 'Other Card' })
 
     // With default retention (30 days), recently created done cards should still be visible
     const result = await getBoard(user, board.id)
@@ -108,7 +108,7 @@ describe('GET /api/boards/:id', async () => {
 
     const doneCol = fullBoard.columns.find(c => c.name === 'Done')!
 
-    await createTestCard(user, board.id, doneCol.id, { title: 'Done Visible' })
+    await createTestCard(user, project.id, doneCol.id, { title: 'Done Visible' })
 
     // Set retention to null (unlimited) — all cards should show
     await $fetch(`/api/projects/${project.id}`, {

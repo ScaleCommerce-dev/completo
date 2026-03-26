@@ -25,7 +25,7 @@ describe('GET /api/my-tasks', async () => {
     const board = await createTestBoard(user, project.id)
     const fullBoard = await getBoard(user, board.id)
 
-    await createTestCard(user, board.id, fullBoard.columns[0].id, {
+    await createTestCard(user, project.id, fullBoard.columns[0].id, {
       title: 'Assigned Task',
       assigneeId: user.id
     })
@@ -65,7 +65,7 @@ describe('GET /api/my-tasks', async () => {
     const board = await createTestBoard(user, project.id)
     const fullBoard = await getBoard(user, board.id)
 
-    await createTestCard(user, board.id, fullBoard.columns[0].id, {
+    await createTestCard(user, project.id, fullBoard.columns[0].id, {
       title: 'User2 Task',
       assigneeId: user2.id
     })

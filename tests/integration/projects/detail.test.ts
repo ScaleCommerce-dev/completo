@@ -30,8 +30,8 @@ describe('GET /api/projects/[id] — enriched response', async () => {
     const col = boardData.columns[0]
 
     // Create cards with different priorities
-    await createTestCard(user, board.id, col.id, { title: 'Card A', priority: 'high' })
-    await createTestCard(user, board.id, col.id, { title: 'Card B', priority: 'low' })
+    await createTestCard(user, project.id, col.id, { title: 'Card A', priority: 'high' })
+    await createTestCard(user, project.id, col.id, { title: 'Card B', priority: 'low' })
 
     const result = await $fetch(`/api/projects/${project.slug}`, {
       headers: user.headers

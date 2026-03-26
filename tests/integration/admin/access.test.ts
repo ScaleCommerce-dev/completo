@@ -21,7 +21,7 @@ describe('Admin access', async () => {
     project = await createTestProject(regularUser)
     board = await createTestBoard(regularUser, project.id)
     fullBoard = await getBoard(regularUser, board.id)
-    _card = await createTestCard(regularUser, board.id, fullBoard.columns[0].id, {
+    _card = await createTestCard(regularUser, project.id, fullBoard.columns[0].id, {
       title: 'Admin Test Card',
       assigneeId: regularUser.id
     })
@@ -71,7 +71,7 @@ describe('Admin access', async () => {
   })
 
   it('admin can create cards on non-member projects', async () => {
-    const res = await $fetch(`/api/boards/${board.id}/cards`, {
+    const res = await $fetch(`/api/projects/${project.id}/cards`, {
       method: 'POST',
       body: { statusId: fullBoard.columns[0].id, title: 'Admin Created Card' },
       headers: admin.headers

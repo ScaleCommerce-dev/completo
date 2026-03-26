@@ -28,7 +28,7 @@ describe('Resource-level authorization', async () => {
 
     board = await createTestBoard(owner, project.id)
     fullBoard = await getBoard(owner, board.id)
-    card = await createTestCard(owner, board.id, fullBoard.columns[0].id, {
+    card = await createTestCard(owner, project.id, fullBoard.columns[0].id, {
       title: 'Auth Test Card'
     })
   })
@@ -261,9 +261,9 @@ describe('Resource-level authorization', async () => {
 
   // --- Cards ---
 
-  describe('POST /api/boards/[id]/cards', () => {
-    it('rejects stranger with 403', async () => {
-      const res = await fetch(url(`/api/boards/${board.id}/cards`), {
+  describe('POST /api/projects/[id]/cards', () => {
+    it('rejects stranger with 404', async () => {
+      const res = await fetch(url(`/api/projects/${project.id}/cards`), {
         method: 'POST',
         headers: { ...stranger.headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ statusId: fullBoard.columns[0].id, title: 'Hacked Card' })
@@ -294,7 +294,7 @@ describe('Resource-level authorization', async () => {
 
   describe('DELETE /api/cards/[id]', () => {
     it('rejects stranger with 403', async () => {
-      const tempCard = await createTestCard(owner, board.id, fullBoard.columns[0].id, {
+      const tempCard = await createTestCard(owner, project.id, fullBoard.columns[0].id, {
         title: `Temp Del Card ${Date.now()}`
       })
       const res = await fetch(url(`/api/cards/${tempCard.id}`), {

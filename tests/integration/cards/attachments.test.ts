@@ -23,7 +23,7 @@ describe('Card Attachments', async () => {
     boardId = board.id
     const fullBoard = await getBoard(user, boardId)
     statusId = fullBoard.columns[0].id
-    const card = await createTestCard(user, boardId, statusId, { title: 'Attach Card' })
+    const card = await createTestCard(user, projectId, statusId, { title: 'Attach Card' })
     cardId = card.id
   })
 
@@ -169,7 +169,7 @@ describe('Card Attachments', async () => {
 
   it('cascades attachment deletion when card is deleted', async () => {
     // Create a new card with attachments
-    const card2 = await createTestCard(user, boardId, statusId, { title: 'Cascade Card' })
+    const card2 = await createTestCard(user, projectId, statusId, { title: 'Cascade Card' })
     const att = await uploadAttachment(user, cardId, { filename: 'cascade.txt', content: 'cascade test' })
 
     // Create attachment on card2

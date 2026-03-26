@@ -63,7 +63,7 @@ describe('Notifications', () => {
 
   describe('card_assigned notification', () => {
     it('creates notification when card is assigned on creation', async () => {
-      await createTestCard(owner, board.id, statusId, {
+      await createTestCard(owner, project.id, statusId, {
         title: 'Test card for assignment',
         assigneeId: member.id
       })
@@ -79,7 +79,7 @@ describe('Notifications', () => {
     })
 
     it('creates notification when card is reassigned', async () => {
-      const card = await createTestCard(owner, board.id, statusId, {
+      const card = await createTestCard(owner, project.id, statusId, {
         title: 'Reassignment test'
       })
 
@@ -103,7 +103,7 @@ describe('Notifications', () => {
       }) as Record<string, unknown>[]
       const beforeCount = beforeNotifications.length
 
-      await createTestCard(owner, board.id, statusId, {
+      await createTestCard(owner, project.id, statusId, {
         title: 'Self-assign test',
         assigneeId: owner.id
       })
@@ -178,7 +178,7 @@ describe('Notifications', () => {
       }) as Record<string, unknown>[]
       const beforeCount = beforeNotifications.filter(n => n.type === 'mentioned').length
 
-      await createTestCard(owner, board.id, statusId, {
+      await createTestCard(owner, project.id, statusId, {
         title: 'Mention test card',
         description: `Hey @[${member.name}] please check this out`
       })
@@ -196,7 +196,7 @@ describe('Notifications', () => {
     })
 
     it('creates notification when mention is added via description edit', async () => {
-      const card = await createTestCard(owner, board.id, statusId, {
+      const card = await createTestCard(owner, project.id, statusId, {
         title: 'Edit mention test'
       })
 
@@ -221,7 +221,7 @@ describe('Notifications', () => {
 
     it('does not create duplicate notification on re-save with same mentions', async () => {
       const desc = `Check with @[${member.name}] on this`
-      const card = await createTestCard(owner, board.id, statusId, {
+      const card = await createTestCard(owner, project.id, statusId, {
         title: 'No duplicate mention test',
         description: desc
       })
@@ -252,7 +252,7 @@ describe('Notifications', () => {
       }) as Record<string, unknown>[]
       const beforeCount = beforeNotifications.filter(n => n.type === 'mentioned').length
 
-      await createTestCard(owner, board.id, statusId, {
+      await createTestCard(owner, project.id, statusId, {
         title: 'Self mention test',
         description: `I @[${owner.name}] did this`
       })
@@ -271,7 +271,7 @@ describe('Notifications', () => {
         headers: outsider.headers
       }) as Record<string, unknown>[]
 
-      await createTestCard(owner, board.id, statusId, {
+      await createTestCard(owner, project.id, statusId, {
         title: 'Non-member mention test',
         description: `Hey @[${outsider.name}] you are not a member`
       })

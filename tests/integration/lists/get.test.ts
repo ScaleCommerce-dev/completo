@@ -17,8 +17,8 @@ describe('GET /api/lists/:id', async () => {
     const fullBoard = await $fetch(`/api/boards/${board.id}`, { headers: user.headers }) as Record<string, unknown>
     const statusId = fullBoard.columns[0].id
 
-    await createTestCard(user, board.id, statusId, { title: 'Card A' })
-    await createTestCard(user, board.id, statusId, { title: 'Card B' })
+    await createTestCard(user, project.id, statusId, { title: 'Card A' })
+    await createTestCard(user, project.id, statusId, { title: 'Card B' })
 
     const list = await createTestList(user, project.id, { name: 'All View' })
     const fullList = await getList(user, list.id)
@@ -79,7 +79,7 @@ describe('GET /api/lists/:id', async () => {
     const fullBoard = await $fetch(`/api/boards/${board.id}`, { headers: user.headers }) as Record<string, unknown>
     const statusId = fullBoard.columns[0].id
 
-    const card = await createTestCard(user, board.id, statusId, { title: 'Tagged Card' })
+    const card = await createTestCard(user, project.id, statusId, { title: 'Tagged Card' })
 
     // Create a tag and assign it
     const tag = await $fetch(`/api/projects/${project.id}/tags`, {

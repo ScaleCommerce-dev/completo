@@ -2168,102 +2168,6 @@
         }
       }
     },
-    "/api/boards/{id}/cards": {
-      "post": {
-        "tags": [
-          "Cards"
-        ],
-        "summary": "Create card (via board)",
-        "description": "Creates a new card in the specified status. The status must belong to the board's project.",
-        "operationId": "createCard",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/BoardId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CardInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created card",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Card"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
-        }
-      }
-    },
-    "/api/lists/{id}/cards": {
-      "post": {
-        "tags": [
-          "Cards"
-        ],
-        "summary": "Create card (via list)",
-        "operationId": "createListCard",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CardInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created card",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Card"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
-        }
-      }
-    },
     "/api/cards/{id}": {
       "get": {
         "tags": [
@@ -4294,6 +4198,56 @@
       }
     },
     "/api/projects/{id}/cards": {
+      "post": {
+        "tags": [
+          "Cards"
+        ],
+        "summary": "Create card",
+        "description": "Creates a new card in the project. The status must belong to this project.",
+        "operationId": "createCard",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Project ID or slug",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CardInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created card",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Card"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
       "get": {
         "tags": [
           "Cards"

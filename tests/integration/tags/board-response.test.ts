@@ -27,7 +27,7 @@ describe('Board/card GET includes tags', async () => {
   })
 
   it('includes tags array on each card in board response', async () => {
-    const card = await createTestCard(owner, boardId, statusId)
+    const card = await createTestCard(owner, projectId, statusId)
     await setCardTags(owner, card.id, [tag1.id, tag2.id])
 
     const boardData = await getBoard(owner, boardId) as Record<string, unknown>
@@ -51,7 +51,7 @@ describe('Board/card GET includes tags', async () => {
   })
 
   it('card with no tags has empty tags array', async () => {
-    const card = await createTestCard(owner, boardId, statusId)
+    const card = await createTestCard(owner, projectId, statusId)
     const boardData = await getBoard(owner, boardId) as Record<string, unknown>
     const boardCard = boardData.cards.find((c: Record<string, unknown>) => c.id === card.id)
 
@@ -60,7 +60,7 @@ describe('Board/card GET includes tags', async () => {
   })
 
   it('includes tags in single card GET response', async () => {
-    const card = await createTestCard(owner, boardId, statusId)
+    const card = await createTestCard(owner, projectId, statusId)
     await setCardTags(owner, card.id, [tag1.id])
 
     const cardData = await $fetch(`/api/cards/${card.id}`, {
@@ -75,7 +75,7 @@ describe('Board/card GET includes tags', async () => {
 
   it('cascade-deletes cardTags when tag deleted', async () => {
     const tempTag = await createTestTag(owner, projectId, { name: 'Temp' })
-    const card = await createTestCard(owner, boardId, statusId)
+    const card = await createTestCard(owner, projectId, statusId)
     await setCardTags(owner, card.id, [tempTag.id])
 
     // Delete the tag

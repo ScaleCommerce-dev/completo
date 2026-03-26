@@ -40,7 +40,7 @@ describe('Board-level column operations', async () => {
     const full = await getBoard(user, board.id)
     const col = full.columns[0]
 
-    await createTestCard(user, board.id, col.id, { title: 'Keep me' })
+    await createTestCard(user, project.id, col.id, { title: 'Keep me' })
 
     await $fetch(`/api/boards/${board.id}/columns/${col.id}`, {
       method: 'DELETE',

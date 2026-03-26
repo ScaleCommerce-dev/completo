@@ -25,9 +25,9 @@ describe('GET /api/user/profile', async () => {
     const col = boardData.columns[0]
 
     // Create cards with different priorities
-    await createTestCard(user, board.id, col.id, { title: 'Urgent task', priority: 'urgent', assigneeId: user.id })
-    await createTestCard(user, board.id, col.id, { title: 'High task', priority: 'high', assigneeId: user.id })
-    await createTestCard(user, board.id, col.id, { title: 'Medium task', priority: 'medium', assigneeId: user.id })
+    await createTestCard(user, project.id, col.id, { title: 'Urgent task', priority: 'urgent', assigneeId: user.id })
+    await createTestCard(user, project.id, col.id, { title: 'High task', priority: 'high', assigneeId: user.id })
+    await createTestCard(user, project.id, col.id, { title: 'Medium task', priority: 'medium', assigneeId: user.id })
 
     const result = await $fetch('/api/user/profile', {
       headers: user.headers
@@ -58,9 +58,9 @@ describe('GET /api/user/profile', async () => {
     const openCol = boardData.columns[0]
 
     // Create a card in an open status
-    await createTestCard(user, board.id, openCol.id, { title: 'Open card', priority: 'high', assigneeId: user.id })
+    await createTestCard(user, project.id, openCol.id, { title: 'Open card', priority: 'high', assigneeId: user.id })
     // Create a card in the done status
-    await createTestCard(user, board.id, doneCol.id, { title: 'Done card', priority: 'high', assigneeId: user.id })
+    await createTestCard(user, project.id, doneCol.id, { title: 'Done card', priority: 'high', assigneeId: user.id })
 
     const result = await $fetch('/api/user/profile', {
       headers: user.headers

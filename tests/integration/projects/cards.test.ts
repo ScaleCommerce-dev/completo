@@ -67,7 +67,7 @@ describe('GET /api/projects/:id/cards', async () => {
     _tag2 = await createTestTag(owner, project.id, { name: 'Feature', color: '#6366f1' })
 
     // Card A: To Do, high priority, assigned to owner, due tomorrow, tagged Bug
-    cardA = await createTestCard(owner, board.id, statusTodo.id, {
+    cardA = await createTestCard(owner, project.id, statusTodo.id, {
       title: 'Card A',
       priority: 'high',
       assigneeId: owner.id,
@@ -76,7 +76,7 @@ describe('GET /api/projects/:id/cards', async () => {
     await setCardTags(owner, cardA.id, [tag1.id])
 
     // Card B: To Do, medium priority, unassigned, due next week, tagged Feature
-    cardB = await createTestCard(owner, board.id, statusTodo.id, {
+    cardB = await createTestCard(owner, project.id, statusTodo.id, {
       title: 'Card B',
       priority: 'medium',
       dueDate: '2026-04-10'
@@ -84,14 +84,14 @@ describe('GET /api/projects/:id/cards', async () => {
     await setCardTags(owner, cardB.id, [_tag2.id])
 
     // Card C: Backlog, urgent priority, assigned to member
-    _cardC = await createTestCard(owner, board.id, statusBacklog.id, {
+    _cardC = await createTestCard(owner, project.id, statusBacklog.id, {
       title: 'Card C',
       priority: 'urgent',
       assigneeId: member.id
     })
 
     // Card D: Done status, low priority
-    cardD = await createTestCard(owner, board.id, statusDone.id, {
+    cardD = await createTestCard(owner, project.id, statusDone.id, {
       title: 'Card D',
       priority: 'low'
     })

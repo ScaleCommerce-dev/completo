@@ -39,7 +39,7 @@ describe('PUT /api/cards/:id/tags', async () => {
   })
 
   it('sets tags on a card', async () => {
-    const card = await createTestCard(owner, boardId, statusId)
+    const card = await createTestCard(owner, projectId, statusId)
     const result = await setCardTags(owner, card.id, [tag1.id])
 
     expect(result.tags).toHaveLength(1)
@@ -47,7 +47,7 @@ describe('PUT /api/cards/:id/tags', async () => {
   })
 
   it('replaces existing tags', async () => {
-    const card = await createTestCard(owner, boardId, statusId)
+    const card = await createTestCard(owner, projectId, statusId)
     await setCardTags(owner, card.id, [tag1.id])
     const result = await setCardTags(owner, card.id, [tag2.id])
 
@@ -56,14 +56,14 @@ describe('PUT /api/cards/:id/tags', async () => {
   })
 
   it('sets multiple tags', async () => {
-    const card = await createTestCard(owner, boardId, statusId)
+    const card = await createTestCard(owner, projectId, statusId)
     const result = await setCardTags(owner, card.id, [tag1.id, tag2.id])
 
     expect(result.tags).toHaveLength(2)
   })
 
   it('clears all tags with empty array', async () => {
-    const card = await createTestCard(owner, boardId, statusId)
+    const card = await createTestCard(owner, projectId, statusId)
     await setCardTags(owner, card.id, [tag1.id])
     const result = await setCardTags(owner, card.id, [])
 
@@ -71,7 +71,7 @@ describe('PUT /api/cards/:id/tags', async () => {
   })
 
   it('allows any project member to set tags', async () => {
-    const card = await createTestCard(owner, boardId, statusId)
+    const card = await createTestCard(owner, projectId, statusId)
     const result = await setCardTags(member, card.id, [tag1.id])
 
     expect(result.tags).toHaveLength(1)
@@ -80,7 +80,7 @@ describe('PUT /api/cards/:id/tags', async () => {
   it('rejects tags from another project', async () => {
     const project2 = await createTestProject(owner)
     const otherTag = await createTestTag(owner, project2.id, { name: 'Other' })
-    const card = await createTestCard(owner, boardId, statusId)
+    const card = await createTestCard(owner, projectId, statusId)
 
     const res = await fetch(url(`/api/cards/${card.id}/tags`), {
       method: 'PUT',
@@ -91,7 +91,7 @@ describe('PUT /api/cards/:id/tags', async () => {
   })
 
   it('rejects non-member', async () => {
-    const card = await createTestCard(owner, boardId, statusId)
+    const card = await createTestCard(owner, projectId, statusId)
     const res = await fetch(url(`/api/cards/${card.id}/tags`), {
       method: 'PUT',
       body: JSON.stringify({ tagIds: [tag1.id] }),
@@ -110,7 +110,7 @@ describe('PUT /api/cards/:id/tags', async () => {
   })
 
   it('returns 400 for invalid tagIds format', async () => {
-    const card = await createTestCard(owner, boardId, statusId)
+    const card = await createTestCard(owner, projectId, statusId)
     const res = await fetch(url(`/api/cards/${card.id}/tags`), {
       method: 'PUT',
       body: JSON.stringify({ tagIds: 'not-an-array' }),

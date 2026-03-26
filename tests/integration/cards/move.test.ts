@@ -15,9 +15,9 @@ describe('PUT /api/cards/:id/move', async () => {
     const fullBoard = await getBoard(user, board.id)
     const col = fullBoard.columns[0]
 
-    const _card1 = await createTestCard(user, board.id, col.id, { title: 'First' })
-    const _card2 = await createTestCard(user, board.id, col.id, { title: 'Second' })
-    const card3 = await createTestCard(user, board.id, col.id, { title: 'Third' })
+    const _card1 = await createTestCard(user, project.id, col.id, { title: 'First' })
+    const _card2 = await createTestCard(user, project.id, col.id, { title: 'Second' })
+    const card3 = await createTestCard(user, project.id, col.id, { title: 'Third' })
 
     await $fetch(`/api/cards/${card3.id}/move`, {
       method: 'PUT',
@@ -43,8 +43,8 @@ describe('PUT /api/cards/:id/move', async () => {
     const sourceCol = fullBoard.columns[0]
     const targetCol = fullBoard.columns[1]
 
-    const _card1 = await createTestCard(user, board.id, sourceCol.id, { title: 'Stay' })
-    const card2 = await createTestCard(user, board.id, sourceCol.id, { title: 'Move Me' })
+    const _card1 = await createTestCard(user, project.id, sourceCol.id, { title: 'Stay' })
+    const card2 = await createTestCard(user, project.id, sourceCol.id, { title: 'Move Me' })
 
     await $fetch(`/api/cards/${card2.id}/move`, {
       method: 'PUT',
@@ -74,7 +74,7 @@ describe('PUT /api/cards/:id/move', async () => {
 
     const cards = []
     for (let i = 0; i < 4; i++) {
-      cards.push(await createTestCard(user, board.id, col.id, { title: `Card ${i}` }))
+      cards.push(await createTestCard(user, project.id, col.id, { title: `Card ${i}` }))
     }
 
     await $fetch(`/api/cards/${cards[1].id}/move`, {
@@ -103,9 +103,9 @@ describe('PUT /api/cards/:id/move', async () => {
     const col1 = fullBoard.columns[0]
     const col2 = fullBoard.columns[1]
 
-    const _targetA = await createTestCard(user, board.id, col2.id, { title: 'Target A' })
-    const _targetB = await createTestCard(user, board.id, col2.id, { title: 'Target B' })
-    const mover = await createTestCard(user, board.id, col1.id, { title: 'Inserted' })
+    const _targetA = await createTestCard(user, project.id, col2.id, { title: 'Target A' })
+    const _targetB = await createTestCard(user, project.id, col2.id, { title: 'Target B' })
+    const mover = await createTestCard(user, project.id, col1.id, { title: 'Inserted' })
 
     await $fetch(`/api/cards/${mover.id}/move`, {
       method: 'PUT',
@@ -130,7 +130,7 @@ describe('PUT /api/cards/:id/move', async () => {
     const board = await createTestBoard(user, project.id)
     const fullBoard = await getBoard(user, board.id)
     const col = fullBoard.columns[0]
-    const card = await createTestCard(user, board.id, col.id)
+    const card = await createTestCard(user, project.id, col.id)
 
     await expectError($fetch(`/api/cards/${card.id}/move`, {
       method: 'PUT',

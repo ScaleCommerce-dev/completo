@@ -3,7 +3,7 @@ import { $fetch, expectError } from '../../setup/server'
 import { registerTestUser, type TestUser } from '../../setup/auth'
 import { createTestProject, createTestBoard, createTestCard, getBoard } from '../../setup/fixtures'
 
-describe('POST /api/boards/:id/cards', async () => {
+describe('POST /api/projects/:id/cards', async () => {
   let user: TestUser
   beforeAll(async () => {
     user = await registerTestUser()
@@ -15,7 +15,7 @@ describe('POST /api/boards/:id/cards', async () => {
     const fullBoard = await getBoard(user, board.id)
     const col = fullBoard.columns[0]
 
-    const card = await createTestCard(user, board.id, col.id, {
+    const card = await createTestCard(user, project.id, col.id, {
       title: 'Test Card',
       description: 'A description',
       priority: 'high'
@@ -34,9 +34,9 @@ describe('POST /api/boards/:id/cards', async () => {
     const fullBoard = await getBoard(user, board.id)
     const col = fullBoard.columns[0]
 
-    const card1 = await createTestCard(user, board.id, col.id, { title: 'Card 1' })
-    const card2 = await createTestCard(user, board.id, col.id, { title: 'Card 2' })
-    const card3 = await createTestCard(user, board.id, col.id, { title: 'Card 3' })
+    const card1 = await createTestCard(user, project.id, col.id, { title: 'Card 1' })
+    const card2 = await createTestCard(user, project.id, col.id, { title: 'Card 2' })
+    const card3 = await createTestCard(user, project.id, col.id, { title: 'Card 3' })
 
     expect(card1.position).toBe(0)
     expect(card2.position).toBe(1)
@@ -49,15 +49,14 @@ describe('POST /api/boards/:id/cards', async () => {
     const fullBoard = await getBoard(user, board.id)
     const col = fullBoard.columns[0]
 
-    const card = await createTestCard(user, board.id, col.id, { title: 'Default Priority' })
+    const card = await createTestCard(user, project.id, col.id, { title: 'Default Priority' })
     expect(card.priority).toBe('medium')
   })
 
   it('rejects missing required fields', async () => {
     const project = await createTestProject(user, { name: `Card Validate ${Date.now()}` })
-    const board = await createTestBoard(user, project.id)
 
-    await expectError($fetch(`/api/boards/${board.id}/cards`, {
+    await expectError($fetch(`/api/projects/${project.id}/cards`, {
       method: 'POST',
       body: { title: 'No Status' },
       headers: user.headers
@@ -70,7 +69,7 @@ describe('POST /api/boards/:id/cards', async () => {
     const fullBoard = await getBoard(user, board.id)
     const col = fullBoard.columns[0]
 
-    const card = await $fetch(`/api/boards/${board.id}/cards`, {
+    const card = await $fetch(`/api/projects/${project.id}/cards`, {
       method: 'POST',
       body: { statusId: col.id, title: 'Creator Test', assigneeId: user.id },
       headers: user.headers
