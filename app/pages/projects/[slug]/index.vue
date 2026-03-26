@@ -99,6 +99,13 @@ const newTagName = ref('')
 const newTagColor = ref('#6366f1')
 const newTagColorOpen = ref(false)
 const showAddTagPopover = ref(false)
+const newTagNameInput = ref<HTMLInputElement | null>(null)
+
+watch(showAddTagPopover, (open) => {
+  if (open) {
+    nextTick(() => newTagNameInput.value?.focus())
+  }
+})
 const editingTagId = ref<string | null>(null)
 const editingTagName = ref('')
 const confirmDeleteTagId = ref<string | null>(null)
@@ -499,6 +506,7 @@ function cancelDeleteTag() {
                       </template>
                     </UPopover>
                     <input
+                      ref="newTagNameInput"
                       v-model="newTagName"
                       type="text"
                       placeholder="Tag name..."

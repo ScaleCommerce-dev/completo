@@ -21,6 +21,13 @@ const newColName = ref('')
 const newColColor = ref('#6366f1')
 const newColColorOpen = ref(false)
 const showAddColPopover = ref(false)
+const newColNameInput = ref<HTMLInputElement | null>(null)
+
+watch(showAddColPopover, (open) => {
+  if (open) {
+    nextTick(() => newColNameInput.value?.focus())
+  }
+})
 const editingColId = ref<string | null>(null)
 const editingColName = ref('')
 const confirmDeleteColId = ref<string | null>(null)
@@ -311,6 +318,7 @@ async function setDoneStatus(statusId: string | null) {
               </template>
             </UPopover>
             <input
+              ref="newColNameInput"
               v-model="newColName"
               type="text"
               placeholder="Status name..."
