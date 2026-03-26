@@ -148,43 +148,14 @@ jobs:
           pattern: completo-*
           merge-multiple: true
 
-      - name: Extract release notes from CHANGELOG.md
-        id: changelog
+      - name: Build release body
         run: |
-          # Extract the first version section from CHANGELOG.md
           VERSION=${RELEASE_TAG}
           NOTES=$(awk "/^## ${VERSION}/{found=1; next} /^## v/{if(found) exit} found" CHANGELOG.md)
           if [ -z "$NOTES" ]; then
             NOTES="Release ${VERSION}"
           fi
-          # Write to file for the release body
-          cat > release-body.md << 'HEADER'
-## Quick start
-
-```bash
-docker run -p 3000:3000 \
-  -e NUXT_SESSION_PASSWORD=$(openssl rand -base64 32) \
-  -v completo-data:/data \
-  ghcr.io/scalecommerce-dev/completo:latest
-```
-
-Open `localhost:3000` — demo data included.
-
-<details>
-<summary>CLI for AI agents</summary>
-
-**macOS / Linux:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/scalecommerce-dev/completo/main/install.sh | sh
-```
-
-**Windows:** Download `completo-windows-amd64.exe` from the assets below.
-
-</details>
-
----
-
-HEADER
+          cp .github/release-body-header.md release-body.md
           printf '%s\n' "$NOTES" >> release-body.md
 
       - name: Create GitHub Release
