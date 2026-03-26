@@ -45,7 +45,10 @@ const { data: projectData } = await useFetch(`/api/projects/${projectSlug}`)
 const {
   activeTagFilters,
   isFiltered,
-  openCards,
+  filteredCards,
+  visibleCardCount,
+  activeFilterCount,
+  filterSummary,
   showCardDetail,
   selectedCard,
   openCardDetail,
@@ -61,7 +64,9 @@ const {
   statusFilters,
   assigneeFilters,
   priorityFilters,
-  doneStatusId,
+  statuses: statusesData,
+  members: membersData,
+  tags: tagsData,
   updateCardTags,
   createCard,
   updateCard,
@@ -99,55 +104,6 @@ const viewSwitcherItems = computed(() => {
 })
 
 const showColumnConfig = ref(false)
-
-const activeFilterCount = computed(() => {
-  let count = 0
-  if (statusFilters.value.length) count += statusFilters.value.length
-  if (priorityFilters.value.length) count += priorityFilters.value.length
-  if (assigneeFilters.value.length) count += assigneeFilters.value.length
-  if (activeTagFilters.value.size) count += activeTagFilters.value.size
-  return count
-})
-
-const filterSummary = computed(() => {
-  const lines: string[] = []
-  if (statusFilters.value.length) {
-    const names = statusFilters.value.map(id => statusesData.value.find(s => s.id === id)?.name).filter(Boolean)
-    if (names.length) lines.push(`Status: ${names.join(', ')}`)
-  }
-  if (priorityFilters.value.length) {
-    lines.push(`Priority: ${priorityFilters.value.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}`)
-  }
-  if (assigneeFilters.value.length) {
-    const names = assigneeFilters.value.map(id => membersData.value.find(m => m.id === id)?.name).filter(Boolean)
-    if (names.length) lines.push(`Assignee: ${names.join(', ')}`)
-  }
-  if (activeTagFilters.value.size) {
-    const names = [...activeTagFilters.value].map(id => tagsData.value.find(t => t.id === id)?.name).filter(Boolean)
-    if (names.length) lines.push(`Tags: ${names.join(', ')}`)
-  }
-  return lines.join('\n')
-})
-
-const filteredCards = computed(() => {
-  let cards = allCards.value
-  if (statusFilters.value.length) {
-    const set = new Set(statusFilters.value)
-    cards = cards.filter(c => set.has(c.statusId))
-  }
-  if (priorityFilters.value.length) {
-    const set = new Set(priorityFilters.value)
-    cards = cards.filter(c => set.has(c.priority))
-  }
-  if (assigneeFilters.value.length) {
-    const set = new Set(assigneeFilters.value)
-    cards = cards.filter(c => c.assigneeId && set.has(c.assigneeId))
-  }
-  if (activeTagFilters.value.size) {
-    cards = cards.filter(c => (c.tags || []).some(t => activeTagFilters.value.has(t.id)))
-  }
-  return cards
-})
 
 function openCreateCard() {
   showCreateCard.value = true
@@ -199,7 +155,7 @@ async function handleDeleteList() {
       :view-name="list?.name || ''"
       view-icon="i-lucide-list"
       :view-switcher-items="viewSwitcherItems"
-      :open-cards="openCards"
+      :card-count="visibleCardCount"
       :active-filter-count="activeFilterCount"
       :filter-summary="filterSummary"
       :can-configure="canConfigureColumns"

@@ -53,7 +53,10 @@ const allCards = computed(() => {
 
 const {
   activeTagFilters,
-  openCards,
+  applyFilters,
+  visibleCardCount,
+  activeFilterCount,
+  filterSummary,
   showCardDetail,
   selectedCard,
   openCardDetail,
@@ -69,7 +72,9 @@ const {
   statusFilters,
   assigneeFilters,
   priorityFilters,
-  doneStatusId,
+  statuses: columnsData,
+  members: membersData,
+  tags: tagsData,
   updateCardTags,
   createCard,
   updateCard,
@@ -109,53 +114,10 @@ const viewSwitcherItems = computed(() => {
 const showColumnConfig = ref(false)
 const createCardStatusId = ref('')
 
-const activeFilterCount = computed(() => {
-  let count = 0
-  if (statusFilters.value.length) count += statusFilters.value.length
-  if (priorityFilters.value.length) count += priorityFilters.value.length
-  if (assigneeFilters.value.length) count += assigneeFilters.value.length
-  if (activeTagFilters.value.size) count += activeTagFilters.value.size
-  return count
-})
-
-const filterSummary = computed(() => {
-  const lines: string[] = []
-  if (statusFilters.value.length) {
-    const names = statusFilters.value.map(id => columnsData.value.find(s => s.id === id)?.name).filter(Boolean)
-    if (names.length) lines.push(`Status: ${names.join(', ')}`)
-  }
-  if (priorityFilters.value.length) {
-    lines.push(`Priority: ${priorityFilters.value.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}`)
-  }
-  if (assigneeFilters.value.length) {
-    const names = assigneeFilters.value.map(id => membersData.value.find(m => m.id === id)?.name).filter(Boolean)
-    if (names.length) lines.push(`Assignee: ${names.join(', ')}`)
-  }
-  if (activeTagFilters.value.size) {
-    const names = [...activeTagFilters.value].map(id => tagsData.value.find(t => t.id === id)?.name).filter(Boolean)
-    if (names.length) lines.push(`Tags: ${names.join(', ')}`)
-  }
-  return lines.join('\n')
-})
-
 const filteredCardsByColumn = computed(() => {
-  const hasStatus = statusFilters.value.length > 0
-  const hasPriority = priorityFilters.value.length > 0
-  const hasAssignee = assigneeFilters.value.length > 0
-  const hasTag = activeTagFilters.value.size > 0
-  if (!hasStatus && !hasPriority && !hasAssignee && !hasTag) return cardsByColumn.value
-  const statusSet = hasStatus ? new Set(statusFilters.value) : null
-  const prioritySet = hasPriority ? new Set(priorityFilters.value) : null
-  const assigneeSet = hasAssignee ? new Set(assigneeFilters.value) : null
   const filtered: typeof cardsByColumn.value = {}
   for (const [colId, cards] of Object.entries(cardsByColumn.value)) {
-    filtered[colId] = cards.filter((c) => {
-      if (statusSet && !statusSet.has(c.statusId)) return false
-      if (prioritySet && !prioritySet.has(c.priority)) return false
-      if (assigneeSet && !(c.assigneeId && assigneeSet.has(c.assigneeId))) return false
-      if (hasTag && !(c.tags || []).some(t => activeTagFilters.value.has(t.id))) return false
-      return true
-    })
+    filtered[colId] = applyFilters(cards)
   }
   return filtered
 })
@@ -201,7 +163,7 @@ async function handleDeleteBoard() {
       :view-name="board?.name || ''"
       view-icon="i-lucide-layout-dashboard"
       :view-switcher-items="viewSwitcherItems"
-      :open-cards="openCards"
+      :card-count="visibleCardCount"
       :active-filter-count="activeFilterCount"
       :filter-summary="filterSummary"
       :can-configure="canConfigureColumns"

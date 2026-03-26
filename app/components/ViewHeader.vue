@@ -12,7 +12,7 @@ defineProps<{
   viewName: string
   viewIcon: string
   viewSwitcherItems: ViewSwitcherItem[][]
-  openCards: number
+  cardCount: number
   activeFilterCount: number
   filterSummary: string
   canConfigure: boolean
@@ -58,10 +58,10 @@ defineEmits<{
           </button>
         </UDropdownMenu>
       </nav>
-      <UTooltip text="Open cards">
+      <UTooltip :text="activeFilterCount > 0 ? 'Filtered cards' : 'All cards'">
         <span
           class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold font-mono tabular-nums"
-          :class="openCards > 0
+          :class="cardCount > 0
             ? 'text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800'
             : 'text-zinc-400 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50'"
         >
@@ -69,7 +69,7 @@ defineEmits<{
             name="i-lucide-layers"
             class="size-3.5"
           />
-          {{ openCards }}
+          {{ cardCount }}
         </span>
       </UTooltip>
 

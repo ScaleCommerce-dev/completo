@@ -1,4 +1,6 @@
 import type { BaseCard } from '~/types/card'
+import { filterCards, hasActiveFilters, countActiveFilters, buildFilterSummary } from '~/utils/card-filters'
+import type { CardFilterState } from '~/utils/card-filters'
 
 interface ViewPageOptions {
   allCards: ComputedRef<BaseCard[]>
@@ -6,7 +8,9 @@ interface ViewPageOptions {
   statusFilters: ComputedRef<string[]>
   assigneeFilters: ComputedRef<string[]>
   priorityFilters: ComputedRef<string[]>
-  doneStatusId: ComputedRef<string | null>
+  statuses: ComputedRef<{ id: string, name: string }[]>
+  members: ComputedRef<{ id: string, name: string }[]>
+  tags: ComputedRef<{ id: string, name: string }[]>
   updateCardTags: (cardId: number, tagIds: string[]) => Promise<void>
   createCard: (statusId: string, title: string, opts?: { description?: string, priority?: string, assigneeId?: string, dueDate?: string | null }) => Promise<unknown>
   updateCard: (cardId: number, updates: Partial<BaseCard>) => Promise<unknown>
@@ -20,7 +24,9 @@ export function useViewPage(opts: ViewPageOptions) {
     statusFilters,
     assigneeFilters,
     priorityFilters,
-    doneStatusId,
+    statuses,
+    members,
+    tags: tagsData,
     updateCardTags,
     createCard,
     updateCard,
@@ -34,16 +40,30 @@ export function useViewPage(opts: ViewPageOptions) {
     activeTagFilters.value = new Set(tf || [])
   }, { immediate: true })
 
-  const isFiltered = computed(() =>
-    activeTagFilters.value.size > 0
-    || (statusFilters.value?.length ?? 0) > 0
-    || (assigneeFilters.value?.length ?? 0) > 0
-    || (priorityFilters.value?.length ?? 0) > 0
-  )
+  const filterState = computed<CardFilterState>(() => ({
+    statusIds: statusFilters.value || [],
+    priorities: priorityFilters.value || [],
+    assigneeIds: assigneeFilters.value || [],
+    tagIds: activeTagFilters.value
+  }))
 
-  const openCards = computed(() => {
-    return allCards.value.filter(c => c.statusId !== doneStatusId.value).length
-  })
+  const isFiltered = computed(() => hasActiveFilters(filterState.value))
+
+  function applyFilters(cards: BaseCard[]): BaseCard[] {
+    return filterCards(cards, filterState.value)
+  }
+
+  const filteredCards = computed(() => applyFilters(allCards.value))
+
+  const visibleCardCount = computed(() => filteredCards.value.length)
+
+  const activeFilterCount = computed(() => countActiveFilters(filterState.value))
+
+  const filterSummary = computed(() => buildFilterSummary(filterState.value, {
+    statuses: statuses.value,
+    members: members.value,
+    tags: tagsData.value
+  }))
 
   // Card detail modal
   const showCardDetail = ref(false)
@@ -107,7 +127,11 @@ export function useViewPage(opts: ViewPageOptions) {
   return {
     activeTagFilters,
     isFiltered,
-    openCards,
+    applyFilters,
+    filteredCards,
+    visibleCardCount,
+    activeFilterCount,
+    filterSummary,
     showCardDetail,
     selectedCard,
     openCardDetail,
