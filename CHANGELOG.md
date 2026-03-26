@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.5.1
+
+### App
+- Collapsible sidebar with divider-edge chevron toggle and cookie-persisted state
+- View header card count now reflects active filters
+- Fix typecheck: make useViewPage generic to preserve card subtypes
+
+### CLI
+- Improve completo agent skill: add explicit commit step before moving to Done
+
 ## v0.5.0
 
 ### App
