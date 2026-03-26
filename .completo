@@ -1,4 +1,4 @@
-PROJECT=Completo Feedback
+PROJECT=completo-feedback
 TODO_STATUS=To Do
 IN_PROGRESS_STATUS=In Progress
 HANDOFF_STATUS=Review

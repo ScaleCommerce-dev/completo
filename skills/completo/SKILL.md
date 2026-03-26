@@ -115,14 +115,29 @@ completo update TK-27 --description-file /tmp/updated-desc.md
 ```
 Only update the ticket (checklist, description) after the user explicitly tells you to. If they give feedback instead, address it first, then ask again.
 
-### Step 5: Move to Done
+### Step 5: Commit and move to Done
 
-After the user has approved the ticket updates and confirmed they're satisfied (e.g. "looks good", "we're done", "ship it"), move the card to Done:
+After the user has approved the ticket updates and confirmed they're satisfied (e.g. "looks good", "we're done", "ship it"):
+
+**5a. Ask the user for permission to commit.** Do NOT commit automatically — always ask first. Something like:
+> Ready to commit? I'll use the message: "Add collapsible sidebar toggle (CF-83)"
+
+Wait for explicit approval before running `git commit`. If the user wants to adjust the message or stage specific files, follow their lead.
+
+**5b. Commit the changes** with a clear message that includes the ticket ID:
+```bash
+git add <relevant-files>
+git commit -m "Add collapsible sidebar toggle (CF-83)"
+```
+
+**5c. Move the card to Done:**
 ```bash
 completo move TK-27 "Done"
 ```
 
 Don't move to Done on your own — wait for explicit confirmation that the user is finished with the ticket. But also don't forget this step: once the user signals they're done, move the card immediately. A ticket left in Review after sign-off creates confusion about what still needs attention.
+
+**Why commit here and not earlier?** During hand-off (step 4), the user tests locally via hot-reload — no commit needed. If they request changes, the agent iterates without polluting commit history. Committing at Done produces one clean, atomic commit per ticket.
 
 ## Available Commands
 
