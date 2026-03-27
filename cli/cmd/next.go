@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/scalecommerce-dev/completo/cli/internal"
 	"github.com/spf13/cobra"
 )
 
@@ -44,11 +43,12 @@ var nextCmd = &cobra.Command{
 			return fmt.Errorf("status %q not found", statusName)
 		}
 
-		// Fetch cards in status, sorted by position
-		path := fmt.Sprintf("/api/projects/%s/cards?statusId=%s&sort=position&order=asc", proj.ID, s.ID)
-		if !nextAll {
-			path += "&limit=1"
+		if nextAll {
+			return listCards(client, proj, listCardsOpts{StatusID: s.ID})
 		}
+
+		// Fetch first card in status, sorted by position
+		path := fmt.Sprintf("/api/projects/%s/cards?statusId=%s&sort=position&order=asc&limit=1", proj.ID, s.ID)
 		data, err := client.Get(path)
 		if err != nil {
 			return err
@@ -61,26 +61,6 @@ var nextCmd = &cobra.Command{
 
 		if len(cards) == 0 {
 			fmt.Printf("No cards in status %q.\n", statusName)
-			return nil
-		}
-
-		if nextAll {
-			if jsonOutput {
-				b, _ := json.MarshalIndent(cards, "", "  ")
-				fmt.Println(string(b))
-				return nil
-			}
-
-			headers := []string{"TICKET", "TITLE", "PRIORITY"}
-			rows := make([][]string, len(cards))
-			for i, c := range cards {
-				priority := ""
-				if c.Priority != nil {
-					priority = *c.Priority
-				}
-				rows[i] = []string{fmt.Sprintf("%s-%d", proj.Key, c.ID), c.Title, priority}
-			}
-			fmt.Print(internal.FormatTable(headers, rows))
 			return nil
 		}
 

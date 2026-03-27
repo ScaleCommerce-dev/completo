@@ -153,6 +153,7 @@ Don't move to Done on your own — wait for explicit confirmation that the user 
 | `completo projects` | List accessible projects |
 | `completo statuses [project]` | List statuses for a project |
 | `completo next [--status "X"] [--all]` | Fetch next card (or all cards with `--all`) from a status |
+| `completo list [--status "X"] [--priority P] [--assignee A]` | List cards with optional filters |
 | `completo get <ticket-id>` | Fetch a specific card |
 | `completo move <ticket-id> "Status"` | Move card to a named status |
 | `completo assign <ticket-id> --me` | Assign card to yourself |
