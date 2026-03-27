@@ -67,7 +67,7 @@ func resolveProjectID(client *internal.Client, slugOrID string) (string, error) 
 		return "", err
 	}
 	for _, p := range projects {
-		if p.Slug == slugOrID || p.ID == slugOrID {
+		if p.Slug == slugOrID || p.ID == slugOrID || p.Name == slugOrID {
 			return p.ID, nil
 		}
 	}

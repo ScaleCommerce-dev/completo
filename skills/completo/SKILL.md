@@ -67,6 +67,13 @@ completo next
 completo next --status "Backlog"
 ```
 
+To see all cards in the status (useful for picking quick wins):
+```bash
+completo next --all
+```
+
+This returns a table of all cards in the status, letting you scan for quick wins rather than blindly taking the top card. For example, an agent asked "what's a quick thing to implement?" can fetch the full list, analyze titles and priorities, and pick the simplest task.
+
 Read the card output carefully - the title, description, tags, and priority tell you what to implement. If the description contains checklist items (`- [ ]` / `- [x]`), treat them as your implementation plan.
 
 ### Step 2: Assign yourself and move to In Progress
@@ -145,7 +152,7 @@ Don't move to Done on your own — wait for explicit confirmation that the user 
 |---------|---------|
 | `completo projects` | List accessible projects |
 | `completo statuses [project]` | List statuses for a project |
-| `completo next [--status "X"]` | Fetch next card from a status |
+| `completo next [--status "X"] [--all]` | Fetch next card (or all cards with `--all`) from a status |
 | `completo get <ticket-id>` | Fetch a specific card |
 | `completo move <ticket-id> "Status"` | Move card to a named status |
 | `completo assign <ticket-id> --me` | Assign card to yourself |
@@ -160,6 +167,6 @@ All commands support `--json` for JSON output.
 ## Tips
 
 - Status names are case-sensitive and must match exactly
-- The `next` command returns the card with the lowest position (top of the column)
+- The `next` command returns the card with the lowest position (top of the column). Use `--all` to list every card in the status as a table
 - Use `--description-file` for multi-line description updates instead of `--description`
 - The CLI walks up directories to find `.completo`, so it works from any subdirectory
