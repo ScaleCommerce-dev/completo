@@ -13,6 +13,7 @@ var (
 	BuildTime = "unknown"
 
 	jsonOutput bool
+	envFile    string
 	cfg        *internal.Config
 )
 
@@ -26,7 +27,7 @@ var rootCmd = &cobra.Command{
 			return nil
 		}
 		var err error
-		cfg, err = internal.LoadConfig()
+		cfg, err = internal.LoadConfig(envFile)
 		if err != nil {
 			return err
 		}
@@ -43,6 +44,7 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "Output in JSON format")
+	rootCmd.PersistentFlags().StringVar(&envFile, "env-file", "", "Path to env file for credentials/config override")
 }
 
 func mustClient() *internal.Client {

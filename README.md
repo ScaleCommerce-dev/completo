@@ -119,7 +119,16 @@ HANDOFF_STATUS=Review
 INSTRUCTIONS=Create feature branches named <ticket-id>-<slug>. Run tests before handing off.
 ```
 
-Now tell your agent: *"grab the next ticket"* or *"work on TK-27"*.
+Now tell your agent: *"grab the next ticket"*, *"work on TK-27"*, or *"what's a quick win I can knock out?"*.
+
+**Local development:** To point the CLI at a local dev server instead of production, create a `.completo.local` file (gitignored) alongside your `.completo`:
+
+```env
+COMPLETO_URL=http://localhost:3000
+COMPLETO_TOKEN=<your-dev-api-token>
+```
+
+This overrides the global credentials in `~/.completo/.env` without modifying them. You can also use `--env-file path/to/env` for one-off overrides. Full precedence: `~/.completo/.env` → `.completo` → `.completo.local` → `--env-file` → environment variables.
 
 ### The philosophy
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### CLI
+- Add `list` command with `--status`, `--priority`, `--assignee`, and `--limit` filters
+- Add `--all` flag to `next` command to list all cards in a status
+- Add `.completo.local` support for local dev credential overrides
+- Add `--env-file` global flag to override config from any env file
+- Fix project resolution to match by name in addition to slug and ID
+
 ## v0.5.1
 
 ### App

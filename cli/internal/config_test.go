@@ -79,7 +79,7 @@ func TestConfigEnvOverrides(t *testing.T) {
 	os.Setenv("COMPLETO_TOKEN", "")
 	defer os.Unsetenv("COMPLETO_TOKEN")
 
-	cfg, err := LoadConfig()
+	cfg, err := LoadConfig("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestConfigDefaults(t *testing.T) {
 		os.Unsetenv(k)
 	}
 
-	cfg, err := LoadConfig()
+	cfg, err := LoadConfig("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,6 +115,94 @@ func TestConfigDefaults(t *testing.T) {
 	}
 	if cfg.InProgressStatus != "In Progress" {
 		t.Errorf("InProgressStatus = %q, want %q", cfg.InProgressStatus, "In Progress")
+	}
+}
+
+func TestCompletoLocalOverrides(t *testing.T) {
+	dir := t.TempDir()
+	dir, _ = filepath.EvalSymlinks(dir)
+
+	// Set up home with prod credentials
+	homeDir := filepath.Join(dir, "home")
+	os.MkdirAll(filepath.Join(homeDir, ".completo"), 0700)
+	os.WriteFile(filepath.Join(homeDir, ".completo", ".env"),
+		[]byte("COMPLETO_URL=https://prod.example.com\nCOMPLETO_TOKEN=prod-token\n"), 0600)
+
+	// Set up project dir with .completo and .completo.local
+	projectDir := filepath.Join(dir, "project")
+	os.MkdirAll(projectDir, 0755)
+	os.WriteFile(filepath.Join(projectDir, ".completo"),
+		[]byte("PROJECT=my-project\nTODO_STATUS=Backlog\n"), 0600)
+	os.WriteFile(filepath.Join(projectDir, ".completo.local"),
+		[]byte("COMPLETO_URL=http://localhost:3000\nCOMPLETO_TOKEN=dev-token\n"), 0600)
+
+	origHome := os.Getenv("HOME")
+	os.Setenv("HOME", homeDir)
+	defer os.Setenv("HOME", origHome)
+
+	origDir, _ := os.Getwd()
+	os.Chdir(projectDir)
+	defer os.Chdir(origDir)
+
+	// Clear env overrides
+	for _, k := range []string{"COMPLETO_URL", "COMPLETO_TOKEN", "COMPLETO_USER"} {
+		os.Unsetenv(k)
+	}
+
+	cfg, err := LoadConfig("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// .completo.local should override ~/.completo/.env credentials
+	if cfg.URL != "http://localhost:3000" {
+		t.Errorf("URL = %q, want %q (.completo.local override)", cfg.URL, "http://localhost:3000")
+	}
+	if cfg.Token != "dev-token" {
+		t.Errorf("Token = %q, want %q (.completo.local override)", cfg.Token, "dev-token")
+	}
+	// .completo project settings should still be loaded
+	if cfg.Project != "my-project" {
+		t.Errorf("Project = %q, want %q", cfg.Project, "my-project")
+	}
+}
+
+func TestEnvFileFlag(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create an env file to pass via --env-file
+	envFile := filepath.Join(dir, "test.env")
+	os.WriteFile(envFile, []byte("COMPLETO_URL=http://test:9999\nCOMPLETO_TOKEN=test-token\n"), 0600)
+
+	origHome := os.Getenv("HOME")
+	os.Setenv("HOME", t.TempDir())
+	defer os.Setenv("HOME", origHome)
+
+	for _, k := range []string{"COMPLETO_URL", "COMPLETO_TOKEN", "COMPLETO_USER"} {
+		os.Unsetenv(k)
+	}
+
+	cfg, err := LoadConfig(envFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if cfg.URL != "http://test:9999" {
+		t.Errorf("URL = %q, want %q (--env-file override)", cfg.URL, "http://test:9999")
+	}
+	if cfg.Token != "test-token" {
+		t.Errorf("Token = %q, want %q (--env-file override)", cfg.Token, "test-token")
+	}
+}
+
+func TestEnvFileNotFound(t *testing.T) {
+	origHome := os.Getenv("HOME")
+	os.Setenv("HOME", t.TempDir())
+	defer os.Setenv("HOME", origHome)
+
+	_, err := LoadConfig("/nonexistent/path/test.env")
+	if err == nil {
+		t.Error("expected error for missing --env-file, got nil")
 	}
 }
 

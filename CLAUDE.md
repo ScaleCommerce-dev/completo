@@ -130,6 +130,20 @@ npx drizzle-kit generate      # Generate migration SQL from schema changes
 
 Go CLI for interacting with Completo from the terminal or AI agents. Uses Cobra. Config: `~/.completo/.env` (credentials) + `.completo` (project-scoped). Build: `cd cli && go build -o completo .`
 
+**Local dev override:** Create a `.completo.local` file (gitignored) alongside `.completo` to point the CLI at the local dev server instead of production. Config precedence: `~/.completo/.env` → `.completo` → `.completo.local` → `--env-file` → env vars.
+
+```env
+# .completo.local
+COMPLETO_URL=http://localhost:3000
+COMPLETO_TOKEN=<dev-api-token>
+```
+
+Alternatively, use `--env-file path/to/env` for one-off overrides (e.g. CI, testing a built binary from a different directory).
+
+### Agent Skill (`skills/completo/SKILL.md`)
+
+The Completo agent skill lives in-repo at `skills/completo/SKILL.md` — this is the local development copy, not the installed one. When CLI commands change, update this file to keep the skill in sync. Use the `/skill-creator` skill to help with updates.
+
 ### Schema Changes & Migrations
 
 `drizzle-kit push` = dev (no migration files). `pnpm db:migrate` = production (applies SQL from `server/database/migrations/`).

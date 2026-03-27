@@ -22,7 +22,7 @@ type Config struct {
 	Instructions     string
 }
 
-func LoadConfig() (*Config, error) {
+func LoadConfig(envFile string) (*Config, error) {
 	cfg := &Config{}
 
 	// Load user config from ~/.completo/.env
@@ -37,17 +37,6 @@ func LoadConfig() (*Config, error) {
 		cfg.User = vals["COMPLETO_USER"]
 	}
 
-	// Environment variables override file values
-	if v := os.Getenv("COMPLETO_URL"); v != "" {
-		cfg.URL = v
-	}
-	if v := os.Getenv("COMPLETO_TOKEN"); v != "" {
-		cfg.Token = v
-	}
-	if v := os.Getenv("COMPLETO_USER"); v != "" {
-		cfg.User = v
-	}
-
 	// Load project config from .completo in current or parent directories
 	if projectFile := findProjectFile(); projectFile != "" {
 		if vals, err := parseEnvFile(projectFile); err == nil {
@@ -57,6 +46,30 @@ func LoadConfig() (*Config, error) {
 			cfg.HandoffStatus = vals["HANDOFF_STATUS"]
 			cfg.Instructions = vals["INSTRUCTIONS"]
 		}
+
+		// Load .completo.local alongside .completo (local dev overrides, gitignored)
+		localFile := projectFile + ".local"
+		applyFileOverrides(cfg, localFile)
+	}
+
+	// --env-file flag overrides everything except env vars
+	if envFile != "" {
+		vals, err := parseEnvFile(envFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read env file %q: %w", envFile, err)
+		}
+		applyValues(cfg, vals)
+	}
+
+	// Environment variables are the final override
+	if v := os.Getenv("COMPLETO_URL"); v != "" {
+		cfg.URL = v
+	}
+	if v := os.Getenv("COMPLETO_TOKEN"); v != "" {
+		cfg.Token = v
+	}
+	if v := os.Getenv("COMPLETO_USER"); v != "" {
+		cfg.User = v
 	}
 
 	// Defaults
@@ -68,6 +81,44 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// applyFileOverrides loads an env file and applies any recognized keys to the config.
+// Silently skips if the file doesn't exist.
+func applyFileOverrides(cfg *Config, path string) {
+	vals, err := parseEnvFile(path)
+	if err != nil {
+		return
+	}
+	applyValues(cfg, vals)
+}
+
+// applyValues applies recognized keys from a parsed env map to the config.
+func applyValues(cfg *Config, vals map[string]string) {
+	if v := vals["COMPLETO_URL"]; v != "" {
+		cfg.URL = v
+	}
+	if v := vals["COMPLETO_TOKEN"]; v != "" {
+		cfg.Token = v
+	}
+	if v := vals["COMPLETO_USER"]; v != "" {
+		cfg.User = v
+	}
+	if v := vals["PROJECT"]; v != "" {
+		cfg.Project = v
+	}
+	if v := vals["TODO_STATUS"]; v != "" {
+		cfg.TodoStatus = v
+	}
+	if v := vals["IN_PROGRESS_STATUS"]; v != "" {
+		cfg.InProgressStatus = v
+	}
+	if v := vals["HANDOFF_STATUS"]; v != "" {
+		cfg.HandoffStatus = v
+	}
+	if v := vals["INSTRUCTIONS"]; v != "" {
+		cfg.Instructions = v
+	}
 }
 
 func (c *Config) Validate() error {

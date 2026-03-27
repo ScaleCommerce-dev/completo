@@ -3,9 +3,11 @@ name: completo
 description: |
   Manage Completo kanban board cards from the command line. Use this skill whenever the user asks to
   fetch a ticket, get the next task, pick up work, work on a card, move a card between statuses,
-  update a card's description or checklist, or interact with their Completo board programmatically.
+  create a new card or ticket, update a card's description or checklist, list or filter cards,
+  or interact with their Completo board programmatically.
   Also trigger when the user says things like "grab the next ticket", "work on TK-27", "pull from
-  backlog", "what's next", "start on the next card", "move this to review", or "update the card".
+  backlog", "what's next", "start on the next card", "move this to review", "update the card",
+  "create a ticket for this", "add a card", "file a bug", or "list the backlog".
   This skill requires the `completo` CLI to be installed and configured.
 ---
 
@@ -51,6 +53,8 @@ INSTRUCTIONS=Create feature branches named <ticket-id>-<slug>. Run tests before 
 ```
 
 If a `.completo` file exists in the working directory (or any parent), read the `INSTRUCTIONS` field and follow them throughout the workflow.
+
+For local development, a `.completo.local` file (gitignored) can be placed alongside `.completo` to override credentials (e.g. point at `http://localhost:3000`). You can also use `--env-file path/to/env` on any command for one-off overrides. Precedence: `~/.completo/.env` → `.completo` → `.completo.local` → `--env-file` → env vars.
 
 ## Workflow: Pick Up and Complete a Card
 
@@ -146,6 +150,26 @@ Don't move to Done on your own — wait for explicit confirmation that the user 
 
 **Why commit here and not earlier?** During hand-off (step 4), the user tests locally via hot-reload — no commit needed. If they request changes, the agent iterates without polluting commit history. Committing at Done produces one clean, atomic commit per ticket.
 
+## Creating Cards
+
+Create cards directly from the CLI when the user wants to file a bug, add a task, or capture an idea without opening the UI:
+
+```bash
+completo create "Fix login timeout on slow connections"
+completo create "Add CSV export" --priority high --status "Backlog"
+completo create "Refactor auth middleware" --description-file /tmp/desc.md --assign-me --due 2026-04-15
+```
+
+The `create` command supports these flags:
+- `--status "X"` — Status name (defaults to `TODO_STATUS` from `.completo`, or the first status)
+- `--description "text"` / `--description-file path` — Card description (markdown)
+- `--priority low|medium|high|urgent` — Card priority
+- `--due YYYY-MM-DD` — Due date
+- `--assign-me` — Assign the card to yourself
+- `--project slug` — Override the project from `.completo`
+
+After creation, the CLI prints the new ticket ID and card details.
+
 ## Available Commands
 
 | Command | Purpose |
@@ -154,6 +178,7 @@ Don't move to Done on your own — wait for explicit confirmation that the user 
 | `completo statuses [project]` | List statuses for a project |
 | `completo next [--status "X"] [--all]` | Fetch next card (or all cards with `--all`) from a status |
 | `completo list [--status "X"] [--priority P] [--assignee A]` | List cards with optional filters |
+| `completo create <title> [flags]` | Create a new card with optional description, priority, due date |
 | `completo get <ticket-id>` | Fetch a specific card |
 | `completo move <ticket-id> "Status"` | Move card to a named status |
 | `completo assign <ticket-id> --me` | Assign card to yourself |
