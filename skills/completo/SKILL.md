@@ -1,13 +1,14 @@
 ---
 name: completo
 description: |
-  Manage Completo kanban board cards from the command line. Use this skill whenever the user asks to
-  fetch a ticket, get the next task, pick up work, work on a card, move a card between statuses,
-  create a new card or ticket, update a card's description or checklist, list or filter cards,
-  or interact with their Completo board programmatically.
+  Manage Completo kanban board cards and projects from the command line. Use this skill whenever the
+  user asks to fetch a ticket, get the next task, pick up work, work on a card, move a card between
+  statuses, create a new card or ticket, create a new project, update a card's description or
+  checklist, list or filter cards, or interact with their Completo board programmatically.
   Also trigger when the user says things like "grab the next ticket", "work on TK-27", "pull from
   backlog", "what's next", "start on the next card", "move this to review", "update the card",
-  "create a ticket for this", "add a card", "file a bug", or "list the backlog".
+  "create a ticket for this", "add a card", "file a bug", "list the backlog", "create a project",
+  or "set up a new board".
   This skill requires the `completo` CLI to be installed and configured.
 ---
 
@@ -40,10 +41,27 @@ If the command exists but returns a config error, tell the user to run `completo
 
 The CLI reads from two config files:
 
-- **`~/.completo/.env`** - User credentials (URL, API token, email)
-- **`.completo`** - Project-specific settings (committed to repos that use Completo)
+- **`~/.completo/.env`** — User credentials (URL, API token, email). This file must exist with valid credentials before any CLI command will work.
+- **`.completo`** — Project-specific settings (committed to repos that use Completo).
 
-Example `.completo` file:
+### Setting up `~/.completo/.env`
+
+Run `completo config` to create this interactively, or create it manually:
+
+```env
+COMPLETO_URL=https://your-completo-instance.example.com
+COMPLETO_TOKEN=your-api-token
+COMPLETO_USER=your-email@example.com
+```
+
+- `COMPLETO_URL` — Base URL of the Completo instance (no trailing slash)
+- `COMPLETO_TOKEN` — API token (generate one from your Completo profile page)
+- `COMPLETO_USER` — Your email address (used for `--assign-me` and `my-tasks`)
+
+### Setting up `.completo` (project config)
+
+Create a `.completo` file in the root of the repo that uses Completo for task management:
+
 ```env
 PROJECT=my-saas-app
 TODO_STATUS=To Do
@@ -51,6 +69,12 @@ IN_PROGRESS_STATUS=In Progress
 HANDOFF_STATUS=Review
 INSTRUCTIONS=Create feature branches named <ticket-id>-<slug>. Run tests before handing off.
 ```
+
+- `PROJECT` — Project slug (required for most commands, or pass `--project` each time). Find it with `completo projects`.
+- `TODO_STATUS` — Default status for new cards and the `next` command (default: "To Do")
+- `IN_PROGRESS_STATUS` — Status to move cards to when starting work (default: "In Progress")
+- `HANDOFF_STATUS` — Status for review/handoff (default: "Review")
+- `INSTRUCTIONS` — Free-form guidance for agents (read by the skill, not used by CLI directly)
 
 If a `.completo` file exists in the working directory (or any parent), read the `INSTRUCTIONS` field and follow them throughout the workflow.
 
@@ -156,6 +180,33 @@ Don't move to Done on your own — wait for explicit confirmation that the user 
 
 **Why commit here and not earlier?** During hand-off (step 4), the user tests locally via hot-reload — no commit needed. If they request changes, the agent iterates without polluting commit history. Committing at Done produces one clean, atomic commit per ticket.
 
+## Creating Projects
+
+Create a new project when the user wants to set up a fresh board:
+
+```bash
+completo project-create "My New Project"
+completo project-create "Client Portal" --key CP --description "Customer-facing dashboard"
+```
+
+The `project-create` command supports these flags:
+- `--key "XY"` — Project key (2-5 uppercase letters, auto-generated if omitted). Used in ticket IDs like `XY-42`.
+- `--slug "my-project"` — URL slug (auto-generated from name if omitted)
+- `--description "text"` — Project description
+- `--icon "icon-name"` — Project icon
+- `--done-retention-days N` — Days to retain done cards (default: 30)
+
+After creation, the CLI prints the project slug. To use the project, create a `.completo` file:
+
+```env
+PROJECT=my-new-project
+TODO_STATUS=To Do
+IN_PROGRESS_STATUS=In Progress
+HANDOFF_STATUS=Review
+```
+
+New projects come with default statuses (Backlog, To Do, In Progress, Review, Done), tags (Bug, Feature, Discuss), and an Overview board.
+
 ## Creating Cards
 
 Create cards directly from the CLI when the user wants to file a bug, add a task, or capture an idea without opening the UI:
@@ -180,6 +231,7 @@ After creation, the CLI prints the new ticket ID and card details.
 
 | Command | Purpose |
 |---------|---------|
+| `completo project-create <name> [flags]` | Create a new project with default statuses, tags, and board |
 | `completo projects` | List accessible projects |
 | `completo statuses [project]` | List statuses for a project |
 | `completo next [--status "X"] [--all]` | Fetch next card (or all cards with `--all`) from a status |
