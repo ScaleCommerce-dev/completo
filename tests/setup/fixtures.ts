@@ -3,18 +3,10 @@ import type { TestUser } from './auth'
 
 let boardCounter = 0
 
-let keyCounter = 0
-
 function randomKey(): string {
-  keyCounter++
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
   let key = ''
-  let n = keyCounter
-  for (let i = 0; i < 2; i++) {
-    key += chars[n % 26]
-    n = Math.floor(n / 26)
-  }
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 5; i++) {
     key += chars[Math.floor(Math.random() * 26)]
   }
   return key
