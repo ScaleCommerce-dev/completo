@@ -313,7 +313,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           class="flex items-center justify-between px-5 pt-5 pb-2"
         >
           <button
-            class="group/copy inline-flex items-center gap-1 font-mono text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+            class="group/copy relative inline-flex items-center font-mono text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
             type="button"
             :title="modalTicketIdCopied ? 'Copied!' : 'Copy ticket ID'"
             @click="copyModalTicketId"
@@ -321,7 +321,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             {{ formatTicketId(projectKey, card!.id) }}
             <UIcon
               :name="modalTicketIdCopied ? 'i-lucide-check' : 'i-lucide-copy'"
-              class="text-[12px] opacity-0 group-hover/copy:opacity-100 transition-opacity"
+              class="absolute -right-4 text-[12px] opacity-0 group-hover/copy:opacity-100 transition-opacity"
               :class="{ '!opacity-100 text-green-500': modalTicketIdCopied }"
             />
           </button>

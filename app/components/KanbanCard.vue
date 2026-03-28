@@ -109,6 +109,15 @@ function assigneeMenuItems() {
 
 const dueDateOpen = ref(false)
 
+const ticketIdCopied = ref(false)
+async function copyTicketId() {
+  await navigator.clipboard.writeText(formatTicketId(kanbanContext.projectKey.value, props.card.id))
+  ticketIdCopied.value = true
+  setTimeout(() => {
+    ticketIdCopied.value = false
+  }, 2000)
+}
+
 const cardEl = ref<HTMLElement>()
 </script>
 
@@ -133,9 +142,19 @@ const cardEl = ref<HTMLElement>()
     </NuxtLink>
 
     <!-- Ticket ID -->
-    <span class="card-id text-zinc-500 dark:text-zinc-400 select-none mb-1 block">
+    <button
+      type="button"
+      class="group/copy card-id relative inline-flex items-center text-zinc-500 dark:text-zinc-400 select-none mb-1 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+      :title="ticketIdCopied ? 'Copied!' : 'Copy ticket ID'"
+      @click.stop="copyTicketId"
+    >
       {{ formatTicketId(kanbanContext.projectKey.value, card.id) }}
-    </span>
+      <UIcon
+        :name="ticketIdCopied ? 'i-lucide-check' : 'i-lucide-copy'"
+        class="absolute -right-3.5 text-[11px] opacity-0 group-hover/copy:opacity-100 transition-opacity"
+        :class="{ '!opacity-100 text-green-500': ticketIdCopied }"
+      />
+    </button>
 
     <!-- Title -->
     <p class="text-[14px] font-semibold leading-[1.4] text-zinc-900 dark:text-zinc-100 tracking-[-0.01em] pr-6">

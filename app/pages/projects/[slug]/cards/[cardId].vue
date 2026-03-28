@@ -354,14 +354,14 @@ async function confirmDelete() {
             <!-- Card ID header -->
             <div class="px-4 pt-3.5 pb-3 border-b border-zinc-100 dark:border-zinc-700/40">
               <button
-                class="group/copy inline-flex items-center gap-1 font-mono text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+                class="group/copy relative inline-flex items-center font-mono text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
                 :title="ticketIdCopied ? 'Copied!' : 'Copy ticket ID'"
                 @click="copyTicketId"
               >
                 {{ formatTicketId(projectKey, card.id) }}
                 <UIcon
                   :name="ticketIdCopied ? 'i-lucide-check' : 'i-lucide-copy'"
-                  class="text-[12px] opacity-0 group-hover/copy:opacity-100 transition-opacity"
+                  class="absolute -right-4 text-[12px] opacity-0 group-hover/copy:opacity-100 transition-opacity"
                   :class="{ '!opacity-100 text-green-500': ticketIdCopied }"
                 />
               </button>

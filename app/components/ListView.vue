@@ -98,7 +98,7 @@ const FIELD_LABELS: Record<string, string> = {
 
 const COL_WIDTHS: Record<string, string> = {
   done: '36px',
-  ticketId: '72px',
+  ticketId: '88px',
   status: '130px',
   priority: '104px',
   assignee: '148px',
