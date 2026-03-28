@@ -182,16 +182,18 @@ Don't move to Done on your own — wait for explicit confirmation that the user 
 
 ## Creating Projects
 
-Create a new project when the user wants to set up a fresh board:
+Create a new project when the user wants to set up a fresh board.
+
+**Always pass `--slug`** to get a clean, predictable slug. If omitted, the CLI appends a random suffix (e.g. `my-project-ffab90e6`). Derive the slug by lowercasing the project name and replacing spaces/special characters with hyphens.
 
 ```bash
-completo project-create "My New Project"
-completo project-create "Client Portal" --key CP --description "Customer-facing dashboard"
+completo project-create "My New Project" --slug my-new-project
+completo project-create "Client Portal" --key CP --slug client-portal --description "Customer-facing dashboard"
 ```
 
 The `project-create` command supports these flags:
 - `--key "XY"` — Project key (2-5 uppercase letters, auto-generated if omitted). Used in ticket IDs like `XY-42`.
-- `--slug "my-project"` — URL slug (auto-generated from name if omitted)
+- `--slug "my-project"` — URL slug. **Always provide this** to avoid random suffixes. Derive from the project name (lowercase, hyphens for spaces).
 - `--description "text"` — Project description
 - `--icon "icon-name"` — Project icon
 - `--done-retention-days N` — Days to retain done cards (default: 30)
