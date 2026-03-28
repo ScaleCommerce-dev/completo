@@ -125,28 +125,28 @@ Use the `HANDOFF_STATUS` from `.completo` if set. If that status doesn't exist, 
 **4c. Ask the user to review.** Something like:
 > I've moved CF-97 to Review. Here's what I did: [summary]. The ticket needs these updates: [list changes]. Want to test first, or should I update the ticket now?
 
-**4d. Wait for the user's go-ahead**, then update the ticket:
-```bash
-completo update TK-27 --description-file /tmp/updated-desc.md
-```
-Only update the ticket (checklist, description) after the user explicitly tells you to. If they give feedback instead, address it first, then ask again.
+**4d. Wait for the user's feedback.** If they request changes, address them first and re-summarize. The ticket update itself happens in Step 5a (pre-commit), so you don't need separate approval for it — just make sure the user is happy with the implementation before moving on.
 
 ### Step 5: Commit and move to Done
 
-After the user has approved the ticket updates and confirmed they're satisfied (e.g. "looks good", "we're done", "ship it"):
+After the user has approved and confirmed they're satisfied (e.g. "looks good", "we're done", "ship it"):
 
-**5a. Ask the user for permission to commit.** Do NOT commit automatically — always ask first. Something like:
-> Ready to commit? I'll use the message: "Add collapsible sidebar toggle (CF-83)"
+**5a. Pre-commit checklist — before asking to commit, verify:**
+- Has the ticket description/checklist been updated? If not, update it now (check off completed items, add notes about what was done beyond the original scope).
+- The ticket update should happen *before* the commit, not after — it's easy to forget once the code is shipped.
+
+**5b. Ask the user for permission to commit.** Do NOT commit automatically — always ask first. Something like:
+> I've updated the ticket. Ready to commit? I'll use the message: "Add collapsible sidebar toggle (CF-83)"
 
 Wait for explicit approval before running `git commit`. If the user wants to adjust the message or stage specific files, follow their lead.
 
-**5b. Commit the changes** with a clear message that includes the ticket ID:
+**5c. Commit the changes** with a clear message that includes the ticket ID:
 ```bash
 git add <relevant-files>
 git commit -m "Add collapsible sidebar toggle (CF-83)"
 ```
 
-**5c. Move the card to Done:**
+**5d. Move the card to Done:**
 ```bash
 completo move TK-27 "Done"
 ```
