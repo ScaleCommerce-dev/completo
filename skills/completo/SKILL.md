@@ -101,6 +101,11 @@ Tickets are often written by non-technical users, product managers, or as quick 
 - If the ticket has a checklist, are the items complete and in a sensible order?
 - **Are the dependencies in place?** Check whether the APIs, endpoints, data models, or infrastructure the ticket assumes actually exist. If the clean implementation path isn't available and you'd need a workaround, flag it. The user may prefer to fix the root cause first (e.g., add a missing API endpoint) rather than build on a hacky foundation.
 
+**For bug tickets, reproduce first.** Before proposing a fix, try to reproduce the bug using the steps in the ticket. Run the app, trigger the described behavior, and confirm the issue exists. This prevents wasted effort on bugs that were already fixed, are environment-specific, or stem from a misunderstanding. If you cannot reproduce the bug:
+- Report what you tried and what you observed instead.
+- Ask the user how to proceed — they may have additional context, want to reassign the ticket to the reporter, or close it as not reproducible.
+- Do not guess at a fix for a bug you can't see.
+
 **Discuss with the user.** Present your assessment concisely — what you'd do, what concerns you have, and any alternatives worth considering. Let the user weigh in before you start coding. If the ticket is straightforward and you have no concerns, say so briefly and confirm you're ready to proceed.
 
 **Then implement** with the agreed approach. Use plan mode for non-trivial work. Do NOT update the ticket description during implementation — that happens later after the user reviews.
