@@ -145,6 +145,10 @@ Alternatively, use `--env-file path/to/env` for one-off overrides (e.g. CI, test
 
 The Completo agent skill lives in-repo at `skills/completo/SKILL.md` — this is the local development copy, not the installed one. When CLI commands change, update this file to keep the skill in sync. Use the `/skill-creator` skill to help with updates.
 
+### Completo Briefing
+
+`Completo-Briefing.md` provides project context to Completo's AI features (card description generation). Update it when the domain model, architecture, or conventions change significantly. Use the `/completo-briefing` skill to regenerate it, then upload via `completo briefing --file Completo-Briefing.md`.
+
 ### Schema Changes & Migrations
 
 `drizzle-kit push` = dev (no migration files). `pnpm db:migrate` = production (applies SQL from `server/database/migrations/`).
