@@ -40,6 +40,9 @@ CODE_REVIEW*.md
 .playwright
 .playwright-mcp
 
+# pnpm
+.pnpm-store/
+
 # Session Stuff
 TODO/
 prompts/
