@@ -131,12 +131,13 @@ Use the `HANDOFF_STATUS` from `.completo` if set. If that status doesn't exist, 
 
 After the user has approved and confirmed they're satisfied (e.g. "looks good", "we're done", "ship it"):
 
-**5a. Pre-commit checklist — before asking to commit, verify:**
-- Has the ticket description/checklist been updated? If not, update it now (check off completed items, add notes about what was done beyond the original scope).
-- The ticket update should happen *before* the commit, not after — it's easy to forget once the code is shipped.
+**5a. Pre-commit check — before asking to commit, consider whether the ticket needs updating:**
+- If the ticket has a checklist, check off completed items.
+- If the implementation went beyond the original scope (e.g. extra features, different approach), add a brief note.
+- If neither applies — the work matches the description and there's no checklist — skip the update. Don't touch the ticket just for the sake of touching it.
 
 **5b. Ask the user for permission to commit.** Do NOT commit automatically — always ask first. Something like:
-> I've updated the ticket. Ready to commit? I'll use the message: "Add collapsible sidebar toggle (CF-83)"
+> Ready to commit? I'll use the message: "Add collapsible sidebar toggle (CF-83)"
 
 Wait for explicit approval before running `git commit`. If the user wants to adjust the message or stage specific files, follow their lead.
 
