@@ -34,6 +34,7 @@ data/
 
 # Claude Code
 .claude
+CODE_REVIEW*.md
 
 # Playwright
 .playwright

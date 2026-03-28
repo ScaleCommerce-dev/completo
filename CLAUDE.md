@@ -71,6 +71,7 @@ Demo: `demo@example.com` / `demo1234` | Admin: `admin@example.com` / `admin1234`
 - **Don't use `@keydown` on forms for Cmd+Enter** — portals break it. Use global `document` listener with `capture: true`.
 - **Don't close the browser** during Playwright MCP sessions. Screenshots go in `.playwright/`, clean up after.
 - **Don't add Co-Authored-By** lines to commits.
+- **Don't commit code review files** (`CODE_REVIEW*.md`) — these are local-only artifacts, gitignored.
 
 ### Styling
 
