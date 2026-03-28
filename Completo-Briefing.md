@@ -36,6 +36,22 @@ AI Skill ── global prompt templates for card description generation
 
 **Key invariant:** Boards and Lists are *views* — they don't own cards. Removing a column from a board just unlinks the view; cards survive. Deleting a Status cascades and removes its cards.
 
+## Workflow & Lifecycle
+
+Default statuses (configurable per project):
+
+```
+Backlog → To Do → In Progress → Review → Done
+```
+
+- **Backlog:** Ideas and unrefined work, not yet prioritized
+- **To Do:** Prioritized and ready to pick up
+- **In Progress:** Actively being worked on (assigned)
+- **Review:** Implementation complete, awaiting testing/feedback
+- **Done:** Completed. Filtered from views after the project's retention period (not deleted from the database). Card counts in the UI exclude the Done status.
+
+Cards move between statuses via drag-and-drop on boards, dropdown selection in list/detail views, or the CLI (`completo move TK-42 "Review"`).
+
 ## User Roles & Permissions
 
 - **Project roles:** `owner` and `member` (per-project via projectMembers table)
@@ -57,13 +73,15 @@ AI Skill ── global prompt templates for card description generation
 
 ## Tech Stack & Architecture
 
+- **Monolith:** Single deployable unit (Docker container) — no microservices, no external dependencies beyond SQLite
 - **Frontend:** Nuxt 4 (SPA mode, SSR disabled), Nuxt UI 4 components, Tailwind 4, Vue 3 Composition API
 - **Backend:** Nuxt server routes (Nitro), Drizzle ORM, SQLite (single file database)
-- **CLI:** Go (Cobra framework), communicates via REST API with Bearer token auth
+- **API:** REST, project-scoped endpoints nested under `/api/projects/[id]/...`. Card endpoints validate resources belong to the correct project (IDOR prevention).
+- **Frontend patterns:** Composables follow `useXxx()` naming. `useViewData()` is the shared base for board/list views; `useKanban()` and `useListView()` extend it. `useMutation()` wraps try/catch/toast error handling. Pages use `useFetch()`, composables use `$fetch()`.
+- **CLI:** Go (Cobra), communicates via REST API with Bearer token auth. Commands map to API endpoints (get, list, create, move, assign, search, briefing).
 - **Fonts:** Plus Jakarta Sans (body), JetBrains Mono (code/IDs). Icons: Lucide (`i-lucide-*`)
 - **AI:** Supports Anthropic, OpenAI, or OpenRouter for card description generation. Optional — disabled if no provider configured.
 - **File storage:** Local filesystem (configurable upload directory)
-- **Monolith:** Single deployable unit — no microservices, no external dependencies beyond SQLite
 
 ## UI/UX Conventions
 
@@ -88,6 +106,57 @@ AI Skill ── global prompt templates for card description generation
 | **Briefing** | This document — markdown project context for AI features |
 | **AI Skill** | Reusable prompt template for card description generation (admin-managed) |
 | **Done retention** | How many days to keep done cards visible before filtering them from views |
+
+## Ticket Conventions
+
+Tickets in Completo use markdown descriptions. Common categories:
+
+- **Feature:** New capability or enhancement. Use acceptance criteria as a checkbox list.
+- **Bug fix:** Include "Steps to reproduce", "Expected behavior", "Actual behavior" sections.
+- **CLI addition:** New CLI command or flag. Mention the command syntax and expected output.
+- **UI enhancement:** Describe the visual change and affected views (board, list, modal, detail page).
+- **Refactor:** Describe the current problem and the target state. No checklist needed — scope is the description itself.
+
+**Acceptance criteria** use markdown checklists (`- [ ]`). Each item should be independently verifiable. Reference specific UI elements, composables, or API endpoints by name when it aids clarity.
+
+Tickets should NOT include: test instructions, migration steps, or file paths. Those are implementation details for the developer, not the ticket.
+
+## Example Tickets
+
+### Feature ticket
+**Title:** Add card archiving as alternative to deletion
+**Description:**
+Users should be able to archive cards instead of permanently deleting them. Archived cards are hidden from all views but can be restored.
+
+- [ ] Add `archivedAt` timestamp field to cards table
+- [ ] Archived cards are excluded from board and list views (same pattern as done retention filtering)
+- [ ] Add "Archive" option to card modal and detail page (replaces or sits alongside "Delete")
+- [ ] Add "Archived Cards" section in project settings to browse and restore archived cards
+- [ ] CLI `completo list --archived` flag to include archived cards
+
+### Bug fix ticket
+**Title:** Non-member admin sees empty My Tasks despite having cards assigned
+**Description:**
+## Steps to reproduce
+1. Log in as a system admin (`isAdmin=1`) who is not a member of any project
+2. Have another user assign a card to the admin
+3. Navigate to My Tasks
+
+## Expected behavior
+The assigned card appears in My Tasks.
+
+## Actual behavior
+My Tasks shows "No tasks assigned to you." The My Tasks view is not admin-elevated — it only shows cards from projects where the user has explicit membership.
+
+### CLI ticket
+**Title:** Add `--status` filter to `completo search`
+**Description:**
+The `search` command currently returns all matching cards regardless of status. Add an optional `--status` flag to filter results.
+
+- [ ] Accept `--status "Status Name"` flag on the search command
+- [ ] Resolve status name to ID using the same pattern as `next` and `list` commands
+- [ ] Pass `statusId` query parameter to the search API endpoint
+- [ ] Display STATUS column in search results table (currently shows TICKET, TITLE, PRIORITY only)
 
 ## Out of Scope
 
