@@ -33,27 +33,6 @@ const projectKey = computed(() => cardData.value?.project?.key || 'TK')
 
 const projectTagsData = computed(() => cardData.value?.projectTags || [])
 
-const copiedState = ref<'id' | 'url' | null>(null)
-
-function showFeedback(type: 'id' | 'url') {
-  copiedState.value = type
-  setTimeout(() => {
-    copiedState.value = null
-  }, 2000)
-}
-
-async function copyUrl() {
-  if (!card.value) return
-  await navigator.clipboard.writeText(formatTicketUrl(projectSlug, projectKey.value, card.value.id))
-  showFeedback('url')
-}
-
-async function copyId() {
-  if (!card.value) return
-  await navigator.clipboard.writeText(formatTicketId(projectKey.value, card.value.id))
-  showFeedback('id')
-}
-
 const UNASSIGNED = '__unassigned__'
 const title = ref('')
 const description = ref('')
@@ -364,42 +343,12 @@ async function confirmDelete() {
           <div class="rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 bg-white dark:bg-zinc-800/80 shadow-sm overflow-hidden">
             <!-- Card ID header -->
             <div class="px-4 pt-3.5 pb-3 border-b border-zinc-100 dark:border-zinc-700/40">
-              <span
-                class="group/copy relative inline-flex items-center font-mono text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
-                :title="copiedState === 'url' ? 'Link copied!' : 'Copy link'"
-                @click="copyUrl"
-              >
-                {{ formatTicketId(projectKey, card.id) }}
-                <span
-                  class="absolute -right-11 ml-1 inline-flex items-center gap-1 opacity-0 group-hover/copy:opacity-100 transition-opacity"
-                  :class="{ '!opacity-100': copiedState }"
-                >
-                  <button
-                    type="button"
-                    class="p-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700/50 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
-                    :class="{ 'text-green-500!': copiedState === 'url' }"
-                    :title="copiedState === 'url' ? 'Copied!' : 'Copy link'"
-                    @click.stop="copyUrl"
-                  >
-                    <UIcon
-                      :name="copiedState === 'url' ? 'i-lucide-check' : 'i-lucide-link'"
-                      class="text-[12px]"
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    class="p-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700/50 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
-                    :class="{ 'text-green-500!': copiedState === 'id' }"
-                    :title="copiedState === 'id' ? 'Copied!' : 'Copy ticket ID'"
-                    @click.stop="copyId"
-                  >
-                    <UIcon
-                      :name="copiedState === 'id' ? 'i-lucide-check' : 'i-lucide-file-type'"
-                      class="text-[12px]"
-                    />
-                  </button>
-                </span>
-              </span>
+              <TicketIdCopy
+                :project-key="projectKey"
+                :project-slug="projectSlug"
+                :card-id="card.id"
+                variant="pill"
+              />
             </div>
 
             <!-- Properties -->

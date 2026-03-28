@@ -1,26 +1,16 @@
 <script setup lang="ts">
+import type { CardWithStatus, CardStatus, Tag, Member } from '~/types/card'
+
 const SORTABLE_FIELDS = new Set(['ticketId', 'title', 'status', 'priority', 'assignee', 'dueDate', 'createdAt', 'updatedAt'])
 
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
 
 const props = defineProps<{
   columns: Array<{ id: string, field: string, position: number }>
-  cards: Array<{
-    id: number
-    title: string
-    description?: string | null
-    priority: string
-    statusId: string
-    assignee: { id: string, name: string, avatarUrl: string | null } | null
-    status: { id: string, name: string, color: string | null } | null
-    tags?: Array<{ id: string, name: string, color: string }>
-    dueDate?: string | null
-    createdAt: string
-    updatedAt: string
-  }>
-  statuses: Array<{ id: string, name: string, color: string | null }>
-  tags?: Array<{ id: string, name: string, color: string }>
-  members?: Array<{ id: string, name: string, avatarUrl: string | null }>
+  cards: Array<Omit<CardWithStatus, 'projectId'> & { projectId?: string }>
+  statuses: CardStatus[]
+  tags?: Tag[]
+  members?: Member[]
   projectKey?: string
   projectSlug?: string
   doneStatusId?: string | null

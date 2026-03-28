@@ -1,32 +1,11 @@
 <script setup lang="ts">
-interface CardData {
-  id: number
-  title: string
-  description?: string | null
-  priority: string
-  statusId: string
-  assigneeId?: string | null
-  dueDate?: string | null
-  tags?: Array<{ id: string, name: string, color: string }>
-}
-
-interface StatusItem {
-  id: string
-  name: string
-  color?: string | null
-}
-
-interface MemberItem {
-  id: string
-  name: string
-  avatarUrl?: string | null
-}
+import type { BaseCard, CardStatus, Member, Tag } from '~/types/card'
 
 const props = defineProps<{
-  card?: CardData
-  statuses: StatusItem[]
-  members?: MemberItem[]
-  tags?: Array<{ id: string, name: string, color: string }>
+  card?: Pick<BaseCard, 'id' | 'title' | 'description' | 'priority' | 'statusId' | 'assigneeId' | 'dueDate'> & { tags?: Tag[] }
+  statuses: CardStatus[]
+  members?: Member[]
+  tags?: Tag[]
   statusId?: string
   projectKey?: string
   projectSlug?: string
@@ -65,27 +44,6 @@ const emit = defineEmits<{
 }>()
 
 const isEdit = computed(() => !!props.card)
-
-const modalCopiedState = ref<'id' | 'url' | null>(null)
-
-function showModalFeedback(type: 'id' | 'url') {
-  modalCopiedState.value = type
-  setTimeout(() => {
-    modalCopiedState.value = null
-  }, 2000)
-}
-
-async function copyModalUrl() {
-  if (!props.card) return
-  await navigator.clipboard.writeText(formatTicketUrl(props.projectSlug, props.projectKey, props.card.id))
-  showModalFeedback('url')
-}
-
-async function copyModalId() {
-  if (!props.card) return
-  await navigator.clipboard.writeText(formatTicketId(props.projectKey, props.card.id))
-  showModalFeedback('id')
-}
 
 const title = ref('')
 const description = ref('')
@@ -323,42 +281,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           v-if="isEdit"
           class="flex items-center justify-between px-5 pt-5 pb-2"
         >
-          <span
-            class="group/copy relative inline-flex items-center font-mono text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
-            :title="modalCopiedState === 'url' ? 'Link copied!' : 'Copy link'"
-            @click="copyModalUrl"
-          >
-            {{ formatTicketId(projectKey, card!.id) }}
-            <span
-              class="absolute -right-11 ml-1 inline-flex items-center gap-1 opacity-0 group-hover/copy:opacity-100 transition-opacity"
-              :class="{ '!opacity-100': modalCopiedState }"
-            >
-              <button
-                type="button"
-                class="p-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700/50 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
-                :class="{ 'text-green-500!': modalCopiedState === 'url' }"
-                :title="modalCopiedState === 'url' ? 'Copied!' : 'Copy link'"
-                @click.stop="copyModalUrl"
-              >
-                <UIcon
-                  :name="modalCopiedState === 'url' ? 'i-lucide-check' : 'i-lucide-link'"
-                  class="text-[12px]"
-                />
-              </button>
-              <button
-                type="button"
-                class="p-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700/50 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
-                :class="{ 'text-green-500!': modalCopiedState === 'id' }"
-                :title="modalCopiedState === 'id' ? 'Copied!' : 'Copy ticket ID'"
-                @click.stop="copyModalId"
-              >
-                <UIcon
-                  :name="modalCopiedState === 'id' ? 'i-lucide-check' : 'i-lucide-file-type'"
-                  class="text-[12px]"
-                />
-              </button>
-            </span>
-          </span>
+          <TicketIdCopy
+            :project-key="projectKey"
+            :project-slug="projectSlug"
+            :card-id="card!.id"
+            variant="pill"
+          />
           <NuxtLink
             v-if="projectSlug"
             :to="`/projects/${projectSlug}/cards/${formatTicketId(projectKey, card!.id)}`"

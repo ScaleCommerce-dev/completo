@@ -36,3 +36,6 @@ export interface BaseCard {
 export interface CardWithStatus extends BaseCard {
   status: CardStatus | null
 }
+
+/** Lightweight card shape used in board views (no status/timestamps needed) */
+export type BoardCard = Pick<BaseCard, 'id' | 'title' | 'description' | 'priority' | 'assignee' | 'tags' | 'attachmentCount' | 'dueDate'>

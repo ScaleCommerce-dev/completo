@@ -1,32 +1,17 @@
 <script setup lang="ts">
+import type { BoardCard, CardStatus } from '~/types/card'
+
 const draggable = defineAsyncComponent(() => import('vuedraggable'))
 
-interface KanbanColumnData {
-  id: string
-  name: string
-  color?: string | null
-}
-
-interface KanbanCardData {
-  id: number
-  title: string
-  description?: string | null
-  priority: string
-  assignee: { id: string, name: string, avatarUrl: string | null } | null
-  tags?: Array<{ id: string, name: string, color: string }>
-  attachmentCount?: number
-  dueDate?: string | null
-}
-
 const props = defineProps<{
-  column: KanbanColumnData
-  cards: KanbanCardData[]
+  column: CardStatus
+  cards: BoardCard[]
   accentColor?: string
   isDone?: boolean
 }>()
 
 const emit = defineEmits<{
-  'card-click': [card: KanbanCardData]
+  'card-click': [card: BoardCard]
   'card-change': [evt: Record<string, unknown>]
   'card-update': [cardId: number, updates: Record<string, unknown>]
   'add-card': []

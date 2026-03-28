@@ -1,37 +1,16 @@
 <script setup lang="ts">
-interface BoardColumn {
-  id: string
-  name: string
-  color?: string | null
-}
-
-interface BoardCard {
-  id: number
-  title: string
-  description?: string | null
-  priority: string
-  assignee: { id: string, name: string, avatarUrl: string | null } | null
-  tags?: Array<{ id: string, name: string, color: string }>
-  attachmentCount?: number
-  dueDate?: string | null
-}
-
-interface BoardMember {
-  id: string
-  name: string
-  avatarUrl: string | null
-}
+import type { BoardCard, CardStatus, Member } from '~/types/card'
 
 const _props = defineProps<{
-  columns: BoardColumn[]
+  columns: CardStatus[]
   cardsByColumn: Record<string, BoardCard[]>
   projectKey?: string
   projectSlug?: string
   doneStatusId?: string | null
   canConfigureColumns?: boolean
   canAddColumns?: boolean
-  availableColumns?: BoardColumn[]
-  members?: BoardMember[]
+  availableColumns?: CardStatus[]
+  members?: Member[]
 }>()
 
 const kanbanContext = {
