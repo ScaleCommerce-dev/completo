@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## v0.6.1 (2026-03-28)
+
+### CLI
+- Add `project-create` command to create new projects from the CLI
+
 ## v0.6.0 (2026-03-28)
 
 ### App
