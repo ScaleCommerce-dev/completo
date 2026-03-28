@@ -2,10 +2,13 @@
 
 ## Unreleased
 
+## v0.6.0 (2026-03-28)
+
 ### App
 - Add copy-link and copy-ticket-ID hover actions to ticket IDs in board, list, modal, and detail views
 - Extract `TicketIdCopy` component and `useCopyTicketId` composable (deduplication)
 - Centralize card type definitions using shared types from `~/types/card`
+- Switch local dev environment to scdev
 
 ### CLI
 - Add `briefing` command to view, upload, or clear the project's agent briefing
