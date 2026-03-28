@@ -2,7 +2,13 @@
 
 ## Unreleased
 
+### App
+- Add copy-link and copy-ticket-ID hover actions to ticket IDs in board, list, modal, and detail views
+- Extract `TicketIdCopy` component and `useCopyTicketId` composable (deduplication)
+- Centralize card type definitions using shared types from `~/types/card`
+
 ### CLI
+- Add `briefing` command to view, upload, or clear the project's agent briefing
 - Add `list` command with `--status`, `--priority`, `--assignee`, and `--limit` filters
 - Add `--all` flag to `next` command to list all cards in a status
 - Add `.completo.local` support for local dev credential overrides

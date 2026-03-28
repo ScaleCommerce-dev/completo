@@ -189,6 +189,7 @@ After creation, the CLI prints the new ticket ID and card details.
 | `completo move <ticket-id> "Status"` | Move card to a named status |
 | `completo assign <ticket-id> --me` | Assign card to yourself |
 | `completo update <ticket-id> [flags]` | Update card fields |
+| `completo briefing [--file F] [--clear]` | View, upload, or clear the project's agent briefing |
 | `completo my-tasks` | List cards assigned to you |
 | `completo search <query>` | Search cards in project |
 | `completo version` | Print CLI version |
