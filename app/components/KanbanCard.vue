@@ -109,13 +109,23 @@ function assigneeMenuItems() {
 
 const dueDateOpen = ref(false)
 
-const ticketIdCopied = ref(false)
-async function copyTicketId() {
-  await navigator.clipboard.writeText(formatTicketId(kanbanContext.projectKey.value, props.card.id))
-  ticketIdCopied.value = true
+const copiedState = ref<'id' | 'url' | null>(null)
+
+function showFeedback(type: 'id' | 'url') {
+  copiedState.value = type
   setTimeout(() => {
-    ticketIdCopied.value = false
+    copiedState.value = null
   }, 2000)
+}
+
+async function copyUrl() {
+  await navigator.clipboard.writeText(formatTicketUrl(kanbanContext.projectSlug.value, kanbanContext.projectKey.value, props.card.id))
+  showFeedback('url')
+}
+
+async function copyId() {
+  await navigator.clipboard.writeText(formatTicketId(kanbanContext.projectKey.value, props.card.id))
+  showFeedback('id')
 }
 
 const cardEl = ref<HTMLElement>()
@@ -142,19 +152,42 @@ const cardEl = ref<HTMLElement>()
     </NuxtLink>
 
     <!-- Ticket ID -->
-    <button
-      type="button"
-      class="group/copy card-id relative inline-flex items-center text-zinc-500 dark:text-zinc-400 select-none mb-1 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
-      :title="ticketIdCopied ? 'Copied!' : 'Copy ticket ID'"
-      @click.stop="copyTicketId"
+    <span
+      class="group/copy card-id relative inline-flex items-center text-zinc-500 dark:text-zinc-400 select-none mb-1 cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+      :title="copiedState === 'url' ? 'Link copied!' : 'Copy link'"
+      @click.stop="copyUrl"
     >
       {{ formatTicketId(kanbanContext.projectKey.value, card.id) }}
-      <UIcon
-        :name="ticketIdCopied ? 'i-lucide-check' : 'i-lucide-copy'"
-        class="absolute -right-3.5 text-[11px] opacity-0 group-hover/copy:opacity-100 transition-opacity"
-        :class="{ '!opacity-100 text-green-500': ticketIdCopied }"
-      />
-    </button>
+      <span
+        class="absolute -right-10 ml-1 inline-flex items-center gap-1 opacity-0 group-hover/copy:opacity-100 transition-opacity"
+        :class="{ '!opacity-100': copiedState }"
+      >
+        <button
+          type="button"
+          class="p-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700/50 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
+          :class="{ 'text-green-500!': copiedState === 'url' }"
+          :title="copiedState === 'url' ? 'Copied!' : 'Copy link'"
+          @click.stop="copyUrl"
+        >
+          <UIcon
+            :name="copiedState === 'url' ? 'i-lucide-check' : 'i-lucide-link'"
+            class="text-[11px]"
+          />
+        </button>
+        <button
+          type="button"
+          class="p-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700/50 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
+          :class="{ 'text-green-500!': copiedState === 'id' }"
+          :title="copiedState === 'id' ? 'Copied!' : 'Copy ticket ID'"
+          @click.stop="copyId"
+        >
+          <UIcon
+            :name="copiedState === 'id' ? 'i-lucide-check' : 'i-lucide-file-type'"
+            class="text-[11px]"
+          />
+        </button>
+      </span>
+    </span>
 
     <!-- Title -->
     <p class="text-[14px] font-semibold leading-[1.4] text-zinc-900 dark:text-zinc-100 tracking-[-0.01em] pr-6">

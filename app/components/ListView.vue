@@ -307,6 +307,7 @@ const sortedCards = computed(() => {
             <ListCellTicketId
               v-else-if="col.field === 'ticketId'"
               :project-key="projectKey"
+              :project-slug="projectSlug"
               :card-id="card.id"
             />
 

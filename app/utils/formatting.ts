@@ -26,6 +26,12 @@ export function formatTicketId(projectKey: string | undefined, id: number): stri
   return `${projectKey || 'TK'}-${id}`
 }
 
+export function formatTicketUrl(projectSlug: string | undefined, projectKey: string | undefined, id: number): string {
+  const path = `/projects/${projectSlug}/cards/${formatTicketId(projectKey, id)}`
+  if (import.meta.client) return `${window.location.origin}${path}`
+  return path
+}
+
 export function formatDueDate(dueDate: string | Date): string {
   const d = new Date(dueDate)
   const now = new Date()
