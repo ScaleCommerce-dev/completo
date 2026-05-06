@@ -26,18 +26,7 @@ $PM --prefix scripts run db:seed
 # Clean up expired tokens and orphan records
 $PM --prefix scripts run db:cleanup
 
-# Auto-create initial user from env (idempotent — skips if user exists)
-if [ -n "$INIT_USER_EMAIL" ] && [ -n "$INIT_USER_PASSWORD" ]; then
-  set -- "$INIT_USER_EMAIL" "$INIT_USER_PASSWORD"
-  [ -n "$INIT_USER_NAME" ] && set -- "$@" "$INIT_USER_NAME"
-  case "$INIT_USER_ADMIN" in
-    1|true|TRUE|yes|YES) set -- "$@" admin ;;
-  esac
-  set -- "$@" --skip-existing
-  $PM --prefix scripts run user:create -- "$@"
-elif [ -n "$INIT_USER_EMAIL" ] || [ -n "$INIT_USER_PASSWORD" ]; then
-  echo "Warning: INIT_USER_EMAIL and INIT_USER_PASSWORD must both be set to auto-create a user" >&2
-fi
+# Initial user auto-creation runs in the Nitro server plugin (server/plugins/init-user.ts)
 
 # Start the server (exec replaces shell for proper signal handling)
 exec node .output/server/index.mjs

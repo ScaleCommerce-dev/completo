@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## v0.6.3 (2026-05-06)
+
+### App
+- Auto-create initial user on every server startup (dev and production), not just Docker, when `INIT_USER_EMAIL` and `INIT_USER_PASSWORD` are set
+
 ## v0.6.2 (2026-05-06)
 
 ### App
