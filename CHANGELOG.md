@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### App
+- Docker: auto-create an initial user on container start when `INIT_USER_EMAIL` and `INIT_USER_PASSWORD` are set (idempotent; supports optional `INIT_USER_NAME` and `INIT_USER_ADMIN`)
+
 ## v0.6.1 (2026-03-28)
 
 ### CLI

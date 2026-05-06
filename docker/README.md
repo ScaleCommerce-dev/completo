@@ -39,6 +39,24 @@ Only `NUXT_SESSION_PASSWORD` is required. All others have sensible defaults.
 | `UPLOAD_DIR` | `/data/uploads` | Path inside the container. |
 | `PORT` | `3000` | |
 | `SMTP_HOST` | — | Empty = email disabled. |
+| `INIT_USER_EMAIL` | — | Auto-create this user on startup (skipped if already exists). |
+| `INIT_USER_PASSWORD` | — | Required when `INIT_USER_EMAIL` is set. |
+| `INIT_USER_NAME` | — | Optional display name. Defaults to local part of email. |
+| `INIT_USER_ADMIN` | — | Set to `true` / `1` to make the user an admin. |
+
+### Auto-create initial user
+
+Set `INIT_USER_EMAIL` + `INIT_USER_PASSWORD` to provision a user on first start — useful for fresh deploys where you don't want to rely on the `admin@example.com` seed account. The check is idempotent: subsequent restarts skip creation if the user already exists.
+
+```bash
+docker run -p 3000:3000 \
+  -e NUXT_SESSION_PASSWORD=test-secret-min-32-chars-long-here \
+  -e INIT_USER_EMAIL=me@example.com \
+  -e INIT_USER_PASSWORD=changeme1234 \
+  -e INIT_USER_ADMIN=true \
+  -v completo-data:/data \
+  completo
+```
 
 ## CLI Scripts
 

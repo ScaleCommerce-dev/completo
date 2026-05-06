@@ -19,14 +19,15 @@ const scryptAsync = promisify(scryptCb)
 
 const args = process.argv.slice(2)
 const isAdmin = args.includes('admin')
-const positional = args.filter(a => a !== 'admin')
+const skipExisting = args.includes('--skip-existing')
+const positional = args.filter(a => a !== 'admin' && !a.startsWith('--'))
 
 const email = positional[0]
 const password = positional[1]
 const name = positional[2]
 
 if (!email || !password) {
-  console.error('Usage: pnpm user:create <email> <password> [name] [admin]')
+  console.error('Usage: pnpm user:create <email> <password> [name] [admin] [--skip-existing]')
   process.exit(1)
 }
 
@@ -39,6 +40,11 @@ db.pragma('foreign_keys = ON')
 // Check for existing user
 const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as { id: string } | undefined
 if (existing) {
+  if (skipExisting) {
+    console.log(`User already exists with email: ${email} — skipping`)
+    db.close()
+    process.exit(0)
+  }
   console.error(`User already exists with email: ${email}`)
   db.close()
   process.exit(1)
