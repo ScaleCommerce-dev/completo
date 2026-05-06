@@ -2,8 +2,11 @@
 
 ## Unreleased
 
+## v0.6.2 (2026-05-06)
+
 ### App
 - Docker: auto-create an initial user on container start when `INIT_USER_EMAIL` and `INIT_USER_PASSWORD` are set (idempotent; supports optional `INIT_USER_NAME` and `INIT_USER_ADMIN`)
+- Fix board drag-and-drop so cards no longer briefly reappear in the source column before settling in the target
 
 ## v0.6.1 (2026-03-28)
 

@@ -70,6 +70,27 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
   })
 
   async function moveCard(cardId: number, toColumnId: string, toPosition: number) {
+    // Optimistically renumber so the board reflects the move before the API
+    // round-trip; otherwise the column the card was dragged out of briefly
+    // reappears with the old order until refresh() returns.
+    const cards = board.value?.cards
+    const moving = cards?.find(c => c.id === cardId)
+    if (cards && moving) {
+      const fromColumnId = moving.statusId
+      const target = cards.filter(c => c.statusId === toColumnId && c.id !== cardId)
+        .sort((a, b) => a.position - b.position)
+      target.splice(toPosition, 0, moving)
+      target.forEach((c, i) => {
+        c.position = i
+        c.statusId = toColumnId
+      })
+      if (fromColumnId !== toColumnId) {
+        cards.filter(c => c.statusId === fromColumnId && c.id !== cardId)
+          .sort((a, b) => a.position - b.position)
+          .forEach((c, i) => { c.position = i })
+      }
+    }
+
     try {
       await $fetch(`/api/cards/${cardId}/move`, {
         method: 'PUT',

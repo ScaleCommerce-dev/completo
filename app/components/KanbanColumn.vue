@@ -17,9 +17,17 @@ const emit = defineEmits<{
   'add-card': []
 }>()
 
-const localCards = computed({
-  get: () => props.cards,
-  set: () => {} // handled by change event
+// Use vuedraggable's :list mode (mutates this array directly) instead of
+// :model-value — the latter re-inserts the dropped node into the source DOM
+// before @change fires, causing a visible flicker on inter-column moves.
+// Resync only when the id sequence actually differs, so an in-flight
+// optimistic mutation isn't clobbered by stale props.
+const localCards = ref<BoardCard[]>([...props.cards])
+watch(() => props.cards, (val) => {
+  if (val.length !== localCards.value.length
+    || val.some((c, i) => c.id !== localCards.value[i]?.id)) {
+    localCards.value = [...val]
+  }
 })
 
 function onAreaDblClick(e: MouseEvent) {
@@ -82,7 +90,7 @@ function onAreaDblClick(e: MouseEvent) {
     >
       <ClientOnly>
         <draggable
-          :model-value="localCards"
+          :list="localCards"
           group="cards"
           item-key="id"
           class="flex flex-col gap-1.5 min-h-full"
