@@ -21,22 +21,28 @@ To install completo, the only thing you need is Node:
 ```bash
 git clone https://github.com/ScaleCommerce-dev/completo.git
 cd completo
-npm install
-npm run build
+cp env.sample .env   # set NUXT_SESSION_PASSWORD + ADMIN_USER_EMAIL / ADMIN_USER_PASSWORD
+pnpm install
+pnpm setup           # migrate + create your admin from .env + seed demo project
+pnpm dev             # http://localhost:3000
 ```
 
-That's it. No Kubernetes manifests. No 14-step setup guide written by someone who clearly hates you. SQLite is baked in — there's no database to provision, no connection string to fumble. Start it. Open your browser. Drag. Drop. Completo.
+That's it. No Kubernetes manifests. No 14-step setup guide written by someone who clearly hates you. SQLite is baked in — there's no database to provision, no connection string to fumble. Log in with the admin you just configured. Drag. Drop. Completo.
 
 Or if containers are your thing:
 
 ```bash
 docker run -p 3000:3000 \
   -e NUXT_SESSION_PASSWORD=$(openssl rand -base64 32) \
+  -e ADMIN_USER_EMAIL=admin@yourdomain.com \
+  -e ADMIN_USER_PASSWORD=change-this-password \
   -v completo-data:/data \
   ghcr.io/scalecommerce-dev/completo:latest
 ```
 
-One command. One container. Demo data included. Open `localhost:3000` and log in with `demo@example.com` / `demo1234` or `admin@example.com` / `admin1234`.
+One command. One container. Open `localhost:3000` and log in with the admin email/password you set above. The demo project is created on first boot, attributed to that admin.
+
+No default accounts ship anywhere — set the env vars or no admin exists.
 
 ### Why it exists
 
@@ -75,16 +81,20 @@ The only required environment variable is `NUXT_SESSION_PASSWORD` (min 32 charac
 | `NUXT_OAUTH_GITHUB_CLIENT_ID/SECRET` | GitHub OAuth (empty = disabled) | — |
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID/SECRET` | Google OAuth (empty = disabled) | — |
 | `NUXT_OAUTH_MICROSOFT_CLIENT_ID/SECRET` | Microsoft OAuth (empty = disabled) | — |
-| `ADMIN_USER_EMAIL` + `ADMIN_USER_PASSWORD` | Auto-create this admin on startup if missing. Optional `ADMIN_USER_NAME`. Idempotent. | — |
+| `ADMIN_USER_EMAIL` + `ADMIN_USER_PASSWORD` | Provisioned by `pnpm setup` (dev) and the Docker entrypoint (prod). Optional `ADMIN_USER_NAME`. No fallback — if unset, no admin is created. | — |
 
 ### CLI commands
 
 Manage your instance from the command line. All commands work with both `npm run` and `pnpm`.
 
 ```bash
-# Database
-pnpm db:migrate          # Apply pending migrations (production)
-pnpm db:seed             # Seed demo data (demo + admin users, sample project)
+# Setup (chains migrate → init-admin → seed)
+pnpm setup               # First-time / fresh-DB bootstrap
+
+# Or step by step:
+pnpm db:migrate          # Apply pending migrations
+pnpm db:init-admin       # Provision admin from ADMIN_USER_* env (.env or shell)
+pnpm db:seed             # Seed demo project (attributed to admin if one exists)
 pnpm db:cleanup          # Remove expired sessions and soft-deleted data
 
 # User management

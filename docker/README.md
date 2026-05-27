@@ -26,7 +26,7 @@ docker run -p 3000:3000 \
   completo
 ```
 
-Default credentials after first start: `demo@example.com` / `demo1234`, `admin@example.com` / `admin1234`.
+No default accounts are created. Set `ADMIN_USER_EMAIL` + `ADMIN_USER_PASSWORD` (see below) to provision your admin on first boot. The demo project + sample cards are then created and attributed to that admin.
 
 ### Passing many env vars
 
@@ -47,13 +47,13 @@ Only `NUXT_SESSION_PASSWORD` is required. All others have sensible defaults.
 | `UPLOAD_DIR` | `/data/uploads` | Path inside the container. |
 | `PORT` | `3000` | |
 | `SMTP_HOST` | — | Empty = email disabled. |
-| `ADMIN_USER_EMAIL` | — | Auto-create this admin on startup (skipped if a user with this email already exists). |
+| `ADMIN_USER_EMAIL` | — | Provision this admin on startup. Skipped if absent — no fallback default admin. |
 | `ADMIN_USER_PASSWORD` | — | Required when `ADMIN_USER_EMAIL` is set. |
 | `ADMIN_USER_NAME` | — | Optional display name. Defaults to local part of email. |
 
-### Auto-create admin user
+### Provision an admin user
 
-Set `ADMIN_USER_EMAIL` + `ADMIN_USER_PASSWORD` to provision an admin on first start — useful for fresh deploys where you don't want to rely on the `admin@example.com` seed account. The check is idempotent: subsequent restarts skip creation if the user already exists. The created user is always an admin.
+Set `ADMIN_USER_EMAIL` + `ADMIN_USER_PASSWORD` on first boot. The entrypoint runs `scripts/user-create.ts` under the hood with `--skip-existing`, so subsequent restarts are no-ops if the user is already there. The created user is always an admin and owns the seeded demo project.
 
 ```bash
 docker run -p 3000:3000 \
@@ -62,6 +62,12 @@ docker run -p 3000:3000 \
   -e ADMIN_USER_PASSWORD=changeme1234 \
   -v completo-data:/data \
   completo
+```
+
+If you skip these env vars, no admin is created. You can still provision one ad-hoc against a running container:
+
+```bash
+docker exec <container> node ./scripts/node_modules/.bin/tsx scripts/user-create.ts you@example.com pass "You" admin
 ```
 
 ## CLI Scripts

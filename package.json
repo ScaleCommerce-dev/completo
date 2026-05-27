@@ -1,7 +1,7 @@
 {
   "name": "completo",
   "private": true,
-  "version": "0.6.5",
+  "version": "0.6.6",
   "type": "module",
   "scripts": {
     "build": "nuxt build",
@@ -13,7 +13,9 @@
     "test": "vitest",
     "test:unit": "vitest --project unit",
     "test:integration": "vitest --project integration",
+    "setup": "pnpm db:migrate && pnpm db:init-admin && pnpm db:seed",
     "db:cleanup": "npx tsx scripts/db-cleanup.ts",
+    "db:init-admin": "./scripts/init-admin.sh",
     "db:migrate": "npx tsx scripts/db-migrate.ts",
     "db:seed": "npx tsx scripts/db-seed.ts",
     "user:verify-email": "npx tsx scripts/user-verify-email.ts",

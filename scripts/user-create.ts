@@ -1,9 +1,14 @@
 #!/usr/bin/env npx tsx
 /**
- * Create user CLI — run with: pnpm user:create <email> <password> [name] [admin]
+ * Create user CLI — run with:
+ *   pnpm user:create <email> <password> [name] [admin] [--skip-existing]
+ *   pnpm user:create --from-env [--skip-existing]
  *
  * Creates a new user with email + password, auto-verified so they can
- * log in immediately. Append "admin" to create an admin user.
+ * log in immediately. Append `admin` (trailing positional) to create an
+ * admin user. `--from-env` reads ADMIN_USER_EMAIL / ADMIN_USER_PASSWORD /
+ * ADMIN_USER_NAME from the environment (dotenv-loaded), implies admin,
+ * and exits 0 quietly when those env vars are absent.
  */
 import { config } from 'dotenv'
 import Database from 'better-sqlite3'
@@ -18,16 +23,43 @@ config({ path: resolve(projectRoot, '.env') })
 const scryptAsync = promisify(scryptCb)
 
 const args = process.argv.slice(2)
-const isAdmin = args.includes('admin')
 const skipExisting = args.includes('--skip-existing')
-const positional = args.filter(a => a !== 'admin' && !a.startsWith('--'))
+const fromEnv = args.includes('--from-env')
+// Strip flags; the trailing `admin` token (if present) marks admin role.
+// Strict positional check — a password literally equal to "admin" no longer
+// silently elevates the user (previous parser used `args.includes('admin')`).
+const positional = args.filter(a => !a.startsWith('--'))
 
-const email = positional[0]
-const password = positional[1]
-const name = positional[2]
+let email: string | undefined
+let password: string | undefined
+let name: string | undefined
+let isAdmin = false
+
+if (fromEnv) {
+  email = process.env.ADMIN_USER_EMAIL
+  password = process.env.ADMIN_USER_PASSWORD
+  name = process.env.ADMIN_USER_NAME || (email ? email.split('@')[0] : undefined)
+  isAdmin = true
+  if (!email || !password) {
+    console.log('[user:create --from-env] ADMIN_USER_EMAIL / ADMIN_USER_PASSWORD not set — skipping admin creation')
+    process.exit(0)
+  }
+} else {
+  // `admin` is a marker only when it's the LAST positional and there are
+  // at least 3 positionals (email + password + something). This way a
+  // password or name accidentally equal to "admin" doesn't escalate.
+  if (positional.length >= 3 && positional[positional.length - 1] === 'admin') {
+    isAdmin = true
+    positional.pop()
+  }
+  email = positional[0]
+  password = positional[1]
+  name = positional[2]
+}
 
 if (!email || !password) {
   console.error('Usage: pnpm user:create <email> <password> [name] [admin] [--skip-existing]')
+  console.error('   or: pnpm user:create --from-env [--skip-existing]')
   process.exit(1)
 }
 

@@ -5,10 +5,10 @@
 Kanban board app. Nuxt 4 + Nuxt UI 4 + Tailwind 4 + Drizzle ORM + SQLite. Plus Jakarta Sans + JetBrains Mono. Lucide icons (`i-lucide-*`). pnpm.
 
 ```bash
-pnpm install && npx drizzle-kit push && pnpm db:seed && pnpm dev  # http://localhost:3000
+pnpm install && pnpm setup && pnpm dev  # http://localhost:3000
 ```
 
-Demo: `demo@example.com` / `demo1234` | Admin: `admin@example.com` / `admin1234`
+`pnpm setup` chains migrate → init-admin → seed. Set `ADMIN_USER_EMAIL` / `ADMIN_USER_PASSWORD` (+ optional `ADMIN_USER_NAME`) in `.env` first — those become your dev admin. Skip them and you'll get an empty install (no users, no demo project); add an admin later with `pnpm user:create you@example.com password "You" admin` then `pnpm db:seed` to populate.
 
 ## Architecture
 
@@ -105,7 +105,8 @@ Demo: `demo@example.com` / `demo1234` | Admin: `admin@example.com` / `admin1234`
 
 ```bash
 pnpm dev / build / test / lint / typecheck
-pnpm db:migrate / db:seed / db:cleanup
+pnpm setup                                       # migrate + init-admin + seed (first-time bootstrap)
+pnpm db:migrate / db:init-admin / db:seed / db:cleanup
 pnpm user:create <email> <password> [name] [admin]
 pnpm user:set-role <email> <admin|user>
 pnpm user:verify-email <email>
