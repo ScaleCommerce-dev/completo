@@ -17,6 +17,10 @@ export default defineNitroPlugin(async () => {
 
   try {
     const existing = db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, email)).get()
+    // The seed script (db-seed.ts) creates the admin from these same env
+    // vars before the server boots — in production this branch is the
+    // normal path and stays silent. It only matters as a fallback for
+    // `pnpm dev` when the seed wasn't run.
     if (existing) return
 
     db.insert(schema.users).values({

@@ -37,41 +37,83 @@ console.log(`Database: ${dbPath}`)
 const db = new Database(dbPath)
 db.pragma('foreign_keys = ON')
 
-// --- Demo user + project ---
+// --- Admin user (from env, or default demo admin) ---
+// Read ADMIN_USER_EMAIL/PASSWORD/NAME from env when present. This makes
+// the seed produce a coherent install: the admin who'll own the demo
+// project is the same admin the operator will log in as, and the
+// well-known `admin@example.com / admin1234` credentials are not
+// silently left in the DB when env vars are set.
+const envAdminEmail = process.env.ADMIN_USER_EMAIL
+const envAdminPassword = process.env.ADMIN_USER_PASSWORD
+const adminEmail = envAdminEmail || 'admin@example.com'
+const adminPassword = envAdminPassword || 'admin1234'
+const adminName = process.env.ADMIN_USER_NAME || (envAdminEmail ? envAdminEmail.split('@')[0] : 'Admin User')
+
+let adminId: string
+const existingAdmin = db.prepare('SELECT id FROM users WHERE email = ?').get(adminEmail) as { id: string } | undefined
+if (existingAdmin) {
+  adminId = existingAdmin.id
+  console.log(`Admin user ${adminEmail} already exists — skipping`)
+} else {
+  adminId = randomUUID()
+  const now = Math.floor(Date.now() / 1000)
+  db.prepare(`
+    INSERT INTO users (id, email, name, password_hash, is_admin, email_verified_at, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(adminId, adminEmail, adminName, await hashPassword(adminPassword), 1, now, now)
+  console.log(envAdminEmail
+    ? `Created admin user: ${adminEmail} (from ADMIN_USER_* env)`
+    : `Created admin user: ${adminEmail} / ${adminPassword}`)
+}
+
+// --- Demo user (always demo@example.com) ---
+let demoUserId: string
 const existingDemo = db.prepare('SELECT id FROM users WHERE email = ?').get('demo@example.com') as { id: string } | undefined
 if (existingDemo) {
+  demoUserId = existingDemo.id
   console.log('Demo user already exists — skipping')
 } else {
-  const userId = randomUUID()
+  demoUserId = randomUUID()
   const now = Math.floor(Date.now() / 1000)
-
   db.prepare(`
     INSERT INTO users (id, email, name, password_hash, email_verified_at, created_at)
     VALUES (?, ?, ?, ?, ?, ?)
-  `).run(userId, 'demo@example.com', 'Demo User', await hashPassword('demo1234'), now, now)
+  `).run(demoUserId, 'demo@example.com', 'Demo User', await hashPassword('demo1234'), now, now)
   console.log('Created demo user: demo@example.com / demo1234')
+}
 
-  // Create project
+// --- Demo project + cards (owner = admin, demo user = member) ---
+const existingProject = db.prepare('SELECT id FROM projects WHERE slug = ?').get('my-project') as { id: string } | undefined
+if (existingProject) {
+  console.log('Demo project already exists — skipping')
+} else {
+  const now = Math.floor(Date.now() / 1000)
   const projectId = randomUUID()
+
   db.prepare(`
     INSERT INTO projects (id, name, slug, key, description, created_at)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(projectId, 'My Project', 'my-project', 'TK', 'A sample project to get started', now)
 
-  // Add user as project owner
+  // Admin owns the project; demo user is a member (so logging in as either
+  // shows the same data, with the admin getting owner-level controls).
   db.prepare(`
     INSERT INTO project_members (id, project_id, user_id, role)
     VALUES (?, ?, ?, ?)
-  `).run(randomUUID(), projectId, userId, 'owner')
+  `).run(randomUUID(), projectId, adminId, 'owner')
+  db.prepare(`
+    INSERT INTO project_members (id, project_id, user_id, role)
+    VALUES (?, ?, ?, ?)
+  `).run(randomUUID(), projectId, demoUserId, 'member')
 
-  // Create board
+  // Board
   const boardId = randomUUID()
   db.prepare(`
     INSERT INTO boards (id, project_id, name, slug, position, created_at)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(boardId, projectId, 'Sprint Board', 'sprint-board', 0, now)
 
-  // Create statuses at project level
+  // Statuses
   const statusNames = ['Backlog', 'To Do', 'In Progress', 'Review', 'Done']
   const statusColors = ['#a1a1aa', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981']
   const statusIds: string[] = []
@@ -84,14 +126,13 @@ if (existingDemo) {
       VALUES (?, ?, ?, ?)
     `).run(statusId, projectId, statusNames[i], statusColors[i])
 
-    // Link status to board via board_columns
     db.prepare(`
       INSERT INTO board_columns (id, board_id, status_id, position)
       VALUES (?, ?, ?, ?)
     `).run(randomUUID(), boardId, statusId, i)
   }
 
-  // Create default tags
+  // Tags
   const defaultTags = [
     { name: 'Bug', color: '#ef4444' },
     { name: 'Feature', color: '#3b82f6' },
@@ -104,12 +145,11 @@ if (existingDemo) {
     `).run(randomUUID(), projectId, tag.name, tag.color)
   }
 
-  // Set the Done status as the project's done status
   db.prepare(`
     UPDATE projects SET done_status_id = ?, done_retention_days = ? WHERE id = ?
   `).run(statusIds[4], 30, projectId)
 
-  // Create sample cards
+  // Sample cards — assigned to demo user (so the admin sees an active team)
   const tomorrow = new Date(Date.now() + 86400000)
   const yesterday = new Date(Date.now() - 86400000)
   const nextWeek = new Date(Date.now() + 7 * 86400000)
@@ -126,23 +166,10 @@ if (existingDemo) {
     db.prepare(`
       INSERT INTO cards (status_id, project_id, title, description, assignee_id, priority, position, due_date, created_by_id, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(statusIds[card.statusIndex], projectId, card.title, card.description, userId, card.priority, card.position, toTimestamp(card.dueDate), userId, now, now)
+    `).run(statusIds[card.statusIndex], projectId, card.title, card.description, demoUserId, card.priority, card.position, toTimestamp(card.dueDate), demoUserId, now, now)
   }
 
   console.log('Seed complete: 1 project, 1 board, 5 statuses, 3 tags, 4 cards')
-}
-
-// --- Admin user ---
-const existingAdmin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@example.com') as { id: string } | undefined
-if (existingAdmin) {
-  console.log('Admin user already exists — skipping')
-} else {
-  const now = Math.floor(Date.now() / 1000)
-  db.prepare(`
-    INSERT INTO users (id, email, name, password_hash, is_admin, email_verified_at, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(randomUUID(), 'admin@example.com', 'Admin User', await hashPassword('admin1234'), 1, now, now)
-  console.log('Created admin user: admin@example.com / admin1234')
 }
 
 // --- Default AI skills ---
