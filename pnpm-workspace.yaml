@@ -1,6 +1,17 @@
-ignoredBuiltDependencies:
-  - '@parcel/watcher'
-  - '@tailwindcss/oxide'
-  - esbuild
-  - unrs-resolver
-  - vue-demi
+# Supply-chain protection: refuse packages published in the last 7 days.
+# Long enough for most supply-chain attacks to be detected and yanked
+# before they land in our node_modules. The Docker build overrides this
+# to 0 via `--config.minimumReleaseAge=0` since the committed lockfile
+# is already the authoritative trust boundary there.
+minimumReleaseAge: 10080  # minutes (7 days)
+
+# Explicit allow/deny list for postinstall build scripts (pnpm 11+).
+# `true` = run the build script, `false` = skip without warning.
+allowBuilds:
+  better-sqlite3: true
+  '@parcel/watcher': false
+  '@tailwindcss/oxide': false
+  '@scarf/scarf': false
+  esbuild: false
+  unrs-resolver: false
+  vue-demi: false

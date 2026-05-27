@@ -2,7 +2,7 @@
 
 Two-stage build: dependencies + Nuxt build in `node:22-alpine`, then only the compiled output copied to a clean runtime image. SQLite database and file uploads persist in a `/data` volume.
 
-On every container start the entrypoint runs migrations, seeds demo data (idempotent), and cleans up expired tokens before starting the server.
+[zpinit](https://github.com/0ploy/zpinit) runs as PID 1. On every start it runs the scripts in `/etc/zpinit/entrypoint.d/` in order (mkdirs → migrate → seed → cleanup), then exec's the Nuxt server. zpinit also reaps zombies so the container stays clean.
 
 ## Build
 
@@ -28,6 +28,14 @@ docker run -p 3000:3000 \
 
 Default credentials after first start: `demo@example.com` / `demo1234`, `admin@example.com` / `admin1234`.
 
+### Passing many env vars
+
+Use `--env-file` to load a file. Nuxt's production server does **not** read `.env` itself, so file-based config must be passed through Docker:
+
+```bash
+docker run -p 3000:3000 --env-file .env -v completo-data:/data completo
+```
+
 ## Environment Variables
 
 Only `NUXT_SESSION_PASSWORD` is required. All others have sensible defaults.
@@ -39,21 +47,19 @@ Only `NUXT_SESSION_PASSWORD` is required. All others have sensible defaults.
 | `UPLOAD_DIR` | `/data/uploads` | Path inside the container. |
 | `PORT` | `3000` | |
 | `SMTP_HOST` | — | Empty = email disabled. |
-| `INIT_USER_EMAIL` | — | Auto-create this user on startup (skipped if already exists). |
-| `INIT_USER_PASSWORD` | — | Required when `INIT_USER_EMAIL` is set. |
-| `INIT_USER_NAME` | — | Optional display name. Defaults to local part of email. |
-| `INIT_USER_ADMIN` | — | Set to `true` / `1` to make the user an admin. |
+| `ADMIN_USER_EMAIL` | — | Auto-create this admin on startup (skipped if a user with this email already exists). |
+| `ADMIN_USER_PASSWORD` | — | Required when `ADMIN_USER_EMAIL` is set. |
+| `ADMIN_USER_NAME` | — | Optional display name. Defaults to local part of email. |
 
-### Auto-create initial user
+### Auto-create admin user
 
-Set `INIT_USER_EMAIL` + `INIT_USER_PASSWORD` to provision a user on first start — useful for fresh deploys where you don't want to rely on the `admin@example.com` seed account. The check is idempotent: subsequent restarts skip creation if the user already exists.
+Set `ADMIN_USER_EMAIL` + `ADMIN_USER_PASSWORD` to provision an admin on first start — useful for fresh deploys where you don't want to rely on the `admin@example.com` seed account. The check is idempotent: subsequent restarts skip creation if the user already exists. The created user is always an admin.
 
 ```bash
 docker run -p 3000:3000 \
   -e NUXT_SESSION_PASSWORD=test-secret-min-32-chars-long-here \
-  -e INIT_USER_EMAIL=me@example.com \
-  -e INIT_USER_PASSWORD=changeme1234 \
-  -e INIT_USER_ADMIN=true \
+  -e ADMIN_USER_EMAIL=me@example.com \
+  -e ADMIN_USER_PASSWORD=changeme1234 \
   -v completo-data:/data \
   completo
 ```
@@ -75,6 +81,8 @@ docker run --rm -v completo-data:/data completo \
 docker run --rm -v completo-data:/data completo \
   ./scripts/node_modules/.bin/tsx scripts/db-migrate.ts
 ```
+
+Inside a running container, use `zpctl status` and `zpctl pid` to inspect zpinit. The supervisor mode features (start/stop/restart) only apply when zpinit manages services — in our setup it runs the entrypoint scripts and then exec's into the Nuxt server, so the server takes over as PID 1 and zpinit exits.
 
 ## Data
 

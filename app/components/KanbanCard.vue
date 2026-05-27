@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui/runtime/components/DropdownMenu.vue'
 import type { BoardCard } from '~/types/card'
 
 const props = defineProps<{
@@ -58,16 +59,8 @@ function priorityMenuItems() {
   ]]
 }
 
-interface AssigneeMenuItem {
-  label: string
-  icon: string
-  type: string
-  checked: boolean
-  onSelect: () => void
-}
-
-function assigneeMenuItems() {
-  const items: AssigneeMenuItem[] = [{
+function assigneeMenuItems(): DropdownMenuItem[][] {
+  const items: DropdownMenuItem[] = [{
     label: 'Unassigned',
     icon: 'i-lucide-user-x',
     type: 'checkbox',

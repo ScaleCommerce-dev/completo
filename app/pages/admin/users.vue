@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui/runtime/components/DropdownMenu.vue'
+
 definePageMeta({ layout: 'default' })
 
 interface AdminUser {
@@ -18,13 +20,6 @@ interface PendingInvitation {
   projectId: string
   projectName: string
   inviterName: string
-}
-
-interface DropdownMenuItem {
-  label: string
-  icon: string
-  color?: string
-  onSelect: () => void
 }
 
 const { user: currentUser } = useUserSession()
@@ -211,7 +206,7 @@ async function cancelInvitation(inv: PendingInvitation) {
   }
 }
 
-function invitationMenuItems(inv: PendingInvitation) {
+function invitationMenuItems(inv: PendingInvitation): DropdownMenuItem[][] {
   return [[
     {
       label: 'Resend invitation',

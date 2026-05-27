@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui/runtime/components/DropdownMenu.vue'
+
 interface ProjectMember {
   id: string
   name: string
@@ -237,12 +239,12 @@ async function changeRole(m: ProjectMember, newRole: 'owner' | 'member') {
   }
 }
 
-function roleMenuItems(m: ProjectMember) {
+function roleMenuItems(m: ProjectMember): DropdownMenuItem[][] {
   const canRemove = !(m.role === 'owner' && m.id === currentUser.value?.id)
-  const roleAction = m.role === 'member'
+  const roleAction: DropdownMenuItem = m.role === 'member'
     ? { label: 'Promote to owner', icon: 'i-lucide-shield', onSelect: () => changeRole(m, 'owner') }
     : { label: 'Demote to member', icon: 'i-lucide-user', onSelect: () => changeRole(m, 'member') }
-  const items: { label: string, icon: string, color?: string, onSelect: () => void }[][] = [[roleAction]]
+  const items: DropdownMenuItem[][] = [[roleAction]]
   if (canRemove) {
     items.push([{
       label: 'Remove from project',
@@ -282,7 +284,7 @@ async function confirmRemoveMember() {
 }
 
 // Invitation dropdown items
-function invitationMenuItems(inv: ProjectInvitation) {
+function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
   return [
     [{
       label: 'Resend invitation',

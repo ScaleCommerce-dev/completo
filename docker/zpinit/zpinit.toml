@@ -1,0 +1,8 @@
+# zpinit globals — run as PID 1 in the container.
+# See https://github.com/0ploy/zpinit/blob/main/docs/configuration.md
+
+# Abort boot if any entrypoint.d/ script exits non-zero.
+entrypoint_on_failure = "fail"
+
+# Per-script budget. Migrations on a cold database can take a while.
+entrypoint_script_timeout = "5m"

@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        node: [22]
+        node: [24]
 
     steps:
       - name: Checkout
@@ -21,7 +21,8 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          # Read from package.json's "packageManager" field
+          run_install: false
 
       - name: Install node
         uses: actions/setup-node@v6

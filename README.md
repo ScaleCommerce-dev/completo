@@ -75,7 +75,7 @@ The only required environment variable is `NUXT_SESSION_PASSWORD` (min 32 charac
 | `NUXT_OAUTH_GITHUB_CLIENT_ID/SECRET` | GitHub OAuth (empty = disabled) | — |
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID/SECRET` | Google OAuth (empty = disabled) | — |
 | `NUXT_OAUTH_MICROSOFT_CLIENT_ID/SECRET` | Microsoft OAuth (empty = disabled) | — |
-| `INIT_USER_EMAIL` + `INIT_USER_PASSWORD` | Auto-create this user on startup if missing. Optional `INIT_USER_NAME`, `INIT_USER_ADMIN=true`. Idempotent. | — |
+| `ADMIN_USER_EMAIL` + `ADMIN_USER_PASSWORD` | Auto-create this admin on startup if missing. Optional `ADMIN_USER_NAME`. Idempotent. | — |
 
 ### CLI commands
 

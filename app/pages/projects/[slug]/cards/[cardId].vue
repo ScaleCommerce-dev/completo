@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui/runtime/components/DropdownMenu.vue'
+
 definePageMeta({ layout: 'default' })
 
 const route = useRoute()
@@ -81,6 +83,8 @@ const selectedAssigneeLabel = computed(() => {
   return member?.name || 'Unassigned'
 })
 
+// `color: s.color` carries the status hex through for the swatch in the
+// custom `#item` slot — narrower than @nuxt/ui's themed `color`, so cast.
 const statusMenuItems = computed(() => [[
   ...statusesData.value.map(s => ({
     label: s.name,
@@ -91,7 +95,7 @@ const statusMenuItems = computed(() => [[
       selectedStatusId.value = s.id
     }
   }))
-]])
+]] as unknown as DropdownMenuItem[][])
 
 const assigneeMenuItems = computed(() => [[
   {
