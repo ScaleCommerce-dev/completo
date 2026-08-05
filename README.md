@@ -16,18 +16,21 @@ A self-hosted project board for teams who just want to get things done. Named af
 
 Completo costs nothing. Zero. Nil. `undefined`. It's MIT licensed — fork it, break it, fix it, ship it. No hosted plans. No premium tier. No "let's schedule a call to discuss pricing."
 
-To install completo, the only thing you need is Node:
+To install completo, the only thing you need is **Node 22.18 or newer**:
 
 ```bash
 git clone https://github.com/ScaleCommerce-dev/completo.git
 cd completo
 cp env.sample .env   # set NUXT_SESSION_PASSWORD + ADMIN_USER_EMAIL / ADMIN_USER_PASSWORD
+corepack enable      # pnpm ships with Node but isn't on PATH until you do this
 pnpm install
 pnpm setup           # migrate + create your admin from .env + seed demo project
 pnpm dev             # http://localhost:3000
 ```
 
 That's it. No Kubernetes manifests. No 14-step setup guide written by someone who clearly hates you. SQLite is baked in — there's no database to provision, no connection string to fumble. Log in with the admin you just configured. Drag. Drop. Completo.
+
+> Node 22.18 is the floor because the CLI scripts are plain `.ts` files run straight through Node's built-in TypeScript support — no build step and no extra tooling to install.
 
 Or if containers are your thing:
 
@@ -74,7 +77,7 @@ The only required environment variable is `NUXT_SESSION_PASSWORD` (min 32 charac
 | `DATABASE_URL` | SQLite database path | `sqlite.db` |
 | `UPLOAD_DIR` | File attachment storage | `data/uploads` |
 | `SMTP_HOST` | SMTP server for email (empty = email disabled) | — |
-| `SMTP_PORT` | SMTP port | `587` |
+| `SMTP_PORT` | SMTP port | `1025` |
 | `SMTP_FROM` | Sender address | — |
 | `APP_URL` | Public URL (used in emails) | — |
 | `AI_PROVIDER` | `anthropic`, `openai`, or `openrouter` (empty = AI disabled) | — |
@@ -85,7 +88,7 @@ The only required environment variable is `NUXT_SESSION_PASSWORD` (min 32 charac
 
 ### CLI commands
 
-Manage your instance from the command line. All commands work with both `npm run` and `pnpm`.
+Manage your instance from the command line. The individual commands below work with either `npm run` or `pnpm` — they just invoke `node scripts/<name>.ts`. The one exception is `setup`, which chains the others via pnpm, so it needs pnpm on your PATH.
 
 ```bash
 # Setup (chains migrate → init-admin → seed)
@@ -95,13 +98,42 @@ pnpm setup               # First-time / fresh-DB bootstrap
 pnpm db:migrate          # Apply pending migrations
 pnpm db:init-admin       # Provision admin from ADMIN_USER_* env (.env or shell)
 pnpm db:seed             # Seed demo project (attributed to admin if one exists)
-pnpm db:cleanup          # Remove expired sessions and soft-deleted data
+pnpm db:cleanup          # Drop orphaned rows + expired invites/tokens, prune unused uploads, VACUUM
 
 # User management
 pnpm user:create <email> <password> [name] [admin]   # Create a user ("admin" = admin role)
 pnpm user:set-role <email> <admin|user>               # Promote or demote a user
 pnpm user:verify-email <email>                        # Manually verify a user's email
 ```
+
+### Development environment (zdev)
+
+`pnpm dev` above is all you need to hack on Completo. If you'd rather not run Node, pnpm and SQLite on your host at all, the repo also ships a containerised dev environment for [**zdev**](https://github.com/0ploy/zdev) — Docker-based, with HTTPS and a mail catcher wired up.
+
+```bash
+zdev start           # build, install deps, migrate, seed, run the dev server
+```
+
+That serves the app at `https://completo.0ploy.dev`. Everything is configured in `.zdev/` — on every start the container installs dependencies, applies pending migrations, and seeds the demo project plus two fixed logins:
+
+| Role  | Email                  | Password    |
+|-------|------------------------|-------------|
+| Admin | `admin@completo.local` | `admin1234` |
+| User  | `demo@completo.local`  | `demo1234`  |
+
+These exist only inside your local dev container — production provisions its admin from `ADMIN_USER_*` and ships no default accounts. `zdev info` prints them any time.
+
+```bash
+zdev logs -f app         # follow the dev server
+zdev exec app pnpm test  # run anything inside the container
+zdev migrate             # apply migrations; also generate | seed | cleanup
+zdev mail                # Mailpit — catches every outgoing email
+zdev info                # URL, service status, dev logins
+```
+
+Changing the database schema? Edit `server/database/schema.ts`, run `zdev migrate generate`, and commit the generated migration — the container applies pending migrations on every boot.
+
+Source edits sync live, so there's no restart loop. After changing `.zdev/config.yaml` run `zdev update` (not `restart`) to apply it. The container is supervised by [zpinit](https://github.com/0ploy/zpinit) and deliberately stays alive even if the dev server or the dependency install fails, so there's always something to shell into — check `zdev logs` for the error.
 
 ### Agent Integration
 

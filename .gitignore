@@ -43,6 +43,9 @@ CODE_REVIEW*.md
 # pnpm
 .pnpm-store/
 
+# zdev — per-developer overrides deep-merged onto .zdev/config.yaml
+.zdev/local/
+
 # Session Stuff
 TODO/
 prompts/

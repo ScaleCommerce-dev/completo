@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env node
 /**
  * Seed demo data CLI — run with: pnpm db:seed
  *

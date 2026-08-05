@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+## v0.6.7 (2026-08-05)
+
+### App
+- **Docker: zpinit now supervises the server instead of exec'ing it.** The image sets no `CMD`, which puts [zpinit](https://github.com/0ploy/zpinit) in supervise mode — it stays PID 1, so it reaps zombies for the container's whole lifetime and restarts the Nuxt server with capped-exponential backoff (1s→30s) if it crashes. Previously zpinit exec'd the server and exited, leaving no reaper and no in-container restarts. A readiness probe backs `zpctl ready`, and `zpctl status/restart/tail` now work (they were inert before).
+  - Note: after 5 consecutive crashes the service is marked FATAL while the container still reports running. Use `zpctl ready` as a healthcheck if you need the container to fail loudly.
+  - Passing a command to `docker run` still overrides this and runs that command once, so the ad-hoc CLI script invocations are unchanged.
+- Docker: zpinit is pinned to `0.5.5` instead of `latest` for reproducible builds, and its config is validated at build time (`zpinit --check-config`) so a malformed service file fails the build rather than the deploy.
+- **Fix: `pnpm setup` failed on a fresh clone.** `scripts/init-admin.sh` hardcoded `scripts/node_modules/.bin/tsx`, which only exists in the Docker image (`cd scripts && npm install`) and is gitignored otherwise — so the documented first-time bootstrap died at `db:init-admin` with `MODULE_NOT_FOUND`. It now runs `node scripts/user-create.ts` directly, like every other `db:*` / `user:*` script.
+- Node 24 LTS and pnpm 11.17.0 are now pinned consistently across `package.json`, the prod image and the dev image. The prod runtime base moves from `alpine:3.23` to `alpine:3.24` (same Node 24.18.x, same native ABI).
+- **`tsx` is gone — scripts run as `node scripts/foo.ts`.** Node strips TypeScript natively (default since 22.18), so the same command now works in dev, in prod, and on the host. Previously the prod entrypoint used a vendored tsx binary while dev used `pnpm db:*`, so the two paths differed for no good reason. `tsx` is dropped from `scripts/package.json`, shrinking the prod image by ~16MB (188MB → 172MB), and the runtime image now contains no package manager and no TS loader at all.
+  - New `engines.node >= 22.18` in `package.json`. `scripts/*.ts` must stay within erasable syntax (no `enum`, `namespace`, parameter properties or decorators) and use no extension-less relative imports.
+  - Ad-hoc invocations change accordingly: `docker exec <container> node scripts/user-create.ts …` (was `node ./scripts/node_modules/.bin/tsx scripts/user-create.ts …`).
+- **README corrections.** The documented `SMTP_PORT` default was wrong (`587` — the code falls back to `1025`). The quickstart claimed Node alone was enough, but a fresh Node has no `pnpm` on PATH, so `corepack enable` is now an explicit step alongside the Node 22.18 floor. "All commands work with both `npm run` and `pnpm`" was true of the individual scripts but not `setup`, which chains via pnpm. `db:cleanup` was described as removing "expired sessions and soft-deleted data" — it touches neither; it drops orphaned rows and expired invites/tokens, prunes unused uploads, and VACUUMs.
+- **README: new "Development environment (zdev)" section** documenting the containerised dev setup and its seeded logins.
+
+### Dev
+- Local dev environment migrated from `.scdev/` to `.zdev/` (the tool's current name and config format). Use `zdev start`; run `zdev update` — not `zdev restart` — after editing `.zdev/config.yaml`.
+- **The dev container now boots via zpinit too**, from its own `.zdev/Dockerfile`. On every start it runs install → migrate → seed, then supervises the Nuxt dev server.
+- **The dev container is built not to die**, so there's always something to debug. zpinit runs in supervise mode (stays PID 1, restarts the dev server with 1s→30s backoff) and `entrypoint_on_failure = "continue"`, so neither a crashed dev server nor a failed `pnpm install` takes the container down — the error stays in `zdev logs` and `zdev exec app sh` keeps working. `zpctl` is available inside the container (`zpctl status`, `zpctl restart app`, `zpctl tail -f app`).
+- **Two fixed dev logins are seeded on every boot** and shown by `zdev info`: `admin@completo.local / admin1234` (admin) and `demo@completo.local / demo1234`. Both are created auto-verified. Dev-only — production still provisions from `ADMIN_USER_*`.
+- Dev env wires the shared Mailpit (`SMTP_HOST: mail`), so invitation and verification mails are catchable via `zdev mail`. Because `isEmailEnabled()` keys off `SMTP_HOST`, dev logins require a verified email. `APP_URL` points at the routed HTTPS domain so links in those mails resolve.
+- **The dev SQLite DB moved to `/app/data/sqlite.db` in a named volume**, out of the file sync (WAL files over Mutagen risk corruption). It is now the *only* dev database — previously, with no `DATABASE_URL` set, the container fell back to the relative `'sqlite.db'` default and silently shared the host's file. `*.db*` is also in `mutagen.ignore` so a host-side DB can't sync in and shadow it. Dev data is disposable by design: `zdev down -v -f` destroys the volume and the next `zdev start` reseeds from scratch.
+- **Docs: `drizzle-kit push` is now documented as prohibited, not a dev shortcut.** Every schema change needs a committed migration. Two verified failure modes are recorded in `CLAUDE.md`: a `push`-built DB can never be migrated (`db:migrate` restarts at `0000` and dies on `table already exists`, which also breaks `pnpm setup`), and pushing then generating the matching migration still breaks the *next* migrate with `duplicate column name`.
+- Boot applies committed migrations (`node scripts/db-migrate.ts`) rather than `drizzle-kit push`, which can prompt on destructive changes and would hang in the TTY-less boot.
+- **New `zdev migrate` command** (`.zdev/commands/migrate.just`): `zdev migrate` applies pending migrations, plus `generate` (new SQL from schema changes), `seed` and `cleanup`. Each is a thin alias for the same command the container runs at boot. There is deliberately no `push` alias — see below.
+- The dev image no longer installs anything with npm (the global `tsx` install is gone) — pnpm is the only package manager in it.
+- `.zdev/local/` is gitignored for per-developer overrides (deep-merged onto the committed config).
+
 ## v0.6.6 (2026-05-27)
 
 ### App

@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env node
 /**
  * Create user CLI — run with:
  *   pnpm user:create <email> <password> [name] [admin] [--skip-existing]

@@ -1,7 +1,7 @@
 {
   "name": "completo",
   "private": true,
-  "version": "0.6.6",
+  "version": "0.6.7",
   "type": "module",
   "scripts": {
     "build": "nuxt build",
@@ -14,13 +14,13 @@
     "test:unit": "vitest --project unit",
     "test:integration": "vitest --project integration",
     "setup": "pnpm db:migrate && pnpm db:init-admin && pnpm db:seed",
-    "db:cleanup": "npx tsx scripts/db-cleanup.ts",
+    "db:cleanup": "node scripts/db-cleanup.ts",
     "db:init-admin": "./scripts/init-admin.sh",
-    "db:migrate": "npx tsx scripts/db-migrate.ts",
-    "db:seed": "npx tsx scripts/db-seed.ts",
-    "user:verify-email": "npx tsx scripts/user-verify-email.ts",
-    "user:create": "npx tsx scripts/user-create.ts",
-    "user:set-role": "npx tsx scripts/user-set-role.ts"
+    "db:migrate": "node scripts/db-migrate.ts",
+    "db:seed": "node scripts/db-seed.ts",
+    "user:verify-email": "node scripts/user-verify-email.ts",
+    "user:create": "node scripts/user-create.ts",
+    "user:set-role": "node scripts/user-set-role.ts"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.108",
@@ -54,5 +54,8 @@
     "vitest": "^4.1.7",
     "vue-tsc": "^3.3.1"
   },
-  "packageManager": "pnpm@11.4.0"
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=22.18"
+  }
 }

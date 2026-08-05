@@ -1,0 +1,24 @@
+# Nuxt production server, supervised by zpinit (mode 3).
+#
+# Because the Dockerfile sets no CMD, zpinit stays resident as PID 1: it
+# reaps zombies for the container's whole lifetime, restarts this service
+# with capped-exponential backoff if it crashes, and answers `zpctl`.
+command = ["node", ".output/server/index.mjs"]
+cwd = "/app"
+restart = "always"
+
+# Nitro handles SIGTERM; the extra headroom lets SQLite checkpoint its WAL
+# before zpinit escalates to SIGKILL.
+stop_signal = "TERM"
+stop_timeout = "15s"
+
+# Makes `zpctl ready` meaningful and surfaces a hung server in `zpctl status`.
+# $PORT is expanded by the shell at runtime, not by zpinit — zpinit does no
+# env interpolation in TOML, so the value must not be written as ${PORT}.
+[ready]
+command = ["sh", "-c", "wget -q -O /dev/null \"http://127.0.0.1:${PORT:-3000}/\""]
+interval = "250ms"
+timeout = "30s"
+# Don't abort boot on a slow cold start — `restart = "always"` already covers
+# a server that actually dies.
+on_timeout = "continue"

@@ -110,9 +110,54 @@ pnpm db:migrate / db:init-admin / db:seed / db:cleanup
 pnpm user:create <email> <password> [name] [admin]
 pnpm user:set-role <email> <admin|user>
 pnpm user:verify-email <email>
-npx drizzle-kit push          # Dev only — diffs schema against DB
-npx drizzle-kit generate      # Generate migration SQL from schema changes
+npx drizzle-kit generate      # Generate migration SQL after editing schema.ts (then commit it)
 ```
+
+### Local Dev Environment (zdev)
+
+`.zdev/` defines the containerized dev env (was `.scdev/`). `zdev start` serves the app at `https://completo.0ploy.dev`.
+
+**Two Docker setups, deliberately different — don't unify them:**
+
+| | `docker/Dockerfile` (prod) | `.zdev/Dockerfile` (dev) |
+|---|---|---|
+| Purpose | Released image, built in CI | Local dev container |
+| Runtime base | `alpine:3.24` + `apk add nodejs` (~109MB) | `node:24-alpine` (~229MB) |
+| zpinit mode | 3 — supervise (`node .output/…`) | 3 — supervise (`pnpm dev`) |
+| Admin user | From `ADMIN_USER_*` env vars | Hardcoded dev credentials |
+
+Prod optimizes for size and drops npm/corepack it never uses; dev needs corepack (pnpm) and `python3/g++/make` (better-sqlite3 has no musl prebuild). Node 24 LTS + pnpm 11.17.0 in both — bump `packageManager` in `package.json` and both Dockerfiles together.
+
+**Scripts run as `node scripts/foo.ts` — no tsx, no package manager.** Node strips TypeScript natively (default since 22.18; `process.features.typescript === 'strip'`), so the same command works in dev, in prod, and on the host. This is deliberate: the prod runtime image has neither npm nor pnpm, so anything invoking a package manager could not be shared between the two. Two constraints follow:
+- `engines.node >= 22.18` in `package.json`. Type stripping is erasable-syntax-only, so **no `enum`, `namespace`, parameter properties, or decorators in `scripts/*.ts`**, and relative imports would need explicit `.ts` extensions (currently there are none).
+- `scripts/package.json` still vendors `better-sqlite3`/`dotenv`/`drizzle-orm` into `scripts/node_modules` for the prod image (installed with npm — it has its own `package-lock.json`). It no longer carries `tsx`.
+
+`node:sqlite` would let us drop `better-sqlite3` (and with it the native toolchain and the builder↔runtime ABI constraint), but `drizzle-orm/node-sqlite` only exists in drizzle-orm v1 beta. Revisit when v1 is stable.
+
+```bash
+zdev start / stop / restart / logs -f app
+zdev update              # apply config.yaml changes (restart alone does NOT)
+zdev exec app pnpm test  # run any command in the container
+zdev info                # shows the dev logins
+zdev mail                # Mailpit — catches all outgoing mail
+zdev migrate             # apply migrations; also: generate | push | seed | cleanup
+```
+
+- **Dev logins are seeded on every boot** and printed by `zdev info`: `admin@completo.local / admin1234` (admin) and `demo@completo.local / demo1234`. Defined once in `.zdev/config.yaml` `variables:` and referenced from both `environment:` and `info:`. Dev-only — prod still provisions from `ADMIN_USER_*`.
+- **Boot order** is `.zdev/zpinit/entrypoint.d/`: `10-install` (waits for the `/.zdev-sync-ready` marker, then `pnpm install`) → `20-migrate` → `30-seed`, then zpinit supervises `pnpm dev` from `.zdev/zpinit/services/10_app.toml`.
+- **The dev container is built not to die.** zpinit stays PID 1 (supervise mode) and `entrypoint_on_failure = "continue"`, so a crashed dev server *or* a failed `pnpm install` leaves a live container with the error in `zdev logs` — always something to `zdev exec app sh` into. After 5 consecutive crashes the service goes FATAL and zpinit stops retrying, still holding the container open. Drive it with `zdev exec app zpctl status` / `zpctl restart app` / `zpctl tail -f app`.
+- **`.zdev/config.yaml` must not set `command:`** — zdev turns that into the container CMD, which flips zpinit out of supervise mode into exec mode.
+- **Editing `entrypoint.d/` needs a rebuild.** `.zdev` is excluded from the file sync, so `/etc/zpinit` is the image's copy. `zdev update` rebuilds on *Dockerfile content* changes only — touch `.zdev/Dockerfile` after editing an entrypoint script.
+- **The container's DB is `/app/data/sqlite.db` in the `data` named volume, and it is the only dev database.** It's out of the file sync deliberately (SQLite WAL over Mutagen risks corruption), and no host-side `sqlite.db` shadows it — `*.db*` is in `mutagen.ignore` so a stray one can't sync in and look authoritative.
+
+  Dev data is **disposable by design**: `zdev down -v -f` destroys the volume and the next `zdev start` rebuilds it from migrations + seed, back to the demo board and the two fixed logins. Nothing else holds a copy, so that command means what it says. Tests are unaffected (they use their own throwaway `test.db`).
+
+  Historical trap, in case old notes say otherwise: before `DATABASE_URL` was set here, the app fell back to the relative default `'sqlite.db'`, which resolved against `/app` — the bind-mounted project dir — so the container silently shared the *host's* DB. That's why a container could appear to "lose" data when the setting was introduced.
+- Boot applies committed migrations (`node scripts/db-migrate.ts`). For a schema change: `zdev migrate generate`, commit it, restart. There is no `zdev migrate push` — see Schema Changes & Migrations for why.
+- **`.zdev/commands/migrate.just` → `zdev migrate`** is only an alias for those same `node scripts/*.ts` commands, so dev and prod stay verifiably identical. Adding a `.just` file there adds a `zdev <name>` subcommand.
+- **Email is wired to the shared Mailpit** (`SMTP_HOST: mail`). Because `isEmailEnabled()` keys off `SMTP_HOST`, logins require a verified email — the seeded users are auto-verified; check other mail via `zdev mail`.
+- Per-developer overrides go in `.zdev/local/config.yaml` (gitignored, deep-merged). Don't put secrets in `.zdev/config.yaml`.
+- `zdev restart` does not pick up `config.yaml` edits — use `zdev update`. Source changes are live via the file sync.
 
 ### Changelog
 
@@ -152,9 +197,16 @@ The Completo agent skill lives in-repo at `skills/completo/SKILL.md` — this is
 
 ### Schema Changes & Migrations
 
-`drizzle-kit push` = dev (no migration files). `pnpm db:migrate` = production (applies SQL from `server/database/migrations/`).
+**Every schema change requires a committed migration. No exceptions.**
 
-**After every schema change:** edit `schema.ts` → `npx drizzle-kit generate` → commit the migration. If you skip generating, production deploys will fail.
+1. Edit `server/database/schema.ts`
+2. `npx drizzle-kit generate` (or `zdev migrate generate`)
+3. **Commit both** the new `server/database/migrations/*.sql` *and* the `meta/` changes — `meta/_journal.json` is what the migrator reads; a `.sql` file without its journal entry is invisible and silently never runs
+4. Apply with `pnpm db:migrate` (or `zdev migrate`, or just restart the dev container — it migrates on every boot)
+
+`pnpm db:migrate` is the only thing that touches a real database: dev container boot, the prod entrypoint, and deploys all run it. Skip steps 2–3 and the change exists only on your machine — CI, the prod image, and every teammate diverge, and the deploy fails on the first query against the missing column.
+
+**Never run `drizzle-kit push` against a database you keep.** It applies the schema without recording a migration, which permanently poisons that DB: `db:migrate` afterwards either restarts at `0000` and dies on `table already exists`, or — if you later generate the matching migration — dies on `duplicate column name`. Both are verified. `pnpm setup` breaks too, since it chains migrate first. The only fix is to discard the database (`zdev down -v -f && zdev start` for the dev container; its SQLite is a named volume and boot re-migrates and re-seeds). If it holds data worth saving, the `__drizzle_migrations` journal can be backfilled by hand — ask before attempting it.
 
 **`scripts/package.json`** is a deploy manifest for CLI tools. When changing imports in scripts, update it to keep deps in sync.
 

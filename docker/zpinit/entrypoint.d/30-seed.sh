@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 
-node ./scripts/node_modules/.bin/tsx scripts/db-seed.ts
+node scripts/db-seed.ts

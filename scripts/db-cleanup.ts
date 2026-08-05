@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env node
 /**
  * Database cleanup CLI — run with: pnpm db:cleanup
  *

@@ -1,0 +1,18 @@
+# zpinit globals for the DEV container (see .zdev/Dockerfile).
+# The prod equivalent lives in docker/zpinit/zpinit.toml.
+
+# Never abort the boot, even if an entrypoint.d script fails. In dev the
+# priority is that the container comes up no matter what, so there's always
+# something to `zdev exec app sh` into. If `pnpm install` fails you'd
+# otherwise get a container that exits and immediately re-runs the same
+# failing script — nothing to attach to, and the real error scrolled past.
+# Here the boot continues, the dev server fails to start, zpinit keeps it in
+# FATAL, and the container stays alive with the error in `zdev logs`.
+#
+# The migrate and seed steps additionally warn loudly and exit 0 themselves,
+# so their failures are obvious rather than just a non-zero exit in the log.
+entrypoint_on_failure = "continue"
+
+# A cold `pnpm install` on a fresh clone compiles better-sqlite3 from source,
+# which comfortably exceeds the 5m default on a slow connection.
+entrypoint_script_timeout = "15m"

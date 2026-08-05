@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env node
 /**
  * Manual email verification CLI — run with: pnpm user:verify-email <email>
  *

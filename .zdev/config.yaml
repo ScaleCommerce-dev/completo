@@ -1,0 +1,90 @@
+name: completo
+auto_open_at_start: true
+
+info: |
+  ## ${PROJECTNAME}
+
+  Kanban board app — Nuxt 4 + Drizzle + SQLite.
+
+  `zdev start` installs deps, applies DB migrations, seeds the demo project
+  and runs the Nuxt dev server.
+
+  **Dev logins** (hardcoded, dev-only — seeded on every boot):
+
+  | Role  | Email | Password |
+  |-------|-------|----------|
+  | Admin | ${DEV_ADMIN_EMAIL} | ${DEV_ADMIN_PASSWORD} |
+  | User  | ${DEV_USER_EMAIL} | ${DEV_USER_PASSWORD} |
+
+  Outgoing mail is caught by Mailpit (`zdev mail`). Because SMTP is enabled,
+  logins need a verified email — both seeded users are auto-verified.
+
+  DB migrations run automatically on every boot. Every schema change needs a
+  committed migration: edit server/database/schema.ts, run `zdev migrate
+  generate`, then commit the .sql **and** the meta/ changes.
+
+shared:
+  router: true
+  mail: true
+
+variables:
+  # Dev-only fixed credentials. Committed deliberately: they exist so a fresh
+  # `zdev start` is immediately usable, and they never leave this dev env
+  # (prod provisions its admin from ADMIN_USER_* env vars instead).
+  DEV_ADMIN_EMAIL: admin@completo.local
+  DEV_ADMIN_PASSWORD: admin1234
+  DEV_USER_EMAIL: demo@completo.local
+  DEV_USER_PASSWORD: demo1234
+
+services:
+  app:
+    # Node 24 LTS + zpinit as PID 1 (mode 2): entrypoint.d does
+    # install -> migrate -> seed, then the CMD runs `pnpm dev`.
+    dockerfile: .zdev/Dockerfile
+    working_dir: /app
+    volumes:
+      - ${PROJECTPATH}:/app
+      - data:/app/data       # named volume — keeps SQLite out of the file sync
+    environment:
+      NODE_ENV: development
+      HOST: "0.0.0.0"
+      PORT: "3000"
+      # SQLite lives in the `data` named volume, not the synced bind mount:
+      # WAL files over Mutagen risk corruption.
+      DATABASE_URL: /app/data/sqlite.db
+      UPLOAD_DIR: /app/data/uploads
+      # Consumed by .zdev/zpinit/entrypoint.d/30-seed.sh.
+      ADMIN_USER_EMAIL: ${DEV_ADMIN_EMAIL}
+      ADMIN_USER_PASSWORD: ${DEV_ADMIN_PASSWORD}
+      ADMIN_USER_NAME: Demo Admin
+      DEV_USER_EMAIL: ${DEV_USER_EMAIL}
+      DEV_USER_PASSWORD: ${DEV_USER_PASSWORD}
+      DEV_USER_NAME: Demo User
+      # Shared Mailpit catches all outgoing mail (`zdev mail`). Setting
+      # SMTP_HOST also switches isEmailEnabled() on, so logins require a
+      # verified email — the seeded users are created auto-verified.
+      SMTP_HOST: mail
+      SMTP_PORT: "1025"
+      SMTP_FROM: Completo <noreply@completo.local>
+      # Links in emails must point at the routed HTTPS domain, not the
+      # container-internal port.
+      APP_URL: https://${PROJECTNAME}.${ZDEV_DOMAIN}
+    routing:
+      protocol: http
+      port: 3000
+
+mutagen:
+  ignore:
+    - node_modules
+    - .pnpm-store
+    - .nuxt
+    - .output
+    - data       # SQLite + uploads live in a named volume
+    - .zdev      # /etc/zpinit is the image's copy; edit + rebuild
+    # Never sync a host-side SQLite file in. The container's DB is
+    # /app/data/sqlite.db in the `data` volume and is the only one it uses; a
+    # synced host sqlite.db (from a stray `pnpm dev`) or test.db would just sit
+    # at /app/ looking authoritative while being ignored.
+    - '*.db'
+    - '*.db-wal'
+    - '*.db-shm'

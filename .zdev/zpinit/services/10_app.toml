@@ -1,0 +1,26 @@
+# Nuxt DEV server, supervised by zpinit (mode 3).
+#
+# Supervised rather than exec'd so the container survives anything the dev
+# server does. If Nuxt dies — bad config, a syntax error that kills the
+# process, an OOM — zpinit stays PID 1 and the container stays up, so you can
+# still `zdev exec app sh` in and debug. Under mode 2 that same crash took the
+# whole container with it, leaving nothing to attach to.
+command = ["pnpm", "dev", "--host", "0.0.0.0", "--port", "3000"]
+cwd = "/app"
+
+# Transient crashes recover on their own (backoff 1s→30s). After 5 consecutive
+# crashes zpinit marks the service FATAL and stops retrying — and crucially
+# keeps running as PID 1, so the container is still there to debug. Watch it
+# with `zdev logs -f app`, drive it with `zdev exec app zpctl restart app`.
+restart = "always"
+
+# pnpm forwards TERM to nuxt; the headroom lets Vite/Nitro shut down cleanly
+# instead of being SIGKILLed mid-write.
+stop_signal = "TERM"
+stop_timeout = "15s"
+
+# Deliberately no [ready] probe. A cold Nuxt dev build varies from seconds to
+# well over a minute depending on cache state, and a readiness probe has to
+# finish inside the per-service boot_timeout — so any value we picked would
+# either be uselessly long or fail on a slow first build. `zdev logs -f app`
+# is how you actually watch a dev server come up.

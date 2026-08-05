@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env node
 /**
  * Set user role CLI — run with: pnpm user:set-role <email> <admin|user>
  *
