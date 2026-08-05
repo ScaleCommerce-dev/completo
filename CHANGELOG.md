@@ -2,12 +2,15 @@
 
 ## Unreleased
 
+### App
+- **Security: `env.sample` no longer ships a working `NUXT_SESSION_PASSWORD`.** It contained a real 44-character key, so any install that copied the file verbatim ran on a cookie-signing key published in the repo. It is now a deliberately too-short placeholder (`replace-me`), which fails fast with "Password string too short (min 32 characters required)" instead of silently working. Existing installs that copied that value should rotate it (`openssl rand -base64 32`); doing so invalidates current sessions.
+
 ### Dev
 - **The dev environment no longer uses a `.env` file.** Dev secrets (`NUXT_SESSION_PASSWORD`, the GitHub/Google/Microsoft OAuth client IDs and secrets, AI keys) now come from a 1Password Environment, attached to the app service with `op-env:` in `.zdev/config.yaml`. Only the Environment ID is committed — it isn't secret, and values are fetched by the `op` CLI when a container is created. Requires the beta 1Password CLI (`brew install 1password-cli@beta`) with the desktop-app integration enabled.
   - After rotating or adding variables in 1Password, run `zdev update --refresh-secrets`. A plain `zdev restart` or `zdev update` will not pick them up, since the env is baked in at container creation.
   - Non-secret dev values (`SMTP_HOST`, `APP_URL`, `DATABASE_URL`, the seeded dev logins) stay as explicit `environment:` entries, which always win over injected variables.
   - Host-side `pnpm dev` / `pnpm setup` no longer receive these vars automatically — use `op run` or export them.
-- `env.sample` is unchanged and still applies to Docker and manual installs.
+- `env.sample` still applies to Docker and manual installs — only the zdev container stopped using a `.env` file.
 
 ## v0.6.7 (2026-08-05)
 
