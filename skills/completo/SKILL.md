@@ -4,7 +4,7 @@ description: |
   Manage Completo kanban board cards and projects from the command line. Use this skill whenever the
   user asks to fetch a ticket, get the next task, pick up work, work on a card, move a card between
   statuses, create a new card or ticket, create a new project, update a card's description or
-  checklist, list or filter cards, or interact with their Completo board programmatically.
+  checklist, list or filter cards, assign work, or interact with their Completo board programmatically.
   Also trigger when the user says things like "grab the next ticket", "work on TK-27", "pull from
   backlog", "what's next", "start on the next card", "move this to review", "update the card",
   "create a ticket for this", "add a card", "file a bug", "list the backlog", "create a project",
@@ -14,246 +14,211 @@ description: |
 
 # Completo Agent Workflow
 
-Interact with a Completo kanban board to fetch, plan, implement, and complete cards.
+Fetch, plan, implement, and complete Completo cards from the command line.
 
-## Prerequisites
+## What Completo is (mental model)
 
-Before using any `completo` command, verify the CLI is available:
+Completo is a kanban app. You'll interact with it entirely through the `completo` CLI, which talks
+to a remote server. A few facts shape everything below — internalize them and you'll avoid the
+common mistakes:
+
+- **Cards live in a project and have a status.** A card is `{projectKey}-{id}` (e.g. `TK-42`). The
+  numeric part auto-increments per project.
+- **Boards and lists are *views*, not owners.** Moving or removing a card from a view doesn't delete
+  it. You never manipulate views from the CLI — you move cards between *statuses*.
+- **Statuses are per-project and case-sensitive.** `"In Progress"` ≠ `"in progress"`. When unsure,
+  run `completo statuses` — never guess a status name.
+- **"Done" cards get filtered out after a retention window**, not deleted. So `next`/`list` won't
+  surface old completed cards; that's expected, not a bug.
+- **The workflow is a pipeline**, typically: `Backlog → To Do → In Progress → Review → Done`. Your
+  job is usually to pull a card in, do the work, and walk it rightward with the user's sign-off at
+  the handoffs.
+
+## Setup check
+
+Before anything else, confirm the CLI works:
 
 ```bash
 completo version
 ```
 
-If the command is not found, tell the user:
+- **Command not found** → tell the user to install it:
+  > ```bash
+  > curl -fsSL https://raw.githubusercontent.com/scalecommerce-dev/completo/main/install.sh | sh
+  > completo config
+  > ```
+- **Config error** → tell the user to run `completo config`.
 
-> The `completo` CLI is not installed. Install it with:
-> ```bash
-> curl -fsSL https://raw.githubusercontent.com/scalecommerce-dev/completo/main/install.sh | sh
-> ```
-> Then configure it:
-> ```bash
-> completo config
-> ```
+### Configuration (for reference)
 
-If the command exists but returns a config error, tell the user to run `completo config`.
-
-## Configuration
-
-The CLI reads from two config files:
-
-- **`~/.completo/.env`** — User credentials (URL, API token, email). This file must exist with valid credentials before any CLI command will work.
-- **`.completo`** — Project-specific settings (committed to repos that use Completo).
-
-### Setting up `~/.completo/.env`
-
-Run `completo config` to create this interactively, or create it manually:
+The CLI reads credentials from `~/.completo/.env` and project settings from a `.completo` file in
+the repo. `completo config` creates the credentials file interactively; you rarely need to touch
+these by hand. The keys, in case you do:
 
 ```env
-COMPLETO_URL=https://your-completo-instance.example.com
-COMPLETO_TOKEN=your-api-token
-COMPLETO_USER=your-email@example.com
-```
+# ~/.completo/.env — credentials (required before any command works)
+COMPLETO_URL=https://completo.example.com   # instance URL, no trailing slash
+COMPLETO_TOKEN=...                           # API token from your Completo profile page
+COMPLETO_USER=you@example.com                # your email; powers --me / --assign-me / my-tasks
 
-- `COMPLETO_URL` — Base URL of the Completo instance (no trailing slash)
-- `COMPLETO_TOKEN` — API token (generate one from your Completo profile page)
-- `COMPLETO_USER` — Your email address (used for `--assign-me` and `my-tasks`)
-
-### Setting up `.completo` (project config)
-
-Create a `.completo` file in the root of the repo that uses Completo for task management:
-
-```env
-PROJECT=my-saas-app
-TODO_STATUS=To Do
+# .completo — project settings, committed to the repo
+PROJECT=my-app              # project slug (find it with `completo projects`)
+TODO_STATUS=To Do          # default status for `next` and new cards
 IN_PROGRESS_STATUS=In Progress
 HANDOFF_STATUS=Review
-INSTRUCTIONS=Create feature branches named <ticket-id>-<slug>. Run tests before handing off.
+INSTRUCTIONS=Free-form guidance for agents — read this and follow it throughout the workflow.
 ```
 
-- `PROJECT` — Project slug (required for most commands, or pass `--project` each time). Find it with `completo projects`.
-- `TODO_STATUS` — Default status for new cards and the `next` command (default: "To Do")
-- `IN_PROGRESS_STATUS` — Status to move cards to when starting work (default: "In Progress")
-- `HANDOFF_STATUS` — Status for review/handoff (default: "Review")
-- `INSTRUCTIONS` — Free-form guidance for agents (read by the skill, not used by CLI directly)
+**If a `.completo` exists in the working directory (or any parent), read its `INSTRUCTIONS` field and
+follow it for the whole session.** The CLI walks up directories to find it. A gitignored
+`.completo.local` can override credentials for local dev (e.g. point at `http://localhost:3000`);
+`--env-file path` does the same for one-offs. Precedence: `~/.completo/.env` → `.completo` →
+`.completo.local` → `--env-file` → env vars.
 
-If a `.completo` file exists in the working directory (or any parent), read the `INSTRUCTIONS` field and follow them throughout the workflow.
+## Workflow: pick up and complete a card
 
-For local development, a `.completo.local` file (gitignored) can be placed alongside `.completo` to override credentials (e.g. point at `http://localhost:3000`). You can also use `--env-file path/to/env` on any command for one-off overrides. Precedence: `~/.completo/.env` → `.completo` → `.completo.local` → `--env-file` → env vars.
+### Step 1 — Fetch the card
 
-## Workflow: Pick Up and Complete a Card
-
-### Step 1: Fetch the card
-
-Either fetch a specific card:
 ```bash
-completo get TK-27
+completo get TK-27              # a specific card
+completo next                  # top card of TODO_STATUS (lowest position)
+completo next --status Backlog # top card of another status
+completo next --all            # list every card in the status as a table
 ```
 
-Or fetch the next card from a status (defaults to "To Do"):
-```bash
-completo next
-completo next --status "Backlog"
-```
+Use `--all` when the user wants to *choose* (e.g. "what's a quick win?") — scan titles and priorities
+and pick, rather than blindly taking the top card. Read the card carefully: title, description, tags,
+and priority tell you what to build. **Checklist items (`- [ ]` / `- [x]`) in the description are your
+implementation plan.**
 
-To see all cards in the status (useful for picking quick wins):
-```bash
-completo next --all
-```
-
-This returns a table of all cards in the status, letting you scan for quick wins rather than blindly taking the top card. For example, an agent asked "what's a quick thing to implement?" can fetch the full list, analyze titles and priorities, and pick the simplest task.
-
-Read the card output carefully - the title, description, tags, and priority tell you what to implement. If the description contains checklist items (`- [ ]` / `- [x]`), treat them as your implementation plan.
-
-### Step 2: Assign yourself and move to In Progress
+### Step 2 — Claim it
 
 ```bash
 completo assign TK-27 --me
 completo move TK-27 "In Progress"
 ```
 
-The status name must match exactly. Run `completo statuses` to see available statuses if unsure. Use the `IN_PROGRESS_STATUS` from `.completo` if set.
+Use the `.completo` `IN_PROGRESS_STATUS` if set. Status names must match exactly — `completo statuses`
+lists them.
 
-### Step 3: Plan before implementing
+### Step 3 — Plan before implementing
 
-Tickets are often written by non-technical users, product managers, or as quick notes — they may lack architectural context, have unclear scope, or suggest an approach that doesn't fit the codebase. Don't blindly implement what the ticket says. Think critically and align with the user first.
+Tickets are often written by non-technical users or as quick notes — they may lack context, have
+unclear scope, or suggest an approach that doesn't fit the codebase. **Don't blindly implement.**
+Review the ticket and share a concise assessment with the user:
 
-**Review the ticket** and share your assessment with the user:
-- Is the scope clear? Are there ambiguities or missing details?
-- Does the proposed approach make sense given the codebase architecture?
-- Are there simpler alternatives or better ways to solve the underlying problem?
-- What are the potential impacts (other features, performance, breaking changes)?
-- If the ticket has a checklist, are the items complete and in a sensible order?
-- **Are the dependencies in place?** Check whether the APIs, endpoints, data models, or infrastructure the ticket assumes actually exist. If the clean implementation path isn't available and you'd need a workaround, flag it. The user may prefer to fix the root cause first (e.g., add a missing API endpoint) rather than build on a hacky foundation.
+- Is the scope clear? Any ambiguities or missing details?
+- Does the proposed approach fit the codebase? Are there simpler alternatives?
+- What could this impact (other features, performance, breaking changes)?
+- **Are the dependencies actually in place?** Check that the APIs, endpoints, or data models the
+  ticket assumes exist. If the clean path isn't available and you'd need a hack, flag it — the user
+  may prefer to fix the root cause first.
 
-**For bug tickets, reproduce first.** Before proposing a fix, try to reproduce the bug using the steps in the ticket. Run the app, trigger the described behavior, and confirm the issue exists. This prevents wasted effort on bugs that were already fixed, are environment-specific, or stem from a misunderstanding. If you cannot reproduce the bug:
-- Report what you tried and what you observed instead.
-- Ask the user how to proceed — they may have additional context, want to reassign the ticket to the reporter, or close it as not reproducible.
-- Do not guess at a fix for a bug you can't see.
+**For bugs, reproduce first.** Run the app, trigger the described behavior, confirm it's real before
+proposing a fix. This avoids wasted effort on already-fixed, environment-specific, or misunderstood
+bugs. If you can't reproduce it, report what you tried and ask how to proceed — don't guess at a fix
+for a bug you can't see.
 
-**Discuss with the user.** Present your assessment concisely — what you'd do, what concerns you have, and any alternatives worth considering. Let the user weigh in before you start coding. If the ticket is straightforward and you have no concerns, say so briefly and confirm you're ready to proceed.
+If the ticket is straightforward and you have no concerns, say so briefly and proceed. Otherwise, let
+the user weigh in before you code. Use plan mode for non-trivial work. **Don't update the ticket
+during implementation** — that happens after review.
 
-**Then implement** with the agreed approach. Use plan mode for non-trivial work. Do NOT update the ticket description during implementation — that happens later after the user reviews.
+### Step 4 — Hand off for review
 
-### Step 4: Hand off for review
+Strict sequence — do each in order:
 
-This step has a strict sequence — do each action in order, don't skip ahead.
+1. **Move the card first**, before anything else:
+   ```bash
+   completo move TK-27 "Review"
+   ```
+   Use `HANDOFF_STATUS` from `.completo` (fall back to "Review"). The card must be in review before you
+   summarize, so the user can test immediately.
+2. **Summarize** what you implemented and *list* any ticket updates that should be made (checklist
+   items to tick, description tweaks) — but don't apply them yet.
+3. **Ask the user to review**, e.g.: *"Moved TK-27 to Review. Here's what I did: […]. The ticket needs
+   these updates: […]. Want to test first, or should I update the ticket now?"*
+4. **Wait for feedback.** If they want changes, address them and re-summarize.
 
-**4a. Move the card to review FIRST, before anything else:**
-```bash
-completo move TK-27 "Review"
-```
-Use the `HANDOFF_STATUS` from `.completo` if set. If that status doesn't exist, try "Review" as a fallback. Run `completo statuses` to check what's available. The card must be in the review status before you present your summary — the user may want to test immediately.
+### Step 5 — Commit and move to Done
 
-**4b. Summarize your work** to the user. Explain what you implemented and list any ticket updates that should be made (e.g. checklist items to check off, description changes). Do NOT update the ticket description or checklist yourself yet.
+Only after the user has approved ("looks good", "ship it"):
 
-**4c. Ask the user to review.** Something like:
-> I've moved CF-97 to Review. Here's what I did: [summary]. The ticket needs these updates: [list changes]. Want to test first, or should I update the ticket now?
+1. **Update the ticket if warranted** — tick off completed checklist items; note if the work went
+   beyond the original scope. If the work matches the description and there's no checklist, skip this —
+   don't touch the ticket just to touch it.
+2. **Ask permission to commit** — never commit automatically. Propose the message, e.g.: *"Ready to
+   commit? Message: 'Add collapsible sidebar toggle (TK-83)'"*
+3. **Commit** with the ticket ID in the message:
+   ```bash
+   git add <relevant-files>
+   git commit -m "Add collapsible sidebar toggle (TK-83)"
+   ```
+4. **Move to Done:**
+   ```bash
+   completo move TK-27 "Done"
+   ```
 
-**4d. Wait for the user's feedback.** If they request changes, address them first and re-summarize. The ticket update itself happens in Step 5a (pre-commit), so you don't need separate approval for it — just make sure the user is happy with the implementation before moving on.
+Don't move to Done on your own — but once the user signals they're finished, do it promptly. A card
+left in Review after sign-off creates confusion about what still needs attention.
 
-### Step 5: Commit and move to Done
+**Why commit at Done, not earlier?** During handoff the user tests via hot-reload — no commit needed.
+If they request changes, you iterate without polluting history. Committing at Done yields one clean,
+atomic commit per ticket.
 
-After the user has approved and confirmed they're satisfied (e.g. "looks good", "we're done", "ship it"):
-
-**5a. Pre-commit check — before asking to commit, consider whether the ticket needs updating:**
-- If the ticket has a checklist, check off completed items.
-- If the implementation went beyond the original scope (e.g. extra features, different approach), add a brief note.
-- If neither applies — the work matches the description and there's no checklist — skip the update. Don't touch the ticket just for the sake of touching it.
-
-**5b. Ask the user for permission to commit.** Do NOT commit automatically — always ask first. Something like:
-> Ready to commit? I'll use the message: "Add collapsible sidebar toggle (CF-83)"
-
-Wait for explicit approval before running `git commit`. If the user wants to adjust the message or stage specific files, follow their lead.
-
-**5c. Commit the changes** with a clear message that includes the ticket ID:
-```bash
-git add <relevant-files>
-git commit -m "Add collapsible sidebar toggle (CF-83)"
-```
-
-**5d. Move the card to Done:**
-```bash
-completo move TK-27 "Done"
-```
-
-Don't move to Done on your own — wait for explicit confirmation that the user is finished with the ticket. But also don't forget this step: once the user signals they're done, move the card immediately. A ticket left in Review after sign-off creates confusion about what still needs attention.
-
-**Why commit here and not earlier?** During hand-off (step 4), the user tests locally via hot-reload — no commit needed. If they request changes, the agent iterates without polluting commit history. Committing at Done produces one clean, atomic commit per ticket.
-
-## Creating Projects
-
-Create a new project when the user wants to set up a fresh board.
-
-**Always pass `--slug`** to get a clean, predictable slug. If omitted, the CLI appends a random suffix (e.g. `my-project-ffab90e6`). Derive the slug by lowercasing the project name and replacing spaces/special characters with hyphens.
-
-```bash
-completo project-create "My New Project" --slug my-new-project
-completo project-create "Client Portal" --key CP --slug client-portal --description "Customer-facing dashboard"
-```
-
-The `project-create` command supports these flags:
-- `--key "XY"` — Project key (2-5 uppercase letters, auto-generated if omitted). Used in ticket IDs like `XY-42`.
-- `--slug "my-project"` — URL slug. **Always provide this** to avoid random suffixes. Derive from the project name (lowercase, hyphens for spaces).
-- `--description "text"` — Project description
-- `--icon "icon-name"` — Project icon
-- `--done-retention-days N` — Days to retain done cards (default: 30)
-
-After creation, the CLI prints the project slug. To use the project, create a `.completo` file:
-
-```env
-PROJECT=my-new-project
-TODO_STATUS=To Do
-IN_PROGRESS_STATUS=In Progress
-HANDOFF_STATUS=Review
-```
-
-New projects come with default statuses (Backlog, To Do, In Progress, Review, Done), tags (Bug, Feature, Discuss), and an Overview board.
-
-## Creating Cards
-
-Create cards directly from the CLI when the user wants to file a bug, add a task, or capture an idea without opening the UI:
+## Creating cards
 
 ```bash
 completo create "Fix login timeout on slow connections"
-completo create "Add CSV export" --priority high --status "Backlog"
-completo create "Refactor auth middleware" --description-file /tmp/desc.md --assign-me --due 2026-04-15
+completo create "Add CSV export" --priority high --status Backlog
+completo create "Refactor auth" --description-file /tmp/desc.md --assign-me --due 2026-04-15
 ```
 
-The `create` command supports these flags:
-- `--status "X"` — Status name (defaults to `TODO_STATUS` from `.completo`, or the first status)
-- `--description "text"` / `--description-file path` — Card description (markdown)
-- `--priority low|medium|high|urgent` — Card priority
-- `--due YYYY-MM-DD` — Due date
-- `--assign-me` — Assign the card to yourself
-- `--project slug` — Override the project from `.completo`
+Defaults to `TODO_STATUS` (or the first status). Flags: `--status`, `--description` /
+`--description-file`, `--priority low|medium|high|urgent`, `--due YYYY-MM-DD`, `--assign-me`,
+`--project`. Use `--description-file` for multi-line markdown.
 
-After creation, the CLI prints the new ticket ID and card details.
+## Creating projects
 
-## Available Commands
+```bash
+completo project-create "Client Portal" --slug client-portal --key CP --description "Customer dashboard"
+```
+
+**Always pass `--slug`** — omit it and the CLI appends a random suffix (`client-portal-ffab90e6`).
+Derive it by lowercasing the name and hyphenating. Other flags: `--key` (2–5 uppercase letters,
+auto-generated if omitted), `--icon`, `--done-retention-days` (default 30). New projects come with
+default statuses (Backlog, To Do, In Progress, Review, Done), tags (Bug, Feature, Discuss), and an
+Overview board. After creation, add a `.completo` with the printed slug (see Configuration above).
+
+## Command reference
+
+Run `completo <command> --help` for full, always-current flag lists. The essentials:
 
 | Command | Purpose |
 |---------|---------|
-| `completo project-create <name> [flags]` | Create a new project with default statuses, tags, and board |
 | `completo projects` | List accessible projects |
-| `completo statuses [project]` | List statuses for a project |
-| `completo next [--status "X"] [--all]` | Fetch next card (or all cards with `--all`) from a status |
-| `completo list [--status "X"] [--priority P] [--assignee A]` | List cards with optional filters |
-| `completo create <title> [flags]` | Create a new card with optional description, priority, due date |
-| `completo get <ticket-id>` | Fetch a specific card |
-| `completo move <ticket-id> "Status"` | Move card to a named status |
-| `completo assign <ticket-id> --me` | Assign card to yourself |
-| `completo update <ticket-id> [flags]` | Update card fields |
-| `completo briefing [--file F] [--clear]` | View, upload, or clear the project's agent briefing |
-| `completo my-tasks` | List cards assigned to you |
-| `completo search <query>` | Search cards in project |
-| `completo version` | Print CLI version |
-| `completo self-update` | Update CLI to latest version |
+| `completo statuses [project]` | List a project's statuses (names are exact) |
+| `completo next [project] [--status X] [--all]` | Top card of a status, or all of them (`--all`) |
+| `completo list [project] [--status] [--priority] [--assignee] [--limit]` | List/filter cards (limit default 50, max 200) |
+| `completo get <ticket-id>` | Fetch one card |
+| `completo create <title> [flags]` | Create a card (see above) |
+| `completo update <ticket-id> [flags]` | Edit `--title` / `--description[-file]` / `--priority` / `--due` (`--due none` clears it) |
+| `completo move <ticket-id> "Status"` | Move a card to a status (to the top of the column) |
+| `completo assign <ticket-id> --me` | Assign to yourself, or `completo assign <ticket-id> someone@example.com` for another member |
+| `completo my-tasks` | Cards assigned to you |
+| `completo search <query>` | Search cards in the project |
+| `completo project-create <name> [flags]` | Create a project (see above) |
+| `completo briefing [--file F ...] [--clear]` | View / upload / clear the project's AI briefing |
+| `completo config` / `version` / `self-update` | Configure credentials / print version / update the CLI |
 
-All commands support `--json` for JSON output.
+Read commands (`get`, `list`, `next`, `search`, `my-tasks`, `statuses`, `projects`, `create`,
+`project-create`, `briefing`) accept `--json` for machine-readable output; `--env-file` overrides
+config on any command.
 
-## Tips
+## Notes
 
-- Status names are case-sensitive and must match exactly
-- The `next` command returns the card with the lowest position (top of the column). Use `--all` to list every card in the status as a table
-- Use `--description-file` for multi-line description updates instead of `--description`
-- The CLI walks up directories to find `.completo`, so it works from any subdirectory
+- `update` can only change title/description/priority/due. Use `move` for status and `assign` for
+  assignee — not `update`.
+- `next`, `list`, and `briefing` take an optional positional project slug if you're not relying on
+  `.completo`.
+- To scope work to a project without a `.completo` file, pass `--project` (on `create`) or the
+  positional slug (elsewhere).
