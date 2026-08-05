@@ -156,7 +156,11 @@ zdev migrate             # apply migrations; also: generate | push | seed | clea
 - Boot applies committed migrations (`node scripts/db-migrate.ts`). For a schema change: `zdev migrate generate`, commit it, restart. There is no `zdev migrate push` — see Schema Changes & Migrations for why.
 - **`.zdev/commands/migrate.just` → `zdev migrate`** is only an alias for those same `node scripts/*.ts` commands, so dev and prod stay verifiably identical. Adding a `.just` file there adds a `zdev <name>` subcommand.
 - **Email is wired to the shared Mailpit** (`SMTP_HOST: mail`). Because `isEmailEnabled()` keys off `SMTP_HOST`, logins require a verified email — the seeded users are auto-verified; check other mail via `zdev mail`.
-- Per-developer overrides go in `.zdev/local/config.yaml` (gitignored, deep-merged). Don't put secrets in `.zdev/config.yaml`.
+- **There is no `.env` file.** Dev secrets (`NUXT_SESSION_PASSWORD`, the OAuth client IDs/secrets, AI keys) live in a 1Password Environment, attached via `op-env: ${op-env}` on the app service. The Environment **ID** in `.zdev/config.yaml` is not secret and commits safely; values are fetched by the `op` CLI only when a container is created. Needs the beta CLI (`brew install 1password-cli@beta`) with the desktop-app integration enabled.
+  - After rotating or adding variables in 1Password: **`zdev update --refresh-secrets`**. Plain `zdev restart`/`zdev update` will *not* pick them up — the env is baked into the container at creation. The refresh compares a `zdev.secrets-hash` label and only recreates services whose injected set actually changed, so it's cheap to run habitually.
+  - Non-secret, dev-specific values (`SMTP_HOST: mail`, `APP_URL`, `DATABASE_URL`, the dev logins) stay as explicit `environment:` entries — those always win over injected variables, which is what keeps prod-shaped values in 1Password from leaking into dev.
+  - Host-side `pnpm dev` / `pnpm setup` no longer get these vars automatically. Prefix with `op run --env-file=...` or export them manually if you need to run outside the container.
+- Per-developer overrides go in `.zdev/local/config.yaml` (gitignored, deep-merged). Don't put secrets in `.zdev/config.yaml` — use the 1Password Environment.
 - `zdev restart` does not pick up `config.yaml` edits — use `zdev update`. Source changes are live via the file sync.
 
 ### Changelog

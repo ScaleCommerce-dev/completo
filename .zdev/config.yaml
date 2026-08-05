@@ -28,6 +28,13 @@ shared:
   mail: true
 
 variables:
+  # 1Password Environment holding the dev secrets (session password, OAuth
+  # client IDs/secrets, AI keys). The ID is not secret and commits safely —
+  # values are fetched by the `op` CLI when a container is created, so there
+  # is no .env file in this project. Rotate values in the 1Password app, then
+  # `zdev update --refresh-secrets` (a plain restart keeps the baked-in env).
+  op-env: d6znna4edcfwv6tmwbogm3gyei
+
   # Dev-only fixed credentials. Committed deliberately: they exist so a fresh
   # `zdev start` is immediately usable, and they never leave this dev env
   # (prod provisions its admin from ADMIN_USER_* env vars instead).
@@ -42,6 +49,11 @@ services:
     # install -> migrate -> seed, then the CMD runs `pnpm dev`.
     dockerfile: .zdev/Dockerfile
     working_dir: /app
+    # Inject every variable of the 1Password Environment. The explicit
+    # `environment:` entries below always win over injected ones, which is how
+    # the dev-specific SMTP_HOST/APP_URL/DATABASE_URL beat any prod-shaped
+    # values that may also live in 1Password.
+    op-env: ${op-env}
     volumes:
       - ${PROJECTPATH}:/app
       - data:/app/data       # named volume — keeps SQLite out of the file sync
