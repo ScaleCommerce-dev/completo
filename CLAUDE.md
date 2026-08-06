@@ -4,11 +4,33 @@
 
 Kanban board app. Nuxt 4 + Nuxt UI 4 + Tailwind 4 + Drizzle ORM + SQLite. Plus Jakarta Sans + JetBrains Mono. Lucide icons (`i-lucide-*`). pnpm.
 
+## ⚠️ Run everything in the zdev container
+
+**This is a zdev-managed project. Every `pnpm`/`node`/`npx` command runs inside the container, never on the host.**
+
 ```bash
-pnpm install && pnpm setup && pnpm dev  # http://localhost:3000
+zdev start                    # boots the env: install → migrate → seed → dev server
+zdev exec app <command>       # ← the way you run ANYTHING
 ```
 
-`pnpm setup` chains migrate → init-admin → seed. Set `ADMIN_USER_EMAIL` / `ADMIN_USER_PASSWORD` (+ optional `ADMIN_USER_NAME`) in `.env` first — those become your dev admin. Skip them and you'll get an empty install (no users, no demo project); add an admin later with `pnpm user:create you@example.com password "You" admin` then `pnpm db:seed` to populate.
+```bash
+zdev exec app pnpm test       # not: pnpm test
+zdev exec app pnpm lint
+zdev exec app pnpm typecheck
+zdev exec app pnpm audit
+zdev exec app pnpm install    # after changing package.json
+```
+
+Why it matters — these are not stylistic preferences:
+
+- **`node_modules` is in `mutagen.ignore`.** The container has its own dependency tree; the host's is a *separate* copy. A host `pnpm install` does not change what the app runs, and host-only checks (audits, tests, dependency scans) inspect the wrong tree and report misleading results.
+- **There is no `.env`.** Dev secrets come from a 1Password Environment injected at container creation, so host-side `pnpm dev` / `pnpm setup` start without `NUXT_SESSION_PASSWORD`, OAuth creds, or AI keys. See the 1Password notes under Local Dev Environment.
+- **The database only exists in the container** (`/app/data/sqlite.db`, `data` named volume). Host `pnpm db:*` targets a database the app never reads.
+- **Node/pnpm versions are pinned in the image** (Node 24, pnpm 11.17.0). The host may have anything.
+
+**The only things that legitimately run on the host:** `zdev` itself, `git`, and the Go CLI in `cli/` (`go build` / `go test` — the dev image has no Go toolchain). If you genuinely need a host-side `pnpm` command, prefix it with `op run --env-file=...` to get the secrets, and know it operates on the host's separate `node_modules`.
+
+Non-zdev installs (prod, CI) use `pnpm install && pnpm setup && pnpm dev` directly. `pnpm setup` chains migrate → init-admin → seed and reads `ADMIN_USER_EMAIL` / `ADMIN_USER_PASSWORD` (+ optional `ADMIN_USER_NAME`) to create the first admin; skip them and you get an empty install (no users, no demo project). Add an admin later with `pnpm user:create you@example.com password "You" admin`, then `pnpm db:seed` to populate.
 
 ## Architecture
 
@@ -60,7 +82,7 @@ pnpm install && pnpm setup && pnpm dev  # http://localhost:3000
 - **OpenAPI spec** (`server/assets/openapi.json`, served by `server/api/openapi.get.ts`) must stay in sync with endpoints. Only covers headless API usage — frontend-internal endpoints (slug/key validation, UI column config, notifications, OAuth redirects, registration flows) are intentionally omitted.
 - **Server utils:** `enrichCardsWithMetadata()` and `fetchCardMetadata()` in `server/utils/card-metadata.ts` handle bulk tag + attachment count enrichment. Use these instead of inline tag/attachment queries in endpoints.
 - **View components:** `ViewConfigModal` uses a `mode: 'board' | 'list'` prop — don't create separate config modals. `ViewHeader` is the shared header for board/list pages with a `#actions` slot for view-specific buttons.
-- **Write tests** for new features. Run `pnpm test` and `pnpm lint` after changes.
+- **Write tests** for new features. Run `zdev exec app pnpm test` and `zdev exec app pnpm lint` after changes.
 
 ### Don't
 
@@ -85,11 +107,11 @@ pnpm install && pnpm setup && pnpm dev  # http://localhost:3000
 ## Testing
 
 **When to run which tests:**
-- **App changes** (anything under `app/`, `server/`, `shared/`): `pnpm test` — runs vitest unit + integration tests.
-- **CLI changes** (anything under `cli/`): `cd cli && go test ./...` — runs Go unit tests.
+- **App changes** (anything under `app/`, `server/`, `shared/`): `zdev exec app pnpm test` — runs vitest unit + integration tests **in the container**.
+- **CLI changes** (anything under `cli/`): `cd cli && go test ./...` — runs Go unit tests. This one runs **on the host**: the dev image has no Go toolchain.
 - **Before releasing:** run both.
 
-**App tests:** Two vitest projects: `unit` (fast) + `integration` (sequential, 30s timeout). Test DB on `:43210`.
+**App tests:** Two vitest projects: `unit` (fast) + `integration` (sequential, 30s timeout). Test DB on `:43210`. Tests use their own throwaway `test.db` inside the container, so they never touch the dev database.
 
 **CLI tests:** Go unit tests covering semver comparison, env file parsing, config precedence, and output formatting. No HTTP integration tests — the CLI is a thin API client; the API is tested by the vitest integration suite.
 
@@ -97,20 +119,22 @@ pnpm install && pnpm setup && pnpm dev  # http://localhost:3000
 - `fetch(url('/path'))` for raw responses (ofetch throws on non-2xx)
 - `randomKey()` in fixtures to avoid 409 conflicts
 - `process.env.NODE_ENV` inlined at build — use custom env vars for runtime gating
-- Kill stale test server: `lsof -ti:43210 | xargs kill -9`
+- Kill stale test server: `zdev exec app sh -c 'fuser -k 43210/tcp'` (in-container port; a host `lsof -ti:43210` won't see it)
 
 ## Environment & Commands
 
 `NUXT_SESSION_PASSWORD` is the only required env var (min 32 chars). See `env.sample` for the rest. Key vars: `DATABASE_URL` (default `sqlite.db`), `AI_PROVIDER` (`anthropic`/`openai`/`openrouter`, empty=disabled), `SMTP_HOST` (empty=email disabled), `UPLOAD_DIR` (default `data/uploads`), `NUXT_OAUTH_*_CLIENT_ID/SECRET` (empty=provider disabled).
 
+In dev these run **in the container** — prefix each with `zdev exec app` (several have a shorter `zdev` alias, see Local Dev Environment). The bare forms below are what prod/CI run.
+
 ```bash
-pnpm dev / build / test / lint / typecheck
-pnpm setup                                       # migrate + init-admin + seed (first-time bootstrap)
-pnpm db:migrate / db:init-admin / db:seed / db:cleanup
-pnpm user:create <email> <password> [name] [admin]
-pnpm user:set-role <email> <admin|user>
-pnpm user:verify-email <email>
-npx drizzle-kit generate      # Generate migration SQL after editing schema.ts (then commit it)
+zdev exec app pnpm build / test / lint / typecheck    # `pnpm dev` is already supervised by zpinit
+zdev exec app pnpm db:migrate / db:init-admin / db:seed / db:cleanup   # or: zdev migrate | seed | cleanup
+zdev exec app pnpm user:create <email> <password> [name] [admin]
+zdev exec app pnpm user:set-role <email> <admin|user>
+zdev exec app pnpm user:verify-email <email>
+zdev migrate generate                                # drizzle-kit generate — then COMMIT the .sql + meta/
+zdev exec app pnpm setup                             # migrate + init-admin + seed (non-zdev bootstrap only)
 ```
 
 ### Local Dev Environment (zdev)
@@ -204,9 +228,9 @@ The Completo agent skill lives in-repo at `skills/completo/SKILL.md` — this is
 **Every schema change requires a committed migration. No exceptions.**
 
 1. Edit `server/database/schema.ts`
-2. `npx drizzle-kit generate` (or `zdev migrate generate`)
+2. `zdev migrate generate` (drizzle-kit runs in the container — a host `npx drizzle-kit` would read the host's separate deps and no dev database)
 3. **Commit both** the new `server/database/migrations/*.sql` *and* the `meta/` changes — `meta/_journal.json` is what the migrator reads; a `.sql` file without its journal entry is invisible and silently never runs
-4. Apply with `pnpm db:migrate` (or `zdev migrate`, or just restart the dev container — it migrates on every boot)
+4. Apply with `zdev migrate` (or just restart the dev container — it migrates on every boot)
 
 `pnpm db:migrate` is the only thing that touches a real database: dev container boot, the prod entrypoint, and deploys all run it. Skip steps 2–3 and the change exists only on your machine — CI, the prod image, and every teammate diverge, and the deploy fails on the first query against the missing column.
 

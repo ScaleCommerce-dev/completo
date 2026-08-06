@@ -108,7 +108,9 @@ pnpm user:verify-email <email>                        # Manually verify a user's
 
 ### Development environment (zdev)
 
-`pnpm dev` above is all you need to hack on Completo. If you'd rather not run Node, pnpm and SQLite on your host at all, the repo also ships a containerised dev environment for [**zdev**](https://github.com/0ploy/zdev) — Docker-based, with HTTPS and a mail catcher wired up.
+`pnpm dev` above is all you need to *run* Completo on your own machine. The repo also ships a containerised dev environment for [**zdev**](https://github.com/0ploy/zdev) — Docker-based, with HTTPS and a mail catcher wired up — and that is what contributors to this repo use.
+
+**If you develop in zdev, run every command through it: `zdev exec app <command>`, never bare `pnpm` on the host.** The container has its own `node_modules` (excluded from the file sync), its own database (`/app/data/sqlite.db` in a named volume), and its own injected secrets. A host-side `pnpm install`, `pnpm test`, or `pnpm db:*` operates on a different dependency tree and a database the app never reads, so results mislead you.
 
 ```bash
 zdev start           # build, install deps, migrate, seed, run the dev server
