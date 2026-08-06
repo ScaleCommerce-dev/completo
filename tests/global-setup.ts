@@ -1,5 +1,5 @@
 import { execSync, spawn, type ChildProcess } from 'node:child_process'
-import { writeFileSync, unlinkSync, rmSync } from 'node:fs'
+import { writeFileSync, unlinkSync, rmSync, readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -9,8 +9,61 @@ const URL_FILE = resolve(DIR, '.test-server-url')
 const PORT = 43210
 const TEST_DB = 'test.db'
 const TEST_UPLOAD_DIR = resolve(ROOT, 'data/test-uploads')
+const SERVER_ENTRYPOINT = '.output/server/index.mjs'
 
 let server: ChildProcess | null = null
+
+// Free the test port before starting a new server.
+//
+// This used to be `lsof -ti:PORT | xargs kill -9`, which is a trap in the dev
+// container: Alpine's `lsof` is a BusyBox symlink that silently ignores `-t`
+// and `-i` and prints *every* open file as `PID<tab>path<tab>fd<tab>target`.
+// `xargs kill -9` then received every token — killing PID 1 (zpinit) and the
+// vitest process itself, so the suite died with SIGKILL (exit 137) before it
+// ran a single integration test. BusyBox `fuser` is no help either: it resolves
+// no owner for a listening TCP port in this image, with any argument form.
+//
+// So resolve the owner ourselves. On Linux we match our own server entrypoint
+// via /proc, which is exact and structurally cannot hit PID 1 or the runner.
+// Elsewhere (macOS) real `lsof -t -i` prints bare PIDs — accepted only when the
+// output is purely numeric, which is what rules BusyBox back out.
+function killStaleServer(port: number) {
+  const pids = new Set<number>()
+
+  try {
+    for (const entry of readdirSync('/proc')) {
+      if (!/^\d+$/.test(entry)) continue
+      const pid = Number(entry)
+      if (pid <= 1 || pid === process.pid) continue
+      let cmdline: string
+      try {
+        cmdline = readFileSync(`/proc/${entry}/cmdline`, 'utf-8')
+      } catch {
+        continue // process exited, or not ours to read
+      }
+      if (cmdline.includes(SERVER_ENTRYPOINT)) pids.add(pid)
+    }
+  } catch { /* no /proc — not Linux */ }
+
+  if (!pids.size) {
+    try {
+      const out = execSync(`lsof -t -i:${port}`, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] })
+      const tokens = out.trim().split(/\s+/).filter(Boolean)
+      if (tokens.length && tokens.every(t => /^\d+$/.test(t))) {
+        for (const token of tokens) {
+          const pid = Number(token)
+          if (pid > 1 && pid !== process.pid) pids.add(pid)
+        }
+      }
+    } catch { /* nothing listening, or no usable lsof */ }
+  }
+
+  for (const pid of pids) {
+    try {
+      process.kill(pid, 'SIGKILL')
+    } catch { /* already gone */ }
+  }
+}
 
 export async function setup() {
   // Build Nuxt app (production)
@@ -35,13 +88,11 @@ export async function setup() {
   })
 
   // Kill any stale server from a previous crashed run
-  try {
-    execSync(`lsof -ti:${PORT} | xargs kill -9`, { stdio: 'ignore' })
-  } catch { /* ignore */ }
+  killStaleServer(PORT)
 
   // Start the built server
   console.log('[global-setup] Starting server...')
-  server = spawn('node', ['.output/server/index.mjs'], {
+  server = spawn('node', [SERVER_ENTRYPOINT], {
     cwd: ROOT,
     env: {
       ...process.env,
