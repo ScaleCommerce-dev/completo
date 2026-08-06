@@ -1,5 +1,5 @@
 name: completo
-auto_open_at_start: true
+auto_open_at_start: false
 
 info: |
   ## ${PROJECTNAME}

@@ -115,11 +115,22 @@ Non-zdev installs (prod, CI) use `pnpm install && pnpm setup && pnpm dev` direct
 
 **CLI tests:** Go unit tests covering semver comparison, env file parsing, config precedence, and output formatting. No HTTP integration tests — the CLI is a thin API client; the API is tested by the vitest integration suite.
 
+### Dependency upgrades: the suite cannot see the client
+
+**The integration tests talk HTTP to a built server and never mount the Vue app.** So a client-side runtime break passes every test. This is not hypothetical: upgrading nuxt 4.4.6 → 4.5.1 split the tree into two Vue copies and the app failed to mount with `Cannot read properties of null (reading 'ce')` — while 481 tests, `lint`, and `typecheck` all stayed green.
+
+Two things guard this, deliberately chosen over adding browser tests to CI:
+
+- **`tests/unit/dependency-singletons.test.ts`** asserts that `vue`, `@vue/runtime-core`, `@vue/runtime-dom`, `@vue/reactivity`, `@vue/server-renderer`, and `vue-router` each resolve to exactly one version in `pnpm-lock.yaml`. Vue keeps module-level state, so two copies break at runtime. Fix a failure with `pnpm update <pkg>` (usually a stale lockfile pin) or a `pnpm.overrides` entry. `@vue/compiler-*` and `@vue/shared` are excluded on purpose — build-time only, and `vue-tsc` legitimately pins an older compiler.
+- **After any framework-level bump (nuxt, @nuxt/ui, vue, vite), actually load the app in a browser** and check the console. There are no automated browser tests: `createPage()` would need Playwright plus the `chromium` apk in the dev image (~300 MB), which wasn't judged worth it because this check happens during agent-assisted development anyway. Don't assume green tests mean the UI renders.
+
+`@nuxt/test-utils` was removed — it was an unused devDependency (the e2e harness here is hand-rolled in `global-setup.ts` + `tests/setup/`, one build and one shared server for all files, which is faster) and it declares `vue` as a hard dependency rather than a peer, which is what pinned the second Vue copy. If browser tests are ever wanted, it can come back in host mode (`setup({ host })` skips its own build and server, so the single-server model survives).
+
 **Gotchas:**
 - `fetch(url('/path'))` for raw responses (ofetch throws on non-2xx)
 - `randomKey()` in fixtures to avoid 409 conflicts
 - `process.env.NODE_ENV` inlined at build — use custom env vars for runtime gating
-- Kill stale test server: `zdev exec app sh -c 'fuser -k 43210/tcp'` (in-container port; a host `lsof -ti:43210` won't see it)
+- **Stale test servers are cleaned up automatically** by `tests/global-setup.ts`, which finds the previous `.output/server/index.mjs` via `/proc` and kills only that. Don't "fix" it with `lsof -ti:PORT | xargs kill -9` — that was the original code and it took the container down: Alpine's `lsof` is a BusyBox symlink that ignores `-t`/`-i` and prints every open file, so `xargs kill -9` killed PID 1 and the vitest process (SIGKILL, exit 137). BusyBox `fuser` is no substitute either — it resolves no owner for a listening TCP port in this image.
 
 ## Environment & Commands
 
