@@ -11,13 +11,20 @@ const props = withDefaults(defineProps<{
   cardId?: number | null
   minHeight?: number
   maxHeight?: number
+  /**
+   * Which AI skills this editor offers, and which AI endpoint it targets. Defaults
+   * to 'card' so existing callers are unaffected; CommentList passes 'comment' so
+   * the comment box doesn't offer card skills that interpolate card placeholders.
+   */
+  aiScope?: AiSkillScope
 }>(), {
   title: '',
   tags: () => [],
   priority: 'medium',
   cardId: null,
   minHeight: 120,
-  maxHeight: 300
+  maxHeight: 300,
+  aiScope: 'card'
 })
 
 const emit = defineEmits<{
@@ -415,7 +422,8 @@ defineExpose({
         :priority="priority"
         :is-generating="aiGenerating"
         :error="aiError"
-        @generate="(payload) => aiGenerate({ title, description, tags, priority, projectSlug: projectSlug! }, payload)"
+        :scope="aiScope"
+        @generate="(payload) => aiGenerate({ title, description, tags, priority, projectSlug: projectSlug!, scope: aiScope, cardId: cardId ?? undefined }, payload)"
         @cancel="aiCancel"
       />
     </template>

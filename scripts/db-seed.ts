@@ -120,34 +120,14 @@ if (existingProject) {
   }
 }
 
-// --- Default AI skills ---
-const skillCount = db.prepare('SELECT COUNT(*) as count FROM ai_skills').get() as { count: number }
-if (skillCount.count > 0) {
-  console.log('AI skills already exist — skipping')
-} else {
-  const now = Math.floor(Date.now() / 1000)
-  db.prepare(`
-    INSERT INTO ai_skills (id, name, prompt, scope, position, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    randomUUID(),
-    'Generate Description',
-    'Generate a description for this card:\n\nTitle: {title}\nPriority: {priority}\nTags: {tags}',
-    'card', 0, now, now
-  )
-
-  db.prepare(`
-    INSERT INTO ai_skills (id, name, prompt, scope, position, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    randomUUID(),
-    'Improve Description',
-    'Improve this card description. Make it clearer, better structured, and more actionable:\n\nTitle: {title}\nPriority: {priority}\nTags: {tags}\n\nCurrent description:\n{description}',
-    'card', 1, now, now
-  )
-
-  console.log('Seeded 2 default AI skills')
-}
+// --- Default AI skills are NOT seeded ---
+// They live in server/database/migrations/0003_default_ai_skills.sql.
+//
+// This script runs on *every* boot (dev container boot and the prod entrypoint both
+// call it), so an idempotent insert here would resurrect a default skill that an
+// admin deliberately deleted, on the next restart. A migration hands the rows over
+// once and then leaves them alone. Keep this file to demo content only, as its header
+// says — anything a real installation depends on belongs in a migration.
 
 db.close()
 console.log('Done')

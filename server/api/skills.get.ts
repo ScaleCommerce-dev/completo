@@ -7,10 +7,14 @@ export default defineEventHandler(async (event) => {
   }
 
   const query = getQuery(event)
-  const scope = query.scope as string | undefined
+  const rawScope = query.scope as string | undefined
 
-  if (scope && scope !== 'card' && scope !== 'board') {
-    throw createError({ statusCode: 400, message: 'Scope must be "card" or "board"' })
+  let scope: AiSkillScope | undefined
+  if (rawScope !== undefined) {
+    if (!isAiSkillScope(rawScope)) {
+      throw createError({ statusCode: 400, message: `Scope must be one of: ${AI_SKILL_SCOPES.join(', ')}` })
+    }
+    scope = rawScope
   }
 
   const columns = {
@@ -21,7 +25,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (scope) {
-    return db.select(columns).from(schema.aiSkills).where(eq(schema.aiSkills.scope, scope as 'card' | 'board')).orderBy(asc(schema.aiSkills.position)).all()
+    return db.select(columns).from(schema.aiSkills).where(eq(schema.aiSkills.scope, scope)).orderBy(asc(schema.aiSkills.position)).all()
   }
 
   return db.select(columns).from(schema.aiSkills).orderBy(asc(schema.aiSkills.position)).all()

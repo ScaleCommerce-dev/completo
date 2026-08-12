@@ -6,7 +6,7 @@ const props = defineProps<{
   priority?: string
   isGenerating: boolean
   error?: string | null
-  scope?: 'card' | 'board'
+  scope?: AiSkillScope
 }>()
 
 const emit = defineEmits<{

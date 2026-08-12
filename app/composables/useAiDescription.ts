@@ -4,6 +4,14 @@ interface AiDescriptionContext {
   tags?: string[]
   priority?: string
   projectSlug: string
+  /**
+   * Which AI surface this is. 'comment' targets the card-scoped comment endpoint,
+   * which assembles the card and prior thread as context instead of card fields.
+   * Anything else keeps the original card-description behaviour.
+   */
+  scope?: AiSkillScope
+  /** Required when scope is 'comment' — the comment endpoint is card-scoped. */
+  cardId?: number
 }
 
 interface AiGeneratePayload {
@@ -42,19 +50,34 @@ export function useAiDescription(descriptionRef: Ref<string>) {
     previousDescription.value = descriptionRef.value
 
     try {
-      const response = await fetch(`/api/projects/${context.projectSlug}/ai/generate-description`, {
+      const isComment = context.scope === 'comment'
+      if (isComment && !context.cardId) {
+        throw new Error('Cannot use AI on a comment before the card exists')
+      }
+
+      const url = isComment
+        ? `/api/cards/${context.cardId}/ai/comment`
+        : `/api/projects/${context.projectSlug}/ai/generate-description`
+
+      // The comment endpoint reads the card and thread server-side, so it only needs
+      // the draft; the card endpoint takes the whole card context from the client.
+      const requestBody = isComment
+        ? { body: descriptionRef.value, skillId, userPrompt, pageUrl: window.location.pathname }
+        : {
+            title: context.title,
+            description: context.description,
+            tags: context.tags,
+            priority: context.priority,
+            mode: mode || (!skillId && !userPrompt ? (context.description?.trim() ? 'improve' : 'generate') : undefined),
+            skillId,
+            userPrompt,
+            pageUrl: window.location.pathname
+          }
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: context.title,
-          description: context.description,
-          tags: context.tags,
-          priority: context.priority,
-          mode: mode || (!skillId && !userPrompt ? (context.description?.trim() ? 'improve' : 'generate') : undefined),
-          skillId,
-          userPrompt,
-          pageUrl: window.location.pathname
-        }),
+        body: JSON.stringify(requestBody),
         signal: abortController.signal
       })
 

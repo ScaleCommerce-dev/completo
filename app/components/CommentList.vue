@@ -224,6 +224,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
               :card-id="cardId"
               :min-height="120"
               :max-height="300"
+              ai-scope="comment"
               @escape="cancelEdit"
             />
             <div class="flex items-center gap-2 mt-2">
@@ -275,6 +276,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
         :card-id="cardId"
         :min-height="120"
         :max-height="300"
+        ai-scope="comment"
       />
       <div class="flex justify-end mt-2">
         <UButton

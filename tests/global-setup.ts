@@ -13,6 +13,34 @@ const SERVER_ENTRYPOINT = '.output/server/index.mjs'
 
 let server: ChildProcess | null = null
 
+const aiEvalsEnabled = process.env.RUN_AI_EVALS === '1'
+
+/**
+ * Pass the ambient provider config through to the test server, mirroring each var
+ * to its NUXT_ form so it wins over runtimeConfig. Only used when RUN_AI_EVALS=1.
+ *
+ * The per-provider MODEL vars matter as much as the keys: forwarding only the key
+ * lets the server fall back to DEFAULT_MODELS, so the eval silently grades a
+ * different model than the app uses. That happened — a weaker fallback translated a
+ * German comment into English and two prompt assertions failed for the wrong reason.
+ */
+function aiProviderEnv(): Record<string, string> {
+  const vars = [
+    'AI_PROVIDER', 'AI_MODEL', 'AI_BASE_URL', 'AI_MAX_TOKENS',
+    'ANTHROPIC_API_KEY', 'ANTHROPIC_MODEL', 'ANTHROPIC_BASE_URL',
+    'OPENAI_API_KEY', 'OPENAI_MODEL', 'OPENAI_BASE_URL',
+    'OPENROUTER_API_KEY', 'OPENROUTER_MODEL', 'OPENROUTER_BASE_URL'
+  ]
+  const env: Record<string, string> = {}
+  for (const name of vars) {
+    const value = process.env[name]
+    if (!value) continue
+    env[name] = value
+    env[`NUXT_${name}`] = value
+  }
+  return env
+}
+
 // Free the test port before starting a new server.
 //
 // This used to be `lsof -ti:PORT | xargs kill -9`, which is a trap in the dev
@@ -105,14 +133,23 @@ export async function setup() {
       SMTP_HOST: '',
       // Disable AI in tests to avoid real API calls.
       // NUXT_ prefix overrides runtimeConfig at runtime.
-      AI_PROVIDER: '',
-      NUXT_AI_PROVIDER: '',
-      ANTHROPIC_API_KEY: '',
-      NUXT_ANTHROPIC_API_KEY: '',
-      OPENAI_API_KEY: '',
-      NUXT_OPENAI_API_KEY: '',
-      OPENROUTER_API_KEY: '',
-      NUXT_OPENROUTER_API_KEY: '',
+      //
+      // RUN_AI_EVALS=1 forwards the real provider config instead, for the prompt
+      // evals in tests/integration/ai/*.eval.test.ts. Those cost money and are
+      // non-deterministic, so they are skipped unless that variable is set — the
+      // same gate that guards the tests themselves, applied to the server env.
+      ...(aiEvalsEnabled
+        ? aiProviderEnv()
+        : {
+            AI_PROVIDER: '',
+            NUXT_AI_PROVIDER: '',
+            ANTHROPIC_API_KEY: '',
+            NUXT_ANTHROPIC_API_KEY: '',
+            OPENAI_API_KEY: '',
+            NUXT_OPENAI_API_KEY: '',
+            OPENROUTER_API_KEY: '',
+            NUXT_OPENROUTER_API_KEY: ''
+          }),
       UPLOAD_DIR: TEST_UPLOAD_DIR
     },
     stdio: ['ignore', 'pipe', 'pipe']

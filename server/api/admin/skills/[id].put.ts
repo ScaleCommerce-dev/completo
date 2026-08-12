@@ -27,8 +27,8 @@ export default defineEventHandler(async (event) => {
   }
 
   if (body.scope !== undefined) {
-    if (body.scope !== 'card' && body.scope !== 'board') {
-      throw createError({ statusCode: 400, message: 'Scope must be "card" or "board"' })
+    if (!isAiSkillScope(body.scope)) {
+      throw createError({ statusCode: 400, message: `Scope must be one of: ${AI_SKILL_SCOPES.join(', ')}` })
     }
     updates.scope = body.scope
   }

@@ -14,8 +14,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Prompt is required' })
   }
 
-  if (scope && scope !== 'card' && scope !== 'board') {
-    throw createError({ statusCode: 400, message: 'Scope must be "card" or "board"' })
+  if (scope && !isAiSkillScope(scope)) {
+    throw createError({ statusCode: 400, message: `Scope must be one of: ${AI_SKILL_SCOPES.join(', ')}` })
   }
 
   const maxPos = db.select({ pos: sql<number>`coalesce(max(${schema.aiSkills.position}), -1)` })

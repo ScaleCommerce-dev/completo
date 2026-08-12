@@ -143,7 +143,9 @@ export const aiSkills = sqliteTable('ai_skills', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text('name').notNull(),
   prompt: text('prompt').notNull(),
-  scope: text('scope', { enum: ['card', 'board'] }).notNull().default('card'),
+  // Which editor offers the skill. Type-level only: SQLite stores this as plain
+  // text with no CHECK constraint, so adding a value here needs no migration.
+  scope: text('scope', { enum: ['card', 'board', 'comment'] }).notNull().default('card'),
   position: integer('position').notNull().default(0),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
