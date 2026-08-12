@@ -14,18 +14,28 @@ withDefaults(defineProps<{
   hint?: string
   /** Label column width. `wide` for longer names like "Confirm password". */
   labelWidth?: 'default' | 'wide'
+  /** `start` for content that wraps — a row of tag pills, say — so the label
+   *  stays on the first line instead of floating to the vertical middle. */
+  align?: 'center' | 'start'
 }>(), {
-  labelWidth: 'default'
+  labelWidth: 'default',
+  align: 'center'
 })
 </script>
 
 <template>
-  <div class="flex items-center gap-3 px-3 py-2.5 min-h-[42px]">
+  <div
+    class="flex gap-3 px-3 py-2.5 min-h-[42px]"
+    :class="align === 'start' ? 'items-start' : 'items-center'"
+  >
     <component
       :is="inputId ? 'label' : 'span'"
       :for="inputId"
       class="flex items-center gap-1.5 text-sm font-medium text-muted shrink-0"
-      :class="labelWidth === 'wide' ? 'w-[132px]' : 'w-[92px]'"
+      :class="[
+        labelWidth === 'wide' ? 'w-[132px]' : 'w-[74px]',
+        align === 'start' ? 'min-h-[26px]' : ''
+      ]"
     >
       <UIcon
         v-if="icon"
@@ -35,7 +45,10 @@ withDefaults(defineProps<{
       {{ label }}
     </component>
 
-    <div class="flex-1 min-w-0 flex items-center gap-2">
+    <div
+      class="flex-1 min-w-0 flex gap-2"
+      :class="align === 'start' ? 'items-start' : 'items-center'"
+    >
       <slot />
     </div>
 

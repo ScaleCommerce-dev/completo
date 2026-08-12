@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { DropdownMenuItem } from '@nuxt/ui/runtime/components/DropdownMenu.vue'
-
 definePageMeta({ layout: 'default' })
 
 const route = useRoute()
@@ -49,7 +47,6 @@ const selectedStatusId = ref('')
 const selectedAssigneeId = ref(UNASSIGNED)
 const selectedTagIds = ref<string[]>([])
 const selectedDueDate = ref<string | null>(null)
-const dueDateOpen = ref(false)
 const saving = ref(false)
 const editingDescription = ref(false)
 const showDeleteConfirm = ref(false)
@@ -73,70 +70,6 @@ watch(card, (c) => {
   }
 }, { immediate: true })
 
-const selectedStatusColor = computed(() => {
-  const col = statusesData.value.find(c => c.id === selectedStatusId.value)
-  return col?.color || '#6366f1'
-})
-
-const selectedStatusLabel = computed(() => {
-  const col = statusesData.value.find(c => c.id === selectedStatusId.value)
-  return col?.name || 'Select status'
-})
-
-const selectedAssigneeLabel = computed(() => {
-  if (selectedAssigneeId.value === UNASSIGNED) return 'Unassigned'
-  const member = membersData.value.find(m => m.id === selectedAssigneeId.value)
-  return member?.name || 'Unassigned'
-})
-
-// `color: s.color` carries the status hex through for the swatch in the
-// custom `#item` slot — narrower than @nuxt/ui's themed `color`, so cast.
-const statusMenuItems = computed(() => [[
-  ...statusesData.value.map(s => ({
-    label: s.name,
-    type: 'checkbox' as const,
-    checked: selectedStatusId.value === s.id,
-    color: s.color,
-    onSelect() {
-      selectedStatusId.value = s.id
-    }
-  }))
-]] as unknown as DropdownMenuItem[][])
-
-const assigneeMenuItems = computed(() => [[
-  {
-    label: 'Unassigned',
-    icon: 'i-lucide-user-x',
-    type: 'checkbox' as const,
-    checked: selectedAssigneeId.value === UNASSIGNED,
-    onSelect() {
-      selectedAssigneeId.value = UNASSIGNED
-    }
-  },
-  ...membersData.value.map(m => ({
-    label: m.name,
-    icon: 'i-lucide-user',
-    type: 'checkbox' as const,
-    checked: selectedAssigneeId.value === m.id,
-    onSelect() {
-      selectedAssigneeId.value = m.id
-    }
-  }))
-]])
-
-const priorityMenuItems = computed(() => [[
-  ...PRIORITIES.slice().reverse().map(p => ({
-    label: p.label,
-    icon: p.icon,
-    color: priorityUiColor(p.value),
-    type: 'checkbox' as const,
-    checked: priority.value === p.value,
-    onSelect() {
-      priority.value = p.value
-    }
-  }))
-]])
-
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
@@ -150,15 +83,6 @@ function formatDate(iso: string): string {
 function startEditingDescription() {
   editingDescription.value = true
   nextTick(() => descriptionEditorRef.value?.startEditing())
-}
-
-function toggleTag(tagId: string) {
-  const idx = selectedTagIds.value.indexOf(tagId)
-  if (idx >= 0) {
-    selectedTagIds.value = selectedTagIds.value.filter(id => id !== tagId)
-  } else {
-    selectedTagIds.value = [...selectedTagIds.value, tagId]
-  }
 }
 
 const isDirty = computed(() => {
@@ -305,7 +229,7 @@ async function confirmDelete() {
         <USkeleton class="h-9 w-3/4" />
         <USkeleton class="h-64 w-full" />
       </div>
-      <USkeleton class="hidden lg:block h-48 w-[260px] shrink-0" />
+      <USkeleton class="hidden lg:block h-48 w-[304px] shrink-0" />
     </div>
 
     <UEmpty
@@ -329,7 +253,7 @@ async function confirmDelete() {
       @submit.prevent="submit"
     >
       <!-- ═══ SIDEBAR — properties, priority, actions (sticky on desktop) ═══ -->
-      <aside class="w-full lg:w-[260px] shrink-0 lg:order-2 lg:sticky lg:top-4">
+      <aside class="w-full lg:w-[304px] shrink-0 lg:order-2 lg:sticky lg:top-4">
         <div class="rounded-xl border border-default bg-default shadow-sm overflow-hidden">
           <!-- Card ID header -->
           <div class="px-4 pt-3.5 pb-3 border-b border-muted">
@@ -341,197 +265,67 @@ async function confirmDelete() {
             />
           </div>
 
-          <!-- Properties -->
-          <div class="divide-y divide-default">
-            <!-- Status -->
-            <div class="flex items-center gap-2 px-4 py-2.5">
-              <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Status</span>
-              <UDropdownMenu
-                :items="statusMenuItems"
-                :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
-              >
-                <button
-                  type="button"
-                  class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all hover:bg-elevated text-default"
-                >
-                  <span class="w-[13px] flex items-center justify-center shrink-0"><span
-                    class="w-2 h-2 rounded-full"
-                    :style="{ backgroundColor: selectedStatusColor }"
-                  /></span>
-                  {{ selectedStatusLabel }}
-                  <UIcon
-                    name="i-lucide-chevron-down"
-                    class="text-2xs opacity-50"
-                  />
-                </button>
-                <template #item="{ item }">
-                  <span class="flex items-center gap-1.5">
-                    <span
-                      class="w-2 h-2 rounded-full shrink-0 inline-block"
-                      :style="{ backgroundColor: item.color ?? undefined }"
-                    />
-                    <span class="truncate">{{ item.label }}</span>
-                  </span>
-                </template>
-              </UDropdownMenu>
-            </div>
+          <!-- Properties. Shared with CardModal, so the same fields no longer
+               get two different control vocabularies. -->
+          <div class="p-3">
+            <CardProperties
+              v-model:status-id="selectedStatusId"
+              v-model:assignee-id="selectedAssigneeId"
+              v-model:priority="priority"
+              v-model:due-date="selectedDueDate"
+              v-model:tag-ids="selectedTagIds"
+              :statuses="statusesData"
+              :members="membersData"
+              :tags="projectTagsData"
+              :unassigned-value="UNASSIGNED"
+            />
+          </div>
 
-            <!-- Assignee -->
-            <div class="flex items-center gap-2 px-4 py-2.5">
-              <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Assignee</span>
-              <UDropdownMenu
-                :items="assigneeMenuItems"
-                :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
-              >
-                <button
-                  type="button"
-                  class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all hover:bg-elevated text-default"
-                >
-                  <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
-                    name="i-lucide-user"
-                    class="text-sm"
-                    :class="selectedAssigneeId === UNASSIGNED ? 'text-dimmed' : 'text-primary'"
-                  /></span>
-                  {{ selectedAssigneeLabel }}
-                  <UIcon
-                    name="i-lucide-chevron-down"
-                    class="text-2xs opacity-50"
-                  />
-                </button>
-              </UDropdownMenu>
-            </div>
-
-            <!-- Priority -->
-            <div class="flex items-center gap-2 px-4 py-2.5">
-              <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Priority</span>
-              <UDropdownMenu
-                :items="priorityMenuItems"
-                :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
-              >
-                <button
-                  type="button"
-                  class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium capitalize transition-all hover:bg-elevated"
-                  :class="priorityTextClass(priority)"
-                >
-                  <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
-                    :name="priorityIcon(priority)"
-                    class="text-sm"
-                  /></span>
-                  {{ priority }}
-                  <UIcon
-                    name="i-lucide-chevron-down"
-                    class="text-2xs opacity-50"
-                  />
-                </button>
-              </UDropdownMenu>
-            </div>
-
-            <!-- Due Date -->
-            <div class="flex items-center gap-2 px-4 py-2.5">
-              <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Due</span>
-              <DueDatePicker
-                v-model:open="dueDateOpen"
-                :model-value="selectedDueDate"
-                :popover-options="{ align: 'start', side: 'bottom', sideOffset: 4 }"
-                @update:model-value="selectedDueDate = $event"
-              >
-                <button
-                  type="button"
-                  class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all hover:bg-elevated"
-                  :class="selectedDueDate ? dueDateTextClass(getDueDateStatus(selectedDueDate)) : 'text-dimmed'"
-                >
-                  <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
-                    :name="selectedDueDate ? dueDateIcon(getDueDateStatus(selectedDueDate)) : 'i-lucide-calendar'"
-                    class="text-sm"
-                  /></span>
-                  {{ selectedDueDate ? formatDueDate(selectedDueDate) : 'Set date' }}
-                  <UIcon
-                    name="i-lucide-chevron-down"
-                    class="text-2xs opacity-50"
-                  />
-                </button>
-              </DueDatePicker>
-            </div>
-
-            <!-- Tags -->
+          <!-- Provenance. The two timestamps were previously unlabelled raw
+               dates stacked on each other, so you could not tell which was
+               created and which was updated. -->
+          <dl class="px-4 py-3 border-t border-muted flex flex-col gap-1.5 text-xs">
             <div
-              v-if="projectTagsData.length"
-              class="flex items-center gap-2 px-4 py-2.5"
-            >
-              <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Tags</span>
-              <UPopover :content="{ align: 'start', side: 'bottom', sideOffset: 4 }">
-                <button
-                  type="button"
-                  class="flex flex-wrap gap-1 items-center rounded-md px-1.5 py-0.5 -mx-1 hover:bg-elevated transition-colors cursor-pointer"
-                >
-                  <template v-if="selectedTagIds.length">
-                    <TagPill
-                      v-for="tag in projectTagsData.filter((t: { id: string }) => selectedTagIds.includes(t.id))"
-                      :key="tag.id"
-                      :name="tag.name"
-                      :color="tag.color"
-                    />
-                    <UIcon
-                      name="i-lucide-chevron-down"
-                      class="text-2xs opacity-50 text-dimmed"
-                    />
-                  </template>
-                  <span
-                    v-else
-                    class="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full text-2xs font-bold leading-none tracking-wide uppercase opacity-60 hover:opacity-80 transition-opacity"
-                    style="color: #a1a1aa; background-color: #a1a1aa20; box-shadow: inset 0 0 0 1px #a1a1aa35"
-                  >
-                    <UIcon
-                      name="i-lucide-plus"
-                      class="text-2xs"
-                    />
-                    Add tag
-                  </span>
-                </button>
-                <template #content>
-                  <TagToggleList
-                    :tags="projectTagsData"
-                    :selected-ids="selectedTagIds"
-                    @toggle="toggleTag"
-                  />
-                </template>
-              </UPopover>
-            </div>
-          </div>
-
-          <!-- Creator & timestamps -->
-          <div class="px-4 py-2.5 border-t border-muted flex flex-col gap-1">
-            <span
               v-if="card.creator"
-              class="flex items-center gap-1.5 text-xs text-dimmed"
+              class="flex items-center gap-2 min-w-0"
             >
-              <UIcon
-                name="i-lucide-user-pen"
-                class="text-xs opacity-60 shrink-0"
-              />
-              <span class="truncate">Created by {{ card.creator.name }}</span>
-            </span>
-            <span
+              <dt class="text-dimmed w-14 shrink-0">
+                Created
+              </dt>
+              <dd class="min-w-0 truncate text-muted">
+                <UiPerson
+                  :person="card.creator"
+                  size="3xs"
+                />
+              </dd>
+            </div>
+            <div
               v-if="card.createdAt"
-              class="flex items-center gap-1.5 text-xs text-dimmed font-mono"
+              class="flex items-center gap-2"
             >
-              <UIcon
-                name="i-lucide-calendar-plus"
-                class="text-xs opacity-60"
-              />
-              {{ formatDate(card.createdAt) }}
-            </span>
-            <span
+              <dt class="text-dimmed w-14 shrink-0">
+                On
+              </dt>
+              <dd class="font-mono text-muted">
+                <UTooltip :text="formatDate(card.createdAt)">
+                  <span>{{ relativeTime(card.createdAt) }}</span>
+                </UTooltip>
+              </dd>
+            </div>
+            <div
               v-if="card.updatedAt && card.updatedAt !== card.createdAt"
-              class="flex items-center gap-1.5 text-xs text-dimmed font-mono"
+              class="flex items-center gap-2"
             >
-              <UIcon
-                name="i-lucide-calendar-clock"
-                class="text-xs opacity-60"
-              />
-              {{ formatDate(card.updatedAt) }}
-            </span>
-          </div>
+              <dt class="text-dimmed w-14 shrink-0">
+                Updated
+              </dt>
+              <dd class="font-mono text-muted">
+                <UTooltip :text="formatDate(card.updatedAt)">
+                  <span>{{ relativeTime(card.updatedAt) }}</span>
+                </UTooltip>
+              </dd>
+            </div>
+          </dl>
 
           <!-- Actions -->
           <div class="px-4 py-3 border-t border-muted flex flex-col gap-2">

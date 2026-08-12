@@ -77,7 +77,6 @@ const UNASSIGNED = '__unassigned__'
 const selectedAssigneeId = ref(UNASSIGNED)
 const selectedTagIds = ref<string[]>([])
 const selectedDueDate = ref<string | null>(null)
-const dueDateOpen = ref(false)
 const editingDescription = ref(false)
 const titleInput = ref<HTMLInputElement>()
 const descriptionEditorRef = ref<{ startEditing: () => void }>()
@@ -134,33 +133,6 @@ async function handleBeforeUpload() {
   ensureCardPromise = null
 }
 
-const priorityMenuItems = computed(() => [[
-  ...PRIORITIES.slice().reverse().map(p => ({
-    label: p.label,
-    icon: p.icon,
-    color: priorityUiColor(p.value),
-    type: 'checkbox' as const,
-    checked: priority.value === p.value,
-    onSelect() {
-      priority.value = p.value
-    }
-  }))
-]])
-
-const statusItems = computed(() =>
-  props.statuses.map(c => ({ label: c.name, value: c.id }))
-)
-
-const memberItems = computed(() => [
-  { label: 'Unassigned', value: UNASSIGNED },
-  ...(props.members || []).map(m => ({ label: m.name, value: m.id }))
-])
-
-const selectedStatusColor = computed(() => {
-  const col = props.statuses.find(c => c.id === selectedStatusId.value)
-  return col?.color || '#6366f1'
-})
-
 // Sync from card prop (edit mode)
 watch(() => props.card, (card) => {
   if (card) {
@@ -179,15 +151,6 @@ watch(() => props.card, (card) => {
 function startEditingDescription() {
   editingDescription.value = true
   nextTick(() => descriptionEditorRef.value?.startEditing())
-}
-
-function toggleTag(tagId: string) {
-  const idx = selectedTagIds.value.indexOf(tagId)
-  if (idx >= 0) {
-    selectedTagIds.value = selectedTagIds.value.filter(id => id !== tagId)
-  } else {
-    selectedTagIds.value = [...selectedTagIds.value, tagId]
-  }
 }
 
 function reset() {
@@ -465,140 +428,21 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           </template>
         </div>
 
-        <!-- Properties -->
-        <div class="mx-5 mt-3 grid grid-cols-2 gap-2">
-          <!-- Status -->
-          <div class="flex items-center gap-2 rounded-lg border border-accented bg-default px-2.5 py-1.5">
-            <span
-              class="w-2 h-2 rounded-full shrink-0 transition-colors"
-              :style="{ backgroundColor: selectedStatusColor }"
-            />
-            <USelect
-              v-model="selectedStatusId"
-              :items="statusItems"
-              value-key="value"
-              class="flex-1"
-              size="xs"
-              variant="ghost"
-            />
-          </div>
-
-          <!-- Priority -->
-          <div class="flex items-center gap-2 rounded-lg border border-accented bg-default px-2.5 py-1.5">
-            <UDropdownMenu
-              :items="priorityMenuItems"
-              :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
-            >
-              <button
-                type="button"
-                class="flex items-center gap-1.5 text-sm font-medium capitalize transition-all hover:opacity-80"
-                :class="priorityTextClass(priority)"
-              >
-                <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
-                  :name="priorityIcon(priority)"
-                  class="text-sm"
-                /></span>
-                {{ priority }}
-                <UIcon
-                  name="i-lucide-chevron-down"
-                  class="text-2xs opacity-50"
-                />
-              </button>
-            </UDropdownMenu>
-          </div>
-
-          <!-- Assignee -->
-          <div class="flex items-center gap-2 rounded-lg border border-accented bg-default px-2.5 py-1.5">
-            <UIcon
-              name="i-lucide-user"
-              class="text-xs text-dimmed shrink-0"
-            />
-            <USelect
-              v-model="selectedAssigneeId"
-              :items="memberItems"
-              value-key="value"
-              class="flex-1"
-              size="xs"
-              variant="ghost"
-            />
-          </div>
-
-          <!-- Due Date -->
-          <div class="flex items-center gap-2 rounded-lg border border-accented bg-default px-2.5 py-1.5">
-            <UIcon
-              name="i-lucide-calendar"
-              class="text-xs text-dimmed shrink-0"
-            />
-            <DueDatePicker
-              v-model:open="dueDateOpen"
-              :model-value="selectedDueDate"
-              :popover-options="{ align: 'start', side: 'bottom', sideOffset: 4 }"
-              @update:model-value="selectedDueDate = $event"
-            >
-              <button
-                type="button"
-                class="flex items-center gap-1 text-sm font-medium transition-all hover:text-primary"
-                :class="selectedDueDate ? dueDateTextClass(getDueDateStatus(selectedDueDate)) : 'text-dimmed'"
-              >
-                {{ selectedDueDate ? formatDueDate(selectedDueDate) : 'Set date' }}
-                <UIcon
-                  name="i-lucide-chevron-down"
-                  class="text-2xs opacity-50"
-                />
-              </button>
-            </DueDatePicker>
-          </div>
-        </div>
-
-        <!-- Tags -->
-        <div
-          v-if="tags?.length"
-          class="mx-5 mt-3"
-        >
-          <div class="flex items-center gap-1.5 mb-2">
-            <UIcon
-              name="i-lucide-tag"
-              class="text-xs text-dimmed"
-            />
-            <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">Tags</span>
-          </div>
-          <UPopover :content="{ align: 'start', side: 'bottom', sideOffset: 4 }">
-            <button
-              type="button"
-              class="flex flex-wrap gap-1 items-center rounded-md px-1.5 py-0.5 -mx-1 hover:bg-elevated transition-colors cursor-pointer"
-            >
-              <template v-if="selectedTagIds.length">
-                <TagPill
-                  v-for="tag in tags.filter(t => selectedTagIds.includes(t.id))"
-                  :key="tag.id"
-                  :name="tag.name"
-                  :color="tag.color"
-                />
-                <UIcon
-                  name="i-lucide-chevron-down"
-                  class="text-2xs opacity-50 text-dimmed"
-                />
-              </template>
-              <span
-                v-else
-                class="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full text-2xs font-bold leading-none tracking-wide uppercase opacity-60 hover:opacity-80 transition-opacity"
-                style="color: #a1a1aa; background-color: #a1a1aa20; box-shadow: inset 0 0 0 1px #a1a1aa35"
-              >
-                <UIcon
-                  name="i-lucide-plus"
-                  class="text-2xs"
-                />
-                Add tag
-              </span>
-            </button>
-            <template #content>
-              <TagToggleList
-                :tags="tags"
-                :selected-ids="selectedTagIds"
-                @toggle="toggleTag"
-              />
-            </template>
-          </UPopover>
+        <!-- Properties. One control vocabulary, shared with the card detail
+             page — this was a 2x2 grid mixing two USelects with two hand-rolled
+             buttons at different heights. -->
+        <div class="mx-5 mt-3">
+          <CardProperties
+            v-model:status-id="selectedStatusId"
+            v-model:assignee-id="selectedAssigneeId"
+            v-model:priority="priority"
+            v-model:due-date="selectedDueDate"
+            v-model:tag-ids="selectedTagIds"
+            :statuses="statuses"
+            :members="members"
+            :tags="tags"
+            :unassigned-value="UNASSIGNED"
+          />
         </div>
 
         <!-- Attachments -->
