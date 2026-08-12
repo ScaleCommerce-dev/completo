@@ -51,8 +51,8 @@ const userMenuItems = computed(() => [
             v-if="!collapsed"
             class="flex flex-col"
           >
-            <span class="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 tracking-widest uppercase leading-none">Drag. Drop.</span>
-            <span class="sidebar-brand font-extrabold text-[15px] leading-none text-zinc-900 dark:text-zinc-100 mt-0.5">Completo</span>
+            <span class="text-[9px] font-semibold text-dimmed tracking-widest uppercase leading-none">Drag. Drop.</span>
+            <span class="sidebar-brand font-extrabold text-[15px] leading-none text-highlighted mt-0.5">Completo</span>
           </div>
         </div>
 
@@ -62,7 +62,7 @@ const userMenuItems = computed(() => [
           :side="collapsed ? 'right' : 'right'"
         >
           <button
-            class="absolute -right-3 top-14 z-30 flex items-center justify-center w-6 h-6 rounded-full border border-zinc-200/80 dark:border-zinc-700/80 bg-white dark:bg-zinc-900 shadow-sm text-zinc-400 hover:text-zinc-500 dark:text-zinc-600 dark:hover:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            class="absolute -right-3 top-14 z-30 flex items-center justify-center w-6 h-6 rounded-full border border-default border-accented bg-default shadow-sm text-dimmed hover:text-muted hover:bg-muted transition-colors cursor-pointer"
             @click="sidebarCollapsed = !sidebarCollapsed"
           >
             <UIcon
@@ -93,17 +93,17 @@ const userMenuItems = computed(() => [
           >
             <UDropdownMenu :items="userMenuItems">
               <button
-                class="flex items-center gap-2 min-w-0 w-full rounded-md px-1.5 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                class="flex items-center gap-2 min-w-0 w-full rounded-md px-1.5 py-1 hover:bg-elevated transition-colors cursor-pointer"
                 :class="collapsed ? 'justify-center' : ''"
               >
                 <UAvatar
                   :alt="user?.name || 'User'"
                   size="2xs"
-                  class="ring-2 ring-zinc-200 dark:ring-zinc-700 flex-shrink-0"
+                  class="ring-2 ring-accented flex-shrink-0"
                 />
                 <span
                   v-if="!collapsed"
-                  class="truncate text-sm font-medium text-zinc-700 dark:text-zinc-200"
+                  class="truncate text-sm font-medium text-default"
                 >{{ user?.name || 'User' }}</span>
               </button>
             </UDropdownMenu>

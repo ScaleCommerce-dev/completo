@@ -86,16 +86,16 @@ async function register() {
       <h2 class="text-base font-bold tracking-[-0.02em]">
         Check your email
       </h2>
-      <p class="text-[13px] text-zinc-500 dark:text-zinc-400">
-        We sent a verification link to <span class="font-semibold text-zinc-700 dark:text-zinc-300">{{ email }}</span>.
+      <p class="text-[13px] text-muted">
+        We sent a verification link to <span class="font-semibold text-default">{{ email }}</span>.
         Click the link to activate your account.
       </p>
-      <div class="border-t border-zinc-200/40 dark:border-zinc-700/25 pt-4 mt-2 w-full">
-        <p class="text-[13px] text-zinc-500 dark:text-zinc-400">
+      <div class="border-t border-muted pt-4 mt-2 w-full">
+        <p class="text-[13px] text-muted">
           Already verified?
           <NuxtLink
             to="/login"
-            class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+            class="text-primary font-semibold hover:underline"
           >Sign in</NuxtLink>
         </p>
       </div>
@@ -116,13 +116,13 @@ async function register() {
     <!-- Invitation banner -->
     <div
       v-if="invitationInfo"
-      class="mx-7 mb-2 flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200/50 dark:border-indigo-800/30"
+      class="mx-7 mb-2 flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-primary/15 bg-primary/10 border border-primary/50 border-primary/30"
     >
       <UIcon
         name="i-lucide-mail-plus"
-        class="text-indigo-500 shrink-0"
+        class="text-primary shrink-0"
       />
-      <span class="text-[13px] text-indigo-700 dark:text-indigo-300">
+      <span class="text-[13px] text-primary">
         You've been invited to <strong>{{ invitationInfo.projectName }}</strong>
       </span>
     </div>
@@ -202,12 +202,12 @@ async function register() {
     </form>
 
     <div class="px-7 pb-6 pt-1">
-      <div class="border-t border-zinc-200/40 dark:border-zinc-700/25 pt-4">
-        <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400">
+      <div class="border-t border-muted pt-4">
+        <p class="text-[13px] text-center text-muted">
           Already have an account?
           <NuxtLink
             to="/login"
-            class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+            class="text-primary font-semibold hover:underline"
           >Sign in</NuxtLink>
         </p>
       </div>

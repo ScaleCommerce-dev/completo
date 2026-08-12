@@ -33,14 +33,14 @@ async function deleteAccount() {
 <template>
   <div
     v-if="!user?.isAdmin"
-    class="mt-6 mb-8 rounded-xl border border-red-200/60 dark:border-red-800/40 bg-white dark:bg-zinc-800/80 shadow-sm overflow-hidden"
+    class="mt-6 mb-8 rounded-xl border border-red-200/60 dark:border-red-800/40 bg-default shadow-sm overflow-hidden"
   >
     <div class="px-5 pt-4 pb-2">
       <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-red-500 dark:text-red-400">Danger Zone</span>
     </div>
 
     <div class="px-5 pb-4">
-      <p class="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+      <p class="text-[13px] text-muted leading-relaxed">
         Permanently delete your account and all associated data. This removes your project memberships and unassigns you from any cards. This action cannot be undone.
       </p>
 
@@ -75,14 +75,14 @@ async function deleteAccount() {
             v-model="deleteEmail"
             type="email"
             placeholder="Your email address"
-            class="w-full text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
+            class="w-full text-[14px] text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
           >
           <input
             v-model="deletePassword"
             type="password"
             placeholder="Your password"
             autocomplete="current-password"
-            class="w-full text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
+            class="w-full text-[14px] text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
           >
         </div>
 
@@ -119,7 +119,7 @@ async function deleteAccount() {
           </button>
           <button
             type="button"
-            class="px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+            class="px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
             @click="showDeleteAccount = false; deleteEmail = ''; deletePassword = ''; deleteError = ''"
           >
             Cancel

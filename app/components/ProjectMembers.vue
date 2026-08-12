@@ -303,13 +303,13 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
 
 <template>
   <div>
-    <div class="rounded-xl border border-zinc-200/80 dark:border-zinc-700/50">
+    <div class="rounded-xl border border-default">
       <div
         v-for="(m, mIdx) in (sortedMembers)"
         :key="m.id"
         class="flex items-center gap-2 px-3 py-2 transition-colors group"
         :class="[
-          mIdx % 2 === 0 ? 'bg-white dark:bg-zinc-800/50' : 'bg-zinc-50/50 dark:bg-zinc-800/30',
+          mIdx % 2 === 0 ? 'bg-default' : 'bg-muted bg-elevated',
           mIdx === 0 ? 'rounded-t-xl' : '',
           mIdx === (sortedMembers).length - 1 && !isOwnerOrAdmin ? 'rounded-b-xl' : ''
         ]"
@@ -323,7 +323,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           {{ m.name }}
           <span
             v-if="m.id === currentUser?.id"
-            class="text-[12px] text-zinc-400 dark:text-zinc-500 font-normal"
+            class="text-[12px] text-dimmed font-normal"
           >(you)</span>
         </span>
         <UDropdownMenu
@@ -332,10 +332,10 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
         >
           <button
             type="button"
-            class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-indigo-500/20 flex items-center gap-1"
+            class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 flex items-center gap-1"
             :class="m.role === 'owner'
-              ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 dark:text-indigo-400'
-              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'"
+              ? 'bg-primary/10 text-primary'
+              : 'bg-elevated text-muted'"
             :disabled="changingRole === m.id"
           >
             <UIcon
@@ -356,8 +356,8 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           v-else
           class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0"
           :class="m.role === 'owner'
-            ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 dark:text-indigo-400'
-            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'"
+            ? 'bg-primary/10 text-primary'
+            : 'bg-elevated text-muted'"
         >
           {{ m.role }}
         </span>
@@ -365,7 +365,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
 
       <!-- Pending invitations (owner/admin only) -->
       <template v-if="isOwnerOrAdmin && (invitations as ProjectInvitation[] | null)?.length">
-        <div class="border-t border-zinc-100 dark:border-zinc-700/40 bg-white dark:bg-zinc-800/50 px-3 py-2">
+        <div class="border-t border-muted bg-default px-3 py-2">
           <div
             v-for="inv in (invitations as ProjectInvitation[] | null)"
             :key="inv.id"
@@ -375,7 +375,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
               name="i-lucide-mail"
               class="text-[14px] text-amber-400 shrink-0"
             />
-            <span class="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 flex-1 truncate">{{ inv.email }}</span>
+            <span class="text-[13px] font-mono text-muted flex-1 truncate">{{ inv.email }}</span>
             <UDropdownMenu :items="invitationMenuItems(inv)">
               <button
                 type="button"
@@ -402,19 +402,19 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
 
       <!-- Add member section (owner/admin only) -->
       <template v-if="isOwnerOrAdmin">
-        <div class="relative border-t border-zinc-100 dark:border-zinc-700/40 bg-white dark:bg-zinc-800/50 rounded-b-xl px-3 py-2">
+        <div class="relative border-t border-muted bg-default rounded-b-xl px-3 py-2">
           <div class="flex items-center gap-1.5 mb-2">
             <UIcon
               name="i-lucide-user-plus"
-              class="text-[13px] text-zinc-400"
+              class="text-[13px] text-dimmed"
             />
-            <span class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.08em]">Add Member</span>
+            <span class="text-[10px] font-bold text-dimmed uppercase tracking-[0.08em]">Add Member</span>
           </div>
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Search by name or enter email to invite..."
-            class="w-full text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/50 rounded-lg px-3 py-2 outline-none focus:border-indigo-300 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/10 transition-all"
+            class="w-full text-[14px] text-highlighted placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted border border-default rounded-lg px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
             @focus="searchQuery.trim().length >= 2 && (showResults = true)"
             @blur="onInputBlur"
             @keydown="onInputKeydown"
@@ -422,13 +422,13 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           <UIcon
             v-if="searching"
             name="i-lucide-loader-2"
-            class="absolute right-6 bottom-4.5 text-[14px] text-zinc-400 animate-spin"
+            class="absolute right-6 bottom-4.5 text-[14px] text-dimmed animate-spin"
           />
 
           <!-- Search results dropdown -->
           <div
             v-if="showResults && searchQuery.trim().length >= 2"
-            class="absolute z-50 left-3 right-3 mt-1 rounded-lg border border-zinc-200 dark:border-zinc-700/60 bg-white dark:bg-zinc-800 shadow-lg overflow-hidden"
+            class="absolute z-50 left-3 right-3 mt-1 rounded-lg border border-accented bg-default shadow-lg overflow-hidden"
           >
             <button
               v-for="(u, i) in searchResults"
@@ -436,8 +436,8 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
               type="button"
               class="flex items-center gap-2.5 w-full px-3 py-2 transition-colors text-left cursor-pointer"
               :class="i === highlightIndex
-                ? 'bg-indigo-50 dark:bg-indigo-500/10'
-                : 'hover:bg-zinc-50 dark:hover:bg-zinc-700/50'"
+                ? 'bg-primary/10'
+                : 'hover:bg-muted hover:bg-elevated'"
               :disabled="adding"
               @mousedown.prevent="addMember(u)"
               @mouseenter="highlightIndex = i"
@@ -448,13 +448,13 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
                 size="xs"
               />
               <div class="min-w-0 flex-1">
-                <div class="text-[14px] font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                <div class="text-[14px] font-medium text-highlighted truncate">
                   {{ u.name }}
                 </div>
               </div>
               <UIcon
                 name="i-lucide-plus"
-                class="text-[14px] text-zinc-400 shrink-0"
+                class="text-[14px] text-dimmed shrink-0"
               />
             </button>
 
@@ -462,33 +462,33 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
             <button
               v-if="!searching && searchResults.length === 0 && isValidEmail(searchQuery.trim())"
               type="button"
-              class="flex items-center gap-2.5 w-full px-3 py-2.5 transition-colors text-left cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+              class="flex items-center gap-2.5 w-full px-3 py-2.5 transition-colors text-left cursor-pointer hover:bg-primary/10"
               :disabled="adding"
               @mousedown.prevent="inviteByEmail"
             >
-              <div class="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-500/20">
+              <div class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/15 bg-primary/20">
                 <UIcon
                   name="i-lucide-send"
-                  class="text-[12px] text-indigo-500"
+                  class="text-[12px] text-primary"
                 />
               </div>
               <div class="min-w-0 flex-1">
-                <div class="text-[14px] font-medium text-indigo-600 dark:text-indigo-400">
+                <div class="text-[14px] font-medium text-primary">
                   Invite {{ searchQuery.trim() }}
                 </div>
-                <div class="text-[12px] text-zinc-400 dark:text-zinc-500">
+                <div class="text-[12px] text-dimmed">
                   Send an invitation email
                 </div>
               </div>
               <UIcon
                 name="i-lucide-mail-plus"
-                class="text-[14px] text-indigo-400 shrink-0"
+                class="text-[14px] text-primary shrink-0"
               />
             </button>
 
             <div
               v-if="!searching && searchResults.length === 0 && !isValidEmail(searchQuery.trim())"
-              class="px-3 py-3 text-center text-[13px] text-zinc-400 dark:text-zinc-500"
+              class="px-3 py-3 text-center text-[13px] text-dimmed"
             >
               No users found — enter a full email to invite
             </div>
@@ -511,7 +511,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
 
     <div
       v-if="!(sortedMembers)?.length"
-      class="py-4 text-center text-[14px] text-zinc-400 dark:text-zinc-500"
+      class="py-4 text-center text-[14px] text-dimmed"
     >
       No members
     </div>
@@ -523,7 +523,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
       @update:open="(val: boolean) => { if (!val) pendingRemove = null }"
     >
       <template #content>
-        <div class="rounded-xl bg-white dark:bg-zinc-800/80 overflow-hidden">
+        <div class="rounded-xl bg-default overflow-hidden">
           <div class="px-5 pt-5 pb-4">
             <div class="flex items-center gap-3 mb-4">
               <div class="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-950/30">
@@ -533,25 +533,25 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
                 />
               </div>
               <div>
-                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-highlighted">
                   Remove Member
                 </h2>
-                <p class="text-[13px] text-zinc-500 dark:text-zinc-400">
+                <p class="text-[13px] text-muted">
                   This action cannot be undone
                 </p>
               </div>
             </div>
             <p
               v-if="pendingRemove"
-              class="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed"
+              class="text-[13px] text-muted leading-relaxed"
             >
-              Are you sure you want to remove <strong class="text-zinc-700 dark:text-zinc-200">{{ pendingRemove.name }}</strong> from this project?
+              Are you sure you want to remove <strong class="text-default">{{ pendingRemove.name }}</strong> from this project?
             </p>
           </div>
-          <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-zinc-100 dark:border-zinc-700/40 mt-2">
+          <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
             <button
               type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="pendingRemove = null"
             >
               Cancel

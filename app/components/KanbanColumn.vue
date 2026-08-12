@@ -39,7 +39,7 @@ function onAreaDblClick(e: MouseEvent) {
 
 <template>
   <div
-    class="rise-in flex flex-col w-[280px] shrink-0 rounded-xl bg-zinc-50/80 dark:bg-zinc-800/30 max-h-full border border-zinc-200/50 dark:border-zinc-700/30"
+    class="rise-in flex flex-col w-[280px] shrink-0 rounded-xl bg-muted bg-elevated max-h-full border border-default"
     :style="{ 'animation-delay': `${0}ms` }"
   >
     <!-- Column header -->
@@ -61,19 +61,19 @@ function onAreaDblClick(e: MouseEvent) {
         />
         <h3
           class="font-bold text-[13.5px] uppercase tracking-[0.04em]"
-          :class="isDone ? 'text-emerald-700 dark:text-emerald-300' : 'text-zinc-500 dark:text-zinc-400'"
+          :class="isDone ? 'text-emerald-700 dark:text-emerald-300' : 'text-muted'"
         >
           {{ column.name }}
         </h3>
         <span
           class="text-[12px] tabular-nums font-mono font-medium"
-          :class="isDone ? 'text-emerald-500/70 dark:text-emerald-400/70' : 'text-zinc-400 dark:text-zinc-500'"
+          :class="isDone ? 'text-emerald-500/70 dark:text-emerald-400/70' : 'text-dimmed'"
         >
           {{ cards.length }}
         </span>
       </div>
       <button
-        class="flex items-center justify-center w-7 h-7 rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/40 transition-all"
+        class="flex items-center justify-center w-7 h-7 rounded-lg text-dimmed hover:text-toned hover:bg-accented transition-all"
         @click="emit('add-card')"
       >
         <UIcon
@@ -118,7 +118,7 @@ function onAreaDblClick(e: MouseEvent) {
     <!-- Add card button -->
     <div class="px-2 pb-2">
       <button
-        class="w-full flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-medium text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-200/50 dark:hover:bg-zinc-700/40 transition-all"
+        class="w-full flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-medium text-dimmed hover:text-toned hover:bg-accented transition-all"
         @click="emit('add-card')"
       >
         <UIcon

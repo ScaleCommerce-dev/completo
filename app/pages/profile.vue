@@ -38,7 +38,7 @@ const { data: profileData } = useFetch<{
 
     <div
       v-if="appVersion"
-      class="mt-6 mb-8 text-center text-[11px] text-zinc-400 dark:text-zinc-500"
+      class="mt-6 mb-8 text-center text-[11px] text-dimmed"
     >
       Completo v{{ appVersion }}
     </div>

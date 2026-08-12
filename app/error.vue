@@ -22,7 +22,7 @@ function goHome() {
   <!-- inline opacity:0 prevents FOUC — content stays invisible until
        the stylesheet loads and the error-reveal animation overrides it -->
   <div
-    class="error-page fixed inset-0 flex flex-col items-center justify-center p-6 overflow-hidden bg-zinc-50 dark:bg-zinc-950"
+    class="error-page fixed inset-0 flex flex-col items-center justify-center p-6 overflow-hidden bg-muted bg-default"
     style="opacity: 0"
   >
     <!-- Dot pattern -->
@@ -50,33 +50,33 @@ function goHome() {
     <div class="relative z-10 w-full max-w-[380px] flex flex-col items-center text-center">
       <!-- Fallen card illustration -->
       <div class="error-fallen-card mb-6">
-        <div class="w-[180px] rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/60 shadow-xl shadow-zinc-900/[0.06] dark:shadow-black/30 p-3.5">
+        <div class="w-[180px] rounded-xl bg-default border border-default shadow-xl shadow-zinc-900/[0.06] dark:shadow-black/30 p-3.5">
           <!-- Card header -->
           <div class="flex items-center justify-between mb-2.5">
-            <span class="font-mono text-[10px] font-bold text-indigo-500/80 dark:text-indigo-400/70 bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded">
+            <span class="font-mono text-[10px] font-bold text-primary/80 text-primary/70 bg-primary/10 bg-primary/15 px-1.5 py-0.5 rounded">
               ERR-{{ error.statusCode }}
             </span>
             <span class="w-2 h-2 rounded-full bg-red-400/60" />
           </div>
           <!-- Shimmer lines -->
           <div class="flex flex-col gap-1.5 mb-2.5">
-            <div class="h-2 w-full rounded bg-zinc-100 dark:bg-zinc-700/50" />
-            <div class="h-2 w-3/4 rounded bg-zinc-100/80 dark:bg-zinc-700/35" />
-            <div class="h-2 w-1/2 rounded bg-zinc-100/50 dark:bg-zinc-700/20" />
+            <div class="h-2 w-full rounded bg-elevated" />
+            <div class="h-2 w-3/4 rounded bg-elevated bg-accented" />
+            <div class="h-2 w-1/2 rounded bg-elevated bg-accented" />
           </div>
           <!-- Card footer -->
-          <div class="flex items-center gap-1.5 pt-2 border-t border-zinc-100 dark:border-zinc-700/40">
-            <div class="w-4 h-4 rounded-full bg-zinc-200/80 dark:bg-zinc-700" />
-            <div class="h-1.5 w-10 rounded bg-zinc-200/60 dark:bg-zinc-700/40" />
+          <div class="flex items-center gap-1.5 pt-2 border-t border-muted">
+            <div class="w-4 h-4 rounded-full bg-accented" />
+            <div class="h-1.5 w-10 rounded bg-accented/60 bg-accented" />
           </div>
         </div>
       </div>
 
       <!-- Text + actions -->
-      <h2 class="text-[20px] font-extrabold text-zinc-900 dark:text-zinc-100 tracking-[-0.02em] leading-tight mb-1.5">
+      <h2 class="text-[20px] font-extrabold text-highlighted tracking-[-0.02em] leading-tight mb-1.5">
         {{ title }}
       </h2>
-      <p class="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed mb-8">
+      <p class="text-[13px] text-muted leading-relaxed mb-8">
         {{ subtitle }}
       </p>
       <button

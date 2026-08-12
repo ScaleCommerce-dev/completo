@@ -203,16 +203,16 @@ const sortedCards = computed(() => {
       </colgroup>
 
       <!-- Header -->
-      <thead class="sticky top-0 z-10 bg-zinc-50/95 dark:bg-zinc-900/95 backdrop-blur-sm">
-        <tr class="border-b border-zinc-200/80 dark:border-zinc-700/50">
+      <thead class="sticky top-0 z-10 bg-muted/95 backdrop-blur-sm">
+        <tr class="border-b border-default">
           <th
             v-for="col in columns"
             :key="col.id"
             class="px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] whitespace-nowrap select-none align-middle group/th"
             :class="[
               SORTABLE_FIELDS.has(col.field)
-                ? 'cursor-pointer hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors ' + (localSortField === col.field ? 'text-indigo-500 dark:text-indigo-400' : 'text-zinc-400 dark:text-zinc-500')
-                : 'text-zinc-400 dark:text-zinc-500'
+                ? 'cursor-pointer hover:text-toned transition-colors' + (localSortField === col.field ? 'text-primary' : 'text-dimmed')
+                : 'text-dimmed'
             ]"
             @click="toggleSort(col.field)"
           >
@@ -361,9 +361,9 @@ const sortedCards = computed(() => {
             <div class="flex flex-col items-center gap-2">
               <UIcon
                 name="i-lucide-filter-x"
-                class="text-2xl text-zinc-300 dark:text-zinc-600"
+                class="text-2xl text-dimmed"
               />
-              <p class="text-[13px] text-zinc-400 dark:text-zinc-500">
+              <p class="text-[13px] text-dimmed">
                 No cards match the active filters
               </p>
             </div>
@@ -377,23 +377,23 @@ const sortedCards = computed(() => {
             class="text-center py-16"
           >
             <div class="flex flex-col items-center gap-2.5">
-              <div class="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+              <div class="w-10 h-10 rounded-xl bg-elevated flex items-center justify-center">
                 <UIcon
                   name="i-lucide-inbox"
-                  class="text-xl text-zinc-400 dark:text-zinc-500"
+                  class="text-xl text-dimmed"
                 />
               </div>
               <div>
-                <p class="text-[14px] font-medium text-zinc-500 dark:text-zinc-400">
+                <p class="text-[14px] font-medium text-muted">
                   No cards yet
                 </p>
-                <p class="text-[12px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                <p class="text-[12px] text-dimmed mt-0.5">
                   Get started by creating your first card
                 </p>
               </div>
               <button
                 type="button"
-                class="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-indigo-500 hover:text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 transition-all"
+                class="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-primary hover:text-primary bg-primary/10 hover:bg-primary/15 transition-all"
                 @click="emit('add-card')"
               >
                 <UIcon

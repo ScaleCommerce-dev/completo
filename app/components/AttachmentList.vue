@@ -114,12 +114,12 @@ defineExpose({ upload, uploading })
     <div class="flex items-center gap-1.5 mb-2">
       <UIcon
         name="i-lucide-paperclip"
-        class="text-[13px] text-zinc-400 dark:text-zinc-500"
+        class="text-[13px] text-dimmed"
       />
-      <span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Attachments</span>
+      <span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed">Attachments</span>
       <span
         v-if="attachments.length"
-        class="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-full"
+        class="text-[11px] font-semibold text-dimmed bg-elevated px-1.5 py-0.5 rounded-full"
       >
         {{ attachments.length }}
       </span>
@@ -128,27 +128,27 @@ defineExpose({ upload, uploading })
     <!-- Uploading indicator -->
     <div
       v-if="uploading"
-      class="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-indigo-300 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/20 mb-2"
+      class="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-primary/60 border-primary bg-primary/15 bg-primary/20 mb-2"
     >
       <UIcon
         name="i-lucide-loader-2"
-        class="text-[14px] text-indigo-500 animate-spin"
+        class="text-[14px] text-primary animate-spin"
       />
-      <span class="text-[12px] font-medium text-indigo-500">Uploading...</span>
+      <span class="text-[12px] font-medium text-primary">Uploading...</span>
     </div>
 
     <!-- Attachment list -->
     <div
       v-if="attachments.length"
-      class="rounded-lg border border-zinc-200 dark:border-zinc-700/60 bg-white dark:bg-zinc-800/50 divide-y divide-zinc-100 dark:divide-zinc-700/40"
+      class="rounded-lg border border-accented bg-default divide-y divide-default"
     >
       <div
         v-for="attachment in attachments"
         :key="attachment.id"
-        class="group flex items-center gap-2.5 px-2.5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors first:rounded-t-lg last:rounded-b-lg"
+        class="group flex items-center gap-2.5 px-2.5 py-2 hover:bg-muted transition-colors first:rounded-t-lg last:rounded-b-lg"
       >
         <!-- Thumbnail or icon -->
-        <div class="w-8 h-8 rounded-md flex items-center justify-center shrink-0 overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+        <div class="w-8 h-8 rounded-md flex items-center justify-center shrink-0 overflow-hidden bg-elevated">
           <img
             v-if="isImage(attachment.mimeType)"
             :src="downloadUrl(attachment.id)"
@@ -158,7 +158,7 @@ defineExpose({ upload, uploading })
           <UIcon
             v-else
             :name="fileIcon(attachment.mimeType)"
-            class="text-[16px] text-zinc-400 dark:text-zinc-500"
+            class="text-[16px] text-dimmed"
           />
         </div>
 
@@ -167,12 +167,12 @@ defineExpose({ upload, uploading })
           <a
             :href="downloadUrl(attachment.id)"
             target="_blank"
-            class="text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:text-indigo-500 dark:hover:text-indigo-400 truncate transition-colors"
+            class="text-[13px] font-medium text-default hover:text-primary truncate transition-colors"
             :title="attachment.originalName"
           >
             {{ attachment.originalName }}
           </a>
-          <span class="text-[11px] text-zinc-400 dark:text-zinc-500 shrink-0">
+          <span class="text-[11px] text-dimmed shrink-0">
             {{ formatFileSize(attachment.size) }}
           </span>
         </div>
@@ -185,7 +185,7 @@ defineExpose({ upload, uploading })
           <a
             :href="downloadUrl(attachment.id)"
             target="_blank"
-            class="p-1 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all"
+            class="p-1 rounded-md text-dimmed hover:text-toned hover:bg-elevated opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all"
             title="Download"
           >
             <UIcon
@@ -195,7 +195,7 @@ defineExpose({ upload, uploading })
           </a>
           <button
             type="button"
-            class="p-1 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all"
+            class="p-1 rounded-md text-dimmed hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all"
             title="Remove"
             @click="remove(attachment.id)"
           >
@@ -216,8 +216,8 @@ defineExpose({ upload, uploading })
       :class="[
         attachments.length ? 'py-2 mt-1.5' : 'py-4',
         dropActive
-          ? 'border-indigo-400 dark:border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30'
-          : 'border-zinc-200 dark:border-zinc-700/60 hover:border-zinc-300 dark:hover:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+          ? 'border-primary bg-primary/15 bg-primary/10'
+          : 'border-accented hover:border-accented hover:bg-muted'
       ]"
       @click="openFilePicker"
       @dragenter="onDropZoneDragEnter"
@@ -228,11 +228,11 @@ defineExpose({ upload, uploading })
       <UIcon
         :name="dropActive ? 'i-lucide-upload-cloud' : 'i-lucide-plus'"
         class="text-[14px]"
-        :class="dropActive ? 'text-indigo-500' : 'text-zinc-400 dark:text-zinc-500'"
+        :class="dropActive ? 'text-primary' : 'text-dimmed'"
       />
       <span
         class="text-[12px] font-medium"
-        :class="dropActive ? 'text-indigo-500' : 'text-zinc-400 dark:text-zinc-500'"
+        :class="dropActive ? 'text-primary' : 'text-dimmed'"
       >
         {{ dropActive ? 'Drop to upload' : 'Drop files here or click to browse' }}
       </span>
@@ -241,7 +241,7 @@ defineExpose({ upload, uploading })
     <!-- Empty note when readonly -->
     <p
       v-else-if="!attachments.length && !uploading"
-      class="text-[12px] text-zinc-400 dark:text-zinc-500 italic"
+      class="text-[12px] text-dimmed italic"
     >
       No attachments
     </p>

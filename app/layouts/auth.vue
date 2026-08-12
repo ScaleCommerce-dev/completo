@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+  <div class="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden bg-muted bg-default">
     <!-- Dot pattern -->
     <div class="absolute inset-0 auth-dots opacity-40 dark:opacity-15" />
 
@@ -27,7 +27,7 @@
       <div class="mb-6 px-7 flex items-center gap-4">
         <div class="relative flex-shrink-0">
           <!-- Glow halo -->
-          <div class="absolute -inset-4 rounded-full bg-indigo-400/20 dark:bg-indigo-400/10 blur-2xl auth-icon-glow" />
+          <div class="absolute -inset-4 rounded-full bg-primary/20 bg-primary/10 blur-2xl auth-icon-glow" />
           <!-- Icon -->
           <div class="relative w-[72px] h-[72px] rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-500/25 dark:shadow-indigo-500/10 ring-1 ring-white/20">
             <img
@@ -38,14 +38,14 @@
           </div>
         </div>
         <div>
-          <h1 class="sidebar-brand text-[28px] font-extrabold tracking-[-0.04em] leading-none text-zinc-900 dark:text-zinc-100">
+          <h1 class="sidebar-brand text-[28px] font-extrabold tracking-[-0.04em] leading-none text-highlighted">
             Completo
           </h1>
           <div class="mt-2 flex flex-col gap-px">
-            <p class="font-mono text-[11.5px] font-semibold uppercase tracking-[0.1em] text-indigo-500/80 dark:text-indigo-400/70">
+            <p class="font-mono text-[11.5px] font-semibold uppercase tracking-[0.1em] text-primary/80 text-primary/70">
               All the toppings
             </p>
-            <p class="font-mono text-[11.5px] font-medium uppercase tracking-[0.1em] text-zinc-500/80 dark:text-zinc-400/70">
+            <p class="font-mono text-[11.5px] font-medium uppercase tracking-[0.1em] text-muted">
               None of the mess
             </p>
           </div>

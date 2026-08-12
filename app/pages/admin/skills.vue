@@ -99,7 +99,7 @@ async function confirmDelete() {
 }
 
 const scopeColors: Record<string, { text: string, bg: string }> = {
-  card: { text: 'text-indigo-500 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-500/10' },
+  card: { text: 'text-primary', bg: 'bg-primary/10' },
   board: { text: 'text-emerald-500 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10' }
 }
 </script>
@@ -108,10 +108,10 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
   <div class="p-6 max-w-5xl h-full overflow-y-auto">
     <div class="flex items-center justify-between mb-8">
       <div>
-        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-highlighted">
           AI Skills
         </h1>
-        <p class="text-[14px] text-zinc-500 dark:text-zinc-400 mt-1">
+        <p class="text-[14px] text-muted mt-1">
           Configurable prompt templates for AI writing
         </p>
       </div>
@@ -137,13 +137,13 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
     >
       <UIcon
         name="i-lucide-sparkles"
-        class="text-[32px] text-zinc-300 dark:text-zinc-600 mb-3"
+        class="text-[32px] text-dimmed mb-3"
       />
-      <p class="text-[14px] text-zinc-500 dark:text-zinc-400">
+      <p class="text-[14px] text-muted">
         No AI skills configured yet
       </p>
       <button
-        class="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-indigo-500 hover:text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 transition-all"
+        class="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-primary hover:text-primary bg-primary/10 hover:bg-primary/15 transition-all"
         @click="openCreate"
       >
         <UIcon
@@ -162,22 +162,22 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
       <div
         v-for="skill in skills"
         :key="skill.id"
-        class="group rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-md hover:shadow-indigo-500/5 p-4 transition-all"
+        class="group rounded-xl border border-default hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 p-4 transition-all"
       >
         <div class="flex items-start justify-between gap-2 mb-2">
           <div class="flex items-center gap-2 min-w-0">
             <UIcon
               name="i-lucide-wand-sparkles"
-              class="text-[14px] text-violet-500 shrink-0"
+              class="text-[14px] text-secondary shrink-0"
             />
-            <h3 class="font-bold text-[14.5px] tracking-[-0.01em] text-zinc-900 dark:text-zinc-100 truncate">
+            <h3 class="font-bold text-[14.5px] tracking-[-0.01em] text-highlighted truncate">
               {{ skill.name }}
             </h3>
           </div>
           <div class="flex items-center gap-0.5 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-opacity shrink-0">
             <UTooltip text="Edit">
               <button
-                class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all"
+                class="p-1.5 rounded-md text-dimmed hover:text-primary hover:bg-primary/10 transition-all"
                 @click="openEdit(skill)"
               >
                 <UIcon
@@ -188,7 +188,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
             </UTooltip>
             <UTooltip text="Delete">
               <button
-                class="p-1.5 rounded-md text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+                class="p-1.5 rounded-md text-dimmed hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
                 @click="openDelete(skill)"
               >
                 <UIcon
@@ -209,7 +209,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
         </span>
 
         <!-- Prompt preview -->
-        <p class="text-[12px] text-zinc-500 dark:text-zinc-400 font-mono leading-relaxed line-clamp-3">
+        <p class="text-[12px] text-muted font-mono leading-relaxed line-clamp-3">
           {{ skill.prompt }}
         </p>
       </div>
@@ -221,29 +221,29 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
       :ui="{ content: 'sm:max-w-[520px]' }"
     >
       <template #content>
-        <div class="rounded-xl bg-white dark:bg-zinc-800/80 overflow-hidden">
+        <div class="rounded-xl bg-default overflow-hidden">
           <div class="px-5 pt-5 pb-4">
-            <h2 class="text-[15px] font-bold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100 mb-4">
+            <h2 class="text-[15px] font-bold tracking-[-0.02em] text-highlighted mb-4">
               {{ isEdit ? 'Edit Skill' : 'New Skill' }}
             </h2>
 
             <div class="flex flex-col gap-3.5">
               <!-- Name -->
               <div>
-                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500 mb-1.5">
+                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
                   Name
                 </label>
                 <input
                   v-model="modalName"
                   type="text"
                   placeholder="e.g. Generate Description"
-                  class="w-full px-3 py-2 text-[14px] text-zinc-700 dark:text-zinc-200 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/60 rounded-lg outline-none focus:border-indigo-300 dark:focus:border-indigo-600 transition-colors"
+                  class="w-full px-3 py-2 text-[14px] text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-accented rounded-lg outline-none focus:border-primary transition-colors"
                 >
               </div>
 
               <!-- Scope -->
               <div>
-                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500 mb-1.5">
+                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
                   Scope
                 </label>
                 <div class="flex gap-2">
@@ -253,8 +253,8 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
                     type="button"
                     class="px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all"
                     :class="modalScope === s
-                      ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-200 dark:ring-indigo-800/50'
-                      : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'"
+                      ? 'bg-primary/10 text-primary ring-1 ring-primary/30 ring-primary/50'
+                      : 'text-dimmed hover:text-toned hover:bg-elevated'"
                     @click="modalScope = s"
                   >
                     {{ s.charAt(0).toUpperCase() + s.slice(1) }}
@@ -264,20 +264,20 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
 
               <!-- Prompt -->
               <div>
-                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500 mb-1.5">
+                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
                   Prompt Template
                 </label>
                 <textarea
                   v-model="modalPrompt"
                   rows="6"
                   placeholder="Write a prompt template..."
-                  class="w-full px-3 py-2 text-[13px] font-mono text-zinc-700 dark:text-zinc-200 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/60 rounded-lg outline-none focus:border-indigo-300 dark:focus:border-indigo-600 transition-colors resize-y leading-relaxed"
+                  class="w-full px-3 py-2 text-[13px] font-mono text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-accented rounded-lg outline-none focus:border-primary transition-colors resize-y leading-relaxed"
                 />
-                <p class="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
-                  Variables: <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-700/50 text-[10px]">{title}</code>
-                  <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-700/50 text-[10px]">{description}</code>
-                  <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-700/50 text-[10px]">{tags}</code>
-                  <code class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-700/50 text-[10px]">{priority}</code>
+                <p class="text-[11px] text-dimmed mt-1">
+                  Variables: <code class="px-1 py-0.5 rounded bg-elevated text-[10px]">{title}</code>
+                  <code class="px-1 py-0.5 rounded bg-elevated text-[10px]">{description}</code>
+                  <code class="px-1 py-0.5 rounded bg-elevated text-[10px]">{tags}</code>
+                  <code class="px-1 py-0.5 rounded bg-elevated text-[10px]">{priority}</code>
                 </p>
               </div>
             </div>
@@ -296,10 +296,10 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
           </div>
 
           <!-- Actions -->
-          <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-zinc-100 dark:border-zinc-700/40 mt-2">
+          <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
             <button
               type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="showModal = false"
             >
               Cancel
@@ -325,7 +325,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
     <!-- Delete Confirmation Modal -->
     <UModal v-model:open="showDeleteModal">
       <template #content>
-        <div class="rounded-xl bg-white dark:bg-zinc-800/80 overflow-hidden">
+        <div class="rounded-xl bg-default overflow-hidden">
           <div class="px-5 pt-5 pb-4">
             <div class="flex items-center gap-3 mb-4">
               <div class="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-950/30">
@@ -335,25 +335,25 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
                 />
               </div>
               <div>
-                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-highlighted">
                   Delete Skill
                 </h2>
-                <p class="text-[13px] text-zinc-500 dark:text-zinc-400">
+                <p class="text-[13px] text-muted">
                   This action cannot be undone
                 </p>
               </div>
             </div>
             <p
               v-if="deleteTarget"
-              class="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed"
+              class="text-[13px] text-muted leading-relaxed"
             >
-              Are you sure you want to delete <strong class="text-zinc-700 dark:text-zinc-200">"{{ deleteTarget.name }}"</strong>?
+              Are you sure you want to delete <strong class="text-default">"{{ deleteTarget.name }}"</strong>?
             </p>
           </div>
-          <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-zinc-100 dark:border-zinc-700/40 mt-2">
+          <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
             <button
               type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="showDeleteModal = false"
             >
               Cancel

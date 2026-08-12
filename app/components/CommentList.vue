@@ -133,17 +133,17 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
 
 <template>
   <div class="mt-6">
-    <h3 class="text-[11px] font-semibold tracking-wide text-zinc-400 dark:text-zinc-500 uppercase mb-3">
+    <h3 class="text-[11px] font-semibold tracking-wide text-dimmed uppercase mb-3">
       Comments
       <span
         v-if="comments.length"
-        class="ml-1 text-zinc-300 dark:text-zinc-600"
+        class="ml-1 text-dimmed"
       >{{ comments.length }}</span>
     </h3>
 
     <div
       v-if="loading && !comments.length"
-      class="text-[13px] text-zinc-400 dark:text-zinc-500"
+      class="text-[13px] text-dimmed"
     >
       Loading…
     </div>
@@ -166,16 +166,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
 
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
-            <span class="text-[13px] font-medium text-zinc-700 dark:text-zinc-200 truncate">
+            <span class="text-[13px] font-medium text-default truncate">
               <!-- authorId is nulled when a user is deleted, so the name can be missing -->
               {{ comment.authorName ?? 'Deleted user' }}
             </span>
-            <span class="text-[11px] text-zinc-400 dark:text-zinc-500">
+            <span class="text-[11px] text-dimmed">
               {{ relativeTime(comment.createdAt) }}
             </span>
             <span
               v-if="wasEdited(comment)"
-              class="text-[11px] text-zinc-400 dark:text-zinc-500"
+              class="text-[11px] text-dimmed"
             >· edited</span>
 
             <div
@@ -273,7 +273,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
 
     <p
       v-else
-      class="text-[13px] text-zinc-400 dark:text-zinc-500 mb-4"
+      class="text-[13px] text-dimmed mb-4"
     >
       No comments yet.
     </p>

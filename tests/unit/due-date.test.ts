@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { getDueDateStatus, dueDateColor, dueDateIcon } from '../../app/utils/constants'
+import { getDueDateStatus, dueDateTextClass, dueDateIcon } from '../../app/utils/constants'
 import { formatDueDate } from '../../app/utils/formatting'
 
 describe('getDueDateStatus', () => {
@@ -39,21 +39,24 @@ describe('getDueDateStatus', () => {
   })
 })
 
-describe('dueDateColor', () => {
-  it('returns red for overdue', () => {
-    expect(dueDateColor('overdue')).toBe('#ef4444')
+// Due-date urgency returns semantic classes rather than hex. The previous hex
+// values were single-valued across both themes, and `future`'s #64748b measured
+// roughly 2.3:1 on a dark card — under AA. Tokens follow the colour mode.
+describe('dueDateTextClass', () => {
+  it('returns the error token for overdue', () => {
+    expect(dueDateTextClass('overdue')).toBe('text-error')
   })
 
-  it('returns orange for due-soon', () => {
-    expect(dueDateColor('due-soon')).toBe('#f97316')
+  it('returns the warning token for due-soon', () => {
+    expect(dueDateTextClass('due-soon')).toBe('text-warning')
   })
 
-  it('returns slate for future', () => {
-    expect(dueDateColor('future')).toBe('#64748b')
+  it('returns a neutral token for future', () => {
+    expect(dueDateTextClass('future')).toBe('text-muted')
   })
 
-  it('returns slate for null', () => {
-    expect(dueDateColor(null)).toBe('#64748b')
+  it('returns a neutral token for null', () => {
+    expect(dueDateTextClass(null)).toBe('text-muted')
   })
 })
 

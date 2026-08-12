@@ -371,14 +371,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               v-if="card!.creator"
               class="flex items-baseline gap-1 min-w-0 text-[12px] font-medium"
             >
-              <span class="text-zinc-400 dark:text-zinc-500 shrink-0">by</span>
-              <span class="text-zinc-500 dark:text-zinc-400 truncate">{{ card!.creator.name }}</span>
+              <span class="text-dimmed shrink-0">by</span>
+              <span class="text-muted truncate">{{ card!.creator.name }}</span>
             </span>
           </div>
           <NuxtLink
             v-if="projectSlug"
             :to="`/projects/${projectSlug}/cards/${formatTicketId(projectKey, card!.id)}`"
-            class="flex items-center gap-1 text-[12px] font-medium text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+            class="flex items-center gap-1 text-[12px] font-medium text-dimmed hover:text-toned transition-colors"
             @click="open = false"
           >
             <UIcon
@@ -395,7 +395,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             v-model="title"
             type="text"
             placeholder="Card title..."
-            class="w-full text-[16px] font-semibold text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-zinc-200 dark:focus:border-zinc-700 rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
+            class="w-full text-[16px] font-semibold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
           >
         </div>
 
@@ -424,13 +424,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             <div class="flex items-center gap-1.5 mb-1.5">
               <UIcon
                 name="i-lucide-text"
-                class="text-[13px] text-zinc-400 dark:text-zinc-500"
+                class="text-[13px] text-dimmed"
               />
-              <span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Description</span>
+              <span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed">Description</span>
               <button
                 v-if="!editingDescription"
                 type="button"
-                class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-medium text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-all"
+                class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
                 @click="startEditingDescription"
               >
                 <UIcon
@@ -468,7 +468,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         <!-- Properties -->
         <div class="mx-5 mt-3 grid grid-cols-2 gap-2">
           <!-- Status -->
-          <div class="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700/60 bg-white dark:bg-zinc-800/50 px-2.5 py-1.5">
+          <div class="flex items-center gap-2 rounded-lg border border-accented bg-default px-2.5 py-1.5">
             <span
               class="w-2 h-2 rounded-full shrink-0 transition-colors"
               :style="{ backgroundColor: selectedStatusColor }"
@@ -484,7 +484,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           </div>
 
           <!-- Priority -->
-          <div class="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700/60 bg-white dark:bg-zinc-800/50 px-2.5 py-1.5">
+          <div class="flex items-center gap-2 rounded-lg border border-accented bg-default px-2.5 py-1.5">
             <UDropdownMenu
               :items="priorityMenuItems"
               :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
@@ -508,10 +508,10 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           </div>
 
           <!-- Assignee -->
-          <div class="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700/60 bg-white dark:bg-zinc-800/50 px-2.5 py-1.5">
+          <div class="flex items-center gap-2 rounded-lg border border-accented bg-default px-2.5 py-1.5">
             <UIcon
               name="i-lucide-user"
-              class="text-[12px] text-zinc-400 shrink-0"
+              class="text-[12px] text-dimmed shrink-0"
             />
             <USelect
               v-model="selectedAssigneeId"
@@ -524,10 +524,10 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           </div>
 
           <!-- Due Date -->
-          <div class="flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700/60 bg-white dark:bg-zinc-800/50 px-2.5 py-1.5">
+          <div class="flex items-center gap-2 rounded-lg border border-accented bg-default px-2.5 py-1.5">
             <UIcon
               name="i-lucide-calendar"
-              class="text-[12px] text-zinc-400 shrink-0"
+              class="text-[12px] text-dimmed shrink-0"
             />
             <DueDatePicker
               v-model:open="dueDateOpen"
@@ -537,7 +537,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             >
               <button
                 type="button"
-                class="flex items-center gap-1 text-[13px] font-medium transition-all hover:text-indigo-500"
+                class="flex items-center gap-1 text-[13px] font-medium transition-all hover:text-primary"
                 :class="selectedDueDate ? dueDateTextClass(getDueDateStatus(selectedDueDate)) : 'text-dimmed'"
               >
                 {{ selectedDueDate ? formatDueDate(selectedDueDate) : 'Set date' }}
@@ -558,14 +558,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <div class="flex items-center gap-1.5 mb-2">
             <UIcon
               name="i-lucide-tag"
-              class="text-[12px] text-zinc-400"
+              class="text-[12px] text-dimmed"
             />
-            <span class="text-[11px] font-semibold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500">Tags</span>
+            <span class="text-[11px] font-semibold uppercase tracking-[0.04em] text-dimmed">Tags</span>
           </div>
           <UPopover :content="{ align: 'start', side: 'bottom', sideOffset: 4 }">
             <button
               type="button"
-              class="flex flex-wrap gap-1 items-center rounded-md px-1.5 py-0.5 -mx-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              class="flex flex-wrap gap-1 items-center rounded-md px-1.5 py-0.5 -mx-1 hover:bg-elevated transition-colors cursor-pointer"
             >
               <template v-if="selectedTagIds.length">
                 <TagPill
@@ -576,7 +576,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 />
                 <UIcon
                   name="i-lucide-chevron-down"
-                  class="text-[10px] opacity-50 text-zinc-400"
+                  class="text-[10px] opacity-50 text-dimmed"
                 />
               </template>
               <span
@@ -647,7 +647,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             </button>
             <button
               type="button"
-              class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="showDeleteConfirm = false"
             >
               Cancel
@@ -679,7 +679,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             <button
               ref="keepEditingRef"
               type="button"
-              class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="cancelDiscardText"
             >
               Keep editing
@@ -711,7 +711,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             <button
               ref="keepEditingRef"
               type="button"
-              class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="cancelDiscardDraft"
             >
               Cancel
@@ -720,7 +720,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         </div>
 
         <!-- Actions -->
-        <div class="flex items-center justify-end gap-2 px-5 pt-4 pb-5 mt-4 border-t border-zinc-100 dark:border-zinc-700/40">
+        <div class="flex items-center justify-end gap-2 px-5 pt-4 pb-5 mt-4 border-t border-muted">
           <button
             v-if="isEdit && !showDeleteConfirm"
             type="button"
@@ -733,8 +733,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             />
             Delete
           </button>
-          <span class="text-[10px] font-mono text-zinc-300 dark:text-zinc-600 hidden sm:block">
-            <kbd class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500">&#8984;&#x23CE;</kbd>
+          <span class="text-[10px] font-mono text-dimmed hidden sm:block">
+            <kbd class="px-1 py-0.5 rounded bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
           </span>
           <button
             type="submit"

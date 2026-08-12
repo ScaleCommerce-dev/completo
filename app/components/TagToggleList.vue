@@ -17,8 +17,8 @@ const emit = defineEmits<{
       type="button"
       class="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-[12px] transition-colors"
       :class="selectedIds.includes(t.id)
-        ? 'bg-indigo-50 dark:bg-indigo-950/30'
-        : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'"
+        ? 'bg-primary/10'
+        : 'hover:bg-muted'"
       @click="emit('toggle', t.id)"
     >
       <span
@@ -34,7 +34,7 @@ const emit = defineEmits<{
       <UIcon
         v-if="selectedIds.includes(t.id)"
         name="i-lucide-check"
-        class="text-[13px] shrink-0 text-indigo-500"
+        class="text-[13px] shrink-0 text-primary"
       />
     </button>
   </div>

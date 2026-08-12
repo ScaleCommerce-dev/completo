@@ -11,15 +11,15 @@ defineProps<{
     <span
       class="font-semibold truncate"
       :class="isDone
-        ? 'line-through text-zinc-400 dark:text-zinc-500'
-        : 'text-zinc-900 dark:text-zinc-100'"
+        ? 'line-through text-dimmed'
+        : 'text-highlighted'"
     >
       {{ title }}
     </span>
     <NuxtLink
       v-if="detailUrl"
       :to="detailUrl"
-      class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-zinc-300 dark:text-zinc-600 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all"
+      class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-dimmed hover:text-primary hover:bg-primary/10 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all"
       title="Open detail"
       @click.stop
     >

@@ -110,13 +110,13 @@ function userBadgeLabel(u: AdminUser): string {
 
 function userBadgeClass(u: AdminUser): string {
   if (u.suspendedAt) return 'bg-red-100 dark:bg-red-500/10 text-red-500 dark:text-red-400'
-  if (u.isAdmin) return 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 dark:text-indigo-400'
-  return 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+  if (u.isAdmin) return 'bg-primary/10 text-primary'
+  return 'bg-elevated text-muted'
 }
 
 function userBadgeHoverRing(u: AdminUser): string {
   if (u.suspendedAt) return 'hover:ring-red-500/20'
-  if (u.isAdmin) return 'hover:ring-indigo-500/20'
+  if (u.isAdmin) return 'hover:ring-primary/20'
   return 'hover:ring-zinc-500/20'
 }
 
@@ -265,16 +265,16 @@ function formatDate(date: string | Date | null) {
   <div class="p-6 max-w-5xl h-full overflow-y-auto">
     <div class="flex items-center justify-between mb-8">
       <div>
-        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-highlighted">
           User Management
         </h1>
-        <p class="text-[14px] text-zinc-500 dark:text-zinc-400 mt-1">
+        <p class="text-[14px] text-muted mt-1">
           Manage all registered users
         </p>
       </div>
       <div class="flex items-center gap-3">
         <NotificationBell />
-        <span class="text-[13px] font-mono text-zinc-400 dark:text-zinc-500">{{ users?.length || 0 }} users</span>
+        <span class="text-[13px] font-mono text-dimmed">{{ users?.length || 0 }} users</span>
         <button
           type="button"
           class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all"
@@ -296,7 +296,7 @@ function formatDate(date: string | Date | null) {
         class="group rounded-xl border p-4 transition-all"
         :class="u.suspendedAt
           ? 'border-red-200/60 dark:border-red-800/30 bg-red-50/30 dark:bg-red-950/10'
-          : 'border-zinc-200/80 dark:border-zinc-700/50 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-md hover:shadow-indigo-500/5'"
+          : 'border-default hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5'"
       >
         <div class="flex items-start gap-3">
           <UAvatar
@@ -310,8 +310,8 @@ function formatDate(date: string | Date | null) {
               <h3
                 class="font-bold text-[14.5px] tracking-[-0.01em] truncate"
                 :class="u.suspendedAt
-                  ? 'text-zinc-400 dark:text-zinc-500'
-                  : 'text-zinc-900 dark:text-zinc-100'"
+                  ? 'text-dimmed'
+                  : 'text-highlighted'"
               >
                 {{ u.name }}
               </h3>
@@ -353,12 +353,12 @@ function formatDate(date: string | Date | null) {
                 Pending Setup
               </span>
             </div>
-            <p class="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
+            <p class="text-[13px] font-mono text-muted mt-0.5 truncate">
               {{ u.email }}
             </p>
           </div>
         </div>
-        <div class="flex items-center gap-1.5 mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700/40 text-[12px] font-mono text-zinc-400 dark:text-zinc-500">
+        <div class="flex items-center gap-1.5 mt-3 pt-3 border-t border-muted text-[12px] font-mono text-dimmed">
           <UIcon
             name="i-lucide-eye"
             class="text-xs"
@@ -376,12 +376,12 @@ function formatDate(date: string | Date | null) {
             name="i-lucide-clock"
             class="text-lg text-amber-500"
           />
-          <h2 class="text-[15px] font-bold tracking-[-0.01em] text-zinc-900 dark:text-zinc-100">
+          <h2 class="text-[15px] font-bold tracking-[-0.01em] text-highlighted">
             Pending Project Invitations
           </h2>
-          <span class="text-[12px] font-mono text-zinc-400 dark:text-zinc-500">{{ pendingInvitations.length }}</span>
+          <span class="text-[12px] font-mono text-dimmed">{{ pendingInvitations.length }}</span>
         </div>
-        <p class="text-[13px] text-zinc-500 dark:text-zinc-400 mb-4">
+        <p class="text-[13px] text-muted mb-4">
           These people have been invited to projects but haven't registered yet.
         </p>
         <div class="rounded-xl border border-amber-200/60 dark:border-amber-800/30 overflow-hidden">
@@ -390,7 +390,7 @@ function formatDate(date: string | Date | null) {
             :key="inv.id"
             class="flex items-center gap-3 px-4 py-3 transition-colors"
             :class="[
-              idx % 2 === 0 ? 'bg-white dark:bg-zinc-800/50' : 'bg-amber-50/30 dark:bg-amber-950/5',
+              idx % 2 === 0 ? 'bg-default' : 'bg-amber-50/30 dark:bg-amber-950/5',
               idx === 0 ? 'rounded-t-xl' : '',
               idx === pendingInvitations.length - 1 ? 'rounded-b-xl' : ''
             ]"
@@ -400,16 +400,16 @@ function formatDate(date: string | Date | null) {
               class="text-[16px] text-amber-400 shrink-0"
             />
             <div class="min-w-0 flex-1">
-              <span class="text-[13px] font-mono text-zinc-700 dark:text-zinc-300">{{ inv.email }}</span>
+              <span class="text-[13px] font-mono text-default">{{ inv.email }}</span>
             </div>
-            <span class="text-[12px] text-zinc-500 dark:text-zinc-400 shrink-0">
+            <span class="text-[12px] text-muted shrink-0">
               <UIcon
                 name="i-lucide-folder"
                 class="text-[11px] inline-block mr-0.5"
               />
               {{ inv.projectName }}
             </span>
-            <span class="text-[12px] text-zinc-400 dark:text-zinc-500 shrink-0">
+            <span class="text-[12px] text-dimmed shrink-0">
               by {{ inv.inviterName }}
             </span>
             <UDropdownMenu :items="invitationMenuItems(inv)">
@@ -440,20 +440,20 @@ function formatDate(date: string | Date | null) {
     <!-- Create User Modal -->
     <UModal v-model:open="showCreateModal">
       <template #content>
-        <div class="rounded-xl bg-white dark:bg-zinc-800/80 overflow-hidden">
+        <div class="rounded-xl bg-default overflow-hidden">
           <div class="px-5 pt-5 pb-4">
             <div class="flex items-center gap-3 mb-4">
-              <div class="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/30">
+              <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
                 <UIcon
                   name="i-lucide-user-plus"
-                  class="text-lg text-indigo-500"
+                  class="text-lg text-primary"
                 />
               </div>
               <div>
-                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-highlighted">
                   Create User
                 </h2>
-                <p class="text-[13px] text-zinc-500 dark:text-zinc-400">
+                <p class="text-[13px] text-muted">
                   They'll receive an email to set their password
                 </p>
               </div>
@@ -464,7 +464,7 @@ function formatDate(date: string | Date | null) {
               @submit.prevent="confirmCreate"
             >
               <div>
-                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500 mb-1.5">
+                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
                   Name
                 </label>
                 <input
@@ -472,12 +472,12 @@ function formatDate(date: string | Date | null) {
                   type="text"
                   placeholder="Full name"
                   required
-                  class="w-full px-3 py-2 text-[14px] text-zinc-700 dark:text-zinc-200 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/50 rounded-lg outline-none focus:border-indigo-300 dark:focus:border-indigo-600 transition-colors"
+                  class="w-full px-3 py-2 text-[14px] text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-default rounded-lg outline-none focus:border-primary transition-colors"
                 >
               </div>
 
               <div>
-                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500 mb-1.5">
+                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
                   Email
                 </label>
                 <input
@@ -485,7 +485,7 @@ function formatDate(date: string | Date | null) {
                   type="email"
                   placeholder="user@example.com"
                   required
-                  class="w-full px-3 py-2 text-[14px] text-zinc-700 dark:text-zinc-200 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/50 rounded-lg outline-none focus:border-indigo-300 dark:focus:border-indigo-600 transition-colors"
+                  class="w-full px-3 py-2 text-[14px] text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-default rounded-lg outline-none focus:border-primary transition-colors"
                 >
               </div>
 
@@ -502,10 +502,10 @@ function formatDate(date: string | Date | null) {
               </div>
 
               <!-- Actions -->
-              <div class="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-700/40 mt-1">
+              <div class="flex items-center justify-end gap-2 pt-2 border-t border-muted mt-1">
                 <button
                   type="button"
-                  class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+                  class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
                   @click="showCreateModal = false"
                 >
                   Cancel
@@ -537,7 +537,7 @@ function formatDate(date: string | Date | null) {
     <!-- Delete User Modal -->
     <UModal v-model:open="showDeleteModal">
       <template #content>
-        <div class="rounded-xl bg-white dark:bg-zinc-800/80 overflow-hidden">
+        <div class="rounded-xl bg-default overflow-hidden">
           <div class="px-5 pt-5 pb-4">
             <div class="flex items-center gap-3 mb-4">
               <div class="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-950/30">
@@ -547,10 +547,10 @@ function formatDate(date: string | Date | null) {
                 />
               </div>
               <div>
-                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-highlighted">
                   Delete User
                 </h2>
-                <p class="text-[13px] text-zinc-500 dark:text-zinc-400">
+                <p class="text-[13px] text-muted">
                   This action cannot be undone
                 </p>
               </div>
@@ -558,7 +558,7 @@ function formatDate(date: string | Date | null) {
 
             <div
               v-if="deleteTarget"
-              class="rounded-lg border border-zinc-200 dark:border-zinc-700/60 p-3 bg-zinc-50 dark:bg-zinc-800/50 mb-4"
+              class="rounded-lg border border-accented p-3 bg-muted mb-4"
             >
               <div class="flex items-center gap-3">
                 <UAvatar
@@ -567,17 +567,17 @@ function formatDate(date: string | Date | null) {
                   size="sm"
                 />
                 <div class="min-w-0">
-                  <p class="text-[14px] font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                  <p class="text-[14px] font-semibold text-highlighted truncate">
                     {{ deleteTarget.name }}
                   </p>
-                  <p class="text-[13px] font-mono text-zinc-500 dark:text-zinc-400 truncate">
+                  <p class="text-[13px] font-mono text-muted truncate">
                     {{ deleteTarget.email }}
                   </p>
                 </div>
               </div>
             </div>
 
-            <p class="text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+            <p class="text-[13px] text-muted leading-relaxed">
               This will remove the user and all their project memberships. Cards assigned to this user will be unassigned.
             </p>
           </div>
@@ -595,10 +595,10 @@ function formatDate(date: string | Date | null) {
           </div>
 
           <!-- Actions -->
-          <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-zinc-100 dark:border-zinc-700/40 mt-2">
+          <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
             <button
               type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="showDeleteModal = false"
             >
               Cancel

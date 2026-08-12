@@ -26,12 +26,12 @@ async function handleInlineUpdate(cardId: number, updates: Record<string, unknow
 <template>
   <div class="flex flex-col h-full">
     <!-- Header bar -->
-    <div class="flex items-center justify-between px-5 py-2.5 border-b border-zinc-200/80 dark:border-zinc-700/50 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm">
+    <div class="flex items-center justify-between px-5 py-2.5 border-b border-default bg-default/60 backdrop-blur-sm">
       <div class="flex items-center gap-2.5">
-        <h1 class="text-[15px] font-extrabold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+        <h1 class="text-[15px] font-extrabold tracking-[-0.02em] text-highlighted">
           My Tasks
         </h1>
-        <span class="text-[12px] text-zinc-400 dark:text-zinc-500">Cards assigned to you across all projects</span>
+        <span class="text-[12px] text-dimmed">Cards assigned to you across all projects</span>
       </div>
       <div class="flex items-center gap-1.5">
         <NotificationBell />
@@ -59,19 +59,19 @@ async function handleInlineUpdate(cardId: number, updates: Record<string, unknow
         >
           <UIcon
             name="i-lucide-chevron-right"
-            class="text-[13px] text-zinc-400 transition-transform duration-150"
+            class="text-[13px] text-dimmed transition-transform duration-150"
             :class="{ 'rotate-90': !collapsedProjectIds.has(group.project.id) }"
           />
-          <div class="flex items-center justify-center w-5 h-5 rounded bg-zinc-100 dark:bg-zinc-800">
+          <div class="flex items-center justify-center w-5 h-5 rounded bg-elevated">
             <UIcon
               :name="`i-lucide-${group.project.icon || 'folder'}`"
-              class="text-[10px] text-zinc-400"
+              class="text-[10px] text-dimmed"
             />
           </div>
-          <span class="text-[14px] font-bold tracking-[-0.01em] text-zinc-700 dark:text-zinc-300">
+          <span class="text-[14px] font-bold tracking-[-0.01em] text-default">
             {{ group.project.name }}
           </span>
-          <span class="text-[12px] font-mono text-zinc-400 dark:text-zinc-500 tabular-nums">
+          <span class="text-[12px] font-mono text-dimmed tabular-nums">
             {{ group.cards.length }}
           </span>
         </button>
@@ -79,7 +79,7 @@ async function handleInlineUpdate(cardId: number, updates: Record<string, unknow
         <!-- ListView table -->
         <div
           v-if="!collapsedProjectIds.has(group.project.id)"
-          class="rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 overflow-hidden"
+          class="rounded-xl border border-default overflow-hidden"
         >
           <ListView
             :columns="columns"
@@ -106,10 +106,10 @@ async function handleInlineUpdate(cardId: number, updates: Record<string, unknow
             class="text-3xl text-emerald-500"
           />
         </div>
-        <p class="font-bold text-zinc-900 dark:text-zinc-100">
+        <p class="font-bold text-highlighted">
           All clear!
         </p>
-        <p class="text-[14px] text-zinc-500 dark:text-zinc-400 mt-1">
+        <p class="text-[14px] text-muted mt-1">
           No tasks assigned to you.
         </p>
       </div>

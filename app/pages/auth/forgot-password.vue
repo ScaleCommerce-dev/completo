@@ -39,16 +39,16 @@ async function requestReset() {
       <h2 class="text-base font-bold tracking-[-0.02em]">
         Check your email
       </h2>
-      <p class="text-[13px] text-zinc-500 dark:text-zinc-400">
-        If an account exists for <span class="font-semibold text-zinc-700 dark:text-zinc-300">{{ email }}</span>,
+      <p class="text-[13px] text-muted">
+        If an account exists for <span class="font-semibold text-default">{{ email }}</span>,
         we've sent a password reset link.
       </p>
-      <div class="border-t border-zinc-200/40 dark:border-zinc-700/25 pt-4 mt-2 w-full">
-        <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400">
+      <div class="border-t border-muted pt-4 mt-2 w-full">
+        <p class="text-[13px] text-center text-muted">
           Remember your password?
           <NuxtLink
             to="/login"
-            class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+            class="text-primary font-semibold hover:underline"
           >Sign in</NuxtLink>
         </p>
       </div>
@@ -64,7 +64,7 @@ async function requestReset() {
       <h2 class="text-base font-bold text-center tracking-[-0.02em]">
         Reset your password
       </h2>
-      <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400 mt-1">
+      <p class="text-[13px] text-center text-muted mt-1">
         Enter your email and we'll send you a reset link
       </p>
     </div>
@@ -106,12 +106,12 @@ async function requestReset() {
     </form>
 
     <div class="px-7 pb-6 pt-1">
-      <div class="border-t border-zinc-200/40 dark:border-zinc-700/25 pt-4">
-        <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400">
+      <div class="border-t border-muted pt-4">
+        <p class="text-[13px] text-center text-muted">
           Remember your password?
           <NuxtLink
             to="/login"
-            class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+            class="text-primary font-semibold hover:underline"
           >Sign in</NuxtLink>
         </p>
       </div>

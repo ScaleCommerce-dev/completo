@@ -33,7 +33,7 @@ const emit = defineEmits<{
     @update:open="emit('update:popoverOpen', $event)"
   >
     <div
-      class="flex flex-wrap gap-1 items-center rounded px-1 -mx-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer min-h-[22px]"
+      class="flex flex-wrap gap-1 items-center rounded px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-[22px]"
       @click.stop
     >
       <template v-if="cardTags.length">
@@ -46,11 +46,11 @@ const emit = defineEmits<{
       </template>
       <span
         v-else
-        class="text-zinc-300 dark:text-zinc-600 text-[13px]"
+        class="text-dimmed text-[13px]"
       >No tags</span>
       <UIcon
         name="i-lucide-chevron-down"
-        class="text-[10px] shrink-0 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-60 transition-opacity"
+        class="text-[10px] shrink-0 text-dimmed opacity-0 group-hover:opacity-60 transition-opacity"
       />
     </div>
     <template #content>

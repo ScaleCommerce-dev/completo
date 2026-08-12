@@ -86,12 +86,12 @@ function handleCustomPrompt() {
               v-for="skill in (skills as any[])"
               :key="skill.id"
               type="button"
-              class="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors text-left"
+              class="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-default hover:bg-muted hover:bg-elevated transition-colors text-left"
               @click="handleSkill(skill.id)"
             >
               <UIcon
                 name="i-lucide-wand-sparkles"
-                class="text-[14px] text-violet-500 shrink-0"
+                class="text-[14px] text-secondary shrink-0"
               />
               <span class="font-medium truncate">{{ skill.name }}</span>
             </button>
@@ -100,7 +100,7 @@ function handleCustomPrompt() {
           <!-- Divider -->
           <div
             v-if="(skills as any[])?.length"
-            class="border-t border-zinc-100 dark:border-zinc-700/50"
+            class="border-t border-muted border-default"
           />
 
           <!-- Free-text input -->
@@ -110,13 +110,13 @@ function handleCustomPrompt() {
                 v-model="customPrompt"
                 type="text"
                 placeholder="Custom prompt..."
-                class="flex-1 min-w-0 px-2.5 py-1.5 text-[13px] text-zinc-700 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500 bg-zinc-50 dark:bg-zinc-700/50 border border-zinc-200 dark:border-zinc-600/50 rounded-lg outline-none focus:border-indigo-300 dark:focus:border-indigo-600 transition-colors"
+                class="flex-1 min-w-0 px-2.5 py-1.5 text-[13px] text-default placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted bg-accented border border-default border-accented rounded-lg outline-none focus:border-primary transition-colors"
                 @keydown.enter.prevent="handleCustomPrompt"
                 @keydown.stop
               >
               <button
                 type="button"
-                class="p-1.5 rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                class="p-1.5 rounded-lg text-dimmed hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 :disabled="!customPrompt.trim()"
                 @click="handleCustomPrompt"
               >
@@ -131,7 +131,7 @@ function handleCustomPrompt() {
           <!-- Error feedback -->
           <div
             v-if="error"
-            class="px-3 py-2 text-[11px] text-red-500 dark:text-red-400 border-t border-zinc-100 dark:border-zinc-700/50"
+            class="px-3 py-2 text-[11px] text-red-500 dark:text-red-400 border-t border-muted border-default"
           >
             {{ error }}
           </div>

@@ -107,7 +107,7 @@ async function resendVerification() {
           <template v-if="isTokenExpired">
             <button
               v-if="!resendSuccess"
-              class="block mt-1 text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+              class="block mt-1 text-primary font-semibold hover:underline"
               type="button"
               :disabled="resendLoading"
               @click="resendVerification"
@@ -168,7 +168,7 @@ async function resendVerification() {
       >
         <NuxtLink
           to="/auth/forgot-password"
-          class="text-[13px] text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+          class="text-[13px] text-primary font-semibold hover:underline"
         >
           Forgot password?
         </NuxtLink>
@@ -186,7 +186,7 @@ async function resendVerification() {
           {{ error }}
           <button
             v-if="isUnverified && !resendSuccess"
-            class="block mt-1 text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+            class="block mt-1 text-primary font-semibold hover:underline"
             type="button"
             :disabled="resendLoading"
             @click="resendVerification"
@@ -217,12 +217,12 @@ async function resendVerification() {
     </form>
 
     <div class="px-7 pb-6 pt-1">
-      <div class="border-t border-zinc-200/40 dark:border-zinc-700/25 pt-4">
-        <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400">
+      <div class="border-t border-muted pt-4">
+        <p class="text-[13px] text-center text-muted">
           Don't have an account?
           <NuxtLink
             to="/register"
-            class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+            class="text-primary font-semibold hover:underline"
           >Register</NuxtLink>
         </p>
       </div>

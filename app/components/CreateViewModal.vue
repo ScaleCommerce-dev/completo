@@ -200,21 +200,21 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
   <UModal v-model:open="open">
     <template #content>
       <div
-        class="rounded-xl bg-white dark:bg-zinc-800/80 overflow-hidden"
+        class="rounded-xl bg-default overflow-hidden"
       >
         <!-- Header -->
         <div class="flex items-center gap-3 px-5 pt-5 pb-2">
-          <div class="flex items-center justify-center w-8 h-8 rounded-[8px] bg-indigo-500/10 dark:bg-indigo-500/15">
+          <div class="flex items-center justify-center w-8 h-8 rounded-[8px] bg-primary/10 bg-primary/15">
             <UIcon
               :name="viewStep === 1 ? 'i-lucide-layout-grid' : viewType === 'board' ? 'i-lucide-layout-dashboard' : 'i-lucide-list'"
-              class="text-[15px] text-indigo-500"
+              class="text-[15px] text-primary"
             />
           </div>
           <div>
-            <h2 class="text-[14px] font-bold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+            <h2 class="text-[14px] font-bold tracking-[-0.02em] text-highlighted">
               {{ viewStep === 1 ? 'New View' : viewStep === 2 ? `New ${viewType === 'board' ? 'Board' : 'List'}` : 'Configure Columns' }}
             </h2>
-            <p class="text-[12px] text-zinc-400 dark:text-zinc-500">
+            <p class="text-[12px] text-dimmed">
               {{ viewStep === 1 ? 'Choose a view type' : viewStep === 2 ? `Add a ${viewType} to ${projectName}` : 'Configure view' }}
             </p>
           </div>
@@ -228,37 +228,37 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <div class="grid grid-cols-2 gap-3">
             <button
               type="button"
-              class="rounded-xl border-2 p-4 text-left transition-all hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-md hover:shadow-indigo-500/5 border-zinc-200/80 dark:border-zinc-700/70"
+              class="rounded-xl border-2 p-4 text-left transition-all hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 border-default border-accented"
               @click="selectViewType('board')"
             >
               <div class="flex items-center gap-3 mb-2">
-                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 text-indigo-500">
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary">
                   <UIcon
                     name="i-lucide-layout-dashboard"
                     class="text-xl"
                   />
                 </div>
-                <span class="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">Board</span>
+                <span class="text-[15px] font-bold text-highlighted">Board</span>
               </div>
-              <p class="text-[12px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+              <p class="text-[12px] text-muted leading-relaxed">
                 Kanban board with cards grouped by status columns
               </p>
             </button>
             <button
               type="button"
-              class="rounded-xl border-2 p-4 text-left transition-all hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-md hover:shadow-indigo-500/5 border-zinc-200/80 dark:border-zinc-700/70"
+              class="rounded-xl border-2 p-4 text-left transition-all hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 border-default border-accented"
               @click="selectViewType('list')"
             >
               <div class="flex items-center gap-3 mb-2">
-                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-violet-50 dark:bg-violet-950/30 text-violet-500">
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-secondary/10 text-secondary">
                   <UIcon
                     name="i-lucide-list"
                     class="text-xl"
                   />
                 </div>
-                <span class="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">List</span>
+                <span class="text-[15px] font-bold text-highlighted">List</span>
               </div>
-              <p class="text-[12px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+              <p class="text-[12px] text-muted leading-relaxed">
                 Table view showing all cards with configurable columns
               </p>
             </button>
@@ -276,31 +276,31 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               type="text"
               :placeholder="`${viewType === 'board' ? 'Board' : 'List'} name...`"
               autofocus
-              class="w-full text-[16px] font-semibold text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-zinc-200 dark:focus:border-zinc-700 rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
+              class="w-full text-[16px] font-semibold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
             >
           </div>
 
-          <div class="mx-5 mt-4 rounded-lg border border-zinc-200 dark:border-zinc-700/60 divide-y divide-zinc-100 dark:divide-zinc-700/40 overflow-hidden">
-            <div class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
+          <div class="mx-5 mt-4 rounded-lg border border-accented divide-y divide-default overflow-hidden">
+            <div class="flex items-center px-3 py-2.5 bg-default">
               <div class="flex items-center gap-2 w-28 shrink-0">
                 <UIcon
                   name="i-lucide-link"
-                  class="text-sm text-zinc-400"
+                  class="text-sm text-dimmed"
                 />
-                <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">Slug</span>
+                <span class="text-[13px] font-medium text-muted">Slug</span>
               </div>
               <div class="flex-1 flex items-center gap-2.5">
                 <input
                   :value="viewSlug"
                   type="text"
                   placeholder="my-view"
-                  class="flex-1 text-[14px] font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0! tracking-wide"
+                  class="flex-1 text-[14px] font-medium text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0! tracking-wide"
                   @input="onSlugInput"
                 >
                 <UIcon
                   v-if="slugChecking"
                   name="i-lucide-loader-2"
-                  class="text-[14px] text-zinc-400 animate-spin shrink-0"
+                  class="text-[14px] text-dimmed animate-spin shrink-0"
                 />
                 <UIcon
                   v-else-if="viewSlug && slugAvailable === true"
@@ -316,7 +316,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             </div>
           </div>
 
-          <div class="flex items-center justify-between px-5 pt-4 pb-5 mt-4 border-t border-zinc-100 dark:border-zinc-700/40">
+          <div class="flex items-center justify-between px-5 pt-4 pb-5 mt-4 border-t border-muted">
             <div class="flex items-center gap-1.5">
               <span
                 v-if="viewSlug && slugAvailable === false"
@@ -336,7 +336,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             <div class="flex items-center gap-2">
               <button
                 type="button"
-                class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+                class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
                 @click="viewStep = 1"
               >
                 Back
@@ -364,14 +364,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               <div
                 v-for="status in statuses"
                 :key="status.id"
-                class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                 @click="toggleBoardColumn(status.id)"
               >
                 <div
                   class="flex items-center justify-center w-5 h-5 rounded border-2 transition-all shrink-0"
                   :class="selectedBoardColumns.has(status.id)
-                    ? 'bg-indigo-500 border-indigo-500'
-                    : 'border-zinc-300 dark:border-zinc-600'"
+                    ? 'bg-indigo-500 border-primary'
+                    : 'border-accented'"
                 >
                   <UIcon
                     v-if="selectedBoardColumns.has(status.id)"
@@ -383,7 +383,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                   class="w-2.5 h-2.5 rounded-full shrink-0"
                   :style="{ backgroundColor: status.color || '#a1a1aa' }"
                 />
-                <span class="text-[14px] font-medium text-zinc-700 dark:text-zinc-300">{{ status.name }}</span>
+                <span class="text-[14px] font-medium text-default">{{ status.name }}</span>
               </div>
             </template>
 
@@ -392,14 +392,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               <div
                 v-for="f in LIST_FIELD_OPTIONS"
                 :key="f.field"
-                class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                 @click="toggleListField(f.field)"
               >
                 <div
                   class="flex items-center justify-center w-5 h-5 rounded border-2 transition-all shrink-0"
                   :class="selectedListFields.has(f.field)
-                    ? 'bg-indigo-500 border-indigo-500'
-                    : 'border-zinc-300 dark:border-zinc-600'"
+                    ? 'bg-indigo-500 border-primary'
+                    : 'border-accented'"
                 >
                   <UIcon
                     v-if="selectedListFields.has(f.field)"
@@ -407,17 +407,17 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                     class="text-white text-[12px]"
                   />
                 </div>
-                <span class="text-[14px] font-medium text-zinc-700 dark:text-zinc-300">{{ f.label }}</span>
+                <span class="text-[14px] font-medium text-default">{{ f.label }}</span>
               </div>
             </template>
 
             <!-- Tag filters (both board and list) -->
             <template v-if="tags.length">
-              <div class="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700/40">
-                <div class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em] mb-2">
+              <div class="mt-3 pt-3 border-t border-muted">
+                <div class="text-[12px] font-bold text-muted uppercase tracking-[0.08em] mb-2">
                   Tag Filters
                 </div>
-                <p class="text-[12px] text-zinc-400 dark:text-zinc-500 mb-2">
+                <p class="text-[12px] text-dimmed mb-2">
                   Only show cards matching selected tags
                 </p>
                 <div class="flex flex-wrap gap-1.5">
@@ -428,7 +428,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                     class="tag-toggle inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold transition-all duration-150 active:scale-95"
                     :class="selectedTagFilters.has(tag.id)
                       ? ''
-                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 tag-toggle-inactive'"
+                      : 'bg-elevated text-dimmed hover:text-toned tag-toggle-inactive'"
                     :style="selectedTagFilters.has(tag.id) ? {
                       color: tag.color,
                       backgroundColor: tag.color + '22',
@@ -460,20 +460,20 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ createError }}</span>
           </div>
 
-          <div class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-zinc-100 dark:border-zinc-700/40">
-            <span class="text-[12px] text-zinc-400 dark:text-zinc-500">
+          <div class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-muted">
+            <span class="text-[12px] text-dimmed">
               {{ viewType === 'board' ? `${selectedBoardColumns.size} statuses` : `${selectedListFields.size} fields` }}{{ selectedTagFilters.size ? `, ${selectedTagFilters.size} tag filter${selectedTagFilters.size > 1 ? 's' : ''}` : '' }}
             </span>
             <div class="flex items-center gap-2">
               <button
                 type="button"
-                class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+                class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
                 @click="viewStep = 2"
               >
                 Back
               </button>
-              <span class="text-[10px] font-mono text-zinc-300 dark:text-zinc-600 hidden sm:block">
-                <kbd class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500">&#8984;&#x23CE;</kbd>
+              <span class="text-[10px] font-mono text-dimmed hidden sm:block">
+                <kbd class="px-1 py-0.5 rounded bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
               </span>
               <button
                 type="button"

@@ -94,14 +94,14 @@ const cardEl = ref<HTMLElement>()
 <template>
   <div
     ref="cardEl"
-    class="kanban-card lift cursor-pointer rounded-lg bg-white dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/60 p-3 group relative"
+    class="kanban-card lift cursor-pointer rounded-lg bg-default border border-default p-3 group relative"
     @click="$emit('click')"
   >
     <!-- Expand to detail page -->
     <NuxtLink
       v-if="detailUrl"
       :to="detailUrl"
-      class="absolute top-2 right-2 p-1 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all z-10"
+      class="absolute top-2 right-2 p-1 rounded-md text-dimmed hover:text-primary hover:bg-elevated opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all z-10"
       title="Open detail view"
       @click.stop
     >
@@ -120,14 +120,14 @@ const cardEl = ref<HTMLElement>()
     />
 
     <!-- Title -->
-    <p class="text-[14px] font-semibold leading-[1.4] text-zinc-900 dark:text-zinc-100 tracking-[-0.01em] pr-6">
+    <p class="text-[14px] font-semibold leading-[1.4] text-highlighted tracking-[-0.01em] pr-6">
       {{ card.title }}
     </p>
 
     <!-- Description preview -->
     <p
       v-if="card.description"
-      class="text-[12.5px] leading-relaxed text-zinc-500 dark:text-zinc-400 mt-1.5 line-clamp-2"
+      class="text-[12.5px] leading-relaxed text-muted mt-1.5 line-clamp-2"
     >
       {{ stripMarkdown(card.description) }}
     </p>
@@ -146,7 +146,7 @@ const cardEl = ref<HTMLElement>()
     </div>
 
     <!-- Footer row -->
-    <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-zinc-100 dark:border-zinc-700/40">
+    <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-muted">
       <div class="flex items-center gap-2.5 min-w-0">
         <!-- Priority dropdown (icon only) -->
         <UDropdownMenu
@@ -155,7 +155,7 @@ const cardEl = ref<HTMLElement>()
         >
           <button
             type="button"
-            class="flex items-center justify-center w-5 h-5 cursor-pointer transition-all hover:ring-2 hover:ring-indigo-500/20 rounded-md"
+            class="flex items-center justify-center w-5 h-5 cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 rounded-md"
             :class="[priorityTextClass(card.priority), card.priority === 'urgent' ? 'priority-urgent-pulse' : '']"
             :title="card.priority"
             @click.stop
@@ -182,7 +182,7 @@ const cardEl = ref<HTMLElement>()
         >
           <button
             type="button"
-            class="flex items-center gap-1 whitespace-nowrap text-[11px] font-medium cursor-pointer transition-all hover:ring-2 hover:ring-indigo-500/20 rounded-md px-1 py-0.5 -mx-1 -my-0.5"
+            class="flex items-center gap-1 whitespace-nowrap text-[11px] font-medium cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 rounded-md px-1 py-0.5 -mx-1 -my-0.5"
             :class="dueDateTextClass(getDueDateStatus(card.dueDate))"
             :title="formatDueDate(card.dueDate)"
             @click.stop
@@ -198,7 +198,7 @@ const cardEl = ref<HTMLElement>()
         <!-- Attachment count -->
         <span
           v-if="card.attachmentCount"
-          class="flex items-center gap-0.5 text-zinc-400 dark:text-zinc-500 whitespace-nowrap"
+          class="flex items-center gap-0.5 text-dimmed whitespace-nowrap"
         >
           <UIcon
             name="i-lucide-paperclip"
@@ -215,10 +215,10 @@ const cardEl = ref<HTMLElement>()
       >
         <button
           type="button"
-          class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide cursor-pointer transition-all hover:ring-2 hover:ring-indigo-500/20 rounded-full px-1.5 py-0.5 shrink-0"
+          class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 rounded-full px-1.5 py-0.5 shrink-0"
           :class="card.assignee
-            ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 dark:text-indigo-400'
-            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500'"
+            ? 'bg-primary/10 text-primary'
+            : 'bg-elevated text-dimmed'"
           @click.stop
         >
           <UIcon

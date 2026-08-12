@@ -15,11 +15,11 @@ defineProps<{
         :alt="creator.name"
         size="3xs"
       />
-      <span class="text-zinc-500 dark:text-zinc-400 truncate text-[13.5px]">{{ creator.name }}</span>
+      <span class="text-muted truncate text-[13.5px]">{{ creator.name }}</span>
     </template>
     <span
       v-else
-      class="text-zinc-300 dark:text-zinc-600 text-[13px]"
+      class="text-dimmed text-[13px]"
     >Unknown</span>
   </div>
 </template>

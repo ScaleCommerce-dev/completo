@@ -37,7 +37,7 @@ async function resetPassword() {
       <h2 class="text-base font-bold text-center tracking-[-0.02em]">
         Set a new password
       </h2>
-      <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400 mt-1">
+      <p class="text-[13px] text-center text-muted mt-1">
         Choose a new password for your account
       </p>
     </div>
@@ -80,12 +80,12 @@ async function resetPassword() {
     </form>
 
     <div class="px-7 pb-6 pt-1">
-      <div class="border-t border-zinc-200/40 dark:border-zinc-700/25 pt-4">
-        <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400">
+      <div class="border-t border-muted pt-4">
+        <p class="text-[13px] text-center text-muted">
           Link expired?
           <NuxtLink
             to="/auth/forgot-password"
-            class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+            class="text-primary font-semibold hover:underline"
           >Request a new one</NuxtLink>
         </p>
       </div>

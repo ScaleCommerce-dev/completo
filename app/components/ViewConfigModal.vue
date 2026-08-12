@@ -256,9 +256,9 @@ function handleDeleteView() {
           <div class="flex items-center gap-1.5 mb-1 pt-5">
             <UIcon
               name="i-lucide-type"
-              class="text-[13px] text-zinc-400 dark:text-zinc-500"
+              class="text-[13px] text-dimmed"
             />
-            <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Name</span>
+            <span class="text-[12px] font-bold text-muted uppercase tracking-[0.08em]">Name</span>
           </div>
           <UInput
             v-model="editName"
@@ -276,9 +276,9 @@ function handleDeleteView() {
         >
           <UIcon
             name="i-lucide-columns-3"
-            class="text-[13px] text-zinc-400 dark:text-zinc-500"
+            class="text-[13px] text-dimmed"
           />
-          <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">
+          <span class="text-[12px] font-bold text-muted uppercase tracking-[0.08em]">
             {{ mode === 'board' ? 'Columns' : 'Active Columns' }}
           </span>
         </div>
@@ -294,11 +294,11 @@ function handleDeleteView() {
           >
             <template #item="{ element: col }">
               <div
-                class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group"
+                class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted transition-colors group"
               >
                 <UIcon
                   name="i-lucide-grip-vertical"
-                  class="drag-handle text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing text-[15px] shrink-0 transition-colors"
+                  class="drag-handle text-dimmed hover:text-muted cursor-grab active:cursor-grabbing text-[15px] shrink-0 transition-colors"
                 />
                 <!-- Board mode: color dot (editable if canAddColumns) -->
                 <template v-if="mode === 'board'">
@@ -308,7 +308,7 @@ function handleDeleteView() {
                   >
                     <button
                       type="button"
-                      class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-indigo-400 transition-all cursor-pointer"
+                      class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition-all cursor-pointer"
                       :style="{ backgroundColor: col.color || '#a1a1aa' }"
                     />
                     <template #content>
@@ -330,7 +330,7 @@ function handleDeleteView() {
                 <UIcon
                   v-if="mode === 'list'"
                   :name="fieldIcon(col.field || '')"
-                  class="text-[14px] text-zinc-400 dark:text-zinc-500 shrink-0"
+                  class="text-[14px] text-dimmed shrink-0"
                 />
                 <span class="text-[14px] font-medium flex-1">
                   {{ mode === 'board' ? col.name : fieldLabel(col.field || '') }}
@@ -360,7 +360,7 @@ function handleDeleteView() {
           <UPopover v-model:open="newColorOpen">
             <button
               type="button"
-              class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-indigo-400 transition-all cursor-pointer"
+              class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition-all cursor-pointer"
               :style="{ backgroundColor: newColumnColor }"
             />
             <template #content>
@@ -389,20 +389,20 @@ function handleDeleteView() {
           <div class="flex items-center gap-1.5 mb-1">
             <UIcon
               name="i-lucide-plus-circle"
-              class="text-[13px] text-zinc-400 dark:text-zinc-500"
+              class="text-[13px] text-dimmed"
             />
-            <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Available Columns</span>
+            <span class="text-[12px] font-bold text-muted uppercase tracking-[0.08em]">Available Columns</span>
           </div>
           <div
             v-for="col in availableColumns"
             :key="col.id"
-            class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group"
+            class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted transition-colors group"
           >
             <div
               class="w-2 h-2 rounded-full shrink-0"
               :style="{ backgroundColor: col.color || '#a1a1aa' }"
             />
-            <span class="text-[14px] font-medium flex-1 text-zinc-400 dark:text-zinc-500">{{ col.name }}</span>
+            <span class="text-[14px] font-medium flex-1 text-dimmed">{{ col.name }}</span>
             <UButton
               icon="i-lucide-plus"
               variant="ghost"
@@ -418,20 +418,20 @@ function handleDeleteView() {
           <div class="flex items-center gap-1.5 mb-1">
             <UIcon
               name="i-lucide-plus-circle"
-              class="text-[13px] text-zinc-400 dark:text-zinc-500"
+              class="text-[13px] text-dimmed"
             />
-            <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Available Fields</span>
+            <span class="text-[12px] font-bold text-muted uppercase tracking-[0.08em]">Available Fields</span>
           </div>
           <div
             v-for="f in availableFields"
             :key="f.field"
-            class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group"
+            class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted transition-colors group"
           >
             <UIcon
               :name="f.icon"
-              class="text-[14px] text-zinc-300 dark:text-zinc-600 shrink-0"
+              class="text-[14px] text-dimmed shrink-0"
             />
-            <span class="text-[14px] font-medium flex-1 text-zinc-400 dark:text-zinc-500">{{ f.label }}</span>
+            <span class="text-[14px] font-medium flex-1 text-dimmed">{{ f.label }}</span>
             <UButton
               icon="i-lucide-plus"
               variant="ghost"
@@ -448,9 +448,9 @@ function handleDeleteView() {
           <div class="flex items-center gap-1.5 mb-2.5">
             <UIcon
               name="i-lucide-filter"
-              class="text-[13px] text-zinc-400 dark:text-zinc-500"
+              class="text-[13px] text-dimmed"
             />
-            <span class="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.08em]">Filters</span>
+            <span class="text-[12px] font-bold text-muted uppercase tracking-[0.08em]">Filters</span>
           </div>
 
           <div class="flex flex-col gap-2.5">
@@ -459,7 +459,7 @@ function handleDeleteView() {
               v-if="statuses?.length"
               class="flex items-start gap-2"
             >
-              <span class="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 pt-[5px] w-16 shrink-0 text-right">Status</span>
+              <span class="text-[11px] font-medium text-dimmed pt-[5px] w-16 shrink-0 text-right">Status</span>
               <div class="flex flex-wrap gap-1.5">
                 <button
                   v-for="s in statuses"
@@ -468,7 +468,7 @@ function handleDeleteView() {
                   class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold transition-all duration-150 active:scale-95"
                   :class="localStatusFilters.includes(s.id)
                     ? ''
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'"
+                    : 'bg-elevated text-dimmed hover:text-toned'"
                   :style="localStatusFilters.includes(s.id) ? {
                     color: s.color || '#6366f1',
                     backgroundColor: (s.color || '#6366f1') + '22',
@@ -488,7 +488,7 @@ function handleDeleteView() {
 
             <!-- Priority -->
             <div class="flex items-start gap-2">
-              <span class="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 pt-[5px] w-16 shrink-0 text-right">Priority</span>
+              <span class="text-[11px] font-medium text-dimmed pt-[5px] w-16 shrink-0 text-right">Priority</span>
               <div class="flex flex-wrap gap-1.5">
                 <button
                   v-for="p in ['urgent', 'high', 'medium', 'low']"
@@ -516,7 +516,7 @@ function handleDeleteView() {
               v-if="tags?.length"
               class="flex items-start gap-2"
             >
-              <span class="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 pt-[5px] w-16 shrink-0 text-right">Tags</span>
+              <span class="text-[11px] font-medium text-dimmed pt-[5px] w-16 shrink-0 text-right">Tags</span>
               <div class="flex flex-wrap gap-1.5">
                 <button
                   v-for="tag in tags"
@@ -525,7 +525,7 @@ function handleDeleteView() {
                   class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold transition-all duration-150 active:scale-95"
                   :class="localTagFilters.includes(tag.id)
                     ? ''
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'"
+                    : 'bg-elevated text-dimmed hover:text-toned'"
                   :style="localTagFilters.includes(tag.id) ? {
                     color: tag.color,
                     backgroundColor: tag.color + '22',
@@ -548,7 +548,7 @@ function handleDeleteView() {
               v-if="members?.length"
               class="flex items-start gap-2"
             >
-              <span class="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 pt-[7px] w-16 shrink-0 text-right">Assignee</span>
+              <span class="text-[11px] font-medium text-dimmed pt-[7px] w-16 shrink-0 text-right">Assignee</span>
               <USelectMenu
                 v-model="localAssigneeFilters"
                 :items="memberItems"
@@ -578,7 +578,7 @@ function handleDeleteView() {
             v-model="deleteConfirmName"
             type="text"
             :placeholder="viewName"
-            class="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
+            class="flex-1 text-[14px] text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
           >
           <button
             type="button"
@@ -600,7 +600,7 @@ function handleDeleteView() {
           </button>
           <button
             type="button"
-            class="px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+            class="px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
             @click="showDeleteConfirm = false; deleteConfirmName = ''"
           >
             Cancel
@@ -619,7 +619,7 @@ function handleDeleteView() {
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+            class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
             @click="showCloseWarning = false"
           >
             Keep editing
@@ -637,7 +637,7 @@ function handleDeleteView() {
       <!-- Normal footer -->
       <div
         v-else
-        class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-zinc-100 dark:border-zinc-700/40"
+        class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-muted"
       >
         <div>
           <button
@@ -656,7 +656,7 @@ function handleDeleteView() {
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+            class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
             @click="close"
           >
             Close
@@ -666,7 +666,7 @@ function handleDeleteView() {
             class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white transition-all"
             :class="isDirty
               ? 'bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25'
-              : 'bg-zinc-300 dark:bg-zinc-700 cursor-default'"
+              : 'bg-accented cursor-default'"
             @click="save"
           >
             Save

@@ -22,8 +22,8 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
   <span
     class="group/copy relative inline-flex items-center select-none cursor-pointer transition-colors"
     :class="variant === 'pill'
-      ? 'card-id font-mono text-[12px] font-semibold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded hover:text-zinc-600 dark:hover:text-zinc-300'
-      : 'card-id text-zinc-500 dark:text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'"
+      ? 'card-id font-mono text-[12px] font-semibold text-dimmed bg-elevated px-1.5 py-0.5 rounded hover:text-toned'
+      : 'card-id text-muted hover:text-toned'"
     :title="copiedState === 'url' ? 'Link copied!' : 'Copy link'"
     @click.stop="copyUrl"
   >
@@ -34,7 +34,7 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
     >
       <button
         type="button"
-        class="p-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700/50 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
+        class="p-0.5 rounded hover:bg-elevated hover:text-primary transition-all"
         :class="{ 'text-success!': copiedState === 'url' }"
         :title="copiedState === 'url' ? 'Copied!' : 'Copy link'"
         @click.stop="copyUrl"
@@ -46,7 +46,7 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
       </button>
       <button
         type="button"
-        class="p-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700/50 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
+        class="p-0.5 rounded hover:bg-elevated hover:text-primary transition-all"
         :class="{ 'text-success!': copiedState === 'id' }"
         :title="copiedState === 'id' ? 'Copied!' : 'Copy ticket ID'"
         @click.stop="copyId"

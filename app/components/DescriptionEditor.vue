@@ -371,7 +371,7 @@ defineExpose({
         <button
           type="button"
           title="Insert image"
-          class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+          class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
           @mousedown.prevent
           @click="openImagePicker"
         >
@@ -384,7 +384,7 @@ defineExpose({
           <div class="p-2">
             <!-- Card Attachments -->
             <template v-if="imageAttachments.length > 0">
-              <div class="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 dark:text-zinc-500">
+              <div class="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-dimmed">
                 Card Attachments
               </div>
               <div class="grid grid-cols-3 gap-1.5 mb-2">
@@ -392,7 +392,7 @@ defineExpose({
                   v-for="att in imageAttachments"
                   :key="att.id"
                   type="button"
-                  class="aspect-square rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700 hover:border-indigo-400 dark:hover:border-indigo-500 hover:ring-1 hover:ring-indigo-400/30 transition-all"
+                  class="aspect-square rounded-md overflow-hidden border border-accented hover:border-primary hover:ring-1 hover:ring-primary/30 transition-all"
                   :title="att.originalName"
                   @click="selectAttachmentImage(att)"
                 >
@@ -403,11 +403,11 @@ defineExpose({
                   >
                 </button>
               </div>
-              <div class="border-t border-zinc-200/80 dark:border-zinc-700/50 mb-2" />
+              <div class="border-t border-default mb-2" />
             </template>
 
             <!-- External URL -->
-            <div class="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 dark:text-zinc-500">
+            <div class="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-dimmed">
               External URL
             </div>
             <div class="flex items-center gap-1.5">
@@ -415,7 +415,7 @@ defineExpose({
                 v-model="imageUrlInput"
                 type="text"
                 placeholder="https://..."
-                class="flex-1 text-[13px] text-zinc-700 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md px-2 py-1.5 outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors"
+                class="flex-1 text-[13px] text-default placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted border border-accented rounded-md px-2 py-1.5 outline-none focus:border-primary transition-colors"
                 @keydown.enter.prevent="insertUrlImage"
                 @keydown.escape.prevent="closeImagePicker"
               >
@@ -431,11 +431,11 @@ defineExpose({
           </div>
         </template>
       </UPopover>
-      <div class="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+      <div class="w-px h-4 bg-accented mx-1" />
       <button
         type="button"
         title="Mention (@)"
-        class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+        class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
         @mousedown.prevent
         @click="openMention(false)"
       >
@@ -452,7 +452,7 @@ defineExpose({
       >
         <button
           type="button"
-          class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[12px] font-medium text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+          class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[12px] font-medium text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
           @mousedown.prevent
           @click="aiDecline"
         >
@@ -492,17 +492,17 @@ defineExpose({
     <template #preview-empty>
       <div
         v-if="aiGenerating"
-        class="flex items-center gap-2.5 text-[13px] text-zinc-400 dark:text-zinc-500"
+        class="flex items-center gap-2.5 text-[13px] text-dimmed"
       >
         <UIcon
           name="i-lucide-loader-2"
-          class="text-[16px] animate-spin text-indigo-400"
+          class="text-[16px] animate-spin text-primary"
         />
         <span>Generating description<span class="loading-dots" /></span>
       </div>
       <p
         v-else
-        class="text-[14px] text-zinc-300 dark:text-zinc-600 italic"
+        class="text-[14px] text-dimmed italic"
       >
         Nothing to preview
       </p>
@@ -510,24 +510,24 @@ defineExpose({
     <template #after-textarea>
       <div
         v-if="mentionActive"
-        class="absolute top-1 left-2 right-2 z-20 rounded-lg border border-zinc-200/80 dark:border-zinc-700/50 bg-white dark:bg-zinc-800 shadow-lg overflow-hidden"
+        class="absolute top-1 left-2 right-2 z-20 rounded-lg border border-default bg-default shadow-lg overflow-hidden"
       >
-        <div class="relative border-b border-zinc-200/80 dark:border-zinc-700/50">
+        <div class="relative border-b border-default">
           <UIcon
             name="i-lucide-search"
-            class="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-zinc-400 dark:text-zinc-500"
+            class="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-dimmed"
           />
           <input
             ref="mentionSearchInput"
             v-model="mentionSearchQuery"
             placeholder="Search members or cards..."
-            class="w-full pl-8 pr-3 py-2.5 text-[13px] text-zinc-700 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500 bg-transparent border-0 outline-none"
+            class="w-full pl-8 pr-3 py-2.5 text-[13px] text-default placeholder-zinc-400 dark:placeholder-zinc-500 bg-transparent border-0 outline-none"
             @keydown="onMentionKeydown"
           >
         </div>
         <div class="max-h-[240px] overflow-y-auto">
           <div v-if="mentionUserResults.length > 0">
-            <div class="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 dark:text-zinc-500">
+            <div class="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-dimmed">
               Members
             </div>
             <button
@@ -536,8 +536,8 @@ defineExpose({
               type="button"
               class="w-full flex items-center gap-2.5 px-3 py-1.5 text-left text-[13px] transition-colors"
               :class="i === mentionIndex
-                ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400'
-                : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'"
+                ? 'bg-primary/10 text-primary'
+                : 'text-default hover:bg-muted hover:bg-elevated'"
               @mousedown.prevent
               @click="selectMention({ ...user, _type: 'user' })"
             >
@@ -546,11 +546,11 @@ defineExpose({
                 size="2xs"
               />
               <span class="font-medium truncate">{{ user.name }}</span>
-              <span class="ml-auto text-[11px] text-zinc-400 dark:text-zinc-500 truncate">{{ user.email }}</span>
+              <span class="ml-auto text-[11px] text-dimmed truncate">{{ user.email }}</span>
             </button>
           </div>
           <div v-if="mentionCardResults.length > 0">
-            <div class="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 dark:text-zinc-500">
+            <div class="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-dimmed">
               Cards
             </div>
             <button
@@ -559,12 +559,12 @@ defineExpose({
               type="button"
               class="w-full flex items-center gap-2.5 px-3 py-1.5 text-left text-[13px] transition-colors"
               :class="(mentionUserResults.length + i) === mentionIndex
-                ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400'
-                : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'"
+                ? 'bg-primary/10 text-primary'
+                : 'text-default hover:bg-muted hover:bg-elevated'"
               @mousedown.prevent
               @click="selectMention({ ...c, _type: 'card' })"
             >
-              <span class="font-mono text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-700/50 px-1.5 py-0.5 rounded shrink-0">
+              <span class="font-mono text-[11px] font-semibold text-dimmed bg-elevated px-1.5 py-0.5 rounded shrink-0">
                 {{ projectKey }}-{{ c.id }}
               </span>
               <span class="truncate">{{ c.title }}</span>
@@ -572,7 +572,7 @@ defineExpose({
           </div>
           <div
             v-if="mentionUserResults.length === 0 && mentionCardResults.length === 0 && mentionSearchQuery.trim().length >= 2"
-            class="px-3 py-3 text-[12px] text-zinc-400 dark:text-zinc-500 italic text-center"
+            class="px-3 py-3 text-[12px] text-dimmed italic text-center"
           >
             No matches found
           </div>

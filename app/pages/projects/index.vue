@@ -144,10 +144,10 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
     <!-- Header -->
     <div class="flex items-start justify-between mb-2">
       <div>
-        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-highlighted">
           Projects
         </h1>
-        <p class="text-[14px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+        <p class="text-[14px] text-muted mt-0.5">
           Manage your project boards
         </p>
       </div>
@@ -156,25 +156,25 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
 
     <!-- Summary stats bar -->
     <div
-      class="flex items-center gap-4 mb-6 mt-4 px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-700/60"
+      class="flex items-center gap-4 mb-6 mt-4 px-3 py-2 rounded-lg bg-muted border border-muted border-accented"
     >
-      <div class="flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 dark:text-zinc-400">
+      <div class="flex items-center gap-1.5 text-[13px] font-medium text-muted">
         <UIcon
           name="i-lucide-folder"
           class="text-[14px]"
         />
         <span>{{ totalProjects }} {{ totalProjects === 1 ? 'project' : 'projects' }}</span>
       </div>
-      <div class="w-px h-3.5 bg-zinc-200 dark:bg-zinc-700" />
-      <div class="flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 dark:text-zinc-400">
+      <div class="w-px h-3.5 bg-accented" />
+      <div class="flex items-center gap-1.5 text-[13px] font-medium text-muted">
         <UIcon
           name="i-lucide-layout-dashboard"
           class="text-[14px]"
         />
         <span>{{ totalBoards }} {{ totalBoards === 1 ? 'board' : 'boards' }}</span>
       </div>
-      <div class="w-px h-3.5 bg-zinc-200 dark:bg-zinc-700" />
-      <div class="flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 dark:text-zinc-400">
+      <div class="w-px h-3.5 bg-accented" />
+      <div class="flex items-center gap-1.5 text-[13px] font-medium text-muted">
         <UIcon
           name="i-lucide-layers"
           class="text-[14px]"
@@ -193,7 +193,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         :style="{ animationDelay: `${index * 40}ms` }"
       >
         <div
-          class="rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 p-4 h-full hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-md hover:shadow-indigo-500/5 transition-all"
+          class="rounded-xl border border-default p-4 h-full hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 transition-all"
           :style="{ borderLeftWidth: '3px', borderLeftColor: accentFor(project) }"
         >
           <!-- Top row: icon + name + key + settings -->
@@ -209,7 +209,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
             </div>
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5">
-                <h3 class="font-bold text-[14.5px] tracking-[-0.01em] group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
+                <h3 class="font-bold text-[14.5px] tracking-[-0.01em] group-hover:text-primary transition-colors truncate">
                   {{ project.name }}
                 </h3>
                 <span
@@ -219,13 +219,13 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
                   {{ project.key }}
                 </span>
               </div>
-              <p class="text-[13px] text-zinc-500 dark:text-zinc-400 mt-0.5 line-clamp-2 leading-relaxed">
+              <p class="text-[13px] text-muted mt-0.5 line-clamp-2 leading-relaxed">
                 {{ project.description || 'No description' }}
               </p>
             </div>
             <button
               v-if="project.role === 'owner' || project.role === 'admin'"
-              class="opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 p-1 rounded-md text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-all shrink-0"
+              class="opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 p-1 rounded-md text-dimmed hover:text-toned hover:bg-elevated transition-all shrink-0"
               @click="openEditProject(project, $event)"
             >
               <UIcon
@@ -236,7 +236,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
           </div>
 
           <!-- Stats row -->
-          <div class="flex items-center gap-3 mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-700/40 text-[12px] font-medium text-zinc-400 dark:text-zinc-500">
+          <div class="flex items-center gap-3 mt-3 pt-3 border-t border-muted text-[12px] font-medium text-dimmed">
             <span class="flex items-center gap-1">
               <UIcon
                 name="i-lucide-layers"
@@ -274,8 +274,8 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
                 v-if="project.role !== 'admin'"
                 class="text-[9px] font-bold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded-full"
                 :class="project.role === 'owner'
-                  ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 dark:text-indigo-400'
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'"
+                  ? 'bg-primary/10 text-primary'
+                  : 'bg-elevated text-muted'"
               >
                 {{ project.role }}
               </span>
@@ -289,11 +289,11 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
                   :src="m.avatarUrl || undefined"
                   :alt="m.name"
                   size="3xs"
-                  class="ring-2 ring-white dark:ring-zinc-900"
+                  class="ring-2 ring-[var(--ui-bg)]"
                 />
                 <span
                   v-if="project.memberCount > 3"
-                  class="flex items-center justify-center w-4 h-4 rounded-full bg-zinc-100 dark:bg-zinc-700 text-[8px] font-bold text-zinc-500 dark:text-zinc-400 ring-2 ring-white dark:ring-zinc-900"
+                  class="flex items-center justify-center w-4 h-4 rounded-full bg-elevated text-[8px] font-bold text-muted ring-2 ring-[var(--ui-bg)]"
                 >
                   +{{ project.memberCount - 3 }}
                 </span>
@@ -308,15 +308,15 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         to="/projects/new"
         class="group block"
       >
-        <div class="rounded-xl border-2 border-dashed border-zinc-200/70 dark:border-zinc-600/50 p-4 h-full hover:border-indigo-300 dark:hover:border-indigo-500/40 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10 transition-all flex items-center">
+        <div class="rounded-xl border-2 border-dashed border-accented p-4 h-full hover:border-primary hover:border-primary/40 hover:bg-primary/5 hover:bg-primary/10 transition-all flex items-center">
           <div class="flex items-center gap-3">
-            <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/30 group-hover:text-indigo-500 transition-colors shrink-0">
+            <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-elevated text-dimmed group-hover:bg-primary/10 group-hover:text-primary transition-colors shrink-0">
               <UIcon
                 name="i-lucide-plus"
                 class="text-lg"
               />
             </div>
-            <span class="text-[14px] font-medium text-zinc-400 dark:text-zinc-500 group-hover:text-indigo-500 transition-colors">
+            <span class="text-[14px] font-medium text-dimmed group-hover:text-primary transition-colors">
               New Project
             </span>
           </div>

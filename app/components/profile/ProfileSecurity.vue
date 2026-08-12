@@ -26,66 +26,66 @@ async function signOut() {
 
 <template>
   <form
-    class="mt-6 rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 bg-white dark:bg-zinc-800/80 shadow-sm overflow-hidden"
+    class="mt-6 rounded-xl border border-default bg-default shadow-sm overflow-hidden"
     @submit.prevent="changePassword"
     @keydown="handlePasswordKeydown"
   >
     <div class="px-5 pt-4 pb-2">
-      <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400 dark:text-zinc-500">Security</span>
+      <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-dimmed">Security</span>
     </div>
 
-    <div class="mx-5 mt-2 rounded-lg border border-zinc-200 dark:border-zinc-700/50 divide-y divide-zinc-100 dark:divide-zinc-700/40 overflow-hidden">
+    <div class="mx-5 mt-2 rounded-lg border border-default divide-y divide-default overflow-hidden">
       <!-- Current password -->
-      <div class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
+      <div class="flex items-center px-3 py-2.5 bg-default">
         <div class="flex items-center gap-2 w-28 shrink-0">
           <UIcon
             name="i-lucide-lock"
-            class="text-sm text-zinc-400"
+            class="text-sm text-dimmed"
           />
-          <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">Current</span>
+          <span class="text-[13px] font-medium text-muted">Current</span>
         </div>
         <input
           v-model="currentPassword"
           type="password"
           placeholder="Current password"
           autocomplete="current-password"
-          class="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
+          class="flex-1 text-[14px] text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
         >
       </div>
 
       <!-- New password -->
-      <div class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
+      <div class="flex items-center px-3 py-2.5 bg-default">
         <div class="flex items-center gap-2 w-28 shrink-0">
           <UIcon
             name="i-lucide-key-round"
-            class="text-sm text-zinc-400"
+            class="text-sm text-dimmed"
           />
-          <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">New</span>
+          <span class="text-[13px] font-medium text-muted">New</span>
         </div>
         <input
           v-model="newPassword"
           type="password"
           placeholder="New password (min 6 chars)"
           autocomplete="new-password"
-          class="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
+          class="flex-1 text-[14px] text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
         >
       </div>
 
       <!-- Confirm password -->
-      <div class="flex items-center px-3 py-2.5 bg-white dark:bg-zinc-800/50">
+      <div class="flex items-center px-3 py-2.5 bg-default">
         <div class="flex items-center gap-2 w-28 shrink-0">
           <UIcon
             name="i-lucide-check-circle"
-            class="text-sm text-zinc-400"
+            class="text-sm text-dimmed"
           />
-          <span class="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">Confirm</span>
+          <span class="text-[13px] font-medium text-muted">Confirm</span>
         </div>
         <input
           v-model="confirmPassword"
           type="password"
           placeholder="Confirm new password"
           autocomplete="new-password"
-          class="flex-1 text-[14px] text-zinc-900 dark:text-zinc-100 placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
+          class="flex-1 text-[14px] text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
         >
       </div>
     </div>
@@ -115,7 +115,7 @@ async function signOut() {
     </div>
 
     <!-- Password actions -->
-    <div class="flex items-center justify-between px-5 pt-4 pb-5 mt-3 border-t border-zinc-100 dark:border-zinc-700/40">
+    <div class="flex items-center justify-between px-5 pt-4 pb-5 mt-3 border-t border-muted">
       <div class="flex items-center gap-1.5">
         <span
           v-if="newPassword && newPassword.length < 6"
@@ -142,8 +142,8 @@ async function signOut() {
       </div>
 
       <div class="flex items-center gap-2">
-        <span class="text-[10px] font-mono text-zinc-300 dark:text-zinc-600 hidden sm:block">
-          <kbd class="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500">&#8984;&#x23CE;</kbd>
+        <span class="text-[10px] font-mono text-dimmed hidden sm:block">
+          <kbd class="px-1 py-0.5 rounded bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
         </span>
         <button
           type="submit"
@@ -166,17 +166,17 @@ async function signOut() {
     </div>
 
     <!-- Sign out section -->
-    <div class="mx-5 mb-5 border-t border-zinc-100 dark:border-zinc-700/40 pt-4">
+    <div class="mx-5 mb-5 border-t border-muted pt-4">
       <div class="flex items-center justify-between">
         <div>
-          <span class="text-[13px] font-medium text-zinc-600 dark:text-zinc-300">Session</span>
-          <p class="text-[12px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+          <span class="text-[13px] font-medium text-toned">Session</span>
+          <p class="text-[12px] text-dimmed mt-0.5">
             Sign out of your account on this device
           </p>
         </div>
         <button
           type="button"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-all disabled:opacity-40"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-muted hover:text-default hover:bg-elevated transition-all disabled:opacity-40"
           :disabled="signingOut"
           @click="signOut"
         >

@@ -5,7 +5,7 @@ defineProps<{
 </script>
 
 <template>
-  <span class="text-zinc-400 dark:text-zinc-500 text-[13px] line-clamp-1">
+  <span class="text-dimmed text-[13px] line-clamp-1">
     {{ description ? stripMarkdown(description) : '' }}
   </span>
 </template>

@@ -53,10 +53,10 @@ const hasChanges = computed(() => {
   <div class="p-6 max-w-3xl h-full overflow-y-auto">
     <div class="flex items-start justify-between mb-8">
       <div>
-        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-highlighted">
           Global Settings
         </h1>
-        <p class="text-[14px] text-zinc-500 dark:text-zinc-400 mt-1">
+        <p class="text-[14px] text-muted mt-1">
           System-wide configuration for your Completo instance
         </p>
       </div>
@@ -64,31 +64,31 @@ const hasChanges = computed(() => {
     </div>
 
     <!-- Allowed Email Domains Section -->
-    <div class="rounded-xl border border-zinc-200/80 dark:border-zinc-700/50 p-5">
+    <div class="rounded-xl border border-default p-5">
       <div class="flex items-center gap-2 mb-1">
         <UIcon
           name="i-lucide-shield"
-          class="text-[16px] text-indigo-500"
+          class="text-[16px] text-primary"
         />
-        <h2 class="text-[15px] font-bold tracking-[-0.01em] text-zinc-900 dark:text-zinc-100">
+        <h2 class="text-[15px] font-bold tracking-[-0.01em] text-highlighted">
           Allowed Email Domains
         </h2>
       </div>
-      <p class="text-[13px] text-zinc-500 dark:text-zinc-400 mb-4 leading-relaxed">
+      <p class="text-[13px] text-muted mb-4 leading-relaxed">
         Restrict registration to specific email domains. Leave empty to allow all domains.
       </p>
 
       <div>
-        <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-zinc-400 dark:text-zinc-500 mb-1.5">
+        <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
           Domains (one per line)
         </label>
         <textarea
           v-model="domainsInput"
           rows="5"
           placeholder="example.com&#10;company.org"
-          class="w-full px-3 py-2 text-[13px] font-mono text-zinc-700 dark:text-zinc-200 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/60 rounded-lg outline-none focus:border-indigo-300 dark:focus:border-indigo-600 transition-colors resize-y leading-relaxed"
+          class="w-full px-3 py-2 text-[13px] font-mono text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-accented rounded-lg outline-none focus:border-primary transition-colors resize-y leading-relaxed"
         />
-        <p class="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
+        <p class="text-[11px] text-dimmed mt-1">
           Only users with email addresses at these domains will be able to register.
           Empty list means anyone can register.
         </p>
@@ -119,7 +119,7 @@ const hasChanges = computed(() => {
       </div>
 
       <!-- Save button -->
-      <div class="flex items-center justify-end mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-700/40">
+      <div class="flex items-center justify-end mt-4 pt-4 border-t border-muted">
         <button
           type="button"
           class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"

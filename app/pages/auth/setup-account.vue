@@ -38,7 +38,7 @@ async function setupAccount() {
       <h2 class="text-base font-bold text-center tracking-[-0.02em]">
         Set up your account
       </h2>
-      <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400 mt-1">
+      <p class="text-[13px] text-center text-muted mt-1">
         Enter your name and choose a password
       </p>
     </div>
@@ -95,12 +95,12 @@ async function setupAccount() {
     </form>
 
     <div class="px-7 pb-6 pt-1">
-      <div class="border-t border-zinc-200/40 dark:border-zinc-700/25 pt-4">
-        <p class="text-[13px] text-center text-zinc-500 dark:text-zinc-400">
+      <div class="border-t border-muted pt-4">
+        <p class="text-[13px] text-center text-muted">
           Already have a password?
           <NuxtLink
             to="/login"
-            class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+            class="text-primary font-semibold hover:underline"
           >Sign in</NuxtLink>
         </p>
       </div>

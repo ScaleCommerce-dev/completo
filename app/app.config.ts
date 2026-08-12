@@ -16,6 +16,10 @@ export default defineAppConfig({
   ui: {
     colors: {
       primary: 'indigo',
+      // Violet marks AI-assisted features (the write button, skill pickers, the
+      // AI review bar). It was already being used for exactly that, hardcoded in
+      // four files; naming it means those surfaces stay in step with each other.
+      secondary: 'violet',
       neutral: 'zinc'
     },
 

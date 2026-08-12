@@ -145,17 +145,17 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
 
 <template>
   <div
-    class="rounded-lg border border-zinc-200/80 dark:border-zinc-700/50"
+    class="rounded-lg border border-default"
     :class="overlayOpen ? 'overflow-visible' : 'overflow-hidden'"
   >
     <!-- Tabs -->
-    <div class="flex items-center border-b border-zinc-200/80 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-800/40">
+    <div class="flex items-center border-b border-default bg-muted">
       <button
         type="button"
         class="flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold transition-colors border-b-2 -mb-px"
         :class="editTab === 'write'
-          ? 'text-zinc-800 dark:text-zinc-200 border-indigo-500'
-          : 'text-zinc-400 dark:text-zinc-500 border-transparent hover:text-zinc-600 dark:hover:text-zinc-300'"
+          ? 'text-default border-primary'
+          : 'text-dimmed border-transparent hover:text-toned'"
         @click="editTab = 'write'"
       >
         <UIcon
@@ -168,8 +168,8 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
         type="button"
         class="flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold transition-colors border-b-2 -mb-px"
         :class="editTab === 'preview'
-          ? 'text-zinc-800 dark:text-zinc-200 border-indigo-500'
-          : 'text-zinc-400 dark:text-zinc-500 border-transparent hover:text-zinc-600 dark:hover:text-zinc-300'"
+          ? 'text-default border-primary'
+          : 'text-dimmed border-transparent hover:text-toned'"
         @click="editTab = 'preview'"
       >
         <UIcon
@@ -188,12 +188,12 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
     <!-- Toolbar (write tab only) -->
     <div
       v-show="editTab === 'write'"
-      class="flex items-center gap-0.5 px-3 py-1.5 border-b border-zinc-200/80 dark:border-zinc-700/50 bg-zinc-50/50 dark:bg-zinc-800/20"
+      class="flex items-center gap-0.5 px-3 py-1.5 border-b border-default bg-muted bg-elevated"
     >
       <button
         type="button"
         title="Bold (⌘B)"
-        class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+        class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
         @mousedown.prevent
         @click="insertMarkdown('bold')"
       >
@@ -205,7 +205,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
       <button
         type="button"
         title="Italic (⌘I)"
-        class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+        class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
         @mousedown.prevent
         @click="insertMarkdown('italic')"
       >
@@ -214,11 +214,11 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
           class="text-[14px]"
         />
       </button>
-      <div class="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+      <div class="w-px h-4 bg-accented mx-1" />
       <button
         type="button"
         title="Inline code (⌘E)"
-        class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+        class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
         @mousedown.prevent
         @click="insertMarkdown('code')"
       >
@@ -230,7 +230,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
       <button
         type="button"
         title="Code block"
-        class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+        class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
         @mousedown.prevent
         @click="insertMarkdown('codeblock')"
       >
@@ -239,11 +239,11 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
           class="text-[14px]"
         />
       </button>
-      <div class="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+      <div class="w-px h-4 bg-accented mx-1" />
       <button
         type="button"
         title="Quote"
-        class="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+        class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
         @mousedown.prevent
         @click="insertMarkdown('quote')"
       >
@@ -253,7 +253,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
         />
       </button>
       <template v-if="$slots['toolbar-append']">
-        <div class="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+        <div class="w-px h-4 bg-accented mx-1" />
         <slot name="toolbar-append" />
       </template>
     </div>
@@ -267,7 +267,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
         ref="textareaEl"
         v-model="modelValue"
         :placeholder="placeholder"
-        class="w-full text-[14px] text-zinc-600 dark:text-zinc-300 placeholder-zinc-300 dark:placeholder-zinc-600 bg-white dark:bg-zinc-800/60 border-0 px-4 py-3 outline-none transition-all resize-y leading-[1.7]"
+        class="w-full text-[14px] text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border-0 px-4 py-3 outline-none transition-all resize-y leading-[1.7]"
         :style="{ minHeight: `${minHeight}px`, ...(maxHeight != null ? { maxHeight: `${maxHeight}px` } : {}) }"
         @keydown="onKeydown"
         @input="emit('textarea-input', $event)"
@@ -278,7 +278,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
     <!-- Preview tab -->
     <div
       v-show="editTab === 'preview'"
-      class="px-4 py-3 bg-white dark:bg-zinc-800/60 overflow-y-auto"
+      class="px-4 py-3 bg-default overflow-y-auto"
       :style="{ minHeight: `${minHeight}px`, ...(maxHeight != null ? { maxHeight: `${maxHeight}px` } : {}) }"
     >
       <ProseDescription
@@ -289,7 +289,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
         v-else
         name="preview-empty"
       >
-        <p class="text-[14px] text-zinc-300 dark:text-zinc-600 italic">
+        <p class="text-[14px] text-dimmed italic">
           Nothing to preview
         </p>
       </slot>
