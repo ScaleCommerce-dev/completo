@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.7.0 (2026-08-12)
+
 ### App
 - **Comments on cards.** Every card now has a comment thread below the description, on both the card detail page and the board's card modal. Comments support markdown and `@mentions` using the same editor as descriptions. Mentioned project members get an in-app notification, and the card's assignee is notified of new comments — never for their own. You can edit and delete your own comments; edited ones are marked as such. Editing only notifies people newly mentioned, so fixing a typo doesn't ping everyone again.
 - **AI assistance for comments.** The comment editor now offers its own AI skills instead of the card-description ones, which made no sense there. Two ship by default: **Fix Spelling & Grammar**, which corrects mistakes without rephrasing anything, and **Improve Clarity**, which rewrites for readability using the card and the previous comments as context. Both preserve `@mentions` exactly, so improving a comment never breaks a notification. Admins can add their own comment skills under AI Skills. Requires `AI_PROVIDER` to be configured; with it unset the AI button stays hidden as before.

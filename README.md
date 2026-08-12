@@ -57,6 +57,7 @@ You didn't want that. You wanted a board with columns and cards. So that's what 
 
 - **Boards** — Create as many as you need. Configure the columns yourself. Done.
 - **Cards** — Title. Description. Assignee. Priority. Drag it. That's the feature list.
+- **Comments** — Discuss the work where the work is. Markdown, `@mentions`, notifications. No second tool.
 - **Projects** — Separate your work. Invite your team. Keep things tidy.
 - **My Tasks** — One checklist. Everything assigned to you. Across all projects. Check it off. Go home.
 - **SSO** — Sign in with your existing identity provider. No new password to forget and then reset and then forget again.
