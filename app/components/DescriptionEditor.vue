@@ -392,7 +392,7 @@ defineExpose({
                   v-for="att in imageAttachments"
                   :key="att.id"
                   type="button"
-                  class="aspect-square rounded-md overflow-hidden border border-accented hover:border-primary hover:ring-1 hover:ring-primary/30 transition-all"
+                  class="aspect-square rounded-md overflow-hidden border border-accented hover:border-primary hover:ring-1 hover:ring-primary/30 transition-colors"
                   :title="att.originalName"
                   @click="selectAttachmentImage(att)"
                 >

@@ -53,7 +53,7 @@ function clear() {
         <button
           v-if="modelValue"
           type="button"
-          class="w-full mt-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium text-muted hover:text-error hover:bg-error/10 transition-all"
+          class="w-full mt-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium text-muted hover:text-error hover:bg-error/10 transition-colors"
           @click="clear"
         >
           <UIcon

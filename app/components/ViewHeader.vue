@@ -41,9 +41,11 @@ useSeoMeta({
   <UiPage variant="surface">
     <template #title>
       <nav class="flex items-center gap-1.5 text-sm min-w-0">
+        <!-- The project crumb is the first thing to go on a narrow screen: the
+             view name identifies where you are, the project is context. -->
         <NuxtLink
           :to="`/projects/${projectSlug}`"
-          class="flex items-center gap-1.5 text-muted hover:text-default transition-colors min-w-0"
+          class="flex items-center gap-1.5 text-muted hover:text-default transition-colors min-w-0 max-md:hidden"
         >
           <UIcon
             name="i-lucide-folder"
@@ -53,7 +55,7 @@ useSeoMeta({
         </NuxtLink>
         <UIcon
           name="i-lucide-chevron-right"
-          class="size-3.5 text-dimmed shrink-0"
+          class="size-3.5 text-dimmed shrink-0 max-md:hidden"
         />
         <UDropdownMenu :items="viewSwitcherItems">
           <button
@@ -102,14 +104,20 @@ useSeoMeta({
 
     <template #actions>
       <slot name="actions" />
-      <UButton
-        v-if="canConfigure"
-        icon="i-lucide-settings"
-        label="Settings"
-        variant="ghost"
-        color="neutral"
-        @click="$emit('open-settings')"
-      />
+      <!-- Icon-only below `sm`, where a labelled button would crowd the
+           breadcrumb off the navbar entirely. -->
+      <UTooltip text="View settings">
+        <UButton
+          v-if="canConfigure"
+          icon="i-lucide-settings"
+          variant="ghost"
+          color="neutral"
+          aria-label="View settings"
+          :ui="{ label: 'max-sm:hidden' }"
+          label="Settings"
+          @click="$emit('open-settings')"
+        />
+      </UTooltip>
     </template>
 
     <slot />

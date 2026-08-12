@@ -19,7 +19,7 @@ defineProps<{
     <NuxtLink
       v-if="detailUrl"
       :to="detailUrl"
-      class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-md text-dimmed hover:text-primary hover:bg-primary/10 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all"
+      class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-md text-dimmed hover:text-primary hover:bg-primary/10 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition"
       title="Open detail"
       @click.stop
     >

@@ -43,7 +43,7 @@ function handleCustomPrompt() {
       v-if="isGenerating"
       type="button"
       title="Cancel AI generation"
-      class="ai-btn-cancel flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide uppercase text-warning bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-200 dark:ring-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-all"
+      class="ai-btn-cancel flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide uppercase text-warning bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-200 dark:ring-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-colors"
       @mousedown.prevent
       @click="emit('cancel')"
     >
@@ -62,7 +62,7 @@ function handleCustomPrompt() {
       <button
         type="button"
         title="AI writing assistant"
-        class="ai-pill group flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide uppercase transition-all"
+        class="ai-pill group flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide uppercase transition-colors"
         :class="error
           ? 'text-error bg-error/10 ring-1 ring-red-200 dark:ring-red-800/50 hover:bg-red-100 dark:hover:bg-red-950/50'
           : 'text-white dark:text-white ring-0'"
@@ -116,7 +116,7 @@ function handleCustomPrompt() {
               >
               <button
                 type="button"
-                class="p-1.5 rounded-lg text-dimmed hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                class="p-1.5 rounded-lg text-dimmed hover:text-primary hover:bg-primary/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 :disabled="!customPrompt.trim()"
                 @click="handleCustomPrompt"
               >

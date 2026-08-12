@@ -131,7 +131,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
           <button
             v-for="(n, ni) in group.items"
             :key="n.id"
-            class="rise-in w-full text-left px-4 py-3 flex items-start gap-3 transition-all duration-150"
+            class="rise-in w-full text-left px-4 py-3 flex items-start gap-3 transition-colors duration-150"
             :class="[
               n.readAt
                 ? 'bg-white bg-muted hover:bg-muted'

@@ -110,12 +110,50 @@ Non-zdev installs (prod, CI) use `pnpm install && pnpm setup && pnpm dev` direct
 
 ### Styling
 
-- **Aesthetic:** "Trello meets Linear" — indigo-violet primary, zinc neutrals.
-- **Priority icons:** `alert-circle`=urgent, `chevron-up`=high, `grip-horizontal`=medium, `chevron-down`=low. Colors: red/orange/indigo/slate. Helpers in `app/utils/constants.ts`.
-- **Due date colors:** red=overdue, orange=due-soon (today/tomorrow), slate=future.
-- **Ticket IDs:** `{projectKey}-{cardId}`, sits above card title (not in footer).
-- **Destructive actions:** Wrapped in `<UTooltip>`. Views/projects use type-name-to-confirm; cards use simple confirm.
+**Aesthetic:** "Trello meets Linear" — an instrument panel. The chrome is neutral hairlines; the only saturated pixels on screen are the ones carrying data (status dots, tag pills, priority, due-date urgency). The indigo→violet brand gradient appears in exactly three places — the logo, the primary button's pressed depth, and a card mid-drag. Anywhere else it is decoration.
+
+**Never paint a surface with a raw palette utility.** `app/app.config.ts` is the single source of truth for the brand (`primary: indigo`, `secondary: violet` for AI features, `neutral: zinc`), and it reaches markup only through Nuxt UI's semantic tokens:
+
+| Use | Token |
+|---|---|
+| Page / card background | `bg-default` |
+| Recessed surface (column tray, table header) | `bg-muted` |
+| Raised surface (hover, chips) | `bg-elevated` · `bg-accented` |
+| Body text | `text-default` · `text-toned` |
+| Secondary / tertiary text | `text-muted` · `text-dimmed` |
+| Headings | `text-highlighted` |
+| Hairline / emphasis border | `border-default` · `border-accented` |
+| Brand, status | `*-primary` · `*-error` · `*-warning` · `*-success` |
+
+Writing `zinc-500` instead means dark mode has to be maintained by hand and the palette no longer follows the config. The app carried ~1900 such pairs, and because `neutral` was `slate` while templates used `zinc`, dark mode showed a visible navy-vs-charcoal seam between the sidebar and the content. `tests/unit/design-tokens.test.ts` fails on any new raw `zinc`/`slate` surface utility.
+
+**Scales are closed sets.** No arbitrary values.
+- **Type** — six steps: `text-2xs` 10 · `text-xs` 12 · `text-sm` 13 (the workhorse) · `text-base` 14 · `text-lg` 16 · `text-xl` 20. `sm`/`base`/`lg` are redefined in `main.css`, so Nuxt UI's internals tighten with our markup. The test rejects any `text-[Npx]`.
+- **Radius** — three: `rounded-md` 6 (dense inline controls) · `rounded-lg` 10 (buttons, inputs, cards, popovers) · `rounded-xl` 14 (panels, modals, columns), plus `rounded-full`. Set in Tailwind's `--radius-*`, not `--ui-radius`, because UButton hardcodes `rounded-md` in its own theme.
+- **Elevation** — `shadow-raise` · `shadow-float` · `shadow-drag`, indirected through `--elevation-*` so each has a dark-mode value. A plain black-alpha shadow is invisible on a dark surface.
+- **Motion** — `transition-colors` by default; `transition` (the default property set) only where opacity or transform actually animates. Never `transition-all`: it animates layout properties too.
+
+**User-chosen colours go through `.swatch`.** Tag, status and project-accent hex is user data that has to work on white and on near-black. Set `--swatch` inline and `.swatch` / `.swatch-dot` / `.swatch-text` / `.swatch-bar` derive a readable foreground, fill and ring per theme via `color-mix()` — no colour-mode logic in JS. Applying the hex raw was the app's worst contrast bug: a dark tag was unreadable in dark mode, and the recipe had been copy-pasted with drifted alphas so the same tag rendered at two tints on two screens.
+
+- **Priority spends colour only where it matters:** urgent → `text-error`, high → `text-warning`, medium and low → neutral, and only urgent/high draw the 2px edge bar (mirrored by `KanbanCard` and `ListView`, so both views describe priority identically). Medium used to be indigo, which on a board where most cards are medium meant the accent carried no information. The medium icon is `equal`, **not** `grip-horizontal` — six dots on a draggable card reads as a drag handle. Charts are the exception and use `priorityChartClass()`, where all four levels must stay distinguishable. Helpers in `app/utils/constants.ts`.
+- **Due date:** overdue → `text-error`, due-soon (today/tomorrow) → `text-warning`, future → `text-muted`.
+- **Absent data is absent.** An em-dash, not "N/A" / "Unassigned" / "No tags". Ten rows of "Unassigned" down a column is noise about data that isn't there.
+- **Ticket IDs:** `{projectKey}-{cardId}`, on the card's identity line beside the tags.
+- **Destructive actions:** `<UiConfirmDialog>`, wrapped in `<UTooltip>` where icon-only. Pass `confirmText` for anything that cascades or can't be recovered (projects, views, statuses, users); omit it for cards, comments, attachments and tokens. Never invent a fifth confirmation idiom — there used to be four.
+- **Icon-only controls need `aria-label`.** A popover trigger must be a `<button>`, never a `<div @click>`: five inline list editors were unreachable by keyboard because of that.
 - **ESLint:** No comma dangles, 1tbs brace style.
+
+### Shared components
+
+Reach for these before hand-rolling. Nuxt UI v4 is fully MIT and includes the former Pro components, so `UEmpty`, `UUser`, `UAlert`, `UCard`, `UBadge`, `UKbd`, `USkeleton` and the `UDashboard*` family are all available — the app previously reimplemented most of them.
+
+- **`UiPage`** — every page's shell, owning the navbar. Two body contracts: `document` (page scrolls, left-aligned under the navbar title) and `surface` (child owns its scroll, bleeds to the edges). Global chrome — notifications, ⌘K search, the user menu — lives in `layouts/default.vue`, once. Don't hand-build a page header; five idioms used to coexist.
+- **`UiModal`** — the dialog shell. Uses UModal's real `#header`, so the dialog has an accessible name. Overriding `#content` discards the panel styling and forces you to rebuild it.
+- **`UiConfirmDialog`**, **`UiSaveBar`** (footer order is fixed: destructive far left, primary last), **`UiPerson`**, **`UiSectionLabel`**, **`UiStatusDot`**, **`UiFieldGroup`** / **`UiFieldRow`**.
+- **`CardProperties`** — status/assignee/priority/due/tags, shared by `CardModal` and the card detail page so the same fields can't drift into two control vocabularies again.
+- **`useTextDraft`** — persists in-progress description and comment text to `localStorage`. Prose is the only thing on those screens with nowhere else to live; persisting it is what lets the unsaved-changes guard stop being a blocking banner.
+
+**Card mutations are optimistic.** `useViewData`'s `updateCard` / `deleteCard` / `updateCardTags` patch the local row, then reconcile with the response, and restore a snapshot on failure. Don't add `refresh()` back: it meant every one-click edit triggered a full view refetch and re-render. Keep nested `status` and `assignee` in step with their ids — the PUT response resolves `assignee` but never `status`.
 
 ## Testing
 

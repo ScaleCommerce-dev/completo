@@ -22,7 +22,7 @@ const {
   canConfigureColumns,
   canModerateComments,
   canAddColumns,
-  status: _status,
+  status,
   refresh,
   moveCard,
   createCard,
@@ -183,7 +183,12 @@ async function handleDeleteBoard() {
       />
     </template>
 
+    <!-- `status` used to be destructured as `_status` and discarded, so the board
+         rendered an empty shell until the request landed. -->
+    <KanbanSkeleton v-if="status === 'pending' && !columnsData.length" />
+
     <KanbanBoard
+      v-else
       :columns="columnsData"
       :cards-by-column="filteredCardsByColumn"
       :project-key="projectKey"

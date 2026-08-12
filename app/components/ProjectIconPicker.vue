@@ -76,7 +76,7 @@ function applyFilterAsIcon() {
           v-for="ic in filteredIcons"
           :key="ic"
           type="button"
-          class="flex items-center justify-center w-full aspect-square rounded-md transition-all"
+          class="flex items-center justify-center w-full aspect-square rounded-md transition-colors"
           :class="props.modelValue === ic
             ? 'bg-primary/15 bg-primary/20 text-primary ring-1 ring-primary ring-primary/50'
             : 'text-muted hover:bg-elevated hover:text-default'"

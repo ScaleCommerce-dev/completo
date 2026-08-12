@@ -393,7 +393,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               <button
                 v-if="!editingDescription"
                 type="button"
-                class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
+                class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-colors"
                 @click="startEditingDescription"
               >
                 <UIcon
@@ -480,7 +480,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <div class="flex items-center gap-2">
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors"
               @click="confirmDelete"
             >
               <UIcon
@@ -491,7 +491,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             </button>
             <button
               type="button"
-              class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
               @click="showDeleteConfirm = false"
             >
               Cancel
@@ -511,7 +511,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <div class="flex items-center gap-2">
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-all"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-colors"
               @click="confirmDiscardText"
             >
               <UIcon
@@ -523,7 +523,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             <button
               ref="keepEditingRef"
               type="button"
-              class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
               @click="cancelDiscardText"
             >
               Keep editing
@@ -543,7 +543,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <div class="flex items-center gap-2">
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-all"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-colors"
               @click="confirmDiscardDraft"
             >
               <UIcon
@@ -555,7 +555,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             <button
               ref="keepEditingRef"
               type="button"
-              class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
               @click="cancelDiscardDraft"
             >
               Cancel
@@ -568,7 +568,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <button
             v-if="isEdit && !showDeleteConfirm"
             type="button"
-            class="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-error hover:bg-error/10 transition-all mr-auto"
+            class="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-error hover:bg-error/10 transition-colors mr-auto"
             @click="showDeleteConfirm = true"
           >
             <UIcon

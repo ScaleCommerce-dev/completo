@@ -308,7 +308,7 @@ function handleDeleteView() {
                   >
                     <button
                       type="button"
-                      class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition-all cursor-pointer"
+                      class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
                       :style="{ backgroundColor: col.color || '#a1a1aa' }"
                     />
                     <template #content>
@@ -360,7 +360,7 @@ function handleDeleteView() {
           <UPopover v-model:open="newColorOpen">
             <button
               type="button"
-              class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition-all cursor-pointer"
+              class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
               :style="{ backgroundColor: newColumnColor }"
             />
             <template #content>
@@ -465,7 +465,7 @@ function handleDeleteView() {
                   v-for="s in statuses"
                   :key="s.id"
                   type="button"
-                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-all duration-150 active:scale-95"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition duration-150 active:scale-95"
                   :class="localStatusFilters.includes(s.id)
                     ? ''
                     : 'bg-elevated text-dimmed hover:text-toned'"
@@ -522,7 +522,7 @@ function handleDeleteView() {
                   v-for="tag in tags"
                   :key="tag.id"
                   type="button"
-                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-all duration-150 active:scale-95"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition duration-150 active:scale-95"
                   :class="localTagFilters.includes(tag.id)
                     ? ''
                     : 'bg-elevated text-dimmed hover:text-toned'"
@@ -582,7 +582,7 @@ function handleDeleteView() {
           >
           <button
             type="button"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             :disabled="!deleteConfirmValid || deletingView"
             @click="handleDeleteView"
           >
@@ -600,7 +600,7 @@ function handleDeleteView() {
           </button>
           <button
             type="button"
-            class="px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+            class="px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
             @click="showDeleteConfirm = false; deleteConfirmName = ''"
           >
             Cancel
@@ -619,14 +619,14 @@ function handleDeleteView() {
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+            class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
             @click="showCloseWarning = false"
           >
             Keep editing
           </button>
           <button
             type="button"
-            class="px-3 py-1.5 rounded-lg text-sm font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all"
+            class="px-3 py-1.5 rounded-lg text-sm font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
             @click="discardAndClose"
           >
             Discard
@@ -643,7 +643,7 @@ function handleDeleteView() {
           <button
             v-if="viewName !== undefined"
             type="button"
-            class="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-error hover:bg-error/10 transition-all"
+            class="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-error hover:bg-error/10 transition-colors"
             @click="showDeleteConfirm = true; deleteConfirmName = ''"
           >
             <UIcon
@@ -656,7 +656,7 @@ function handleDeleteView() {
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+            class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
             @click="close"
           >
             Close

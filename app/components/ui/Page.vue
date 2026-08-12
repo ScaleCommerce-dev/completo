@@ -50,8 +50,12 @@ const WIDTHS = {
         :title="title"
         :ui="{ title: 'text-base font-extrabold tracking-[-0.02em] text-highlighted' }"
       >
-        <template #leading>
-          <UDashboardSidebarToggle />
+        <!-- No UDashboardSidebarToggle here: UDashboardNavbar renders its own via
+             the `toggle` prop, and adding one produced two hamburgers on mobile. -->
+        <template
+          v-if="$slots.leading"
+          #leading
+        >
           <slot name="leading" />
         </template>
 

@@ -24,7 +24,7 @@ const {
   canConfigureColumns,
   canModerateComments,
   canSaveSort,
-  status: _status,
+  status,
   refresh,
   createCard,
   updateCard,
@@ -169,7 +169,13 @@ async function handleDeleteList() {
       />
     </template>
 
+    <ListSkeleton
+      v-if="status === 'pending' && !columnsData.length"
+      :columns="Math.max(columnsData.length, 6)"
+    />
+
     <ListView
+      v-else
       :columns="columnsData"
       :cards="filteredCards"
       :statuses="statusesData"

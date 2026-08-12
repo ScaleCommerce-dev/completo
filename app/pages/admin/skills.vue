@@ -135,7 +135,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
       <div
         v-for="skill in skills"
         :key="skill.id"
-        class="group rounded-xl border border-default hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 p-4 transition-all"
+        class="group rounded-xl border border-default hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 p-4 transition-colors"
       >
         <div class="flex items-start justify-between gap-2 mb-2">
           <div class="flex items-center gap-2 min-w-0">
@@ -150,7 +150,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
           <div class="flex items-center gap-0.5 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-opacity shrink-0">
             <UTooltip text="Edit">
               <button
-                class="p-1.5 rounded-md text-dimmed hover:text-primary hover:bg-primary/10 transition-all"
+                class="p-1.5 rounded-md text-dimmed hover:text-primary hover:bg-primary/10 transition-colors"
                 @click="openEdit(skill)"
               >
                 <UIcon
@@ -161,7 +161,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
             </UTooltip>
             <UTooltip text="Delete">
               <button
-                class="p-1.5 rounded-md text-dimmed hover:text-error hover:bg-error/10 transition-all"
+                class="p-1.5 rounded-md text-dimmed hover:text-error hover:bg-error/10 transition-colors"
                 @click="openDelete(skill)"
               >
                 <UIcon
@@ -224,7 +224,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
                     v-for="s in (['card', 'board'] as const)"
                     :key="s"
                     type="button"
-                    class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all"
+                    class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
                     :class="modalScope === s
                       ? 'bg-primary/10 text-primary ring-1 ring-primary/30 ring-primary/50'
                       : 'text-dimmed hover:text-toned hover:bg-elevated'"
@@ -270,14 +270,14 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
           <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
             <button
               type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
               @click="showModal = false"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               :disabled="!modalName.trim() || !modalPrompt.trim() || modalSaving"
               @click="saveSkill"
             >
@@ -324,14 +324,14 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
           <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
             <button
               type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
               @click="showDeleteModal = false"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 shadow-sm shadow-red-500/20 hover:shadow-md hover:shadow-red-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 shadow-sm shadow-red-500/20 hover:shadow-md hover:shadow-red-500/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               :disabled="deleting"
               @click="confirmDelete"
             >

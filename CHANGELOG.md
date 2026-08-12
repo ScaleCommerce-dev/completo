@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### App
+- **The whole interface has been rebuilt on one design system.** The app was shipping two brand colours and two greys at the same time: buttons, dropdowns and the date picker rendered blue-on-slate while every hand-written accent was indigo-on-zinc, which in dark mode showed as a visible navy-against-charcoal seam between the sidebar and the content. Colours, type sizes, corner radii and shadows now come from one place, so light and dark stay in step and nothing has to be maintained twice.
+- **Tag colours are readable in dark mode.** A dark tag colour used to sit on a faint wash of itself and effectively disappear. Tag, status and project colours are now adjusted for whichever theme you are in, and the same tag looks the same everywhere — it used to render at two different tints depending on the screen.
+- **The board is denser and quieter.** Cards fit their content instead of always reserving a footer row, the ticket ID and tags share a line, and long titles no longer run on. Priority is a thin coloured edge — the same way the list view has always shown it — and only High and Urgent get one, so an urgent card actually stands out. The "N/A" badge on unassigned cards is gone, and assignees show their picture rather than initials.
+- **You can add a card by typing.** "New card" opens a box in the column instead of the full card dialog, and stays open so you can type a backlog in one go. Columns also have their own menu now, so renaming, recolouring or removing one no longer means opening view settings.
+- **Dragging a card shows where it will land.** The target column lights up, empty columns offer a proper drop area, and the board fades at the edges when there are more columns off-screen.
+- **Editing a card field is instant.** Changing a priority, status, assignee, due date or tag used to reload the entire board or list and re-animate every row. It now updates immediately, and reverts with an explanation if the server refuses.
+- **Boards and lists show a loading placeholder** instead of appearing empty until data arrives.
+- **Press `⌘K` (or `Ctrl+K`) to search.** Jump to any project or run a command without reaching for the sidebar. The sidebar itself now groups projects and admin pages under headings, can be resized, and keeps the theme switch reachable when collapsed.
+- **Every page has a consistent header** with its title, its actions and the notification bell in the same place, and browser tabs finally show which page you are on.
+- **The card detail page and the card dialog now show the same controls** for status, assignee, priority, due date and tags. The created and updated timestamps are labelled — previously they were two unlabelled dates stacked on each other — and attachments no longer take a block of space when a card has none, which used to push the comments off-screen.
+- **Descriptions and comments you have typed are kept.** In-progress text is saved locally as you write, so closing a card by accident no longer loses it.
+- **Empty screens explain what goes there** and offer the action that fills them, instead of the five different treatments they had before.
+- **Fixed: the "Fields" button on My Tasks did nothing.** It opened a dialog that did not exist. It now opens the column picker.
+- **Fixed: uploaded profile pictures never appeared.** Avatars fell back to initials everywhere — the sidebar, list views, member lists — even for people who had one.
+- **Fixed: the list view was clipped at both edges**, with the ID column hidden behind the sidebar divider and the assignee column running off the right.
+- **Fixed: the theme switch disappeared when the sidebar was collapsed**, leaving no way to change theme.
+- **Accessibility:** icon-only buttons, columns and inline editors now have names screen readers can read; sortable table headers and the status, priority, assignee, tag and due-date editors in list views are reachable and operable by keyboard; dialogs announce their titles; and every animation respects "reduce motion".
+
 ## v0.8.0 (2026-08-12)
 
 ### Upgrading

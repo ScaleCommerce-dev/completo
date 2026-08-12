@@ -228,7 +228,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <div class="grid grid-cols-2 gap-3">
             <button
               type="button"
-              class="rounded-xl border-2 p-4 text-left transition-all hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 border-default border-accented"
+              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 border-default border-accented"
               @click="selectViewType('board')"
             >
               <div class="flex items-center gap-3 mb-2">
@@ -246,7 +246,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             </button>
             <button
               type="button"
-              class="rounded-xl border-2 p-4 text-left transition-all hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 border-default border-accented"
+              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 border-default border-accented"
               @click="selectViewType('list')"
             >
               <div class="flex items-center gap-3 mb-2">
@@ -336,7 +336,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             <div class="flex items-center gap-2">
               <button
                 type="button"
-                class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+                class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
                 @click="viewStep = 1"
               >
                 Back
@@ -363,7 +363,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 @click="toggleBoardColumn(status.id)"
               >
                 <div
-                  class="flex items-center justify-center w-5 h-5 rounded-md border-2 transition-all shrink-0"
+                  class="flex items-center justify-center w-5 h-5 rounded-md border-2 transition-colors shrink-0"
                   :class="selectedBoardColumns.has(status.id)
                     ? 'bg-indigo-500 border-primary'
                     : 'border-accented'"
@@ -391,7 +391,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 @click="toggleListField(f.field)"
               >
                 <div
-                  class="flex items-center justify-center w-5 h-5 rounded-md border-2 transition-all shrink-0"
+                  class="flex items-center justify-center w-5 h-5 rounded-md border-2 transition-colors shrink-0"
                   :class="selectedListFields.has(f.field)
                     ? 'bg-indigo-500 border-primary'
                     : 'border-accented'"
@@ -420,7 +420,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                     v-for="tag in tags"
                     :key="tag.id"
                     type="button"
-                    class="tag-toggle inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-all duration-150 active:scale-95"
+                    class="tag-toggle inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition duration-150 active:scale-95"
                     :class="selectedTagFilters.has(tag.id)
                       ? ''
                       : 'bg-elevated text-dimmed hover:text-toned tag-toggle-inactive'"
@@ -460,7 +460,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             <div class="flex items-center gap-2">
               <button
                 type="button"
-                class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+                class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
                 @click="viewStep = 2"
               >
                 Back

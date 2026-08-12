@@ -332,7 +332,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
         >
           <button
             type="button"
-            class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 flex items-center gap-1"
+            class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition hover:ring-2 hover:ring-primary/20 flex items-center gap-1"
             :class="m.role === 'owner'
               ? 'bg-primary/10 text-primary'
               : 'bg-elevated text-muted'"
@@ -379,7 +379,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
             <UDropdownMenu :items="invitationMenuItems(inv)">
               <button
                 type="button"
-                class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-amber-500/20 flex items-center gap-1 bg-warning/10 text-warning"
+                class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition hover:ring-2 hover:ring-amber-500/20 flex items-center gap-1 bg-warning/10 text-warning"
                 :disabled="resendingInvitation === inv.id || cancellingInvitation === inv.id"
               >
                 <UIcon
@@ -414,7 +414,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
             v-model="searchQuery"
             type="text"
             placeholder="Search by name or enter email to invite..."
-            class="w-full text-base text-highlighted placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted border border-default rounded-lg px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
+            class="w-full text-base text-highlighted placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted border border-default rounded-lg px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-colors"
             @focus="searchQuery.trim().length >= 2 && (showResults = true)"
             @blur="onInputBlur"
             @keydown="onInputKeydown"
@@ -549,14 +549,14 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
             <button
               type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
               @click="pendingRemove = null"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 shadow-sm shadow-red-500/20 hover:shadow-md hover:shadow-red-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 shadow-sm shadow-red-500/20 hover:shadow-md hover:shadow-red-500/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               :disabled="removing === pendingRemove?.id"
               @click="confirmRemoveMember"
             >

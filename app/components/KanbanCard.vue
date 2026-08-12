@@ -138,7 +138,7 @@ const dueDateOpen = ref(false)
         <NuxtLink
           v-if="detailUrl"
           :to="detailUrl"
-          class="ml-auto shrink-0 p-0.5 rounded-md text-dimmed hover:text-primary hover:bg-elevated opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 focus-visible:opacity-100 transition-all"
+          class="ml-auto shrink-0 p-0.5 rounded-md text-dimmed hover:text-primary hover:bg-elevated opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 focus-visible:opacity-100 transition"
           :aria-label="`Open ${formatTicketId(kanbanContext.projectKey.value, card.id)} in full`"
           @click.stop
         >

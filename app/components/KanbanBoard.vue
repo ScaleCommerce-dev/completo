@@ -141,7 +141,7 @@ watch(() => _props.columns.length, () => nextTick(updateFade))
     >
       <button
         v-if="!showAddColumn"
-        class="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-default py-10 text-sm font-medium text-dimmed hover:border-primary hover:text-primary hover:border-primary/50 hover:bg-primary/5 hover:bg-primary/10 transition-all"
+        class="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-default py-10 text-sm font-medium text-dimmed hover:border-primary hover:text-primary hover:border-primary/50 hover:bg-primary/5 hover:bg-primary/10 transition-colors"
         @click="openAddColumn"
       >
         <UIcon
@@ -205,7 +205,7 @@ watch(() => _props.columns.length, () => nextTick(updateFade))
           <div class="flex justify-end pt-0.5">
             <button
               type="button"
-              class="px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-colors"
               @click="cancelAddColumn"
             >
               Cancel
@@ -242,7 +242,7 @@ watch(() => _props.columns.length, () => nextTick(updateFade))
               <UPopover v-model:open="newColorOpen">
                 <button
                   type="button"
-                  class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition-all cursor-pointer"
+                  class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
                   :style="{ backgroundColor: newColumnColor }"
                 />
                 <template #content>
@@ -255,7 +255,7 @@ watch(() => _props.columns.length, () => nextTick(updateFade))
               <div class="flex-1" />
               <button
                 type="button"
-                class="px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
+                class="px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-colors"
                 @click="cancelAddColumn"
               >
                 Cancel

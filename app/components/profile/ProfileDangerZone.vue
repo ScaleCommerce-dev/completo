@@ -50,7 +50,7 @@ async function deleteAccount() {
       >
         <button
           type="button"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-error hover:text-error hover:bg-error/10 transition-all"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-error hover:text-error hover:bg-error/10 transition-colors"
           @click="showDeleteAccount = true; deleteEmail = ''; deletePassword = ''; deleteError = ''"
         >
           <UIcon
@@ -98,7 +98,7 @@ async function deleteAccount() {
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             :disabled="!deleteEmailValid || !deletePassword || deleteLoading"
             @click="deleteAccount"
           >
@@ -116,7 +116,7 @@ async function deleteAccount() {
           </button>
           <button
             type="button"
-            class="px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+            class="px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
             @click="showDeleteAccount = false; deleteEmail = ''; deletePassword = ''; deleteError = ''"
           >
             Cancel

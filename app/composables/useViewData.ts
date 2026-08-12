@@ -1,5 +1,26 @@
 import type { BaseCard, Tag, Member } from '~/types/card'
 
+interface StatusLike {
+  id: string
+  name: string
+  color: string | null
+}
+
+/**
+ * A card as it appears in a view response: the row plus the nested objects the
+ * UI renders directly. Optimistic patches have to keep those in step with the
+ * ids, or changing an assignee would update `assigneeId` while the row kept
+ * showing the previous person's name.
+ */
+interface ViewCard {
+  id: number
+  statusId: string
+  assigneeId: string | null
+  status?: StatusLike | null
+  assignee?: Member | null
+  tags?: Tag[]
+}
+
 /** Shared fields present in both Board and ListView API responses. */
 interface ViewDataResponse {
   id: string
@@ -12,6 +33,18 @@ interface ViewDataResponse {
   project: { id: string, name: string, slug: string, key: string, doneStatusId: string | null, doneRetentionDays: number | null } | null
   members: Member[]
   tags: Tag[]
+  cards?: ViewCard[]
+  /**
+   * Statuses, for resolving a card's nested `status` after an optimistic edit.
+   *
+   * They arrive under different keys, and the two `columns` are *not* the same
+   * thing (see CLAUDE.md): a board column is a status shown on that board, while
+   * a list column is which card field a table column displays. So `columns` is
+   * deliberately opaque here and read through `statusList`, which knows which
+   * view type it is looking at.
+   */
+  statuses?: StatusLike[]
+  columns?: unknown[]
 }
 
 /**
@@ -75,29 +108,109 @@ export function useViewData<T extends ViewDataResponse>(
     return card
   }
 
+  // ─── Optimistic card mutations ──────────────────────────────────────────────
+  //
+  // These used to `await $fetch()` and then `await refresh()`, so changing one
+  // card's priority meant a PUT, then a full GET of the entire board, then a
+  // re-render of every column. It was the most visible interaction problem in the
+  // app: a one-click edit felt like a page load, and it re-ran the entrance
+  // animations on the way back.
+  //
+  // Now the local row is patched first and the request reconciles it. On failure
+  // the snapshot is restored, so a rejected edit visibly snaps back rather than
+  // leaving the UI claiming something the server never accepted.
+
+  const cardList = computed(() => data.value?.cards)
+
+  /**
+   * A board's `columns` are its statuses (plus a position); a list's `columns`
+   * are field columns and carry no status at all, so it sends `statuses`
+   * separately. Picking by view type rather than by whichever key is present
+   * keeps a list from ever resolving a status out of a field column.
+   */
+  const statusList = computed<StatusLike[]>(() =>
+    viewType === 'boards'
+      ? ((data.value?.columns || []) as StatusLike[])
+      : (data.value?.statuses || [])
+  )
+
+  function findCard(cardId: number) {
+    const cards = cardList.value
+    if (!cards) return null
+    const index = cards.findIndex(c => c.id === cardId)
+    return index >= 0 ? { cards, index, card: cards[index]! } : null
+  }
+
+  /**
+   * Keep `status` and `assignee` consistent with their ids. The PUT response
+   * resolves `assignee` for us but never `status`, and the optimistic paint has
+   * to happen before any response arrives regardless.
+   */
+  function resolveNested(card: ViewCard, updates: Partial<BaseCard>) {
+    if ('statusId' in updates) {
+      card.status = statusList.value.find(s => s.id === updates.statusId) ?? null
+    }
+    if ('assigneeId' in updates) {
+      card.assignee = updates.assigneeId
+        ? membersData.value.find(m => m.id === updates.assigneeId) ?? null
+        : null
+    }
+  }
+
   async function updateCard(cardId: number, updates: Partial<BaseCard>) {
-    const card = await mutate(
-      () => $fetch(`/api/cards/${cardId}`, { method: 'PUT', body: updates }),
-      'Failed to update card'
-    )
-    await refresh()
-    return card
+    const found = findCard(cardId)
+    const snapshot = found ? { ...found.card } : null
+
+    if (found) {
+      Object.assign(found.card, updates)
+      resolveNested(found.card, updates)
+    }
+
+    try {
+      const card = await $fetch<Record<string, unknown>>(`/api/cards/${cardId}`, {
+        method: 'PUT',
+        body: updates
+      })
+      // The response carries the canonical row (updatedAt, and a resolved
+      // assignee). It has no `tags` or `attachmentCount` key, so assigning it
+      // leaves those intact rather than blanking them.
+      if (found && card) Object.assign(found.card, card)
+      return card
+    } catch (e) {
+      if (found && snapshot) Object.assign(found.card, snapshot)
+      toast.add({ title: 'Failed to update card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+      throw e
+    }
   }
 
   async function deleteCard(cardId: number) {
-    await mutate(
-      () => $fetch(`/api/cards/${cardId}`, { method: 'DELETE' }),
-      'Failed to delete card'
-    )
-    await refresh()
+    const found = findCard(cardId)
+    const removed = found ? found.cards.splice(found.index, 1)[0] : null
+
+    try {
+      await $fetch(`/api/cards/${cardId}`, { method: 'DELETE' })
+    } catch (e) {
+      if (found && removed) found.cards.splice(found.index, 0, removed)
+      toast.add({ title: 'Failed to delete card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+      throw e
+    }
   }
 
   async function updateCardTags(cardId: number, tagIds: string[]) {
-    await mutate(
-      () => $fetch(`/api/cards/${cardId}/tags`, { method: 'PUT', body: { tagIds } }),
-      'Failed to update tags'
-    )
-    await refresh()
+    const found = findCard(cardId)
+    const snapshot = found ? found.card.tags : undefined
+
+    if (found) {
+      found.card.tags = tagsData.value.filter(t => tagIds.includes(t.id))
+    }
+
+    try {
+      await $fetch(`/api/cards/${cardId}/tags`, { method: 'PUT', body: { tagIds } })
+    } catch (e) {
+      if (found) found.card.tags = snapshot
+      toast.add({ title: 'Failed to update tags', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+      throw e
+    }
   }
 
   // ─── View-scoped operations (use viewType for URL) ───

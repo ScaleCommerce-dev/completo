@@ -16,7 +16,7 @@ const emit = defineEmits<{
   >
     <button
       type="button"
-      class="flex items-center justify-center w-[18px] h-[18px] rounded-md border transition-all"
+      class="flex items-center justify-center w-[18px] h-[18px] rounded-md border transition-colors"
       :class="isDone
         ? 'bg-success border-success text-white'
         : 'border-accented hover:border-accented text-transparent'"

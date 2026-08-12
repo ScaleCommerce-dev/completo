@@ -331,7 +331,7 @@ async function confirmDelete() {
           <div class="px-4 py-3 border-t border-muted flex flex-col gap-2">
             <button
               type="submit"
-              class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               :disabled="!title.trim() || !isDirty || saving"
             >
               <UIcon
@@ -356,7 +356,7 @@ async function confirmDelete() {
               <div class="flex items-center gap-2">
                 <button
                   type="button"
-                  class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   :disabled="deletingCard"
                   @click="confirmDelete"
                 >
@@ -374,7 +374,7 @@ async function confirmDelete() {
                 </button>
                 <button
                   type="button"
-                  class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+                  class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
                   @click="showDeleteConfirm = false"
                 >
                   Cancel
@@ -385,7 +385,7 @@ async function confirmDelete() {
             <button
               v-else
               type="button"
-              class="w-full flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-dimmed hover:text-error hover:bg-error/10 transition-all"
+              class="w-full flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-dimmed hover:text-error hover:bg-error/10 transition-colors"
               @click="showDeleteConfirm = true"
             >
               <UIcon
@@ -418,7 +418,7 @@ async function confirmDelete() {
           <button
             v-if="!editingDescription"
             type="button"
-            class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
+            class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-colors"
             @click="startEditingDescription"
           >
             <UIcon

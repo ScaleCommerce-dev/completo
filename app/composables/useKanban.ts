@@ -73,23 +73,27 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
   async function moveCard(cardId: number, toColumnId: string, toPosition: number) {
     // Optimistically renumber so the board reflects the move before the API
     // round-trip; otherwise the column the card was dragged out of briefly
-    // reappears with the old order until refresh() returns.
+    // reappears with the old order until the request returns.
     const cards = board.value?.cards
     const moving = cards?.find(c => c.id === cardId)
-    if (cards && moving) {
-      const fromColumnId = moving.statusId
-      const target = cards.filter(c => c.statusId === toColumnId && c.id !== cardId)
+    if (!cards || !moving) return
+
+    // Snapshot every card the renumbering can touch, so a rejected move restores
+    // the whole ordering rather than only the dragged card's position.
+    const snapshot = cards.map(c => ({ card: c, statusId: c.statusId, position: c.position }))
+
+    const fromColumnId = moving.statusId
+    const target = cards.filter(c => c.statusId === toColumnId && c.id !== cardId)
+      .sort((a, b) => a.position - b.position)
+    target.splice(toPosition, 0, moving)
+    target.forEach((c, i) => {
+      c.position = i
+      c.statusId = toColumnId
+    })
+    if (fromColumnId !== toColumnId) {
+      cards.filter(c => c.statusId === fromColumnId && c.id !== cardId)
         .sort((a, b) => a.position - b.position)
-      target.splice(toPosition, 0, moving)
-      target.forEach((c, i) => {
-        c.position = i
-        c.statusId = toColumnId
-      })
-      if (fromColumnId !== toColumnId) {
-        cards.filter(c => c.statusId === fromColumnId && c.id !== cardId)
-          .sort((a, b) => a.position - b.position)
-          .forEach((c, i) => { c.position = i })
-      }
+        .forEach((c, i) => { c.position = i })
     }
 
     try {
@@ -97,10 +101,17 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
         method: 'PUT',
         body: { statusId: toColumnId, position: toPosition }
       })
+      // No refresh(): the local state already matches what the server just
+      // accepted. Refetching here was undoing the whole point of the optimistic
+      // renumbering — the board re-rendered and re-ran its entrance animations
+      // every time a card was dragged.
     } catch (e) {
+      for (const s of snapshot) {
+        s.card.statusId = s.statusId
+        s.card.position = s.position
+      }
       toast.add({ title: 'Failed to move card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
     }
-    await refresh()
   }
 
   async function addColumn(name: string, color?: string) {

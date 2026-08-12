@@ -91,7 +91,7 @@ const {
         <code class="flex-1 text-xs font-mono text-default bg-default rounded-md px-2 py-1.5 border border-accented truncate select-all">{{ createdToken }}</code>
         <button
           type="button"
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0"
+          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0"
           :class="tokenCopied ? 'text-success bg-success/10' : 'text-muted hover:bg-elevated'"
           @click="copyToken"
         >
@@ -153,7 +153,7 @@ const {
           >
             <button
               type="button"
-              class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-error hover:bg-error/10 transition-all opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60"
+              class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-error hover:bg-error/10 transition opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60"
               style="opacity: 0.6"
               @click="startDeleteToken(token.id)"
             >
@@ -169,7 +169,7 @@ const {
           >
             <button
               type="button"
-              class="px-2 py-1 rounded-md text-xs font-semibold text-error hover:bg-error/10 transition-all"
+              class="px-2 py-1 rounded-md text-xs font-semibold text-error hover:bg-error/10 transition-colors"
               @click="confirmDeleteToken(token.id)"
             >
               Delete

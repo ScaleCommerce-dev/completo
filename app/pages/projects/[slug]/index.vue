@@ -364,7 +364,7 @@ function cancelDeleteTag() {
               >
                 <button
                   type="button"
-                  class="tag-pill group/chip flex items-center gap-1 px-2.5 py-1 rounded-full shrink-0 text-xs font-bold uppercase tracking-wide transition-all duration-150 hover:shadow-md active:scale-95"
+                  class="tag-pill group/chip flex items-center gap-1 px-2.5 py-1 rounded-full shrink-0 text-xs font-bold uppercase tracking-wide transition duration-150 hover:shadow-md active:scale-95"
                   :style="{
                     color: tag.color,
                     backgroundColor: tag.color + '25',
@@ -474,7 +474,7 @@ function cancelDeleteTag() {
                     <UPopover v-model:open="newTagColorOpen">
                       <button
                         type="button"
-                        class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition-all cursor-pointer"
+                        class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
                         :style="{ backgroundColor: newTagColor }"
                       />
                       <template #content>
@@ -544,7 +544,7 @@ function cancelDeleteTag() {
               class="group block"
             >
               <div
-                class="relative rounded-xl border border-default bg-default p-4 hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 transition-all"
+                class="relative rounded-xl border border-default bg-default p-4 hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 transition-colors"
                 :style="{ borderLeftWidth: '3px', borderLeftColor: ACCENT_COLORS[hashCode(view.id) % ACCENT_COLORS.length] }"
               >
                 <UTooltip
@@ -552,7 +552,7 @@ function cancelDeleteTag() {
                   :text="`Delete ${view._type}`"
                 >
                   <button
-                    class="absolute top-2 right-2 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 p-1 rounded-md text-error hover:text-error hover:bg-error/10 transition-all"
+                    class="absolute top-2 right-2 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 p-1 rounded-md text-error hover:text-error hover:bg-error/10 transition"
                     @click="openDeleteView(view, view._type, $event)"
                   >
                     <UIcon
@@ -611,7 +611,7 @@ function cancelDeleteTag() {
             <!-- Ghost "+ New View" card -->
             <button
               type="button"
-              class="rounded-xl border-2 border-dashed border-accented p-4 hover:border-primary hover:border-primary/40 hover:bg-primary/5 hover:bg-primary/10 transition-all cursor-pointer group text-left"
+              class="rounded-xl border-2 border-dashed border-accented p-4 hover:border-primary hover:border-primary/40 hover:bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer group text-left"
               @click="showNewView = true"
             >
               <div class="flex items-center gap-3">
@@ -682,14 +682,14 @@ function cancelDeleteTag() {
             <div class="flex items-center justify-end gap-2 pt-1">
               <button
                 type="button"
-                class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+                class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
                 @click="showDeleteView = false"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 :disabled="!deleteViewConfirmValid || deletingView"
                 @click="deleteView"
               >

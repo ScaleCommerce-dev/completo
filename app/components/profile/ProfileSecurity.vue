@@ -164,7 +164,7 @@ async function signOut() {
         </div>
         <button
           type="button"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-muted hover:text-default hover:bg-elevated transition-all disabled:opacity-40"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-muted hover:text-default hover:bg-elevated transition-colors disabled:opacity-40"
           :disabled="signingOut"
           @click="signOut"
         >

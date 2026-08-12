@@ -201,7 +201,7 @@ defineExpose({ upload, uploading })
           <a
             :href="downloadUrl(attachment.id)"
             target="_blank"
-            class="p-1 rounded-md text-dimmed hover:text-toned hover:bg-elevated opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all"
+            class="p-1 rounded-md text-dimmed hover:text-toned hover:bg-elevated opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition"
             title="Download"
           >
             <UIcon
@@ -211,7 +211,7 @@ defineExpose({ upload, uploading })
           </a>
           <button
             type="button"
-            class="p-1 rounded-md text-dimmed hover:text-error hover:bg-error/10 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all"
+            class="p-1 rounded-md text-dimmed hover:text-error hover:bg-error/10 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition"
             title="Remove"
             @click="remove(attachment.id)"
           >

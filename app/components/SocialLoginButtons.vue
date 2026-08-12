@@ -28,7 +28,7 @@ const hasProviders = computed(() => enabledProviders.value.length > 0)
       v-for="(provider, i) in enabledProviders"
       :key="provider.key"
       :href="provider.href"
-      class="social-btn auth-field group relative flex items-center w-full py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-[0.97]"
+      class="social-btn auth-field group relative flex items-center w-full py-2.5 rounded-xl text-sm font-semibold transition duration-200 active:scale-[0.97]"
       :class="`social-btn--${provider.key}`"
       :style="{ animationDelay: `${i * 0.05}s` }"
     >

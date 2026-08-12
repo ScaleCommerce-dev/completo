@@ -193,7 +193,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         :style="{ animationDelay: `${index * 40}ms` }"
       >
         <div
-          class="rounded-xl border border-default p-4 h-full hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 transition-all"
+          class="rounded-xl border border-default p-4 h-full hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 transition-colors"
           :style="{ borderLeftWidth: '3px', borderLeftColor: accentFor(project) }"
         >
           <!-- Top row: icon + name + key + settings -->
@@ -225,7 +225,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
             </div>
             <button
               v-if="project.role === 'owner' || project.role === 'admin'"
-              class="opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 p-1 rounded-md text-dimmed hover:text-toned hover:bg-elevated transition-all shrink-0"
+              class="opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 p-1 rounded-md text-dimmed hover:text-toned hover:bg-elevated transition shrink-0"
               @click="openEditProject(project, $event)"
             >
               <UIcon
@@ -308,7 +308,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         to="/projects/new"
         class="group block"
       >
-        <div class="rounded-xl border-2 border-dashed border-accented p-4 h-full hover:border-primary hover:border-primary/40 hover:bg-primary/5 hover:bg-primary/10 transition-all flex items-center">
+        <div class="rounded-xl border-2 border-dashed border-accented p-4 h-full hover:border-primary hover:border-primary/40 hover:bg-primary/5 hover:bg-primary/10 transition-colors flex items-center">
           <div class="flex items-center gap-3">
             <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-elevated text-dimmed group-hover:bg-primary/10 group-hover:text-primary transition-colors shrink-0">
               <UIcon

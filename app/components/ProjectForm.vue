@@ -230,7 +230,7 @@ function confirmDelete() {
         v-model="formDescription"
         placeholder="What is this project about?"
         rows="2"
-        class="w-full text-base text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-muted border border-default rounded-lg px-3 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-none leading-relaxed"
+        class="w-full text-base text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-muted border border-default rounded-lg px-3 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-colors resize-none leading-relaxed"
       />
     </div>
 
@@ -265,7 +265,7 @@ function confirmDelete() {
           v-model="formBriefing"
           placeholder="Describe the project scope, tech stack, conventions, goals... This context helps AI write better card descriptions."
           rows="6"
-          class="w-full text-base text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-muted border border-default rounded-lg px-3 py-2.5 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/10 transition-all resize-none leading-relaxed"
+          class="w-full text-base text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-muted border border-default rounded-lg px-3 py-2.5 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/10 transition-colors resize-none leading-relaxed"
         />
       </template>
     </div>
@@ -454,7 +454,7 @@ function confirmDelete() {
         <button
           v-if="!showDeleteConfirm"
           type="button"
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold text-error hover:text-error hover:bg-error/10 transition-all"
+          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold text-error hover:text-error hover:bg-error/10 transition-colors"
           @click="showDeleteConfirm = true"
         >
           <UIcon
@@ -468,7 +468,7 @@ function confirmDelete() {
       <div class="flex items-center gap-2">
         <button
           type="button"
-          class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+          class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
           @click="emit('cancel')"
         >
           Cancel

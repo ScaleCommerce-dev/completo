@@ -283,7 +283,7 @@ function formatDate(date: string | Date | null) {
       <div
         v-for="u in users"
         :key="u.id"
-        class="group rounded-xl border p-4 transition-all"
+        class="group rounded-xl border p-4 transition-colors"
         :class="u.suspendedAt
           ? 'border-red-200/60 dark:border-red-800/30 bg-red-50/30 dark:bg-red-950/10'
           : 'border-default hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5'"
@@ -311,7 +311,7 @@ function formatDate(date: string | Date | null) {
               >
                 <button
                   type="button"
-                  class="shrink-0 text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full cursor-pointer transition-all hover:ring-2 flex items-center gap-1"
+                  class="shrink-0 text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full cursor-pointer transition hover:ring-2 flex items-center gap-1"
                   :class="[userBadgeClass(u), userBadgeHoverRing(u)]"
                   :disabled="actionLoading === u.id"
                 >
@@ -405,7 +405,7 @@ function formatDate(date: string | Date | null) {
             <UDropdownMenu :items="invitationMenuItems(inv)">
               <button
                 type="button"
-                class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-amber-500/20 flex items-center gap-1 bg-warning/10 text-warning"
+                class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition hover:ring-2 hover:ring-amber-500/20 flex items-center gap-1 bg-warning/10 text-warning"
                 :disabled="invitationLoading === inv.id"
               >
                 <UIcon
