@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   status: { id: string, name: string, color: string | null } | null
   statusId: string
   statuses: Array<{ id: string, name: string, color: string | null }>
@@ -11,6 +11,10 @@ const emit = defineEmits<{
   'select': [statusId: string]
   'update:popoverOpen': [open: boolean]
 }>()
+
+const label = computed(() =>
+  props.status ? `Status: ${props.status.name}. Change status` : 'Set a status'
+)
 </script>
 
 <template>
@@ -20,12 +24,9 @@ const emit = defineEmits<{
     class="flex items-center gap-1.5"
   >
     <template v-if="status">
-      <span
-        class="block w-2 h-2 rounded-full shrink-0"
-        :style="{
-          backgroundColor: status.color || '#a1a1aa',
-          boxShadow: `inset 0 0 0 1px ${(status.color || '#a1a1aa')}30`
-        }"
+      <UiStatusDot
+        :color="status.color"
+        size="sm"
       />
       <span class="text-toned truncate text-sm">{{ status.name }}</span>
     </template>
@@ -41,17 +42,16 @@ const emit = defineEmits<{
     :open="popoverOpen"
     @update:open="emit('update:popoverOpen', $event)"
   >
-    <div
-      class="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer"
+    <button
+      type="button"
+      :aria-label="label"
+      class="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer max-w-full"
       @click.stop
     >
       <template v-if="status">
-        <span
-          class="block w-2 h-2 rounded-full shrink-0"
-          :style="{
-            backgroundColor: status.color || '#a1a1aa',
-            boxShadow: `inset 0 0 0 1px ${(status.color || '#a1a1aa')}30`
-          }"
+        <UiStatusDot
+          :color="status.color"
+          size="sm"
         />
         <span class="text-toned truncate text-sm">{{ status.name }}</span>
         <UIcon
@@ -63,22 +63,20 @@ const emit = defineEmits<{
         v-else
         class="text-dimmed text-sm"
       >&mdash;</span>
-    </div>
+    </button>
     <template #content>
-      <div class="list-popover-menu py-1 min-w-[140px]">
+      <div class="py-1 min-w-[160px]">
         <button
           v-for="s in statuses"
           :key="s.id"
           type="button"
-          class="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-xs transition-colors"
-          :class="statusId === s.id
-            ? 'bg-primary/10 text-primary'
-            : 'text-default hover:bg-muted'"
+          class="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-sm transition-colors"
+          :class="statusId === s.id ? 'bg-primary/10 text-primary' : 'text-default hover:bg-elevated'"
           @click="emit('select', s.id)"
         >
-          <span
-            class="block w-2 h-2 rounded-full shrink-0"
-            :style="{ backgroundColor: s.color || '#a1a1aa' }"
+          <UiStatusDot
+            :color="s.color"
+            size="sm"
           />
           <span class="truncate flex-1">{{ s.name }}</span>
           <UIcon

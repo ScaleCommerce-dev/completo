@@ -191,7 +191,10 @@ const sortedCards = computed(() => {
 </script>
 
 <template>
-  <div class="flex-1 overflow-auto thin-scroll">
+  <!-- px-2 so the first and last columns are not clipped against the panel edge:
+       the table was full-bleed, and at 1512px the ID header sat under the sidebar
+       divider while the assignee column ran off the right. -->
+  <div class="flex-1 overflow-auto thin-scroll px-2">
     <table class="w-full border-collapse text-left table-fixed">
       <!-- Column sizing -->
       <colgroup>
@@ -202,29 +205,45 @@ const sortedCards = computed(() => {
         >
       </colgroup>
 
-      <!-- Header -->
+      <!-- Header. Sortable columns are real buttons carrying aria-sort — they
+           used to be bare clickable <th> elements: not focusable, no keyboard
+           activation, and visually identical to unsortable ones until hover. -->
       <thead class="sticky top-0 z-10 bg-muted/95 backdrop-blur-sm">
         <tr class="border-b border-default">
           <th
             v-for="col in columns"
             :key="col.id"
-            class="px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] whitespace-nowrap select-none align-middle group/th"
-            :class="[
-              SORTABLE_FIELDS.has(col.field)
-                ? 'cursor-pointer hover:text-toned transition-colors' + (localSortField === col.field ? 'text-primary' : 'text-dimmed')
-                : 'text-dimmed'
-            ]"
-            @click="toggleSort(col.field)"
+            scope="col"
+            class="px-3 py-2 whitespace-nowrap select-none align-middle group/th text-dimmed"
+            :aria-sort="localSortField === col.field
+              ? (localSortDirection === 'asc' ? 'ascending' : 'descending')
+              : (SORTABLE_FIELDS.has(col.field) ? 'none' : undefined)"
           >
-            <span
-              class="inline-flex items-center gap-1"
-              :class="col.field === 'done' ? 'flex justify-center w-full min-h-[1lh] translate-y-px' : ''"
+            <!-- The type styles live on the inner element, not the th: Tailwind's
+                 preflight resets `text-transform` on buttons, so sortable headers
+                 rendered in sentence case while unsortable ones inherited
+                 uppercase from the th. -->
+            <component
+              :is="SORTABLE_FIELDS.has(col.field) ? 'button' : 'span'"
+              :type="SORTABLE_FIELDS.has(col.field) ? 'button' : undefined"
+              class="inline-flex items-center gap-1 rounded-md text-xs font-bold uppercase tracking-[0.08em]"
+              :class="[
+                col.field === 'done' ? 'flex justify-center w-full min-h-[1lh] translate-y-px' : '',
+                SORTABLE_FIELDS.has(col.field)
+                  ? `cursor-pointer transition-colors hover:text-toned ${localSortField === col.field ? 'text-primary' : ''}`
+                  : ''
+              ]"
+              @click="SORTABLE_FIELDS.has(col.field) && toggleSort(col.field)"
             >
-              <template v-if="col.field === 'done'"><UIcon
-                name="i-lucide-circle-check-big"
-                class="text-xs"
-              /></template>
-              <template v-else>{{ fieldLabel(col.field) }}</template>
+              <template v-if="col.field === 'done'">
+                <UIcon
+                  name="i-lucide-circle-check-big"
+                  class="text-xs"
+                />
+              </template>
+              <template v-else>
+                {{ fieldLabel(col.field) }}
+              </template>
               <UIcon
                 v-if="localSortField === col.field && localSortDirection === 'asc'"
                 name="i-lucide-arrow-up"
@@ -240,7 +259,7 @@ const sortedCards = computed(() => {
                 name="i-lucide-arrow-up-down"
                 class="text-2xs opacity-0 group-hover/th:opacity-40 transition-opacity"
               />
-            </span>
+            </component>
           </th>
         </tr>
       </thead>

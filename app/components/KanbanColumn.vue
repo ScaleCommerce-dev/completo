@@ -1,6 +1,23 @@
 <script setup lang="ts">
 import type { BoardCard, CardStatus } from '~/types/card'
 
+/**
+ * One column on the board.
+ *
+ * Changes worth knowing about:
+ *  - The column now reads as a tray. Its fill was a 50-shade neutral at 80%
+ *    opacity on white, which is almost invisible, so cards appeared to float on
+ *    the page rather than sit in a container.
+ *  - There is an overflow menu. Renaming, recolouring or unlinking a column was
+ *    only reachable through the view's Settings dialog.
+ *  - "New card" opens an inline composer instead of a 640px modal. All three
+ *    previous add paths opened the full modal for what is usually one line of
+ *    text.
+ *  - The header no longer sets its name in uppercase with letterspacing; at 13px
+ *    that is measurably harder to scan than sentence case.
+ *  - The entrance animation ran with `animation-delay: ${0}ms` — a literal zero,
+ *    so the staggered reveal that was written and shipped did nothing.
+ */
 const draggable = defineAsyncComponent(() => import('vuedraggable'))
 
 const props = defineProps<{
@@ -8,6 +25,9 @@ const props = defineProps<{
   cards: BoardCard[]
   accentColor?: string
   isDone?: boolean
+  canConfigure?: boolean
+  /** Stagger index for the first-mount reveal. */
+  index?: number
 }>()
 
 const emit = defineEmits<{
@@ -15,6 +35,8 @@ const emit = defineEmits<{
   'card-change': [evt: Record<string, unknown>]
   'card-update': [cardId: number, updates: Record<string, unknown>]
   'add-card': []
+  'quick-add': [title: string]
+  'configure': []
 }>()
 
 // Use vuedraggable's :list mode (mutates this array directly) instead of
@@ -30,103 +52,202 @@ watch(() => props.cards, (val) => {
   }
 })
 
-function onAreaDblClick(e: MouseEvent) {
-  const target = e.target as HTMLElement
-  if (target.closest('.kanban-card')) return
-  emit('add-card')
+// ─── Drop target ────────────────────────────────────────────────────────────
+// `.column-drop-active` was defined in main.css and never applied by anything,
+// so dragging a card gave no indication of where it would land.
+const dragOver = ref(false)
+
+function onDragEnter() {
+  dragOver.value = true
 }
+function onDragLeave(e: DragEvent) {
+  const related = e.relatedTarget as Node | null
+  if (related && (e.currentTarget as HTMLElement).contains(related)) return
+  dragOver.value = false
+}
+function onDrop() {
+  dragOver.value = false
+}
+
+// ─── Inline composer ────────────────────────────────────────────────────────
+const composing = ref(false)
+const draft = ref('')
+const draftInput = ref<HTMLTextAreaElement>()
+
+function startComposing() {
+  composing.value = true
+  nextTick(() => draftInput.value?.focus())
+}
+
+function commitDraft(keepOpen = true) {
+  const title = draft.value.trim()
+  if (!title) {
+    composing.value = false
+    return
+  }
+  emit('quick-add', title)
+  draft.value = ''
+  if (keepOpen) {
+    nextTick(() => draftInput.value?.focus())
+  } else {
+    composing.value = false
+  }
+}
+
+function cancelComposing() {
+  draft.value = ''
+  composing.value = false
+}
+
+const countLabel = computed(() =>
+  `${props.cards.length} ${props.cards.length === 1 ? 'card' : 'cards'}`
+)
+
+const menuItems = computed(() => [[
+  { label: 'Add a card', icon: 'i-lucide-plus', onSelect: startComposing },
+  {
+    label: 'Column settings',
+    icon: 'i-lucide-settings-2',
+    onSelect: () => emit('configure')
+  }
+]])
 </script>
 
 <template>
-  <div
-    class="rise-in flex flex-col w-[280px] shrink-0 rounded-xl bg-muted bg-elevated max-h-full border border-default"
-    :style="{ 'animation-delay': `${0}ms` }"
+  <section
+    class="rise-in flex flex-col w-column shrink-0 max-h-full rounded-xl bg-muted border border-default transition-colors"
+    :class="dragOver ? 'column-drop-active' : ''"
+    :style="{ animationDelay: `${(index ?? 0) * 45}ms` }"
+    :aria-label="`${column.name}, ${countLabel}`"
+    @dragenter="onDragEnter"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
   >
-    <!-- Column header -->
-    <div class="flex items-center justify-between px-3 py-3">
-      <div
-        class="flex items-center gap-2.5 px-1 py-0.5 rounded-md"
-        :class="isDone ? 'bg-emerald-50 dark:bg-emerald-950/25 ring-1 ring-success/30 dark:ring-emerald-800/40' : ''"
+    <!-- Header -->
+    <header class="flex items-center gap-2 px-3 py-2.5 shrink-0">
+      <UiStatusDot
+        :color="accentColor"
+        :done="isDone"
+      />
+      <h3
+        class="font-bold text-sm tracking-[-0.01em] truncate"
+        :class="isDone ? 'text-success' : 'text-toned'"
       >
-        <!-- Done checkmark or colored dot -->
-        <UIcon
-          v-if="isDone"
-          name="i-lucide-circle-check-big"
-          class="text-sm text-success dark:text-emerald-400 shrink-0"
-        />
-        <div
-          v-else
-          class="w-2.5 h-2.5 rounded-full shrink-0"
-          :style="{ backgroundColor: accentColor || '#64748b' }"
-        />
-        <h3
-          class="font-bold text-sm uppercase tracking-[0.04em]"
-          :class="isDone ? 'text-emerald-700 dark:text-emerald-300' : 'text-muted'"
-        >
-          {{ column.name }}
-        </h3>
-        <span
-          class="text-xs tabular-nums font-mono font-medium"
-          :class="isDone ? 'text-emerald-500/70 dark:text-emerald-400/70' : 'text-dimmed'"
-        >
-          {{ cards.length }}
-        </span>
-      </div>
-      <button
-        class="flex items-center justify-center w-7 h-7 rounded-lg text-dimmed hover:text-toned hover:bg-accented transition-all"
-        @click="emit('add-card')"
-      >
-        <UIcon
-          name="i-lucide-plus"
-          class="text-sm"
-        />
-      </button>
-    </div>
+        {{ column.name }}
+      </h3>
+      <span class="text-xs font-mono tabular-nums text-dimmed shrink-0">{{ cards.length }}</span>
 
-    <!-- Cards area -->
-    <div
-      class="flex-1 overflow-y-auto px-2 pb-1.5 min-h-[3rem]"
-      @dblclick="onAreaDblClick"
-    >
+      <div class="ml-auto flex items-center shrink-0">
+        <UButton
+          icon="i-lucide-plus"
+          variant="ghost"
+          color="neutral"
+          size="xs"
+          :aria-label="`Add a card to ${column.name}`"
+          @click="startComposing"
+        />
+        <UDropdownMenu
+          v-if="canConfigure"
+          :items="menuItems"
+          :content="{ align: 'end' }"
+        >
+          <UButton
+            icon="i-lucide-ellipsis"
+            variant="ghost"
+            color="neutral"
+            size="xs"
+            :aria-label="`${column.name} column options`"
+          />
+        </UDropdownMenu>
+      </div>
+    </header>
+
+    <!-- Cards -->
+    <div class="flex-1 overflow-y-auto thin-scroll px-2 min-h-0">
       <ClientOnly>
         <draggable
           :list="localCards"
           group="cards"
           item-key="id"
-          class="flex flex-col gap-1.5 min-h-full"
+          class="flex flex-col gap-1.5 min-h-[4rem]"
           ghost-class="sortable-ghost"
           chosen-class="sortable-chosen"
           drag-class="sortable-drag"
+          :scroll-sensitivity="120"
+          :force-fallback="false"
           @change="(evt: Record<string, unknown>) => emit('card-change', evt)"
         >
-          <template #item="{ element: card, index }">
-            <div
-              class="rise-in"
-              :style="{ 'animation-delay': `${index * 30}ms` }"
-            >
-              <KanbanCard
-                :card="card"
-                @click="emit('card-click', card)"
-                @update="(cardId, updates) => emit('card-update', cardId, updates)"
-              />
-            </div>
+          <template #item="{ element: card }">
+            <KanbanCard
+              :card="card"
+              @click="emit('card-click', card)"
+              @update="(cardId, updates) => emit('card-update', cardId, updates)"
+            />
           </template>
         </draggable>
       </ClientOnly>
+
+      <!-- Empty columns get a real target. This was `min-h-[3rem]` — a 48px strip
+           at the top of an otherwise blank column. -->
+      <div
+        v-if="!localCards.length && !composing"
+        class="pointer-events-none flex items-center justify-center rounded-lg border border-dashed border-accented/70 py-8 mt-1 text-xs text-dimmed"
+      >
+        Drop a card here
+      </div>
     </div>
 
-    <!-- Add card button -->
-    <div class="px-2 pb-2">
-      <button
-        class="w-full flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-dimmed hover:text-toned hover:bg-accented transition-all"
-        @click="emit('add-card')"
+    <!-- Composer / add button -->
+    <div class="p-2 shrink-0">
+      <div
+        v-if="composing"
+        class="rounded-lg border border-accented bg-default p-2 shadow-raise"
       >
-        <UIcon
-          name="i-lucide-plus"
-          class="text-sm"
+        <textarea
+          ref="draftInput"
+          v-model="draft"
+          rows="2"
+          :placeholder="`Add to ${column.name}...`"
+          class="w-full resize-none bg-transparent text-sm leading-snug text-highlighted placeholder:text-dimmed border-0 p-0 focus:outline-none"
+          @keydown.enter.exact.prevent="commitDraft(true)"
+          @keydown.esc.stop.prevent="cancelComposing"
+          @blur="commitDraft(false)"
         />
-        New card
-      </button>
+        <div class="flex items-center gap-1.5 mt-1.5">
+          <UButton
+            label="Add"
+            size="xs"
+            :disabled="!draft.trim()"
+            @mousedown.prevent
+            @click="commitDraft(true)"
+          />
+          <UButton
+            label="Cancel"
+            variant="ghost"
+            color="neutral"
+            size="xs"
+            @mousedown.prevent
+            @click="cancelComposing"
+          />
+          <span class="ml-auto text-2xs text-dimmed">
+            <UKbd
+              value="enter"
+              size="sm"
+            /> to add
+          </span>
+        </div>
+      </div>
+
+      <UButton
+        v-else
+        label="New card"
+        icon="i-lucide-plus"
+        variant="ghost"
+        color="neutral"
+        block
+        class="justify-start text-dimmed"
+        @click="startComposing"
+      />
     </div>
-  </div>
+  </section>
 </template>

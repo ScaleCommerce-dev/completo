@@ -25,8 +25,10 @@ const emit = defineEmits<{
   'card-moved': [cardId: number, toColumnId: string, toPosition: number]
   'card-update': [cardId: number, updates: Record<string, unknown>]
   'add-card': [columnId: string]
+  'quick-add': [columnId: string, title: string]
   'add-column': [name: string, color?: string]
   'link-column': [columnId: string]
+  'configure': []
 }>()
 
 function handleCardChange(columnId: string, evt: { added?: { element: { id: number }, newIndex: number }, moved?: { element: { id: number }, newIndex: number } }) {
@@ -74,27 +76,68 @@ function cancelAddColumn() {
   newColumnName.value = ''
   newColumnColor.value = '#6366f1'
 }
+
+// ─── Horizontal scroll affordance ───────────────────────────────────────────
+// The board ended in a hard cut: at 1512px the fifth column was sliced through
+// mid-word with nothing to suggest more existed. The mask fades only the edges
+// that actually have content beyond them, so a board that fits shows no fade.
+const scroller = ref<HTMLElement>()
+const fadeStart = ref(0)
+const fadeEnd = ref(0)
+
+const fadeStyle = computed(() => ({
+  '--board-fade-start': `${fadeStart.value}px`,
+  '--board-fade-end': `${fadeEnd.value}px`
+}))
+
+function updateFade() {
+  const el = scroller.value
+  if (!el) return
+  const max = el.scrollWidth - el.clientWidth
+  fadeStart.value = el.scrollLeft > 4 ? 28 : 0
+  fadeEnd.value = el.scrollLeft < max - 4 ? 28 : 0
+}
+
+onMounted(() => {
+  updateFade()
+  const el = scroller.value
+  if (!el || typeof ResizeObserver === 'undefined') return
+  const ro = new ResizeObserver(updateFade)
+  ro.observe(el)
+  onBeforeUnmount(() => ro.disconnect())
+})
+
+watch(() => _props.columns.length, () => nextTick(updateFade))
 </script>
 
 <template>
-  <div class="flex gap-3 overflow-x-auto px-5 py-4 flex-1 min-h-0 thin-scroll">
+  <div
+    ref="scroller"
+    class="flex gap-3 overflow-x-auto overflow-y-hidden px-4 py-4 flex-1 min-h-0 thin-scroll board-scroll"
+    :style="fadeStyle"
+    @scroll.passive="updateFade"
+  >
     <KanbanColumn
-      v-for="column in columns"
+      v-for="(column, i) in columns"
       :key="column.id"
       :column="column"
       :cards="cardsByColumn[column.id] || []"
-      :accent-color="column.color || '#a1a1aa'"
+      :accent-color="column.color || undefined"
       :is-done="column.id === doneStatusId"
+      :can-configure="canConfigureColumns"
+      :index="i"
       @card-click="(card) => emit('card-click', card)"
       @card-change="(evt) => handleCardChange(column.id, evt)"
       @card-update="(cardId, updates) => emit('card-update', cardId, updates)"
       @add-card="emit('add-card', column.id)"
+      @quick-add="(title) => emit('quick-add', column.id, title)"
+      @configure="emit('configure')"
     />
 
     <!-- Add column -->
     <div
       v-if="canConfigureColumns"
-      class="shrink-0 w-[280px]"
+      class="shrink-0 w-column"
     >
       <button
         v-if="!showAddColumn"
