@@ -20,6 +20,7 @@ export async function sendAccountSetupLink(
   db.insert(schema.emailVerificationTokens).values({
     userId: user.id,
     token,
+    purpose: 'setup',
     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
   }).run()
 

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -8,9 +8,16 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, '/login?error=invalid-token')
   }
 
+  // Purpose-scoped like the other consumers, and it matters most here: this route both marks
+  // the address verified and signs the caller in, so honouring a *setup* token would hand out
+  // a session while leaving password_hash at '!invited' — the stale "pending setup" state
+  // migration 0005 had to repair — and honouring a *reset* token would be a plain takeover.
   const tokenRow = db.select()
     .from(schema.emailVerificationTokens)
-    .where(eq(schema.emailVerificationTokens.token, token))
+    .where(and(
+      eq(schema.emailVerificationTokens.token, token),
+      eq(schema.emailVerificationTokens.purpose, 'verify')
+    ))
     .get()
 
   if (!tokenRow) {

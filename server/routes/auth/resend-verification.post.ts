@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { email } = await readBody<{ email?: string }>(event)
@@ -18,7 +18,10 @@ export default defineEventHandler(async (event) => {
     // Look up user via expired verification token
     const tokenRow = db.select()
       .from(schema.emailVerificationTokens)
-      .where(eq(schema.emailVerificationTokens.token, token))
+      .where(and(
+        eq(schema.emailVerificationTokens.token, token),
+        eq(schema.emailVerificationTokens.purpose, 'verify')
+      ))
       .get()
 
     if (!tokenRow) {
@@ -56,6 +59,7 @@ export default defineEventHandler(async (event) => {
   db.insert(schema.emailVerificationTokens).values({
     userId: user.id,
     token: newToken,
+    purpose: 'verify',
     expiresAt
   }).run()
 

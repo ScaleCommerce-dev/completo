@@ -12,8 +12,14 @@ export default defineEventHandler(async (event) => {
   }
 
   // Validate token and look up user
-  const { user } = lookupVerificationToken(token, 'setup link')
+  const { user } = lookupVerificationToken(token, 'setup', 'setup link')
   ensureNotSuspended(user)
+
+  // Setup is a one-shot claim of an unclaimed account. Without this, any live token could
+  // rewrite an active user's password *and* display name and then sign the caller in.
+  if (!isPendingSetup(user)) {
+    throw createError({ statusCode: 400, message: 'Invalid or expired setup link' })
+  }
 
   // Require name if the user doesn't have one yet
   const finalName = (name && name.trim()) ? name.trim() : user.name

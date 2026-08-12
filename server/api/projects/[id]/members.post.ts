@@ -8,10 +8,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'userId or email is required' })
   }
 
+  // Every stored address is lowercased (migration 0004), so an un-normalised lookup can
+  // never match a mixed-case input — `Owner@Acme.com` used to fall straight through to the
+  // invitation branch below, and that invite is then unclaimable: claimProjectInvitations
+  // only runs on register/setup-account, which an already-registered user never reaches.
+  const normalizedEmail = email?.trim().toLowerCase()
+
   // Try to find the user
   const targetUser = userId
     ? db.select().from(schema.users).where(eq(schema.users.id, userId)).get()
-    : db.select().from(schema.users).where(eq(schema.users.email, email!)).get()
+    : db.select().from(schema.users).where(eq(schema.users.email, normalizedEmail!)).get()
 
   // User found — add directly
   if (targetUser) {
@@ -57,13 +63,13 @@ export default defineEventHandler(async (event) => {
   }
 
   // User not found — create invitation if email provided
-  if (!email) {
+  if (!normalizedEmail) {
     throw createError({ statusCode: 404, message: 'User not found' })
   }
 
   // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(email)) {
+  if (!emailRegex.test(normalizedEmail)) {
     throw createError({ statusCode: 400, message: 'Invalid email format' })
   }
 
@@ -72,7 +78,7 @@ export default defineEventHandler(async (event) => {
     .from(schema.projectInvitations)
     .where(and(
       eq(schema.projectInvitations.projectId, project.id),
-      eq(schema.projectInvitations.email, email.toLowerCase())
+      eq(schema.projectInvitations.email, normalizedEmail)
     ))
     .all()
     .find(inv => inv.expiresAt > new Date())
@@ -86,7 +92,7 @@ export default defineEventHandler(async (event) => {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
 
   db.insert(schema.projectInvitations).values({
-    email: email.toLowerCase(),
+    email: normalizedEmail,
     projectId: project.id,
     invitedById: user.id,
     token,
@@ -98,7 +104,7 @@ export default defineEventHandler(async (event) => {
     const baseUrl = process.env.APP_URL || 'http://localhost:3000'
     const registerUrl = `${baseUrl}/register?invitation=${token}`
     try {
-      await sendAccountInviteEmail(email, user.name, project.name, registerUrl)
+      await sendAccountInviteEmail(normalizedEmail, user.name, project.name, registerUrl)
     } catch (err) {
       console.error('Failed to send invitation email:', (err as Error).message)
     }

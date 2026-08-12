@@ -16,5 +16,8 @@ export default defineEventHandler(async (event) => {
     .where(eq(schema.emailVerificationTokens.userId, userId))
     .get()
 
-  return { token: tokenRow?.token || null }
+  // `purpose` is returned so tests can assert which flow issued the token they're holding —
+  // the point of these endpoints being purpose-scoped is only testable if the test can tell
+  // a verify token from a reset one.
+  return { token: tokenRow?.token || null, purpose: tokenRow?.purpose || null }
 })

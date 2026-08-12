@@ -23,9 +23,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'File not found on storage' })
   }
 
-  setResponseHeader(event, 'Content-Type', attachment.mimeType)
+  // Derived from the filename, never from the stored `mimeType` — that value is whatever the
+  // uploading client claimed, and serving it back inline made every attachment a stored-XSS
+  // vector on this origin. `nosniff` stops the browser second-guessing the narrowed type.
+  const contentType = serveContentType(attachment.originalName)
+  const disposition = isInlineSafe(contentType) ? 'inline' : 'attachment'
+
+  setResponseHeader(event, 'Content-Type', contentType)
+  setResponseHeader(event, 'X-Content-Type-Options', 'nosniff')
   setResponseHeader(event, 'Content-Length', Number(attachment.size))
-  setResponseHeader(event, 'Content-Disposition', `inline; filename="${encodeURIComponent(attachment.originalName)}"`)
+  setResponseHeader(event, 'Content-Disposition', `${disposition}; filename="${encodeURIComponent(attachment.originalName)}"`)
   setResponseHeader(event, 'Cache-Control', 'private, max-age=3600')
 
   return data

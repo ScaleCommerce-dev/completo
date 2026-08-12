@@ -11,8 +11,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Password must be at least 8 characters' })
   }
 
-  // Validate token and look up user
-  const { user } = lookupVerificationToken(token, 'reset link')
+  // Validate token and look up user. Only a token minted by forgot-password qualifies —
+  // an email-verification or account-setup token must not be redeemable for a password.
+  const { user } = lookupVerificationToken(token, 'reset', 'reset link')
   ensureNotSuspended(user)
 
   if (user.passwordHash === '!invited') {

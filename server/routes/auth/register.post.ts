@@ -100,6 +100,7 @@ export default defineEventHandler(async (event) => {
   db.insert(schema.emailVerificationTokens).values({
     userId,
     token,
+    purpose: 'verify',
     expiresAt
   }).run()
 

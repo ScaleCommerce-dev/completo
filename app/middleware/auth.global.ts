@@ -1,13 +1,13 @@
+import { PUBLIC_ROUTES, SIGNED_IN_REDIRECT_ROUTES } from '#shared/utils/auth-routes'
+
 export default defineNuxtRouteMiddleware((to) => {
   const { loggedIn, user } = useUserSession()
 
-  const publicRoutes = ['/login', '/register', '/logout', '/auth/setup-account']
-
-  if (!loggedIn.value && !publicRoutes.includes(to.path)) {
+  if (!loggedIn.value && !PUBLIC_ROUTES.includes(to.path)) {
     return navigateTo('/login')
   }
 
-  if (loggedIn.value && publicRoutes.includes(to.path) && to.path !== '/logout') {
+  if (loggedIn.value && SIGNED_IN_REDIRECT_ROUTES.includes(to.path)) {
     return navigateTo('/projects')
   }
 

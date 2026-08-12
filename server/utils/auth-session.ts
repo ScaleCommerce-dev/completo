@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 
 interface SessionUser {
   id: string
@@ -49,13 +49,28 @@ export function ensureNotSuspended(user: { suspendedAt: Date | null }) {
 }
 
 /**
- * Look up an email verification token and its associated user.
- * Throws on invalid/expired token or missing user.
+ * Look up an email token and its associated user, for one specific purpose.
+ *
+ * `purpose` is required, and not merely cosmetic: every flow writes to this one table, so
+ * before it existed each consumer accepted any live row. A "verify your email" token could be
+ * POSTed to /auth/reset-password to set an attacker-chosen password — and that endpoint signs
+ * the caller in — so read access to a single message meant account takeover. A mismatch is
+ * reported as an invalid link rather than "wrong kind of link": the caller supplied a token
+ * they were never meant to use here, and naming the difference only helps them.
+ *
+ * Throws on an unknown, wrong-purpose, or expired token, or a missing user.
  */
-export function lookupVerificationToken(token: string, label = 'link') {
+export function lookupVerificationToken(
+  token: string,
+  purpose: 'verify' | 'reset' | 'setup',
+  label = 'link'
+) {
   const tokenRow = db.select()
     .from(schema.emailVerificationTokens)
-    .where(eq(schema.emailVerificationTokens.token, token))
+    .where(and(
+      eq(schema.emailVerificationTokens.token, token),
+      eq(schema.emailVerificationTokens.purpose, purpose)
+    ))
     .get()
 
   if (!tokenRow) {

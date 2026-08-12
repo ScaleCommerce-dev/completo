@@ -189,4 +189,33 @@ describe('Project member management', () => {
     }) as Record<string, unknown>
     expect(removeResult.ok).toBe(true)
   })
+
+  it('matches an existing user regardless of how the email is capitalised', async () => {
+    // Stored addresses are all lowercase (migration 0004), so an un-normalised lookup could
+    // never match a mixed-case input: this used to fall through to the invitation branch and
+    // create a pending invite for someone already registered — which they can never claim,
+    // since invitations are only redeemed during register/setup-account.
+    const result = await $fetch(`/api/projects/${project.id}/members`, {
+      method: 'POST',
+      body: { email: `  ${stranger.email.toUpperCase()}  ` },
+      headers: owner.headers
+    }) as Record<string, unknown>
+    expect(result.added).toBe(true)
+
+    const members = await $fetch(`/api/projects/${project.id}/members`, {
+      headers: owner.headers
+    }) as Record<string, unknown>[]
+    expect(members.find(m => m.id === stranger.id)).toBeDefined()
+
+    // No invitation should have been created alongside the membership.
+    const invitations = await $fetch(`/api/projects/${project.id}/invitations`, {
+      headers: owner.headers
+    }) as Record<string, unknown>[]
+    expect(invitations.filter(i => (i.email as string).toLowerCase() === stranger.email.toLowerCase())).toHaveLength(0)
+
+    await $fetch(`/api/projects/${project.id}/members/${stranger.id}`, {
+      method: 'DELETE',
+      headers: owner.headers
+    })
+  })
 })

@@ -200,4 +200,60 @@ describe('Card Attachments', async () => {
     expect(cardWithAttachments).toBeDefined()
     expect(cardWithAttachments.attachmentCount).toBeGreaterThanOrEqual(1)
   })
+
+  /**
+   * Uploads carry a client-chosen `file.type`. Serving it back verbatim as `inline` turned any
+   * attachment into stored XSS on this origin — a `text/html` upload ran as a first-party page,
+   * able to read the API as whoever opened it and mint a non-expiring API token. Downloads now
+   * derive the type from the filename and only inline what a browser can't execute.
+   */
+  describe('download hardening', () => {
+    async function headersFor(filename: string, mimeType: string) {
+      const att = await uploadAttachment(user, cardId, { filename, content: '<b>x</b>', mimeType })
+      const res = await fetch(url(`/api/attachments/${att.id}/download`), { headers: user.headers })
+      expect(res.status).toBe(200)
+      return {
+        stored: att.mimeType,
+        type: res.headers.get('content-type'),
+        disposition: res.headers.get('content-disposition'),
+        nosniff: res.headers.get('x-content-type-options')
+      }
+    }
+
+    it('never serves an upload as text/html, however it was declared', async () => {
+      const h = await headersFor('evil.html', 'text/html')
+      expect(h.type).not.toContain('text/html')
+      expect(h.type).toBe('application/octet-stream')
+      expect(h.disposition).toContain('attachment')
+    })
+
+    it('ignores a declared type that the extension contradicts', async () => {
+      // The upload allowlist can't catch this: its `.md` pattern matches on filename alone and
+      // never looks at the declared type, so this file is legitimately accepted.
+      const h = await headersFor('notes.md', 'text/html')
+      expect(h.type).toBe('text/markdown')
+      expect(h.disposition).toContain('attachment')
+      expect(h.stored).toBe('text/markdown')
+    })
+
+    it('downloads SVG instead of rendering it', async () => {
+      // Passes the default `image/*` upload rule, and is a scripting context when opened as a
+      // document — so it keeps its honest type but must never be inline.
+      const h = await headersFor('logo.svg', 'image/svg+xml')
+      expect(h.type).toBe('image/svg+xml')
+      expect(h.disposition).toContain('attachment')
+    })
+
+    it('still shows real images inline, so card previews keep working', async () => {
+      const h = await headersFor('shot.png', 'image/png')
+      expect(h.type).toBe('image/png')
+      expect(h.disposition).toContain('inline')
+    })
+
+    it('sends nosniff on every download', async () => {
+      for (const [filename, mimeType] of [['evil.html', 'text/html'], ['shot.png', 'image/png']]) {
+        expect((await headersFor(filename, mimeType)).nosniff).toBe('nosniff')
+      }
+    })
+  })
 })

@@ -192,6 +192,12 @@ export const emailVerificationTokens = sqliteTable('email_verification_tokens', 
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(),
+  // What the token may be redeemed for. Three separate flows share this table, and without
+  // this column each consumer accepted *any* live row: an emailed "verify your address" token
+  // could be POSTed to /auth/reset-password to set an attacker-chosen password, which also
+  // signs in — so read access to one message was full account takeover. Type-level only,
+  // like notifications.type: plain text in SQLite, so a new value needs no migration.
+  purpose: text('purpose', { enum: ['verify', 'reset', 'setup'] }).notNull(),
   expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })

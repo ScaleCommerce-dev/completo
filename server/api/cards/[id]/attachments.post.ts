@@ -17,14 +17,20 @@ export default defineEventHandler(async (event) => {
 
   const storageKey = generateStorageKey(file.name)
   const buffer = Buffer.from(await file.arrayBuffer())
-  await storage.write(storageKey, buffer, file.type)
+
+  // Persist the type we're willing to *serve*, not the one the client claimed. Keeping the
+  // raw claim would leave a value in the DB that is unsafe to echo, and the next endpoint to
+  // reach for `attachment.mimeType` would quietly reintroduce the XSS the download path just
+  // stopped. Rows written before this behave correctly anyway — download re-derives.
+  const mimeType = serveContentType(file.name)
+  await storage.write(storageKey, buffer, mimeType)
 
   const attachment = db.insert(schema.attachments).values({
     cardId: card.id,
     projectId: card.projectId,
     storageKey,
     originalName: file.name,
-    mimeType: file.type,
+    mimeType,
     size: file.size,
     uploadedById: user.id
   }).returning().get()

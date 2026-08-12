@@ -2941,7 +2941,7 @@
         ],
         "responses": {
           "200": {
-            "description": "File content",
+            "description": "File content. Content-Type is derived from the file extension and sent with X-Content-Type-Options: nosniff. Content-Disposition is inline only for images, PDF and plain text; every other type, including SVG, is served as attachment.",
             "content": {
               "application/octet-stream": {
                 "schema": {
@@ -4899,7 +4899,8 @@
             "type": "string"
           },
           "mimeType": {
-            "type": "string"
+            "type": "string",
+            "description": "Server-determined content type, derived from the file extension. The Content-Type sent with the upload is not preserved — an unrecognised extension becomes application/octet-stream."
           },
           "size": {
             "type": "integer",
