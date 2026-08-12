@@ -45,6 +45,20 @@ onBeforeUnmount(() => {
   if (confirmTimeout) clearTimeout(confirmTimeout)
 })
 
+/**
+ * Whether this thread is holding text that would be lost on unmount, so a host that can
+ * disappear (CardModal) can intercept its own close. An edit counts only once it actually
+ * diverges from the stored comment — opening the editor and changing nothing is not work.
+ */
+const hasUnsavedDraft = computed(() => {
+  if (draft.value.trim()) return true
+  if (!editingId.value) return false
+  const original = comments.value.find(c => c.id === editingId.value)?.body ?? ''
+  return editDraft.value.trim() !== original.trim()
+})
+
+defineExpose({ hasUnsavedDraft })
+
 function isOwn(comment: Comment): boolean {
   return !!comment.authorId && comment.authorId === currentUser.value?.id
 }

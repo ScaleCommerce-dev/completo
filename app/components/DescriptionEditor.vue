@@ -220,7 +220,11 @@ function selectMention(item: { _type: 'user' | 'card', id: string | number, name
 function onMentionKeydown(e: KeyboardEvent) {
   const results = mentionAllResults.value
   if (e.key === 'Escape') {
+    // Same contract as onTextareaKeydown: Esc dismisses only this popover and must not
+    // travel on to the dialog. preventDefault carries it today; stopPropagation is the
+    // belt to that braces.
     e.preventDefault()
+    e.stopPropagation()
     closeMention()
     return
   }
@@ -248,14 +252,34 @@ function onMentionKeydown(e: KeyboardEvent) {
   }
 }
 
+/**
+ * Escape belongs to the innermost thing, and must never reach the dialog behind us.
+ *
+ * This handler used to emit `escape` and let the event carry on to `window`, where
+ * Reka's DismissableLayer closed the whole card modal — taking an unposted comment or
+ * an unsaved description with it. The `@escape` listeners did fire; they just didn't
+ * stop the event, so Esc cancelled a comment edit *and* closed the card.
+ *
+ * Consuming it unconditionally is the point: with a new-comment draft there is nothing
+ * for Esc to do, and doing nothing is the correct outcome — better than discarding the
+ * draft, and far better than closing the card. `preventDefault` alone would suffice
+ * (DismissableLayer skips dismissal when the event was defaulted) but stopping
+ * propagation as well keeps this working if that check ever changes.
+ *
+ * The AI skill popover and the image picker run their own Esc handling; neither is
+ * affected, because when they're open focus sits inside them, not in the textarea.
+ */
 function onTextareaKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
-    if (mentionActive.value) {
-      closeMention()
-      return
-    }
-    emit('escape')
+  if (e.key !== 'Escape') return
+
+  e.preventDefault()
+  e.stopPropagation()
+
+  if (mentionActive.value) {
+    closeMention()
+    return
   }
+  emit('escape')
 }
 
 // ─── Image Picker ───

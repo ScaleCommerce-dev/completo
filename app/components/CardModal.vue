@@ -26,12 +26,34 @@ const hasUnsavedWork = computed(() =>
   || !!draftCardId.value
 )
 
+/**
+ * Text typed into a nested editor that hasn't been committed anywhere.
+ *
+ * Unlike the fields in the properties grid, this content has no other home: closing the
+ * modal unmounts the editor and it's gone. Deliberately narrower than "the form is dirty"
+ * — a changed status or priority is one click to redo and shows its own state, so it
+ * doesn't earn a confirmation.
+ */
+const hasUncommittedText = computed(() => {
+  if (commentListRef.value?.hasUnsavedDraft) return true
+  return editingDescription.value
+    && description.value.trim() !== (props.card?.description || '').trim()
+})
+
 const open = computed({
   get: () => openModel.value,
   set: (val: boolean) => {
     if (!val && !isEdit.value && hasUnsavedWork.value) {
       // Intercept close — show discard confirmation instead
+      focusBeforeConfirm.value = document.activeElement as HTMLElement | null
       showDraftDiscardConfirm.value = true
+      return
+    }
+    // Esc no longer escapes an editor (see DescriptionEditor), but clicking outside and
+    // the close button still land here — and would silently take the text with them.
+    if (!val && isEdit.value && hasUncommittedText.value) {
+      focusBeforeConfirm.value = document.activeElement as HTMLElement | null
+      showTextDiscardConfirm.value = true
       return
     }
     openModel.value = val
@@ -62,6 +84,23 @@ const descriptionEditorRef = ref<{ startEditing: () => void }>()
 const showDeleteConfirm = ref(false)
 const draftCardId = ref<number | null>(null)
 const showDraftDiscardConfirm = ref(false)
+const showTextDiscardConfirm = ref(false)
+const commentListRef = ref<{ hasUnsavedDraft: boolean }>()
+const confirmBannerRef = ref<HTMLElement>()
+const keepEditingRef = ref<HTMLButtonElement>()
+/**
+ * Where focus was when a confirmation interrupted, so backing out returns it there.
+ * Without this, dismissing the banner unmounts the focused button and focus falls to
+ * <body> — which silently re-routes Cmd+Enter to the card instead of the comment editor
+ * it came from (see the containment note in CLAUDE.md).
+ */
+const focusBeforeConfirm = ref<HTMLElement | null>(null)
+
+function restoreFocusAfterConfirm() {
+  const el = focusBeforeConfirm.value
+  focusBeforeConfirm.value = null
+  nextTick(() => el?.focus())
+}
 
 const selectedTagNames = computed(() => (props.tags || []).filter(t => selectedTagIds.value.includes(t.id)).map(t => t.name))
 
@@ -229,6 +268,42 @@ function confirmDiscardDraft() {
 
 function cancelDiscardDraft() {
   showDraftDiscardConfirm.value = false
+  restoreFocusAfterConfirm()
+}
+
+/** Names what's actually at risk, so the warning isn't guesswork for the reader. */
+const uncommittedTextLabel = computed(() => {
+  const hasComment = !!commentListRef.value?.hasUnsavedDraft
+  const hasDescription = editingDescription.value
+    && description.value.trim() !== (props.card?.description || '').trim()
+  if (hasComment && hasDescription) return 'You have an unposted comment and an unsaved description.'
+  if (hasComment) return 'You have an unposted comment.'
+  return 'Your description edit isn\'t saved yet.'
+})
+
+/**
+ * Both confirmations sit above the actions, which on a card with comments is well below
+ * the fold — so refusing to close looked like nothing happening at all. Bring the banner
+ * into view and put focus on the safe answer, which is also the only way a keyboard user
+ * reaches it without tabbing through the whole form. The two banners are mutually
+ * exclusive (one is create-mode, one edit-mode), so they can share the ref.
+ */
+watch([showTextDiscardConfirm, showDraftDiscardConfirm], ([text, draft]) => {
+  if (!text && !draft) return
+  nextTick(() => {
+    confirmBannerRef.value?.scrollIntoView({ block: 'center' })
+    keepEditingRef.value?.focus()
+  })
+})
+
+function confirmDiscardText() {
+  showTextDiscardConfirm.value = false
+  openModel.value = false
+}
+
+function cancelDiscardText() {
+  showTextDiscardConfirm.value = false
+  restoreFocusAfterConfirm()
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -254,6 +329,7 @@ watch(open, (isOpen) => {
   }
   if (!isOpen) {
     showDeleteConfirm.value = false
+    showTextDiscardConfirm.value = false
     if (!isEdit.value) {
       reset()
     }
@@ -548,6 +624,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           class="mx-5"
         >
           <CommentList
+            ref="commentListRef"
             :card-id="props.card?.id"
             :members="members"
             :project-slug="projectSlug"
@@ -586,9 +663,42 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           </div>
         </div>
 
+        <!-- Uncommitted text confirmation (edit mode) -->
+        <div
+          v-if="isEdit && showTextDiscardConfirm"
+          ref="confirmBannerRef"
+          class="mx-5 mt-3 rounded-lg border border-orange-200/60 dark:border-orange-800/40 bg-orange-50/50 dark:bg-orange-950/20 p-3 flex flex-col gap-2"
+        >
+          <p class="text-[12px] font-medium text-orange-600 dark:text-orange-400 leading-relaxed">
+            {{ uncommittedTextLabel }} Closing the card discards it.
+          </p>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-all"
+              @click="confirmDiscardText"
+            >
+              <UIcon
+                name="i-lucide-trash-2"
+                class="text-[13px]"
+              />
+              Discard and close
+            </button>
+            <button
+              ref="keepEditingRef"
+              type="button"
+              class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              @click="cancelDiscardText"
+            >
+              Keep editing
+            </button>
+          </div>
+        </div>
+
         <!-- Draft discard confirmation (create mode with draft) -->
         <div
           v-if="showDraftDiscardConfirm"
+          ref="confirmBannerRef"
           class="mx-5 mt-3 rounded-lg border border-orange-200/60 dark:border-orange-800/40 bg-orange-50/50 dark:bg-orange-950/20 p-3 flex flex-col gap-2"
         >
           <p class="text-[12px] font-medium text-orange-600 dark:text-orange-400 leading-relaxed">
@@ -607,6 +717,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               Discard
             </button>
             <button
+              ref="keepEditingRef"
               type="button"
               class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
               @click="cancelDiscardDraft"
