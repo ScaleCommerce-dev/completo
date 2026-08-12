@@ -136,7 +136,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
           <button
             v-for="(n, ni) in group.items"
             :key="n.id"
-            class="notification-row w-full text-left px-4 py-3 flex items-start gap-3 transition-all duration-150"
+            class="rise-in w-full text-left px-4 py-3 flex items-start gap-3 transition-all duration-150"
             :class="[
               n.readAt
                 ? 'bg-white dark:bg-zinc-800/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
@@ -251,20 +251,3 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
     </div>
   </div>
 </template>
-
-<style scoped>
-.notification-row {
-  animation: notification-enter 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
-}
-
-@keyframes notification-enter {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

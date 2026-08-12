@@ -57,14 +57,6 @@ function fieldIcon(field: string) {
   return ALL_FIELDS.find(f => f.field === field)?.icon || 'i-lucide-columns-3'
 }
 
-// ─── Filter toggle helpers ───
-const PRIORITY_LABELS: Record<string, string> = {
-  urgent: 'Urgent',
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low'
-}
-
 const memberItems = computed(() =>
   (props.members || []).map(m => ({ value: m.id, label: m.name }))
 )
@@ -502,23 +494,19 @@ function handleDeleteView() {
                   v-for="p in ['urgent', 'high', 'medium', 'low']"
                   :key="p"
                   type="button"
-                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold transition-all duration-150 active:scale-95"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-colors"
                   :class="localPriorityFilters.includes(p)
-                    ? ''
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300'"
-                  :style="localPriorityFilters.includes(p) ? {
-                    color: PRIORITY_COLOR_MAP[p],
-                    backgroundColor: PRIORITY_COLOR_MAP[p] + '22',
-                    boxShadow: `inset 0 0 0 1.5px ${PRIORITY_COLOR_MAP[p]}`
-                  } : {}"
+                    ? [priorityTextClass(p), 'bg-elevated shadow-[inset_0_0_0_1.5px_currentColor]']
+                    : 'bg-elevated text-dimmed hover:text-toned'"
                   @click="togglePriorityFilter(p)"
                 >
+                  <!-- Icon inherits currentColor, so the priority hue comes from
+                       the button's own text class rather than a second source. -->
                   <UIcon
                     :name="localPriorityFilters.includes(p) ? 'i-lucide-check' : priorityIcon(p)"
-                    class="text-[10px]"
-                    :style="localPriorityFilters.includes(p) ? {} : { color: PRIORITY_COLOR_MAP[p] }"
+                    class="text-2xs"
                   />
-                  {{ PRIORITY_LABELS[p] }}
+                  {{ priorityLabel(p) }}
                 </button>
               </div>
             </div>

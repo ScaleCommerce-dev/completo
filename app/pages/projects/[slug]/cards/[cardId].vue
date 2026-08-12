@@ -124,18 +124,11 @@ const assigneeMenuItems = computed(() => [[
   }))
 ]])
 
-const priorityColorMap: Record<string, 'error' | 'warning' | 'primary' | 'neutral'> = {
-  urgent: 'error',
-  high: 'warning',
-  medium: 'primary',
-  low: 'neutral'
-}
-
 const priorityMenuItems = computed(() => [[
   ...PRIORITIES.slice().reverse().map(p => ({
     label: p.label,
     icon: p.icon,
-    color: priorityColorMap[p.value],
+    color: priorityUiColor(p.value),
     type: 'checkbox' as const,
     checked: priority.value === p.value,
     onSelect() {
@@ -434,7 +427,7 @@ async function confirmDelete() {
                   <button
                     type="button"
                     class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium capitalize transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    :style="{ color: priorityColor(priority) }"
+                    :class="priorityTextClass(priority)"
                   >
                     <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
                       :name="priorityIcon(priority)"
@@ -461,8 +454,7 @@ async function confirmDelete() {
                   <button
                     type="button"
                     class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    :style="selectedDueDate ? { color: dueDateColor(getDueDateStatus(selectedDueDate)) } : {}"
-                    :class="!selectedDueDate ? 'text-zinc-400 dark:text-zinc-500' : ''"
+                    :class="selectedDueDate ? dueDateTextClass(getDueDateStatus(selectedDueDate)) : 'text-dimmed'"
                   >
                     <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
                       :name="selectedDueDate ? dueDateIcon(getDueDateStatus(selectedDueDate)) : 'i-lucide-calendar'"

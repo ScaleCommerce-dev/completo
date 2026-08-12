@@ -77,7 +77,7 @@ function cancelAddColumn() {
 </script>
 
 <template>
-  <div class="flex gap-3 overflow-x-auto px-5 py-4 flex-1 min-h-0 kanban-scroll">
+  <div class="flex gap-3 overflow-x-auto px-5 py-4 flex-1 min-h-0 thin-scroll">
     <KanbanColumn
       v-for="column in columns"
       :key="column.id"

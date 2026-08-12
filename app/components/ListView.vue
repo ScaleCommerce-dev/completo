@@ -191,7 +191,7 @@ const sortedCards = computed(() => {
 </script>
 
 <template>
-  <div class="flex-1 overflow-auto list-table-scroll">
+  <div class="flex-1 overflow-auto thin-scroll">
     <table class="w-full border-collapse text-left table-fixed">
       <!-- Column sizing -->
       <colgroup>
@@ -247,24 +247,24 @@ const sortedCards = computed(() => {
 
       <tbody>
         <tr
-          v-for="(card, idx) in sortedCards"
+          v-for="card in sortedCards"
           :key="card.id"
           class="list-row group cursor-pointer"
           :class="isDone(card) ? 'list-row-done' : ''"
-          :style="{ animationDelay: `${idx * 20}ms` }"
           @click="emit('card-click', card)"
         >
           <td
             v-for="(col, colIdx) in columns"
             :key="col.id"
-            class="py-2 text-[14px] relative"
+            class="py-2 text-base relative"
             :class="colIdx === 0 ? 'pl-3 pr-3' : 'px-3'"
           >
-            <!-- Priority left-edge bar (on first cell only) -->
+            <!-- Priority edge bar, first cell only. Rendered only for high and
+                 urgent — an unremarkable card carries no marks. -->
             <span
-              v-if="colIdx === 0"
+              v-if="colIdx === 0 && priorityBarClass(card.priority)"
               class="list-row-bar"
-              :style="{ backgroundColor: priorityColor(card.priority) }"
+              :class="priorityBarClass(card.priority)"
             />
 
             <ListCellDone
@@ -411,37 +411,33 @@ const sortedCards = computed(() => {
 </template>
 
 <style scoped>
-/* ─── Row styles ─── */
+/* ─── Rows ───────────────────────────────────────────────────────────────────
+   No zebra striping. At this row height stripes read as noise rather than as
+   structure, and the previous implementation was light-mode oklch math that
+   inverted in dark mode. A hairline plus a clear hover does the same job with
+   less ink — and there is now nothing theme-specific left to get wrong.
+
+   The entrance animation was also removed from this rule: it was unconditional,
+   so every inline field edit triggered a refetch that re-animated every row. */
 .list-row {
-  border-bottom: 1px solid oklch(0.92 0 0 / 0.8);
+  border-bottom: 1px solid var(--ui-border);
   transition: background-color 0.1s ease;
-  animation: list-row-enter 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
-}
-:is(.dark) .list-row {
-  border-bottom-color: oklch(0.28 0 0 / 0.6);
-}
-.list-row:nth-child(even) {
-  background: oklch(0.98 0 0 / 0.6);
-}
-:is(.dark) .list-row:nth-child(even) {
-  background: oklch(0.18 0 0 / 0.4);
 }
 .list-row:hover {
-  background: oklch(0.96 0.008 260);
-}
-:is(.dark) .list-row:hover {
-  background: oklch(0.22 0.01 260);
+  background: var(--ui-bg-muted);
 }
 
-/* ─── Done row dimming ─── */
+/* Done rows recede but stay readable — ListCellTitle already strikes the title
+   through, so the dimming does not need to carry the signal on its own. */
 .list-row-done {
-  opacity: 0.5;
+  opacity: 0.62;
 }
 .list-row-done:hover {
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
-/* ─── Priority left-edge bar ─── */
+/* ─── Priority left-edge bar ───────────────────────────────────────────────
+   Mirrored by KanbanCard so priority reads the same way in both views. */
 .list-row-bar {
   position: absolute;
   left: 0;
@@ -449,52 +445,18 @@ const sortedCards = computed(() => {
   bottom: 4px;
   width: 2.5px;
   border-radius: 0 2px 2px 0;
-  opacity: 0.35;
+  opacity: 0.5;
   transition: opacity 0.15s ease, width 0.15s ease;
 }
 .list-row:hover .list-row-bar {
-  opacity: 0.85;
+  opacity: 1;
   width: 3px;
 }
 
-/* ─── Staggered row entrance ─── */
-@keyframes list-row-enter {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ─── Ticket ID legibility ─── */
 .list-row .card-id {
-  opacity: 0.7;
-  font-size: 11.5px;
+  opacity: 0.75;
 }
 .list-row:hover .card-id {
-  opacity: 0.9;
-}
-
-/* ─── Thin scrollbar ─── */
-.list-table-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: oklch(0.6 0 0 / 0.12) transparent;
-}
-.list-table-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
-.list-table-scroll::-webkit-scrollbar-track { background: transparent; }
-.list-table-scroll::-webkit-scrollbar-thumb {
-  background: oklch(0.6 0 0 / 0.12);
-  border-radius: 99px;
-}
-</style>
-
-<style>
-/* ─── Remove popover auto-focus ring (unscoped — teleported content) ─── */
-.list-popover-menu button:focus,
-.list-popover-menu button:focus-visible {
-  outline: none;
+  opacity: 1;
 }
 </style>

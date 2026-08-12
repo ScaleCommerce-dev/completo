@@ -1,5 +1,9 @@
+// Project accent colours. User-facing only as a decorative tint per project, so
+// a fixed hex ramp is fine here — it is rendered through the `.swatch` classes
+// in main.css, which derive a readable foreground and fill for the active theme.
 export const ACCENT_COLORS = ['#6366f1', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#ec4899', '#06b6d4']
 
+// Offered to users when picking a status or tag colour.
 export const COLOR_PALETTE = [
   '#ef4444', '#f97316', '#eab308', '#22c55e',
   '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899',
@@ -7,24 +11,91 @@ export const COLOR_PALETTE = [
   '#4338ca', '#7e22ce', '#be185d', '#334155'
 ]
 
+// ─── Priority ───────────────────────────────────────────────────────────────
+//
+// Priority is app-defined, not user data, so it is expressed as semantic classes
+// rather than hex. That fixes two things at once: the colours now follow the
+// theme (the old `#94a3b8` low-priority hex measured ~2.3:1 on a dark card, well
+// under AA), and priority stops competing with the brand — `medium` used to be
+// indigo, which on a board where most cards are medium meant the accent colour
+// was carrying no information at all.
+//
+// Only high and urgent earn colour. Low and medium are deliberately neutral: on
+// a board the question is "what needs attention", and 9 identical indigo
+// "medium" rows answer it with noise.
+//
+// The `medium` icon was `i-lucide-grip-horizontal` — six dots, which on a
+// draggable card reads unmistakably as a drag handle. `equal` says "middle".
 export const PRIORITIES = [
-  { value: 'low', label: 'Low', icon: 'i-lucide-chevron-down', color: '#94a3b8' },
-  { value: 'medium', label: 'Medium', icon: 'i-lucide-grip-horizontal', color: '#6366f1' },
-  { value: 'high', label: 'High', icon: 'i-lucide-chevron-up', color: '#f97316' },
-  { value: 'urgent', label: 'Urgent', icon: 'i-lucide-alert-circle', color: '#ef4444' }
+  { value: 'low', label: 'Low', icon: 'i-lucide-chevron-down' },
+  { value: 'medium', label: 'Medium', icon: 'i-lucide-equal' },
+  { value: 'high', label: 'High', icon: 'i-lucide-chevron-up' },
+  { value: 'urgent', label: 'Urgent', icon: 'i-lucide-alert-circle' }
 ] as const
 
-export const PRIORITY_COLOR_MAP: Record<string, string> = Object.fromEntries(
-  PRIORITIES.map(p => [p.value, p.color])
-)
+export type Priority = typeof PRIORITIES[number]['value']
 
-export function priorityColor(priority: string): string {
-  return PRIORITY_COLOR_MAP[priority] || '#94a3b8'
+const PRIORITY_TEXT: Record<string, string> = {
+  low: 'text-dimmed',
+  medium: 'text-muted',
+  high: 'text-warning',
+  urgent: 'text-error'
+}
+
+// Edge bar on kanban cards and list rows. Empty for low/medium — the caller
+// renders no bar at all rather than a neutral one, so an unremarkable card
+// carries no marks.
+const PRIORITY_BAR: Record<string, string> = {
+  low: '',
+  medium: '',
+  high: 'bg-warning',
+  urgent: 'bg-error'
+}
+
+// Data-visualisation fills (ProfileActivity's stacked bar), where all four
+// levels must be distinguishable from each other rather than by urgency.
+const PRIORITY_CHART: Record<string, string> = {
+  low: 'bg-accented',
+  medium: 'bg-primary/60',
+  high: 'bg-warning',
+  urgent: 'bg-error'
+}
+
+/** Semantic text colour for a priority icon or label. */
+export function priorityTextClass(priority: string): string {
+  return PRIORITY_TEXT[priority] || 'text-dimmed'
+}
+
+/** Edge-bar fill. Empty string means "draw no bar". */
+export function priorityBarClass(priority: string): string {
+  return PRIORITY_BAR[priority] ?? ''
+}
+
+/** Distinguishable fill for charts. */
+export function priorityChartClass(priority: string): string {
+  return PRIORITY_CHART[priority] || 'bg-accented'
+}
+
+export function priorityLabel(priority: string): string {
+  return PRIORITIES.find(p => p.value === priority)?.label || priority
 }
 
 export function priorityIcon(priority: string): string {
   return PRIORITIES.find(p => p.value === priority)?.icon || 'i-lucide-equal'
 }
+
+/**
+ * Priority colour for a UButton/UDropdownMenu `color` prop. Mirrors
+ * `priorityTextClass` in Nuxt UI's vocabulary — this used to be declared
+ * independently in KanbanCard, CardModal and the card detail page.
+ */
+export function priorityUiColor(priority: string): 'error' | 'warning' | 'neutral' {
+  if (priority === 'urgent') return 'error'
+  if (priority === 'high') return 'warning'
+  return 'neutral'
+}
+
+// ─── Due dates ──────────────────────────────────────────────────────────────
 
 export type DueDateStatus = 'overdue' | 'due-soon' | 'future'
 
@@ -41,11 +112,11 @@ export function getDueDateStatus(dueDate: string | Date | null | undefined): Due
   return 'future'
 }
 
-export function dueDateColor(status: DueDateStatus | null): string {
+export function dueDateTextClass(status: DueDateStatus | null): string {
   switch (status) {
-    case 'overdue': return '#ef4444'
-    case 'due-soon': return '#f97316'
-    default: return '#64748b'
+    case 'overdue': return 'text-error'
+    case 'due-soon': return 'text-warning'
+    default: return 'text-muted'
   }
 }
 

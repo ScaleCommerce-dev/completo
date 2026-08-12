@@ -39,7 +39,7 @@ function onAreaDblClick(e: MouseEvent) {
 
 <template>
   <div
-    class="kanban-col-enter flex flex-col w-[280px] shrink-0 rounded-xl bg-zinc-50/80 dark:bg-zinc-800/30 max-h-full border border-zinc-200/50 dark:border-zinc-700/30"
+    class="rise-in flex flex-col w-[280px] shrink-0 rounded-xl bg-zinc-50/80 dark:bg-zinc-800/30 max-h-full border border-zinc-200/50 dark:border-zinc-700/30"
     :style="{ 'animation-delay': `${0}ms` }"
   >
     <!-- Column header -->
@@ -101,7 +101,7 @@ function onAreaDblClick(e: MouseEvent) {
         >
           <template #item="{ element: card, index }">
             <div
-              class="kanban-card-enter"
+              class="rise-in"
               :style="{ 'animation-delay': `${index * 30}ms` }"
             >
               <KanbanCard

@@ -90,9 +90,14 @@ export default defineNuxtConfig({
       // The default glob is templates only (`**/*.{vue,jsx,tsx,md,mdc,mdx,yml,yaml}`), so
       // icon names declared in a plain .ts module are never seen and render as blanks —
       // silently, since a missing icon is not an error. `shared/utils/list-fields.ts`
-      // carries one per list column, hence the extra entry. Keep the default glob intact.
+      // carries one per list column and `app/utils/constants.ts` carries the priority
+      // icons, hence the extra entries. Keep the default glob intact.
       scan: {
-        globInclude: ['**/*.{vue,jsx,tsx,md,mdc,mdx,yml,yaml}', 'shared/utils/*.ts']
+        globInclude: [
+          '**/*.{vue,jsx,tsx,md,mdc,mdx,yml,yaml}',
+          'shared/utils/*.ts',
+          'app/utils/*.ts'
+        ]
       }
     },
     collections: ['lucide']

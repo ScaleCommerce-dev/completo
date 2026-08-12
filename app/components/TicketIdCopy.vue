@@ -35,7 +35,7 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
       <button
         type="button"
         class="p-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700/50 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
-        :class="{ 'text-green-500!': copiedState === 'url' }"
+        :class="{ 'text-success!': copiedState === 'url' }"
         :title="copiedState === 'url' ? 'Copied!' : 'Copy link'"
         @click.stop="copyUrl"
       >
@@ -47,7 +47,7 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
       <button
         type="button"
         class="p-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700/50 hover:text-indigo-500 dark:hover:text-indigo-400 transition-all"
-        :class="{ 'text-green-500!': copiedState === 'id' }"
+        :class="{ 'text-success!': copiedState === 'id' }"
         :title="copiedState === 'id' ? 'Copied!' : 'Copy ticket ID'"
         @click.stop="copyId"
       >

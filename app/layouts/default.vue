@@ -33,7 +33,7 @@ const userMenuItems = computed(() => [
     <UDashboardSidebar
       v-model:collapsed="sidebarCollapsed"
       collapsible
-      class="!min-h-0 !h-full sidebar-collapse-toggle relative !overflow-visible"
+      class="!min-h-0 !h-full relative !overflow-visible"
     >
       <template #header="{ collapsed }">
         <div

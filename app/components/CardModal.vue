@@ -134,18 +134,11 @@ async function handleBeforeUpload() {
   ensureCardPromise = null
 }
 
-const priorityColorMap: Record<string, 'error' | 'warning' | 'primary' | 'neutral'> = {
-  urgent: 'error',
-  high: 'warning',
-  medium: 'primary',
-  low: 'neutral'
-}
-
 const priorityMenuItems = computed(() => [[
   ...PRIORITIES.slice().reverse().map(p => ({
     label: p.label,
     icon: p.icon,
-    color: priorityColorMap[p.value],
+    color: priorityUiColor(p.value),
     type: 'checkbox' as const,
     checked: priority.value === p.value,
     onSelect() {
@@ -499,7 +492,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               <button
                 type="button"
                 class="flex items-center gap-1.5 text-[13px] font-medium capitalize transition-all hover:opacity-80"
-                :style="{ color: priorityColor(priority) }"
+                :class="priorityTextClass(priority)"
               >
                 <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
                   :name="priorityIcon(priority)"
@@ -545,8 +538,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               <button
                 type="button"
                 class="flex items-center gap-1 text-[13px] font-medium transition-all hover:text-indigo-500"
-                :style="selectedDueDate ? { color: dueDateColor(getDueDateStatus(selectedDueDate)) } : {}"
-                :class="!selectedDueDate ? 'text-zinc-400 dark:text-zinc-500' : ''"
+                :class="selectedDueDate ? dueDateTextClass(getDueDateStatus(selectedDueDate)) : 'text-dimmed'"
               >
                 {{ selectedDueDate ? formatDueDate(selectedDueDate) : 'Set date' }}
                 <UIcon

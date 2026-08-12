@@ -32,19 +32,12 @@ const assigneeInitials = computed(() => {
   return name.charAt(0).toUpperCase() || '?'
 })
 
-const priorityColorMap: Record<string, 'error' | 'warning' | 'primary' | 'neutral'> = {
-  urgent: 'error',
-  high: 'warning',
-  medium: 'primary',
-  low: 'neutral'
-}
-
 function priorityMenuItems() {
   return [[
     ...PRIORITIES.slice().reverse().map(p => ({
       label: p.label,
       icon: p.icon,
-      color: priorityColorMap[p.value],
+      color: priorityUiColor(p.value),
       type: 'checkbox' as const,
       checked: props.card.priority === p.value,
       onSelect() {
@@ -101,7 +94,7 @@ const cardEl = ref<HTMLElement>()
 <template>
   <div
     ref="cardEl"
-    class="kanban-card cursor-pointer rounded-[10px] bg-white dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/60 p-3 group relative"
+    class="kanban-card lift cursor-pointer rounded-lg bg-white dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/60 p-3 group relative"
     @click="$emit('click')"
   >
     <!-- Expand to detail page -->
@@ -163,8 +156,7 @@ const cardEl = ref<HTMLElement>()
           <button
             type="button"
             class="flex items-center justify-center w-5 h-5 cursor-pointer transition-all hover:ring-2 hover:ring-indigo-500/20 rounded-md"
-            :class="card.priority === 'urgent' ? 'priority-urgent-pulse' : ''"
-            :style="{ color: priorityColor(card.priority) }"
+            :class="[priorityTextClass(card.priority), card.priority === 'urgent' ? 'priority-urgent-pulse' : '']"
             :title="card.priority"
             @click.stop
           >
@@ -191,7 +183,7 @@ const cardEl = ref<HTMLElement>()
           <button
             type="button"
             class="flex items-center gap-1 whitespace-nowrap text-[11px] font-medium cursor-pointer transition-all hover:ring-2 hover:ring-indigo-500/20 rounded-md px-1 py-0.5 -mx-1 -my-0.5"
-            :style="{ color: dueDateColor(getDueDateStatus(card.dueDate)) }"
+            :class="dueDateTextClass(getDueDateStatus(card.dueDate))"
             :title="formatDueDate(card.dueDate)"
             @click.stop
           >

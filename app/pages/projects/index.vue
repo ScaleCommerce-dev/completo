@@ -189,7 +189,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         v-for="(project, index) in projects"
         :key="project.id"
         :to="`/projects/${project.slug}`"
-        class="group block kanban-card-enter"
+        class="group block rise-in"
         :style="{ animationDelay: `${index * 40}ms` }"
       >
         <div
