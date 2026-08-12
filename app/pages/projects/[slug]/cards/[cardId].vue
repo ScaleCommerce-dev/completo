@@ -335,21 +335,24 @@ async function confirmDelete() {
 
           <!-- Actions -->
           <div class="px-4 py-3 border-t border-muted flex flex-col gap-2">
-            <button
+            <UButton
               type="submit"
-              class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              :disabled="!title.trim() || !isDirty || saving"
+              label="Save"
+              block
+              :loading="saving"
+              :disabled="!title.trim() || !isDirty"
             >
-              <UIcon
-                v-if="saving"
-                name="i-lucide-loader-2"
-                class="text-base animate-spin"
-              />
-              <template v-else>
-                Save
-                <kbd class="ml-2 text-xs font-mono opacity-75 bg-white/15 px-1.5 py-0.5 rounded-md">Cmd+Enter</kbd>
+              <template #trailing>
+                <UKbd
+                  value="meta"
+                  size="sm"
+                />
+                <UKbd
+                  value="enter"
+                  size="sm"
+                />
               </template>
-            </button>
+            </UButton>
 
             <!-- Delete confirmation -->
             <div

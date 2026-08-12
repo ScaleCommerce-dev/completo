@@ -25,9 +25,13 @@ export default defineAppConfig({
 
     // Buttons carry the app's shape language: 10px corners, semibold labels.
     // Matches what ~50 hand-rolled `<button>`s were doing by hand.
+    //
+    // The disabled opacity is deliberately lower than the theme's 0.75: at that
+    // value a solid primary button still reads as active, which matters most on
+    // the Save buttons that stay disabled until something is actually dirty.
     button: {
       slots: {
-        base: 'rounded-lg font-semibold'
+        base: 'rounded-lg font-semibold disabled:opacity-45 aria-disabled:opacity-45'
       },
       defaultVariants: {
         size: 'md'

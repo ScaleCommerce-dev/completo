@@ -275,19 +275,12 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
             >
               Cancel
             </button>
-            <button
-              type="button"
-              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              :disabled="!modalName.trim() || !modalPrompt.trim() || modalSaving"
+            <UButton
+              :label="isEdit ? 'Save' : 'Create'"
+              :loading="modalSaving"
+              :disabled="!modalName.trim() || !modalPrompt.trim()"
               @click="saveSkill"
-            >
-              <UIcon
-                v-if="modalSaving"
-                name="i-lucide-loader-2"
-                class="text-base animate-spin"
-              />
-              {{ isEdit ? 'Save' : 'Create' }}
-            </button>
+            />
           </div>
         </div>
       </template>
