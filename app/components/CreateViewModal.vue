@@ -365,7 +365,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 <div
                   class="flex items-center justify-center w-5 h-5 rounded-md border-2 transition-colors shrink-0"
                   :class="selectedBoardColumns.has(status.id)
-                    ? 'bg-indigo-500 border-primary'
+                    ? 'bg-primary border-primary'
                     : 'border-accented'"
                 >
                   <UIcon
@@ -393,7 +393,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 <div
                   class="flex items-center justify-center w-5 h-5 rounded-md border-2 transition-colors shrink-0"
                   :class="selectedListFields.has(f.field)
-                    ? 'bg-indigo-500 border-primary'
+                    ? 'bg-primary border-primary'
                     : 'border-accented'"
                 >
                   <UIcon

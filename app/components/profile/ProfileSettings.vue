@@ -35,21 +35,15 @@ function formatDate(iso: string): string {
     <div class="rounded-xl border border-default bg-default shadow-sm overflow-hidden">
       <!-- Identity header: Avatar + Name + Email -->
       <div class="flex items-center gap-4 px-5 pt-5 pb-4">
-        <!-- Avatar -->
-        <div class="relative shrink-0">
-          <img
-            v-if="hasGravatar && !gravatarOverride"
-            :src="gravatarUrl"
-            alt="Profile photo"
-            class="w-16 h-16 rounded-full ring-[3px] ring-[var(--ui-bg)] shadow-md shadow-zinc-900/8 dark:shadow-black/20 object-cover"
-          >
-          <div
-            v-else
-            class="w-16 h-16 rounded-full ring-[3px] ring-[var(--ui-bg)] shadow-md shadow-zinc-900/8 dark:shadow-black/20 bg-gradient-to-br from-indigo-400 via-violet-400 to-purple-500 flex items-center justify-center"
-          >
-            <span class="text-2xl font-bold text-white/90 leading-none select-none">{{ profileName.charAt(0)?.toUpperCase() || '?' }}</span>
-          </div>
-        </div>
+        <!-- The initials fallback was a hand-rolled gradient circle; UAvatar
+             already resolves src-or-initials, and the brand gradient belongs to
+             the logo and the drag, not to every avatar. -->
+        <UAvatar
+          :src="(hasGravatar && !gravatarOverride) ? gravatarUrl : undefined"
+          :alt="profileName || 'You'"
+          size="3xl"
+          class="shrink-0 ring-[3px] ring-[var(--ui-bg)] shadow-raise"
+        />
         <!-- Name + Email -->
         <div class="flex-1 min-w-0">
           <input

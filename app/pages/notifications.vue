@@ -19,12 +19,14 @@ const notificationIcon: Record<string, string> = {
   mentioned: 'i-lucide-at-sign'
 }
 
-const notificationIconColor: Record<string, string> = {
-  card_assigned: '#6366f1',
-  member_added: '#10b981',
-  role_changed: '#f59e0b',
-  member_removed: '#ef4444',
-  mentioned: '#06b6d4'
+// Token classes, not hex: the previous values were single-valued across both
+// themes, and the '#71717a' fallback for an unknown type was a fixed mid-grey.
+const notificationIconTone: Record<string, string> = {
+  card_assigned: 'text-primary',
+  member_added: 'text-success',
+  role_changed: 'text-warning',
+  member_removed: 'text-error',
+  mentioned: 'text-info'
 }
 
 const notificationIconBg: Record<string, string> = {
@@ -145,54 +147,45 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
             <div class="w-2 flex-shrink-0 mt-3.5">
               <div
                 v-if="!n.readAt"
-                class="w-2 h-2 rounded-full bg-indigo-500"
+                class="w-2 h-2 rounded-full bg-primary"
               />
             </div>
 
-            <!-- Actor avatar or type icon -->
-            <div class="relative flex-shrink-0 mt-0.5">
-              <!-- Avatar with icon overlay -->
-              <div
-                v-if="n.actorAvatarUrl"
-                class="w-8 h-8 rounded-full ring-2 ring-[var(--ui-bg)] overflow-hidden"
-              >
-                <img
-                  :src="n.actorAvatarUrl"
-                  :alt="n.actorName || ''"
-                  class="w-full h-full object-cover"
-                >
-              </div>
-              <div
-                v-else-if="n.actorName"
-                class="w-8 h-8 rounded-full ring-2 ring-[var(--ui-bg)] bg-gradient-to-br from-indigo-400 via-violet-400 to-purple-500 flex items-center justify-center"
-              >
-                <span class="text-xs font-bold text-white/90 leading-none select-none">
-                  {{ n.actorName.charAt(0).toUpperCase() }}
-                </span>
-              </div>
-              <div
+            <!-- Who did it, with what kind of event badged on the corner. The
+                 initials fallback was a hand-rolled gradient circle; UAvatar
+                 already resolves src-or-initials, and the brand gradient is
+                 reserved for the logo and the drag. -->
+            <div class="relative shrink-0 mt-0.5">
+              <UAvatar
+                v-if="n.actorName"
+                :src="n.actorAvatarUrl || undefined"
+                :alt="n.actorName"
+                size="sm"
+                class="ring-2 ring-[var(--ui-bg)]"
+              />
+              <span
                 v-else
-                class="w-8 h-8 rounded-full flex items-center justify-center"
+                class="flex items-center justify-center size-8 rounded-full"
                 :class="notificationIconBg[n.type] || 'bg-elevated'"
               >
                 <UIcon
                   :name="notificationIcon[n.type] || 'i-lucide-bell'"
                   class="text-base"
-                  :style="{ color: notificationIconColor[n.type] || '#71717a' }"
+                  :class="notificationIconTone[n.type] || 'text-dimmed'"
                 />
-              </div>
-              <!-- Type badge on avatar -->
-              <div
+              </span>
+
+              <span
                 v-if="n.actorName"
-                class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-[var(--ui-bg)]"
+                class="absolute -bottom-0.5 -right-0.5 flex items-center justify-center size-4 rounded-full ring-2 ring-[var(--ui-bg)]"
                 :class="notificationIconBg[n.type] || 'bg-elevated'"
               >
                 <UIcon
                   :name="notificationIcon[n.type] || 'i-lucide-bell'"
                   class="text-2xs"
-                  :style="{ color: notificationIconColor[n.type] || '#71717a' }"
+                  :class="notificationIconTone[n.type] || 'text-dimmed'"
                 />
-              </div>
+              </span>
             </div>
 
             <!-- Content -->
