@@ -35,6 +35,12 @@ const statusesData = computed(() => cardData.value?.statuses || [])
 const membersData = computed(() => cardData.value?.members || [])
 const projectKey = computed(() => cardData.value?.project?.key || 'TK')
 
+useSeoMeta({
+  title: () => card.value
+    ? `${formatTicketId(projectKey.value, card.value.id)} ${card.value.title} · Completo`
+    : 'Completo'
+})
+
 const projectTagsData = computed(() => cardData.value?.projectTags || [])
 // Owners (and admins, who resolve to a synthetic 'owner') may delete others' comments
 const canModerateComments = computed(() => cardData.value?.role === 'owner')

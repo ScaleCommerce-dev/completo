@@ -27,6 +27,10 @@ if (fetchError.value) {
 
 // Permissions
 const { user } = useUserSession()
+useSeoMeta({
+  title: () => project.value ? `${project.value.name} · Completo` : 'Completo'
+})
+
 const isOwnerOrAdmin = computed(() => project.value?.role === 'owner' || project.value?.role === 'admin')
 
 // Derived data
