@@ -1,4 +1,5 @@
-import { sqliteTable, text, integer, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
+import { sql } from 'drizzle-orm'
+import { sqliteTable, text, integer, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -12,7 +13,13 @@ export const users = sqliteTable('users', {
   emailVerifiedAt: integer('email_verified_at', { mode: 'timestamp' }),
   lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
-})
+}, table => [
+  // The `.unique()` above is case-sensitive (no COLLATE NOCASE), which let one person hold
+  // two rows — `foo@x` and `Foo@x` — when an endpoint forgot to normalise. Every write path
+  // now lowercases, and this makes the database refuse the mistake rather than trusting all
+  // of them to keep remembering.
+  uniqueIndex('users_email_lower_unique').on(sql`lower(${table.email})`)
+])
 
 export const projects = sqliteTable('projects', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),

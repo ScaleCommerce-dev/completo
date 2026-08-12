@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { DOMAIN_RESTRICTED_MESSAGE } from '#shared/utils/auth-messages'
+
 definePageMeta({ layout: 'auth' })
 
 const route = useRoute()
@@ -6,7 +8,7 @@ const invitationToken = computed(() => route.query.invitation as string || '')
 const oauthError = computed(() => {
   if (route.query.error === 'oauth') return 'Sign-in failed. Please try again.'
   if (route.query.error === 'oauth-suspended') return 'Your account has been suspended.'
-  if (route.query.error === 'oauth-domain') return 'Registration is restricted to approved email domains.'
+  if (route.query.error === 'oauth-domain') return DOMAIN_RESTRICTED_MESSAGE
   return ''
 })
 

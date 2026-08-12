@@ -28,6 +28,18 @@ export async function handleOAuthUser(event: H3Event, info: OAuthUserInfo) {
     if (!existing.avatarUrl && info.avatarUrl) {
       updates.avatarUrl = info.avatarUrl
     }
+    // An admin-created account claimed via OAuth instead of the setup link. The provider has
+    // proven ownership of the address, so the invitation is fulfilled — clear the markers,
+    // or the account stays badged "pending setup" in user management forever while its owner
+    // signs in daily. It also leaves `!invited` in place, which blocks password reset.
+    if (isPendingSetup(existing)) {
+      updates.passwordHash = '!oauth'
+      updates.emailVerifiedAt = new Date()
+      // Any outstanding setup link is now spent.
+      db.delete(schema.emailVerificationTokens)
+        .where(eq(schema.emailVerificationTokens.userId, existing.id))
+        .run()
+    }
     db.update(schema.users)
       .set(updates)
       .where(eq(schema.users.id, existing.id))

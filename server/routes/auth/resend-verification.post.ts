@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   } else {
     user = db.select()
       .from(schema.users)
-      .where(eq(schema.users.email, email!))
+      .where(eq(schema.users.email, email!.trim().toLowerCase()))
       .get()
   }
 

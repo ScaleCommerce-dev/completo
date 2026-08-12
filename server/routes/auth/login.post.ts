@@ -7,7 +7,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Email and password are required' })
   }
 
-  const user = db.select().from(schema.users).where(eq(schema.users.email, email)).get()
+  // Normalised to match how register/OAuth/admin-create store it — `users.email` is UNIQUE
+  // but not COLLATE NOCASE, so an exact-case lookup made sign-in capitalisation-sensitive.
+  const user = db.select().from(schema.users).where(eq(schema.users.email, email.trim().toLowerCase())).get()
   if (!user || !await verifyPassword(user.passwordHash, password)) {
     throw createError({ statusCode: 401, message: 'Invalid email or password' })
   }
