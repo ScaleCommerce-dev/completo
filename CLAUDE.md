@@ -213,11 +213,13 @@ zdev migrate             # apply migrations; also: generate | push | seed | clea
 
 ### Changelog
 
-`CHANGELOG.md` uses `## vX.Y.Z` sections (latest on top) with `### App` and `### CLI` subsections. When making changes, add entries under `## Unreleased` at the top. If no `## Unreleased` section exists, create one. Use concise, user-facing language (not commit messages). At release time, rename `## Unreleased` to `## vX.Y.Z` with the date and add a fresh `## Unreleased` section.
+`CHANGELOG.md` uses `## vX.Y.Z` sections (latest on top) with `### App` and `### CLI` subsections. When making changes, add entries under `## Unreleased` at the top. If no `## Unreleased` section exists, create one. Use concise, user-facing language (not commit messages). At release time, rename `## Unreleased` to `## vX.Y.Z` with the date — and **don't** add an empty `## Unreleased` back. A heading with nothing under it reads as "a release is pending" to anyone landing on the file, which is the opposite of what it means; the next change to land creates the section, as above. (Both v0.7.0 and v0.8.0 shipped with that empty heading at the top of `main` because this used to say otherwise.)
 
 ### Releasing
 
 **Before tagging a release:** bump `version` in `package.json`, rename `## Unreleased` to `## vX.Y.Z` in `CHANGELOG.md`, update `README.md` with any user-facing changes, and commit those changes.
+
+The rename is what produces the release notes, and skipping it fails quietly: `release-build.yml` pulls the body with `awk "/^## ${TAG}/…"`, so with no section matching the tag it falls back to a body of just `Release vX.Y.Z` and publishes anyway. Check with `awk "/^## v0.8.0/{f=1;next} /^## v/{if(f)exit} f" CHANGELOG.md` before tagging. Anything above the newest version heading — an in-progress `## Unreleased` — is never picked up, so it can't leak into a release.
 
 **To release:** `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag push triggers two workflows:
 - **CI** (`ci.yml`) — runs lint + tests against the tag.
