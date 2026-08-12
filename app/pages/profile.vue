@@ -1,5 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
+useSeoMeta({ title: 'Profile · Completo' })
 
 const { public: { appVersion } } = useRuntimeConfig()
 
@@ -21,12 +22,11 @@ const { data: profileData } = useFetch<{
 </script>
 
 <template>
-  <div class="px-8 pt-8 max-w-[640px]">
-    <!-- Header -->
-    <div class="flex items-center justify-end mb-4">
-      <NotificationBell />
-    </div>
-
+  <UiPage
+    title="Profile"
+    description="Your account, security and API tokens"
+    width="narrow"
+  >
     <ProfileSettings :profile-data="profileData" />
     <ProfileActivity
       v-if="profileData"
@@ -42,5 +42,5 @@ const { data: profileData } = useFetch<{
     >
       Completo v{{ appVersion }}
     </div>
-  </div>
+  </UiPage>
 </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
+useSeoMeta({ title: 'Settings · Completo' })
 
 const { data: settings, refresh } = await useFetch<{ allowedEmailDomains: string[] }>('/api/admin/settings')
 
@@ -50,19 +51,11 @@ const hasChanges = computed(() => {
 </script>
 
 <template>
-  <div class="p-6 max-w-3xl h-full overflow-y-auto">
-    <div class="flex items-start justify-between mb-8">
-      <div>
-        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-highlighted">
-          Global Settings
-        </h1>
-        <p class="text-base text-muted mt-1">
-          System-wide configuration for your Completo instance
-        </p>
-      </div>
-      <NotificationBell />
-    </div>
-
+  <UiPage
+    title="Settings"
+    description="Instance-wide configuration"
+    width="narrow"
+  >
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
@@ -123,5 +116,5 @@ const hasChanges = computed(() => {
         </div>
       </template>
     </UCard>
-  </div>
+  </UiPage>
 </template>

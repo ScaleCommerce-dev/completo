@@ -286,411 +286,394 @@ async function confirmDelete() {
 </script>
 
 <template>
-  <div class="min-h-full">
-    <div class="max-w-[1080px] mx-auto px-5 py-6">
-      <!-- Breadcrumb -->
-      <div class="flex items-center justify-between mb-5">
-        <UBreadcrumb
-          :items="[
-            { label: cardData?.project?.name || '', to: `/projects/${projectSlug}`, icon: 'i-lucide-folder' },
-            { label: card ? formatTicketId(projectKey, card.id) : '', icon: 'i-lucide-square-check-big' }
-          ]"
-        />
-        <NotificationBell />
+  <UiPage width="wide">
+    <template #title>
+      <UBreadcrumb
+        :items="[
+          { label: cardData?.project?.name || '', to: `/projects/${projectSlug}`, icon: 'i-lucide-folder' },
+          { label: card ? formatTicketId(projectKey, card.id) : '', icon: 'i-lucide-square-check-big' }
+        ]"
+      />
+    </template>
+
+    <div
+      v-if="status === 'pending'"
+      class="flex flex-col lg:flex-row gap-6"
+    >
+      <div class="flex-1 flex flex-col gap-4">
+        <USkeleton class="h-6 w-32" />
+        <USkeleton class="h-9 w-3/4" />
+        <USkeleton class="h-64 w-full" />
       </div>
+      <USkeleton class="hidden lg:block h-48 w-[260px] shrink-0" />
+    </div>
 
-      <!-- Loading state -->
-      <div
-        v-if="status === 'pending'"
-        class="flex gap-6"
-      >
-        <div class="flex-1 flex flex-col gap-4">
-          <div class="h-8 w-32 bg-accented rounded-md animate-pulse" />
-          <div class="h-10 w-3/4 bg-accented rounded-md animate-pulse" />
-          <div class="h-64 w-full bg-accented rounded-md animate-pulse" />
-        </div>
-        <div class="hidden lg:block w-[260px] shrink-0">
-          <div class="h-48 bg-accented rounded-xl animate-pulse" />
-        </div>
-      </div>
+    <UEmpty
+      v-else-if="!card && status === 'success'"
+      class="py-16"
+      icon="i-lucide-search-x"
+      title="Card not found"
+      description="It may have been deleted, or the ticket ID is wrong."
+      :actions="[{
+        label: 'Back to project',
+        icon: 'i-lucide-arrow-left',
+        variant: 'subtle',
+        to: `/projects/${projectSlug}`
+      }]"
+    />
 
-      <!-- Card not found -->
-      <div
-        v-else-if="!card && status === 'success'"
-        class="text-center py-16"
-      >
-        <UIcon
-          name="i-lucide-search-x"
-          class="text-2xl text-dimmed mb-3"
-        />
-        <p class="text-base text-muted">
-          Card not found
-        </p>
-        <NuxtLink
-          :to="`/projects/${projectSlug}`"
-          class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary mt-2 transition-colors"
-        >
-          <UIcon
-            name="i-lucide-arrow-left"
-            class="text-sm"
-          />
-          Back to project
-        </NuxtLink>
-      </div>
+    <!-- Card detail: two-panel layout -->
+    <form
+      v-else-if="card"
+      class="flex flex-col lg:flex-row gap-6 lg:items-start"
+      @submit.prevent="submit"
+    >
+      <!-- ═══ SIDEBAR — properties, priority, actions (sticky on desktop) ═══ -->
+      <aside class="w-full lg:w-[260px] shrink-0 lg:order-2 lg:sticky lg:top-4">
+        <div class="rounded-xl border border-default bg-default shadow-sm overflow-hidden">
+          <!-- Card ID header -->
+          <div class="px-4 pt-3.5 pb-3 border-b border-muted">
+            <TicketIdCopy
+              :project-key="projectKey"
+              :project-slug="projectSlug"
+              :card-id="card.id"
+              variant="pill"
+            />
+          </div>
 
-      <!-- Card detail: two-panel layout -->
-      <form
-        v-else-if="card"
-        class="flex flex-col lg:flex-row gap-6 lg:items-start"
-        @submit.prevent="submit"
-      >
-        <!-- ═══ SIDEBAR — properties, priority, actions (sticky on desktop) ═══ -->
-        <aside class="w-full lg:w-[260px] shrink-0 lg:order-2 lg:sticky lg:top-4">
-          <div class="rounded-xl border border-default bg-default shadow-sm overflow-hidden">
-            <!-- Card ID header -->
-            <div class="px-4 pt-3.5 pb-3 border-b border-muted">
-              <TicketIdCopy
-                :project-key="projectKey"
-                :project-slug="projectSlug"
-                :card-id="card.id"
-                variant="pill"
-              />
-            </div>
-
-            <!-- Properties -->
-            <div class="divide-y divide-default">
-              <!-- Status -->
-              <div class="flex items-center gap-2 px-4 py-2.5">
-                <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Status</span>
-                <UDropdownMenu
-                  :items="statusMenuItems"
-                  :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
-                >
-                  <button
-                    type="button"
-                    class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all hover:bg-elevated text-default"
-                  >
-                    <span class="w-[13px] flex items-center justify-center shrink-0"><span
-                      class="w-2 h-2 rounded-full"
-                      :style="{ backgroundColor: selectedStatusColor }"
-                    /></span>
-                    {{ selectedStatusLabel }}
-                    <UIcon
-                      name="i-lucide-chevron-down"
-                      class="text-2xs opacity-50"
-                    />
-                  </button>
-                  <template #item="{ item }">
-                    <span class="flex items-center gap-1.5">
-                      <span
-                        class="w-2 h-2 rounded-full shrink-0 inline-block"
-                        :style="{ backgroundColor: item.color ?? undefined }"
-                      />
-                      <span class="truncate">{{ item.label }}</span>
-                    </span>
-                  </template>
-                </UDropdownMenu>
-              </div>
-
-              <!-- Assignee -->
-              <div class="flex items-center gap-2 px-4 py-2.5">
-                <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Assignee</span>
-                <UDropdownMenu
-                  :items="assigneeMenuItems"
-                  :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
-                >
-                  <button
-                    type="button"
-                    class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all hover:bg-elevated text-default"
-                  >
-                    <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
-                      name="i-lucide-user"
-                      class="text-sm"
-                      :class="selectedAssigneeId === UNASSIGNED ? 'text-dimmed' : 'text-primary'"
-                    /></span>
-                    {{ selectedAssigneeLabel }}
-                    <UIcon
-                      name="i-lucide-chevron-down"
-                      class="text-2xs opacity-50"
-                    />
-                  </button>
-                </UDropdownMenu>
-              </div>
-
-              <!-- Priority -->
-              <div class="flex items-center gap-2 px-4 py-2.5">
-                <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Priority</span>
-                <UDropdownMenu
-                  :items="priorityMenuItems"
-                  :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
-                >
-                  <button
-                    type="button"
-                    class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium capitalize transition-all hover:bg-elevated"
-                    :class="priorityTextClass(priority)"
-                  >
-                    <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
-                      :name="priorityIcon(priority)"
-                      class="text-sm"
-                    /></span>
-                    {{ priority }}
-                    <UIcon
-                      name="i-lucide-chevron-down"
-                      class="text-2xs opacity-50"
-                    />
-                  </button>
-                </UDropdownMenu>
-              </div>
-
-              <!-- Due Date -->
-              <div class="flex items-center gap-2 px-4 py-2.5">
-                <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Due</span>
-                <DueDatePicker
-                  v-model:open="dueDateOpen"
-                  :model-value="selectedDueDate"
-                  :popover-options="{ align: 'start', side: 'bottom', sideOffset: 4 }"
-                  @update:model-value="selectedDueDate = $event"
-                >
-                  <button
-                    type="button"
-                    class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all hover:bg-elevated"
-                    :class="selectedDueDate ? dueDateTextClass(getDueDateStatus(selectedDueDate)) : 'text-dimmed'"
-                  >
-                    <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
-                      :name="selectedDueDate ? dueDateIcon(getDueDateStatus(selectedDueDate)) : 'i-lucide-calendar'"
-                      class="text-sm"
-                    /></span>
-                    {{ selectedDueDate ? formatDueDate(selectedDueDate) : 'Set date' }}
-                    <UIcon
-                      name="i-lucide-chevron-down"
-                      class="text-2xs opacity-50"
-                    />
-                  </button>
-                </DueDatePicker>
-              </div>
-
-              <!-- Tags -->
-              <div
-                v-if="projectTagsData.length"
-                class="flex items-center gap-2 px-4 py-2.5"
+          <!-- Properties -->
+          <div class="divide-y divide-default">
+            <!-- Status -->
+            <div class="flex items-center gap-2 px-4 py-2.5">
+              <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Status</span>
+              <UDropdownMenu
+                :items="statusMenuItems"
+                :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
               >
-                <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Tags</span>
-                <UPopover :content="{ align: 'start', side: 'bottom', sideOffset: 4 }">
-                  <button
-                    type="button"
-                    class="flex flex-wrap gap-1 items-center rounded-md px-1.5 py-0.5 -mx-1 hover:bg-elevated transition-colors cursor-pointer"
-                  >
-                    <template v-if="selectedTagIds.length">
-                      <TagPill
-                        v-for="tag in projectTagsData.filter((t: { id: string }) => selectedTagIds.includes(t.id))"
-                        :key="tag.id"
-                        :name="tag.name"
-                        :color="tag.color"
-                      />
-                      <UIcon
-                        name="i-lucide-chevron-down"
-                        class="text-2xs opacity-50 text-dimmed"
-                      />
-                    </template>
+                <button
+                  type="button"
+                  class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all hover:bg-elevated text-default"
+                >
+                  <span class="w-[13px] flex items-center justify-center shrink-0"><span
+                    class="w-2 h-2 rounded-full"
+                    :style="{ backgroundColor: selectedStatusColor }"
+                  /></span>
+                  {{ selectedStatusLabel }}
+                  <UIcon
+                    name="i-lucide-chevron-down"
+                    class="text-2xs opacity-50"
+                  />
+                </button>
+                <template #item="{ item }">
+                  <span class="flex items-center gap-1.5">
                     <span
-                      v-else
-                      class="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full text-2xs font-bold leading-none tracking-wide uppercase opacity-60 hover:opacity-80 transition-opacity"
-                      style="color: #a1a1aa; background-color: #a1a1aa20; box-shadow: inset 0 0 0 1px #a1a1aa35"
-                    >
-                      <UIcon
-                        name="i-lucide-plus"
-                        class="text-2xs"
-                      />
-                      Add tag
-                    </span>
-                  </button>
-                  <template #content>
-                    <TagToggleList
-                      :tags="projectTagsData"
-                      :selected-ids="selectedTagIds"
-                      @toggle="toggleTag"
+                      class="w-2 h-2 rounded-full shrink-0 inline-block"
+                      :style="{ backgroundColor: item.color ?? undefined }"
+                    />
+                    <span class="truncate">{{ item.label }}</span>
+                  </span>
+                </template>
+              </UDropdownMenu>
+            </div>
+
+            <!-- Assignee -->
+            <div class="flex items-center gap-2 px-4 py-2.5">
+              <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Assignee</span>
+              <UDropdownMenu
+                :items="assigneeMenuItems"
+                :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
+              >
+                <button
+                  type="button"
+                  class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all hover:bg-elevated text-default"
+                >
+                  <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
+                    name="i-lucide-user"
+                    class="text-sm"
+                    :class="selectedAssigneeId === UNASSIGNED ? 'text-dimmed' : 'text-primary'"
+                  /></span>
+                  {{ selectedAssigneeLabel }}
+                  <UIcon
+                    name="i-lucide-chevron-down"
+                    class="text-2xs opacity-50"
+                  />
+                </button>
+              </UDropdownMenu>
+            </div>
+
+            <!-- Priority -->
+            <div class="flex items-center gap-2 px-4 py-2.5">
+              <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Priority</span>
+              <UDropdownMenu
+                :items="priorityMenuItems"
+                :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
+              >
+                <button
+                  type="button"
+                  class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium capitalize transition-all hover:bg-elevated"
+                  :class="priorityTextClass(priority)"
+                >
+                  <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
+                    :name="priorityIcon(priority)"
+                    class="text-sm"
+                  /></span>
+                  {{ priority }}
+                  <UIcon
+                    name="i-lucide-chevron-down"
+                    class="text-2xs opacity-50"
+                  />
+                </button>
+              </UDropdownMenu>
+            </div>
+
+            <!-- Due Date -->
+            <div class="flex items-center gap-2 px-4 py-2.5">
+              <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Due</span>
+              <DueDatePicker
+                v-model:open="dueDateOpen"
+                :model-value="selectedDueDate"
+                :popover-options="{ align: 'start', side: 'bottom', sideOffset: 4 }"
+                @update:model-value="selectedDueDate = $event"
+              >
+                <button
+                  type="button"
+                  class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all hover:bg-elevated"
+                  :class="selectedDueDate ? dueDateTextClass(getDueDateStatus(selectedDueDate)) : 'text-dimmed'"
+                >
+                  <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
+                    :name="selectedDueDate ? dueDateIcon(getDueDateStatus(selectedDueDate)) : 'i-lucide-calendar'"
+                    class="text-sm"
+                  /></span>
+                  {{ selectedDueDate ? formatDueDate(selectedDueDate) : 'Set date' }}
+                  <UIcon
+                    name="i-lucide-chevron-down"
+                    class="text-2xs opacity-50"
+                  />
+                </button>
+              </DueDatePicker>
+            </div>
+
+            <!-- Tags -->
+            <div
+              v-if="projectTagsData.length"
+              class="flex items-center gap-2 px-4 py-2.5"
+            >
+              <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Tags</span>
+              <UPopover :content="{ align: 'start', side: 'bottom', sideOffset: 4 }">
+                <button
+                  type="button"
+                  class="flex flex-wrap gap-1 items-center rounded-md px-1.5 py-0.5 -mx-1 hover:bg-elevated transition-colors cursor-pointer"
+                >
+                  <template v-if="selectedTagIds.length">
+                    <TagPill
+                      v-for="tag in projectTagsData.filter((t: { id: string }) => selectedTagIds.includes(t.id))"
+                      :key="tag.id"
+                      :name="tag.name"
+                      :color="tag.color"
+                    />
+                    <UIcon
+                      name="i-lucide-chevron-down"
+                      class="text-2xs opacity-50 text-dimmed"
                     />
                   </template>
-                </UPopover>
-              </div>
-            </div>
-
-            <!-- Creator & timestamps -->
-            <div class="px-4 py-2.5 border-t border-muted flex flex-col gap-1">
-              <span
-                v-if="card.creator"
-                class="flex items-center gap-1.5 text-xs text-dimmed"
-              >
-                <UIcon
-                  name="i-lucide-user-pen"
-                  class="text-xs opacity-60 shrink-0"
-                />
-                <span class="truncate">Created by {{ card.creator.name }}</span>
-              </span>
-              <span
-                v-if="card.createdAt"
-                class="flex items-center gap-1.5 text-xs text-dimmed font-mono"
-              >
-                <UIcon
-                  name="i-lucide-calendar-plus"
-                  class="text-xs opacity-60"
-                />
-                {{ formatDate(card.createdAt) }}
-              </span>
-              <span
-                v-if="card.updatedAt && card.updatedAt !== card.createdAt"
-                class="flex items-center gap-1.5 text-xs text-dimmed font-mono"
-              >
-                <UIcon
-                  name="i-lucide-calendar-clock"
-                  class="text-xs opacity-60"
-                />
-                {{ formatDate(card.updatedAt) }}
-              </span>
-            </div>
-
-            <!-- Actions -->
-            <div class="px-4 py-3 border-t border-muted flex flex-col gap-2">
-              <button
-                type="submit"
-                class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                :disabled="!title.trim() || !isDirty || saving"
-              >
-                <UIcon
-                  v-if="saving"
-                  name="i-lucide-loader-2"
-                  class="text-base animate-spin"
-                />
-                <template v-else>
-                  Save
-                  <kbd class="ml-2 text-xs font-mono opacity-75 bg-white/15 px-1.5 py-0.5 rounded-md">Cmd+Enter</kbd>
+                  <span
+                    v-else
+                    class="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full text-2xs font-bold leading-none tracking-wide uppercase opacity-60 hover:opacity-80 transition-opacity"
+                    style="color: #a1a1aa; background-color: #a1a1aa20; box-shadow: inset 0 0 0 1px #a1a1aa35"
+                  >
+                    <UIcon
+                      name="i-lucide-plus"
+                      class="text-2xs"
+                    />
+                    Add tag
+                  </span>
+                </button>
+                <template #content>
+                  <TagToggleList
+                    :tags="projectTagsData"
+                    :selected-ids="selectedTagIds"
+                    @toggle="toggleTag"
+                  />
                 </template>
-              </button>
-
-              <!-- Delete confirmation -->
-              <div
-                v-if="showDeleteConfirm"
-                class="rounded-lg border border-error/30 bg-red-50/50 dark:bg-red-950/20 p-3 flex flex-col gap-2"
-              >
-                <p class="text-xs font-medium text-error leading-relaxed">
-                  Are you sure you want to delete this card?
-                </p>
-                <div class="flex items-center gap-2">
-                  <button
-                    type="button"
-                    class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    :disabled="deletingCard"
-                    @click="confirmDelete"
-                  >
-                    <UIcon
-                      v-if="!deletingCard"
-                      name="i-lucide-trash-2"
-                      class="text-sm"
-                    />
-                    <UIcon
-                      v-else
-                      name="i-lucide-loader-2"
-                      class="text-sm animate-spin"
-                    />
-                    Delete
-                  </button>
-                  <button
-                    type="button"
-                    class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
-                    @click="showDeleteConfirm = false"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-
-              <button
-                v-else
-                type="button"
-                class="w-full flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-dimmed hover:text-error hover:bg-error/10 transition-all"
-                @click="showDeleteConfirm = true"
-              >
-                <UIcon
-                  name="i-lucide-trash-2"
-                  class="text-xs"
-                />
-                Delete card
-              </button>
+              </UPopover>
             </div>
           </div>
-        </aside>
 
-        <!-- ═══ MAIN CONTENT — title + description ═══ -->
-        <div class="flex-1 min-w-0 lg:order-1">
-          <!-- Title -->
-          <input
-            v-model="title"
-            type="text"
-            placeholder="Card title..."
-            class="w-full text-xl font-bold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.015em] leading-snug py-2 mb-4 transition-colors"
-          >
-
-          <!-- Description header -->
-          <div class="flex items-center gap-1.5 mb-2">
-            <UIcon
-              name="i-lucide-text"
-              class="text-sm text-dimmed"
-            />
-            <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">Description</span>
-            <button
-              v-if="!editingDescription"
-              type="button"
-              class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
-              @click="startEditingDescription"
+          <!-- Creator & timestamps -->
+          <div class="px-4 py-2.5 border-t border-muted flex flex-col gap-1">
+            <span
+              v-if="card.creator"
+              class="flex items-center gap-1.5 text-xs text-dimmed"
             >
               <UIcon
-                name="i-lucide-pencil"
+                name="i-lucide-user-pen"
+                class="text-xs opacity-60 shrink-0"
+              />
+              <span class="truncate">Created by {{ card.creator.name }}</span>
+            </span>
+            <span
+              v-if="card.createdAt"
+              class="flex items-center gap-1.5 text-xs text-dimmed font-mono"
+            >
+              <UIcon
+                name="i-lucide-calendar-plus"
+                class="text-xs opacity-60"
+              />
+              {{ formatDate(card.createdAt) }}
+            </span>
+            <span
+              v-if="card.updatedAt && card.updatedAt !== card.createdAt"
+              class="flex items-center gap-1.5 text-xs text-dimmed font-mono"
+            >
+              <UIcon
+                name="i-lucide-calendar-clock"
+                class="text-xs opacity-60"
+              />
+              {{ formatDate(card.updatedAt) }}
+            </span>
+          </div>
+
+          <!-- Actions -->
+          <div class="px-4 py-3 border-t border-muted flex flex-col gap-2">
+            <button
+              type="submit"
+              class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              :disabled="!title.trim() || !isDirty || saving"
+            >
+              <UIcon
+                v-if="saving"
+                name="i-lucide-loader-2"
+                class="text-base animate-spin"
+              />
+              <template v-else>
+                Save
+                <kbd class="ml-2 text-xs font-mono opacity-75 bg-white/15 px-1.5 py-0.5 rounded-md">Cmd+Enter</kbd>
+              </template>
+            </button>
+
+            <!-- Delete confirmation -->
+            <div
+              v-if="showDeleteConfirm"
+              class="rounded-lg border border-error/30 bg-red-50/50 dark:bg-red-950/20 p-3 flex flex-col gap-2"
+            >
+              <p class="text-xs font-medium text-error leading-relaxed">
+                Are you sure you want to delete this card?
+              </p>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  :disabled="deletingCard"
+                  @click="confirmDelete"
+                >
+                  <UIcon
+                    v-if="!deletingCard"
+                    name="i-lucide-trash-2"
+                    class="text-sm"
+                  />
+                  <UIcon
+                    v-else
+                    name="i-lucide-loader-2"
+                    class="text-sm animate-spin"
+                  />
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+                  @click="showDeleteConfirm = false"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            <button
+              v-else
+              type="button"
+              class="w-full flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-dimmed hover:text-error hover:bg-error/10 transition-all"
+              @click="showDeleteConfirm = true"
+            >
+              <UIcon
+                name="i-lucide-trash-2"
                 class="text-xs"
               />
-              {{ description ? 'Edit' : 'Add' }}
+              Delete card
             </button>
           </div>
-
-          <!-- Description: edit mode -->
-          <DescriptionEditor
-            v-if="editingDescription"
-            ref="descriptionEditorRef"
-            v-model="description"
-            :title="title"
-            :tags="selectedTagNames"
-            :priority="priority"
-            :project-slug="projectSlug"
-            :project-key="projectKey"
-            :members="membersData"
-            :card-id="card?.id"
-            :min-height="240"
-            @escape="editingDescription = false"
-          />
-
-          <!-- Description: read mode -->
-          <div
-            v-else-if="description"
-            class="select-text"
-          >
-            <ProseDescription :content="description" />
-          </div>
-
-          <!-- Attachments -->
-          <div class="mt-6">
-            <AttachmentList :card-id="card?.id" />
-          </div>
-
-          <!-- Comments -->
-          <CommentList
-            :card-id="card?.id"
-            :members="membersData"
-            :project-slug="projectSlug"
-            :project-key="projectKey"
-            :can-moderate="canModerateComments"
-          />
         </div>
-      </form>
-    </div>
+      </aside>
+
+      <!-- ═══ MAIN CONTENT — title + description ═══ -->
+      <div class="flex-1 min-w-0 lg:order-1">
+        <!-- Title -->
+        <input
+          v-model="title"
+          type="text"
+          placeholder="Card title..."
+          class="w-full text-xl font-bold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.015em] leading-snug py-2 mb-4 transition-colors"
+        >
+
+        <!-- Description header -->
+        <div class="flex items-center gap-1.5 mb-2">
+          <UIcon
+            name="i-lucide-text"
+            class="text-sm text-dimmed"
+          />
+          <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">Description</span>
+          <button
+            v-if="!editingDescription"
+            type="button"
+            class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
+            @click="startEditingDescription"
+          >
+            <UIcon
+              name="i-lucide-pencil"
+              class="text-xs"
+            />
+            {{ description ? 'Edit' : 'Add' }}
+          </button>
+        </div>
+
+        <!-- Description: edit mode -->
+        <DescriptionEditor
+          v-if="editingDescription"
+          ref="descriptionEditorRef"
+          v-model="description"
+          :title="title"
+          :tags="selectedTagNames"
+          :priority="priority"
+          :project-slug="projectSlug"
+          :project-key="projectKey"
+          :members="membersData"
+          :card-id="card?.id"
+          :min-height="240"
+          @escape="editingDescription = false"
+        />
+
+        <!-- Description: read mode -->
+        <div
+          v-else-if="description"
+          class="select-text"
+        >
+          <ProseDescription :content="description" />
+        </div>
+
+        <!-- Attachments -->
+        <div class="mt-6">
+          <AttachmentList :card-id="card?.id" />
+        </div>
+
+        <!-- Comments -->
+        <CommentList
+          :card-id="card?.id"
+          :members="membersData"
+          :project-slug="projectSlug"
+          :project-key="projectKey"
+          :can-moderate="canModerateComments"
+        />
+      </div>
+    </form>
 
     <!-- Unsaved changes warning -->
     <UModal
@@ -730,5 +713,5 @@ async function confirmDelete() {
         </div>
       </template>
     </UModal>
-  </div>
+  </UiPage>
 </template>

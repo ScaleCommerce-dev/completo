@@ -2,6 +2,7 @@
 import type { DropdownMenuItem } from '@nuxt/ui/runtime/components/DropdownMenu.vue'
 
 definePageMeta({ layout: 'default' })
+useSeoMeta({ title: 'Users · Completo' })
 
 interface AdminUser {
   id: string
@@ -262,32 +263,21 @@ function formatDate(date: string | Date | null) {
 </script>
 
 <template>
-  <div class="p-6 max-w-5xl h-full overflow-y-auto">
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-highlighted">
-          User Management
-        </h1>
-        <p class="text-base text-muted mt-1">
-          Manage all registered users
-        </p>
-      </div>
-      <div class="flex items-center gap-3">
-        <NotificationBell />
-        <span class="text-sm font-mono text-dimmed">{{ users?.length || 0 }} users</span>
-        <button
-          type="button"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all"
-          @click="openCreate"
-        >
-          <UIcon
-            name="i-lucide-user-plus"
-            class="text-base"
-          />
-          Create User
-        </button>
-      </div>
-    </div>
+  <UiPage
+    title="Users"
+    description="Everyone with an account on this instance"
+    width="wide"
+  >
+    <template #meta>
+      <span class="text-sm font-mono tabular-nums text-dimmed">{{ users?.length || 0 }}</span>
+    </template>
+    <template #actions>
+      <UButton
+        label="Create user"
+        icon="i-lucide-user-plus"
+        @click="openCreate"
+      />
+    </template>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       <div
@@ -540,5 +530,5 @@ function formatDate(date: string | Date | null) {
         />
       </template>
     </UiModal>
-  </div>
+  </UiPage>
 </template>

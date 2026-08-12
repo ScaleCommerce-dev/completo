@@ -176,82 +176,63 @@ function cancelDeleteTag() {
 </script>
 
 <template>
-  <div class="p-6">
-    <!-- Skeleton loading state -->
-    <div
-      v-if="!project"
-      class="max-w-5xl"
+  <UiPage
+    :title="project?.name || ' '"
+    :description="project?.description || undefined"
+  >
+    <template
+      v-if="project"
+      #leading
     >
-      <div class="animate-pulse">
-        <!-- Header skeleton -->
-        <div class="flex items-center gap-3 mb-6">
-          <div class="w-10 h-10 rounded-xl bg-accented" />
-          <div class="space-y-2">
-            <div class="h-5 w-40 rounded-md bg-accented" />
-            <div class="h-3.5 w-56 rounded-md bg-elevated" />
-          </div>
-        </div>
-        <!-- Stats bar skeleton -->
-        <div class="h-10 rounded-lg bg-elevated mb-8" />
-        <!-- Board heading skeleton -->
-        <div class="h-3.5 w-16 rounded-md bg-accented mb-4" />
-        <!-- Board cards skeleton -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div
-            v-for="n in 3"
-            :key="n"
-            class="h-20 rounded-xl bg-elevated bg-muted border border-default"
-          />
-        </div>
-      </div>
-    </div>
+      <span class="flex items-center justify-center size-8 rounded-lg bg-primary/10 text-primary shrink-0">
+        <UIcon
+          :name="`i-lucide-${project.icon || 'folder'}`"
+          class="text-base"
+        />
+      </span>
+    </template>
 
-    <div
-      v-else
-      class="max-w-5xl"
+    <template
+      v-if="project"
+      #meta
     >
-      <!-- Header: icon + title + key badge + settings -->
-      <div class="flex items-center justify-between mb-6 min-h-[51px]">
-        <div class="flex items-center gap-3">
-          <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-primary shrink-0">
-            <UIcon
-              :name="`i-lucide-${project.icon || 'folder'}`"
-              class="text-xl"
-            />
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h1 class="text-xl font-extrabold tracking-[-0.02em] text-highlighted">
-                {{ project.name }}
-              </h1>
-              <span class="font-mono text-2xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md tracking-wide">
-                {{ project.key }}
-              </span>
-            </div>
-            <p
-              v-if="project.description"
-              class="text-base text-muted mt-0.5"
-            >
-              {{ project.description }}
-            </p>
-          </div>
-        </div>
-        <div class="flex items-center gap-1 shrink-0">
-          <NotificationBell />
-          <NuxtLink
-            v-if="project.role === 'owner' || project.role === 'admin'"
-            :to="`/projects?edit=${project.id}`"
-            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all shrink-0"
-          >
-            <UIcon
-              name="i-lucide-settings"
-              class="text-sm"
-            />
-            <span class="hidden sm:inline">Settings</span>
-          </NuxtLink>
-        </div>
-      </div>
+      <UBadge
+        :label="project.key"
+        color="primary"
+        variant="subtle"
+        :ui="{ label: 'font-mono' }"
+      />
+    </template>
 
+    <template
+      v-if="project && (project.role === 'owner' || project.role === 'admin')"
+      #actions
+    >
+      <UButton
+        :to="`/projects?edit=${project.id}`"
+        icon="i-lucide-settings"
+        label="Settings"
+        variant="ghost"
+        color="neutral"
+      />
+    </template>
+
+    <!-- Loading skeleton. The page previously reimplemented its own header,
+         stats bar and card grid here, so every layout change had to be made
+         twice inside this one file. USkeleton keeps it to shapes. -->
+    <template v-if="!project">
+      <USkeleton class="h-10 w-full" />
+      <USkeleton class="h-3.5 w-16" />
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <USkeleton
+          v-for="n in 3"
+          :key="n"
+          class="h-20"
+        />
+      </div>
+    </template>
+
+    <template v-else>
       <!-- Statuses / Tags config bar -->
       <div class="mb-8 rounded-lg bg-muted border border-muted border-accented overflow-hidden">
         <!-- Tab header -->
@@ -728,6 +709,6 @@ function cancelDeleteTag() {
           </div>
         </template>
       </UModal>
-    </div>
-  </div>
+    </template>
+  </UiPage>
 </template>

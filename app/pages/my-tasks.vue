@@ -24,30 +24,22 @@ async function handleInlineUpdate(cardId: number, updates: Record<string, unknow
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
-    <!-- Header bar -->
-    <div class="flex items-center justify-between px-5 py-2.5 border-b border-default bg-default/60 backdrop-blur-sm">
-      <div class="flex items-center gap-2.5">
-        <h1 class="text-base font-extrabold tracking-[-0.02em] text-highlighted">
-          My Tasks
-        </h1>
-        <span class="text-xs text-dimmed">Cards assigned to you across all projects</span>
-      </div>
-      <div class="flex items-center gap-1.5">
-        <NotificationBell />
-        <UButton
-          icon="i-lucide-columns-3"
-          label="Fields"
-          variant="ghost"
-          color="neutral"
-          size="xs"
-          @click="showColumnConfig = true"
-        />
-      </div>
-    </div>
+  <UiPage
+    title="My Tasks"
+    description="Assigned to you, across every project"
+    variant="surface"
+  >
+    <template #actions>
+      <UButton
+        icon="i-lucide-columns-3"
+        label="Fields"
+        variant="ghost"
+        color="neutral"
+        @click="showColumnConfig = true"
+      />
+    </template>
 
-    <!-- Project groups -->
-    <div class="flex-1 overflow-auto p-4 flex flex-col gap-4">
+    <div class="flex-1 overflow-auto p-4 flex flex-col gap-4 thin-scroll">
       <div
         v-for="group in groups"
         :key="group.project.id"
@@ -106,12 +98,18 @@ async function handleInlineUpdate(cardId: number, updates: Record<string, unknow
     </div>
 
     <!-- Column config modal -->
-    <ListColumnConfigModal
+    <!-- This was `<ListColumnConfigModal>`, a component that does not exist
+         anywhere in the repo — so the Fields button silently opened nothing and
+         useMyTasks' add/remove/reorder were wired to it. ViewConfigModal already
+         guards its rename and delete sections on `viewName`, so omitting that
+         prop gives exactly the field picker this needs. -->
+    <ViewConfigModal
       v-model:open="showColumnConfig"
+      mode="list"
       :columns="columns"
       @add="addColumn"
-      @remove="removeColumn"
+      @delete="removeColumn"
       @reorder="reorderColumns"
     />
-  </div>
+  </UiPage>
 </template>

@@ -1,4 +1,14 @@
 <script setup lang="ts">
+/**
+ * The board/list page shell.
+ *
+ * This was the app's only shared page header, but it hardcoded a project
+ * breadcrumb and took nine required props — so `my-tasks.vue` and
+ * `notifications.vue` copy-pasted its class string verbatim rather than use it.
+ * It is now a thin specialisation of `UiPage`: the breadcrumb and view switcher
+ * go in the `#title` slot, and the global chrome (notifications, search) comes
+ * from UiPage for free.
+ */
 interface ViewSwitcherItem {
   label: string
   icon: string
@@ -6,7 +16,7 @@ interface ViewSwitcherItem {
   onSelect: () => void
 }
 
-defineProps<{
+const props = defineProps<{
   projectName: string
   projectSlug: string
   viewName: string
@@ -21,15 +31,19 @@ defineProps<{
 defineEmits<{
   'open-settings': []
 }>()
+
+useSeoMeta({
+  title: () => `${props.viewName} · ${props.projectName} · Completo`
+})
 </script>
 
 <template>
-  <div class="flex items-center justify-between px-5 py-2.5 border-b border-default bg-default/60 backdrop-blur-sm">
-    <div class="flex items-center gap-3">
-      <nav class="flex items-center gap-1.5 text-sm">
+  <UiPage variant="surface">
+    <template #title>
+      <nav class="flex items-center gap-1.5 text-sm min-w-0">
         <NuxtLink
           :to="`/projects/${projectSlug}`"
-          class="flex items-center gap-1 text-muted hover:text-default transition-colors"
+          class="flex items-center gap-1.5 text-muted hover:text-default transition-colors min-w-0"
         >
           <UIcon
             name="i-lucide-folder"
@@ -44,7 +58,8 @@ defineEmits<{
         <UDropdownMenu :items="viewSwitcherItems">
           <button
             type="button"
-            class="group/name flex items-center gap-1 font-medium text-highlighted cursor-pointer hover:text-primary transition-colors"
+            class="group/name flex items-center gap-1.5 font-bold tracking-[-0.01em] text-highlighted cursor-pointer hover:text-primary transition-colors min-w-0"
+            aria-label="Switch view"
           >
             <UIcon
               :name="viewIcon"
@@ -53,59 +68,50 @@ defineEmits<{
             <span class="truncate max-w-60">{{ viewName }}</span>
             <UIcon
               name="i-lucide-chevron-down"
-              class="size-3 text-dimmed opacity-0 group-hover/name:opacity-100 transition-opacity"
+              class="size-3 text-dimmed shrink-0 opacity-40 group-hover/name:opacity-100 transition-opacity"
             />
           </button>
         </UDropdownMenu>
       </nav>
-      <UTooltip :text="activeFilterCount > 0 ? 'Filtered cards' : 'All cards'">
-        <span
-          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold font-mono tabular-nums"
-          :class="cardCount > 0
-            ? 'text-muted bg-elevated'
-            : 'text-dimmed bg-muted'"
-        >
-          <UIcon
-            name="i-lucide-layers"
-            class="size-3.5"
-          />
-          {{ cardCount }}
-        </span>
+    </template>
+
+    <template #meta>
+      <UTooltip :text="activeFilterCount > 0 ? `${cardCount} of the project's cards match this view` : `${cardCount} cards`">
+        <UBadge
+          :label="String(cardCount)"
+          icon="i-lucide-layers"
+          color="neutral"
+          variant="subtle"
+          :ui="{ label: 'font-mono tabular-nums' }"
+        />
       </UTooltip>
 
-      <slot name="actions" />
-    </div>
-
-    <div class="flex items-center gap-2">
-      <!-- Active filter indicator -->
       <UTooltip
         v-if="activeFilterCount > 0"
         :text="filterSummary"
       >
-        <button
-          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold font-mono tabular-nums text-primary bg-primary/10 hover:bg-primary/15 transition-colors cursor-pointer"
+        <UButton
+          :label="`${activeFilterCount} ${activeFilterCount === 1 ? 'filter' : 'filters'}`"
+          icon="i-lucide-filter"
+          color="primary"
+          variant="subtle"
           @click="$emit('open-settings')"
-        >
-          <UIcon
-            name="i-lucide-filter"
-            class="size-3.5"
-          />
-          {{ activeFilterCount }} {{ activeFilterCount === 1 ? 'filter' : 'filters' }}
-        </button>
-      </UTooltip>
-
-      <NotificationBell />
-      <button
-        v-if="canConfigure"
-        class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
-        @click="$emit('open-settings')"
-      >
-        <UIcon
-          name="i-lucide-settings"
-          class="text-sm"
         />
-        Settings
-      </button>
-    </div>
-  </div>
+      </UTooltip>
+    </template>
+
+    <template #actions>
+      <slot name="actions" />
+      <UButton
+        v-if="canConfigure"
+        icon="i-lucide-settings"
+        label="Settings"
+        variant="ghost"
+        color="neutral"
+        @click="$emit('open-settings')"
+      />
+    </template>
+
+    <slot />
+  </UiPage>
 </template>

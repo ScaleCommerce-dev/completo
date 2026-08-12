@@ -149,30 +149,25 @@ async function handleDeleteList() {
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
-    <ViewHeader
-      :project-name="list?.project?.name || ''"
-      :project-slug="projectSlug"
-      :view-name="list?.name || ''"
-      view-icon="i-lucide-list"
-      :view-switcher-items="viewSwitcherItems"
-      :card-count="visibleCardCount"
-      :active-filter-count="activeFilterCount"
-      :filter-summary="filterSummary"
-      :can-configure="canConfigureColumns"
-      @open-settings="showColumnConfig = true"
-    >
-      <template #actions>
-        <UButton
-          icon="i-lucide-plus"
-          label="New Card"
-          variant="subtle"
-          color="primary"
-          size="xs"
-          @click="openCreateCard"
-        />
-      </template>
-    </ViewHeader>
+  <ViewHeader
+    :project-name="list?.project?.name || ''"
+    :project-slug="projectSlug"
+    :view-name="list?.name || ''"
+    view-icon="i-lucide-list"
+    :view-switcher-items="viewSwitcherItems"
+    :card-count="visibleCardCount"
+    :active-filter-count="activeFilterCount"
+    :filter-summary="filterSummary"
+    :can-configure="canConfigureColumns"
+    @open-settings="showColumnConfig = true"
+  >
+    <template #actions>
+      <UButton
+        icon="i-lucide-plus"
+        label="New card"
+        @click="openCreateCard"
+      />
+    </template>
 
     <ListView
       :columns="columnsData"
@@ -242,5 +237,5 @@ async function handleDeleteList() {
       @update="handleUpdateCard"
       @delete-draft="deleteDraftCard"
     />
-  </div>
+  </ViewHeader>
 </template>

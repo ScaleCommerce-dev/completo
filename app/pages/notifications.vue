@@ -75,44 +75,39 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
-    <!-- Header bar -->
-    <div class="flex items-center justify-between px-5 py-2.5 border-b border-default bg-default/60 backdrop-blur-sm">
-      <div class="flex items-center gap-2.5">
-        <h1 class="text-base font-extrabold tracking-[-0.02em] text-highlighted">
-          Notifications
-        </h1>
-        <span
-          v-if="unreadCount > 0"
-          class="inline-flex items-center gap-1 text-xs font-semibold text-primary"
-        >
-          <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-          {{ unreadCount }} unread
-        </span>
-      </div>
-      <div class="flex items-center gap-1.5">
+  <UiPage
+    title="Notifications"
+    variant="surface"
+  >
+    <template #meta>
+      <UBadge
+        v-if="unreadCount > 0"
+        :label="`${unreadCount} unread`"
+        color="primary"
+        variant="subtle"
+      />
+    </template>
+
+    <template #actions>
+      <UButton
+        v-if="unreadCount > 0"
+        icon="i-lucide-check-check"
+        label="Mark all read"
+        variant="ghost"
+        color="neutral"
+        @click="markAllRead"
+      />
+      <UTooltip text="Delete every notification you have already read">
         <UButton
-          v-if="unreadCount > 0"
-          icon="i-lucide-check-check"
-          label="Mark all read"
+          v-if="hasRead"
+          icon="i-lucide-trash-2"
+          label="Clean up"
           variant="ghost"
           color="neutral"
-          size="xs"
-          @click="markAllRead"
+          @click="cleanup"
         />
-        <UTooltip text="Delete all read notifications">
-          <UButton
-            v-if="hasRead"
-            icon="i-lucide-trash-2"
-            label="Clean up"
-            variant="ghost"
-            color="neutral"
-            size="xs"
-            @click="cleanup"
-          />
-        </UTooltip>
-      </div>
-    </div>
+      </UTooltip>
+    </template>
 
     <!-- Notification groups -->
     <div class="flex-1 overflow-auto p-4 flex flex-col gap-5">
@@ -230,5 +225,5 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
         description="Mentions, assignments and membership changes land here."
       />
     </div>
-  </div>
+  </UiPage>
 </template>

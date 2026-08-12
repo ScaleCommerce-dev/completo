@@ -1,5 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
+useSeoMeta({ title: 'Projects · Completo' })
 
 interface ProjectListItem {
   id: string
@@ -140,19 +141,18 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
 </script>
 
 <template>
-  <div class="p-6 max-w-5xl h-full overflow-y-auto">
-    <!-- Header -->
-    <div class="flex items-start justify-between mb-2">
-      <div>
-        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-highlighted">
-          Projects
-        </h1>
-        <p class="text-base text-muted mt-0.5">
-          Manage your project boards
-        </p>
-      </div>
-      <NotificationBell />
-    </div>
+  <UiPage
+    title="Projects"
+    description="Every project you can see"
+    width="wide"
+  >
+    <template #actions>
+      <UButton
+        label="New project"
+        icon="i-lucide-plus"
+        to="/projects/new"
+      />
+    </template>
 
     <!-- Summary stats bar -->
     <div
@@ -341,5 +341,5 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         />
       </template>
     </UModal>
-  </div>
+  </UiPage>
 </template>

@@ -1,6 +1,18 @@
 <script setup lang="ts">
+/**
+ * The app shell.
+ *
+ * This used to provide a sidebar and nothing else, so every page hand-built its
+ * own header and five different idioms evolved — a full-bleed bar, a
+ * `p-6 max-w-Nxl` document block, a centred form, a breadcrumb row, and (on the
+ * profile page) no title at all. `NotificationBell` was a per-page duty placed
+ * five different ways across nine files.
+ *
+ * Pages now render `<UiPage>`, which owns the navbar. Everything global —
+ * notifications, search, the user menu — lives here, once.
+ */
 const { user, clear } = useUserSession()
-const { navItems } = useNavigation()
+const { navSections } = useNavigation()
 const router = useRouter()
 
 const sidebarCollapsed = useCookie<boolean>('sidebar-collapsed', { default: () => false })
@@ -13,18 +25,58 @@ async function logout() {
 
 const userMenuItems = computed(() => [
   [{
+    label: user.value?.name || 'Account',
+    type: 'label' as const
+  }],
+  [{
     label: 'Profile',
     icon: 'i-lucide-user',
-    onSelect: () => router.push('/profile')
+    to: '/profile'
   }, {
-    label: 'API Docs',
+    label: 'API docs',
     icon: 'i-lucide-book-open',
     onSelect: () => window.open('/api/docs', '_blank')
-  }, {
-    label: 'Logout',
+  }],
+  [{
+    label: 'Sign out',
     icon: 'i-lucide-log-out',
     onSelect: logout
   }]
+])
+
+/**
+ * Command palette contents. There was previously no global search anywhere, and
+ * the sidebar's project list was flat, unsearchable and unbounded — with thirty
+ * projects it simply got long.
+ *
+ * Boards and lists are deliberately absent: `/api/projects` returns counts, not
+ * the views themselves, and widening a documented API response is out of scope
+ * for a UI change. Reaching a board is project → view, one hop.
+ */
+const searchGroups = computed(() => [
+  {
+    id: 'go',
+    label: 'Go to',
+    items: navSections.value.flatMap(s => s.items).map(i => ({
+      label: i.label,
+      icon: i.icon,
+      to: i.to
+    }))
+  },
+  {
+    id: 'actions',
+    label: 'Actions',
+    items: [
+      { label: 'New project', icon: 'i-lucide-plus', to: '/projects/new' },
+      { label: 'My profile', icon: 'i-lucide-user', to: '/profile' },
+      {
+        label: sidebarCollapsed.value ? 'Expand sidebar' : 'Collapse sidebar',
+        icon: 'i-lucide-panel-left',
+        onSelect: () => { sidebarCollapsed.value = !sidebarCollapsed.value }
+      },
+      { label: 'Sign out', icon: 'i-lucide-log-out', onSelect: logout }
+    ]
+  }
 ])
 </script>
 
@@ -33,95 +85,116 @@ const userMenuItems = computed(() => [
     <UDashboardSidebar
       v-model:collapsed="sidebarCollapsed"
       collapsible
-      class="!min-h-0 !h-full relative !overflow-visible"
+      resizable
+      :min-size="14"
+      :default-size="17"
+      :max-size="26"
+      :ui="{ footer: 'border-t border-default gap-1' }"
     >
       <template #header="{ collapsed }">
-        <div
-          class="flex items-center gap-3 px-1"
-          :class="collapsed ? 'justify-center' : ''"
+        <NuxtLink
+          to="/projects"
+          class="flex items-center gap-2.5 min-w-0"
+          :class="collapsed ? 'justify-center w-full' : ''"
         >
-          <div class="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md shadow-indigo-500/25 flex-shrink-0">
+          <!-- The logo is one of only three places the brand gradient appears. -->
+          <span class="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-raise shrink-0">
             <img
               src="/completo-icon.svg"
-              alt="Completo"
-              class="w-[22px] h-[22px] invert"
+              alt=""
+              class="size-[22px] invert"
             >
-          </div>
-          <div
+          </span>
+          <span
             v-if="!collapsed"
-            class="flex flex-col"
+            class="flex flex-col min-w-0"
           >
-            <span class="text-2xs font-semibold text-dimmed tracking-widest uppercase leading-none">Drag. Drop.</span>
-            <span class="sidebar-brand font-extrabold text-base leading-none text-highlighted mt-0.5">Completo</span>
-          </div>
-        </div>
+            <span class="text-2xs font-semibold text-dimmed tracking-[0.16em] uppercase leading-none">Drag. Drop.</span>
+            <span class="sidebar-brand font-extrabold text-base leading-none text-highlighted mt-1">Completo</span>
+          </span>
+        </NuxtLink>
 
-        <!-- Collapse/expand toggle on the divider -->
-        <UTooltip
-          :text="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-          :side="collapsed ? 'right' : 'right'"
-        >
-          <button
-            class="absolute -right-3 top-14 z-30 flex items-center justify-center w-6 h-6 rounded-full border border-default border-accented bg-default shadow-sm text-dimmed hover:text-muted hover:bg-muted transition-colors cursor-pointer"
-            @click="sidebarCollapsed = !sidebarCollapsed"
-          >
-            <UIcon
-              :name="collapsed ? 'i-lucide-chevron-right' : 'i-lucide-chevron-left'"
-              class="size-3.5"
-            />
-          </button>
-        </UTooltip>
-      </template>
-
-      <template #default="{ collapsed }">
-        <UNavigationMenu
-          :items="navItems"
-          :collapsed="collapsed"
-          :tooltip="collapsed"
-          orientation="vertical"
+        <UDashboardSidebarCollapse
+          v-if="!collapsed"
+          class="ml-auto"
         />
       </template>
 
-      <template #footer="{ collapsed }">
-        <div
-          class="flex items-center gap-1 flex-1 min-w-0"
-          :class="collapsed ? 'justify-center' : ''"
+      <template #default="{ collapsed }">
+        <UDashboardSidebarCollapse
+          v-if="collapsed"
+          class="mx-auto"
+        />
+
+        <UDashboardSearchButton
+          :collapsed="collapsed"
+          variant="outline"
+        />
+
+        <template
+          v-for="(section, i) in navSections"
+          :key="i"
         >
-          <div
-            class="min-w-0"
-            :class="collapsed ? '' : 'flex-1'"
-          >
-            <UDropdownMenu :items="userMenuItems">
-              <button
-                class="flex items-center gap-2 min-w-0 w-full rounded-md px-1.5 py-1 hover:bg-elevated transition-colors cursor-pointer"
-                :class="collapsed ? 'justify-center' : ''"
-              >
-                <UAvatar
-                  :src="user?.avatarUrl || undefined"
-                  :alt="user?.name || 'User'"
-                  size="2xs"
-                  class="ring-2 ring-accented flex-shrink-0"
-                />
-                <span
-                  v-if="!collapsed"
-                  class="truncate text-sm font-medium text-default"
-                >{{ user?.name || 'User' }}</span>
-              </button>
-            </UDropdownMenu>
-          </div>
-          <UColorModeButton
-            v-if="!collapsed"
+          <UiSectionLabel
+            v-if="section.label && !collapsed"
+            :label="section.label"
+            class="px-2.5 pt-1.5"
+          />
+          <UNavigationMenu
+            :items="section.items"
+            :collapsed="collapsed"
+            :tooltip="collapsed"
+            orientation="vertical"
+            :ui="{ link: 'font-medium' }"
+          />
+        </template>
+      </template>
+
+      <template #footer="{ collapsed }">
+        <UDropdownMenu
+          :items="userMenuItems"
+          :content="{ align: 'start', side: 'top' }"
+          class="min-w-0"
+          :class="collapsed ? '' : 'flex-1'"
+        >
+          <UButton
+            :label="collapsed ? undefined : (user?.name || 'Account')"
             variant="ghost"
             color="neutral"
-            size="xs"
-            class="flex-shrink-0"
-          />
-        </div>
+            class="w-full"
+            :class="collapsed ? 'justify-center' : 'justify-start'"
+            :ui="{ label: 'truncate' }"
+          >
+            <template #leading>
+              <UAvatar
+                :src="user?.avatarUrl || undefined"
+                :alt="user?.name || 'Account'"
+                size="2xs"
+              />
+            </template>
+          </UButton>
+        </UDropdownMenu>
+
+        <!-- Reachable when collapsed too. This was `v-if="!collapsed"`, so
+             collapsing the sidebar hid the only theme switch in the app. -->
+        <UColorModeButton
+          variant="ghost"
+          color="neutral"
+          class="shrink-0"
+        />
       </template>
     </UDashboardSidebar>
 
-    <UDashboardPanel class="!min-h-0 !h-full !overflow-y-auto">
-      <slot />
-    </UDashboardPanel>
+    <!-- title/description are passed explicitly: the installed @nuxt/ui locale
+         has no `dashboardSearch.title` or `.description` key, so the defaults
+         render as the literal translation keys in the dialog. -->
+    <UDashboardSearch
+      title="Search"
+      description="Jump to a project or run a command"
+      placeholder="Search projects and actions..."
+      :groups="searchGroups"
+    />
+
+    <slot />
   </UDashboardGroup>
 </template>

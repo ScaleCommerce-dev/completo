@@ -123,8 +123,14 @@ const filteredCardsByColumn = computed(() => {
   return filtered
 })
 
-function openCreateCard(statusId: string) {
-  createCardStatusId.value = statusId
+/**
+ * `statusId` is omitted when the board-level "New card" button is used rather
+ * than a column's own — the board had no header-level add button at all before,
+ * only the list view did. Falling back to the leftmost column matches where a
+ * card would naturally start.
+ */
+function openCreateCard(statusId?: string) {
+  createCardStatusId.value = statusId ?? columnsData.value[0]?.id ?? ''
   showCreateCard.value = true
 }
 
@@ -157,19 +163,25 @@ async function handleDeleteBoard() {
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
-    <ViewHeader
-      :project-name="board?.project?.name || ''"
-      :project-slug="projectSlug"
-      :view-name="board?.name || ''"
-      view-icon="i-lucide-layout-dashboard"
-      :view-switcher-items="viewSwitcherItems"
-      :card-count="visibleCardCount"
-      :active-filter-count="activeFilterCount"
-      :filter-summary="filterSummary"
-      :can-configure="canConfigureColumns"
-      @open-settings="showColumnConfig = true"
-    />
+  <ViewHeader
+    :project-name="board?.project?.name || ''"
+    :project-slug="projectSlug"
+    :view-name="board?.name || ''"
+    view-icon="i-lucide-layout-dashboard"
+    :view-switcher-items="viewSwitcherItems"
+    :card-count="visibleCardCount"
+    :active-filter-count="activeFilterCount"
+    :filter-summary="filterSummary"
+    :can-configure="canConfigureColumns"
+    @open-settings="showColumnConfig = true"
+  >
+    <template #actions>
+      <UButton
+        icon="i-lucide-plus"
+        label="New card"
+        @click="openCreateCard()"
+      />
+    </template>
 
     <KanbanBoard
       :columns="columnsData"
@@ -241,5 +253,5 @@ async function handleDeleteBoard() {
       @update="handleUpdateCard"
       @delete-draft="deleteDraftCard"
     />
-  </div>
+  </ViewHeader>
 </template>

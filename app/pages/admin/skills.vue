@@ -1,5 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
+useSeoMeta({ title: 'AI Skills · Completo' })
 
 interface Skill {
   id: string
@@ -105,30 +106,17 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
 </script>
 
 <template>
-  <div class="p-6 max-w-5xl h-full overflow-y-auto">
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <h1 class="text-xl font-extrabold tracking-[-0.02em] text-highlighted">
-          AI Skills
-        </h1>
-        <p class="text-base text-muted mt-1">
-          Configurable prompt templates for AI writing
-        </p>
-      </div>
-      <div class="flex items-center gap-3">
-        <NotificationBell />
-        <button
-          class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all"
-          @click="openCreate"
-        >
-          <UIcon
-            name="i-lucide-plus"
-            class="text-base"
-          />
-          Add Skill
-        </button>
-      </div>
-    </div>
+  <UiPage
+    title="AI Skills"
+    description="Prompt templates the AI writer works from"
+  >
+    <template #actions>
+      <UButton
+        label="Add skill"
+        icon="i-lucide-plus"
+        @click="openCreate"
+      />
+    </template>
 
     <UEmpty
       v-if="!skills?.length"
@@ -363,5 +351,5 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
         </div>
       </template>
     </UModal>
-  </div>
+  </UiPage>
 </template>
