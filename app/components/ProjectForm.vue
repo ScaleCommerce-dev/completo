@@ -200,9 +200,15 @@ function confirmDelete() {
 </script>
 
 <template>
+  <!--
+    overflow-y-auto, not hidden: in edit mode UModal caps this form's height, and the form
+    already sits close to that cap, so opening the icon picker used to clip the bottom
+    ~440px with no way to scroll — the Save button included. On the create page the form
+    isn't height-constrained, so `auto` shows no scrollbar there.
+  -->
   <form
     :class="[
-      'rounded-xl bg-white dark:bg-zinc-800/80 overflow-hidden',
+      'rounded-xl bg-white dark:bg-zinc-800/80 overflow-x-hidden overflow-y-auto',
       mode === 'create' && 'border border-zinc-200/80 dark:border-zinc-700/60 shadow-sm'
     ]"
     @submit.prevent="onSubmit"

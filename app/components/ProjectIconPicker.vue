@@ -68,7 +68,10 @@ function applyFilterAsIcon() {
         class="w-full text-[13px] text-zinc-600 dark:text-zinc-300 placeholder-zinc-300 dark:placeholder-zinc-600 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/50 rounded-md px-2.5 py-1.5 outline-none focus:border-indigo-300 dark:focus:border-indigo-600 transition-colors"
         @keydown.enter.prevent="applyFilterAsIcon"
       >
-      <div class="grid grid-cols-8 gap-1">
+      <!-- Bounded and scrollable: an unfiltered list is 50 icons (~7 rows), but typing in
+           the filter searches all ~1770 Lucide names, so the grid would otherwise grow to
+           over a hundred rows and push the form's action bar out of the modal. -->
+      <div class="grid grid-cols-8 gap-1 max-h-56 overflow-y-auto">
         <button
           v-for="ic in filteredIcons"
           :key="ic"
