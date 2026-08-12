@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// Explicit import: shared/utils is auto-imported for Nitro but not into app components.
+import { LIST_FIELDS } from '#shared/utils/list-fields'
+
 const draggable = defineAsyncComponent(() => import('vuedraggable'))
 
 interface ColumnItem {
@@ -38,21 +41,8 @@ const emit = defineEmits<{
   'delete-view': []
 }>()
 
-// ─── List-mode field metadata ───
-const ALL_FIELDS = [
-  { field: 'done', label: 'Done', icon: 'i-lucide-circle-check-big' },
-  { field: 'ticketId', label: 'Ticket ID', icon: 'i-lucide-hash' },
-  { field: 'title', label: 'Title', icon: 'i-lucide-type' },
-  { field: 'status', label: 'Status', icon: 'i-lucide-circle-dot' },
-  { field: 'assignee', label: 'Assignee', icon: 'i-lucide-user' },
-  { field: 'creator', label: 'Creator', icon: 'i-lucide-user-pen' },
-  { field: 'priority', label: 'Priority', icon: 'i-lucide-signal' },
-  { field: 'tags', label: 'Tags', icon: 'i-lucide-tag' },
-  { field: 'dueDate', label: 'Due Date', icon: 'i-lucide-calendar' },
-  { field: 'createdAt', label: 'Created', icon: 'i-lucide-calendar-plus' },
-  { field: 'updatedAt', label: 'Updated', icon: 'i-lucide-calendar-clock' },
-  { field: 'description', label: 'Description', icon: 'i-lucide-text' }
-]
+// ─── List-mode field metadata (shared/utils/list-fields.ts) ───
+const ALL_FIELDS = LIST_FIELDS
 
 const activeFields = computed(() => new Set(localColumns.value.map(c => c.field)))
 const availableFields = computed(() =>

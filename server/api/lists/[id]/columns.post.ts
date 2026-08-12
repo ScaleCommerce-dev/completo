@@ -1,7 +1,5 @@
 import { eq, and } from 'drizzle-orm'
 
-const VALID_FIELDS = ['ticketId', 'title', 'status', 'assignee', 'creator', 'priority', 'tags', 'dueDate', 'createdAt', 'updatedAt', 'description', 'done']
-
 export default defineEventHandler(async (event) => {
   const { user: _user, list } = await resolveList(event)
   const { field } = await readBody<{ field: string }>(event)
@@ -10,8 +8,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Field is required' })
   }
 
-  if (!VALID_FIELDS.includes(field)) {
-    throw createError({ statusCode: 400, message: `Invalid field. Must be one of: ${VALID_FIELDS.join(', ')}` })
+  if (!isListField(field)) {
+    throw createError({ statusCode: 400, message: `Invalid field. Must be one of: ${LIST_FIELD_KEYS.join(', ')}` })
   }
 
   // Check for duplicate field in this list

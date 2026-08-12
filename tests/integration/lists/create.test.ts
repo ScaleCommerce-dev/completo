@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch, expectError } from '../../setup/server'
 import { registerTestUser, type TestUser } from '../../setup/auth'
 import { createTestProject, createTestList, getList } from '../../setup/fixtures'
+import { LIST_DEFAULT_FIELDS } from '../../../shared/utils/list-fields'
 
 describe('POST /api/projects/:id/lists', async () => {
   let user: TestUser
@@ -23,9 +24,20 @@ describe('POST /api/projects/:id/lists', async () => {
     expect(list.position).toBe(0)
 
     const fullList = await getList(user, list.id)
-    expect(fullList.columns).toHaveLength(7)
-    expect(fullList.columns.map((c: Record<string, unknown>) => c.field)).toEqual(['ticketId', 'title', 'status', 'priority', 'assignee', 'dueDate', 'tags'])
-    expect(fullList.columns.map((c: Record<string, unknown>) => c.position)).toEqual([0, 1, 2, 3, 4, 5, 6])
+    expect(fullList.columns).toHaveLength(LIST_DEFAULT_FIELDS.length)
+    expect(fullList.columns.map((c: Record<string, unknown>) => c.field)).toEqual([...LIST_DEFAULT_FIELDS])
+    expect(fullList.columns.map((c: Record<string, unknown>) => c.position)).toEqual(LIST_DEFAULT_FIELDS.map((_, i) => i))
+  })
+
+  it('rejects unknown column fields', async () => {
+    // This endpoint took `columns` on trust while POST /lists/:id/columns validated the
+    // same input, so a bogus field could only be inserted at creation time.
+    const project = await createTestProject(user, { name: `List Bad Cols ${Date.now()}` })
+    await expectError($fetch(`/api/projects/${project.id}/lists`, {
+      method: 'POST',
+      body: { name: 'Bogus', columns: ['title', 'creatorId'] },
+      headers: user.headers
+    }), 400)
   })
 
   it('creates a list with custom columns', async () => {

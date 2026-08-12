@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { CardWithStatus, CardStatus, Tag, Member } from '~/types/card'
+// Explicit import: shared/utils is auto-imported for Nitro but not into app components.
+import { SORTABLE_LIST_FIELDS, LIST_FIELD_LABELS, LIST_FIELD_WIDTHS } from '#shared/utils/list-fields'
 
-const SORTABLE_FIELDS = new Set(['ticketId', 'title', 'status', 'priority', 'assignee', 'creator', 'dueDate', 'createdAt', 'updatedAt'])
+const SORTABLE_FIELDS = SORTABLE_LIST_FIELDS
 
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
 
@@ -72,34 +74,8 @@ function toggleTag(card: { id: number, tags?: Array<{ id: string }> }, tagId: st
   emit('update-tags', card.id, newIds)
 }
 
-const FIELD_LABELS: Record<string, string> = {
-  done: '',
-  ticketId: 'ID',
-  title: 'Title',
-  status: 'Status',
-  assignee: 'Assignee',
-  creator: 'Creator',
-  priority: 'Priority',
-  tags: 'Tags',
-  dueDate: 'Due Date',
-  createdAt: 'Created',
-  updatedAt: 'Updated',
-  description: 'Description'
-}
-
-const COL_WIDTHS: Record<string, string> = {
-  done: '36px',
-  ticketId: '88px',
-  status: '130px',
-  priority: '104px',
-  assignee: '148px',
-  creator: '148px',
-  tags: '160px',
-  dueDate: '120px',
-  createdAt: '100px',
-  updatedAt: '100px',
-  description: '200px'
-}
+const FIELD_LABELS = LIST_FIELD_LABELS
+const COL_WIDTHS = LIST_FIELD_WIDTHS
 
 function isDone(card: { statusId: string }) {
   return !!props.doneStatusId && card.statusId === props.doneStatusId

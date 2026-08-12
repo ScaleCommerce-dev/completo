@@ -1,7 +1,5 @@
 import { eq, and, ne } from 'drizzle-orm'
 
-const SORTABLE_FIELDS = new Set(['ticketId', 'title', 'status', 'priority', 'assignee', 'creator', 'createdAt', 'updatedAt'])
-
 export default defineEventHandler(async (event) => {
   const { user: _user, list } = await resolveList(event)
   const { name, slug, sortField, sortDirection, tagFilters, statusFilters, assigneeFilters, priorityFilters } = await readBody<{
@@ -45,7 +43,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (sortField !== undefined) {
-    if (sortField !== null && !SORTABLE_FIELDS.has(sortField)) {
+    if (sortField !== null && !SORTABLE_LIST_FIELDS.has(sortField)) {
       throw createError({ statusCode: 400, message: 'Invalid sort field' })
     }
     updates.sortField = sortField

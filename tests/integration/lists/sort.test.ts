@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch, url } from '../../setup/server'
 import { registerTestUser, type TestUser } from '../../setup/auth'
 import { createTestProject, createTestList, getList } from '../../setup/fixtures'
+import { SORTABLE_LIST_FIELDS } from '../../../shared/utils/list-fields'
 
 describe('List sort fields (PUT /api/lists/:id)', async () => {
   let owner: TestUser
@@ -77,8 +78,11 @@ describe('List sort fields (PUT /api/lists/:id)', async () => {
     expect(res.status).toBe(403)
   })
 
-  it('validates all sortable fields', async () => {
-    for (const field of ['ticketId', 'title', 'status', 'priority', 'assignee', 'createdAt', 'updatedAt']) {
+  // Derived, not hardcoded: this list used to be spelled out here and had fallen behind
+  // by two fields (dueDate, creator), which is precisely why nobody noticed the server
+  // rejecting a sort the UI offered.
+  it('accepts every sortable field', async () => {
+    for (const field of SORTABLE_LIST_FIELDS) {
       const updated = await $fetch(`/api/lists/${list.id}`, {
         method: 'PUT',
         body: { sortField: field, sortDirection: 'desc' },

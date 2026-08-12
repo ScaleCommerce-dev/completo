@@ -1,7 +1,5 @@
 import { eq, inArray, and } from 'drizzle-orm'
 
-const DEFAULT_COLUMNS = ['done', 'ticketId', 'title', 'status', 'priority', 'dueDate', 'tags']
-
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
   const userId = user.id
@@ -119,10 +117,10 @@ function ensureColumns(userId: string) {
 
   if (!columns.length) {
     db.transaction(() => {
-      for (let i = 0; i < DEFAULT_COLUMNS.length; i++) {
+      for (let i = 0; i < MY_TASKS_DEFAULT_FIELDS.length; i++) {
         db.insert(schema.myTasksColumns).values({
           userId,
-          field: DEFAULT_COLUMNS[i]!,
+          field: MY_TASKS_DEFAULT_FIELDS[i]!,
           position: i
         }).run()
       }

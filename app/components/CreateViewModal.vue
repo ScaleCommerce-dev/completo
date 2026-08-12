@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// Explicit import: shared/utils is auto-imported for Nitro but not into app components.
+import { LIST_FIELDS, LIST_DEFAULT_FIELDS } from '#shared/utils/list-fields'
+
 interface Status {
   id: string
   name: string
@@ -25,20 +28,10 @@ const emit = defineEmits<{
 
 const open = defineModel<boolean>('open', { default: false })
 
-const LIST_FIELD_OPTIONS = [
-  { field: 'ticketId', label: 'Ticket ID' },
-  { field: 'title', label: 'Title' },
-  { field: 'status', label: 'Status' },
-  { field: 'priority', label: 'Priority' },
-  { field: 'assignee', label: 'Assignee' },
-  { field: 'creator', label: 'Creator' },
-  { field: 'tags', label: 'Tags' },
-  { field: 'dueDate', label: 'Due Date' },
-  { field: 'createdAt', label: 'Created' },
-  { field: 'updatedAt', label: 'Updated' },
-  { field: 'description', label: 'Description' }
-]
-const DEFAULT_LIST_FIELDS = ['ticketId', 'title', 'status', 'priority', 'assignee', 'dueDate', 'tags']
+// Both pickers offer the same fields, from shared/utils/list-fields.ts. This list used to
+// omit `done`, so the checkbox column could only be added after the list existed.
+const LIST_FIELD_OPTIONS = LIST_FIELDS
+const DEFAULT_LIST_FIELDS = LIST_DEFAULT_FIELDS
 
 const viewStep = ref<1 | 2 | 3>(1)
 const viewType = ref<'board' | 'list'>('board')
