@@ -86,6 +86,64 @@ export async function resolveTag(event: H3Event) {
   return { user, tag }
 }
 
+/**
+ * Fetch comment by ID + project member check + authorship/moderation check.
+ *
+ * The comment's project is resolved through its card rather than stored on the
+ * comment, so permission checks always read the card's current project — see the
+ * note on `comments` in schema.ts.
+ *
+ * `auth` distinguishes the two operations deliberately:
+ *
+ * - `'author'` (default, used by PUT) — only the author, admins included. Letting
+ *   anyone else rewrite a comment would leave it attributed to the original author
+ *   while saying something they didn't write, with nothing recording the change.
+ * - `'authorOrOwner'` (used by DELETE) — the author, or a project owner / instance
+ *   admin, so inappropriate or accidentally-disclosing content can be removed
+ *   without deleting the whole card. This is also the only way to clear comments
+ *   whose author has deleted their account: `authorId` is nulled, so no one
+ *   satisfies the authorship check any more.
+ *
+ * Moderated deletion is currently silent — CF-401 adds the activity record.
+ *
+ * Also returns the card and project, since callers need the card title plus the
+ * project slug and key to build notification links.
+ */
+export async function resolveComment(event: H3Event, opts?: { auth?: 'author' | 'authorOrOwner' }) {
+  const { user } = await resolveAuth(event)
+  const id = getRouterParam(event, 'id')!
+
+  const row = db.select({ comment: schema.comments, card: schema.cards })
+    .from(schema.comments)
+    .innerJoin(schema.cards, eq(schema.comments.cardId, schema.cards.id))
+    .where(eq(schema.comments.id, id))
+    .get()
+  if (!row) throw createError({ statusCode: 404, message: 'Comment not found' })
+
+  const { comment, card } = row
+  // 404 for non-members so membership isn't leaked, 403 once membership is proven
+  try {
+    requireProjectMember(card.projectId, user.id, { isAdmin: user.isAdmin })
+  } catch {
+    throw createError({ statusCode: 404, message: 'Comment not found' })
+  }
+
+  const isAuthor = !!comment.authorId && comment.authorId === user.id
+  if (!isAuthor) {
+    if (opts?.auth === 'authorOrOwner') {
+      // Throws 403 unless the user is a project owner or an instance admin
+      requireProjectOwner(card.projectId, user.id, { isAdmin: user.isAdmin })
+    } else {
+      throw createError({ statusCode: 403, message: 'You can only edit your own comments' })
+    }
+  }
+
+  const project = db.select().from(schema.projects)
+    .where(eq(schema.projects.id, card.projectId))
+    .get()
+  return { user, comment, card, project, isAuthor }
+}
+
 /** Fetch list by ID or slug + project member check. */
 export async function resolveList(event: H3Event, opts?: { columnAccess?: boolean }) {
   const { user } = await resolveAuth(event)

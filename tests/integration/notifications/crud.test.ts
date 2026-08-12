@@ -180,7 +180,7 @@ describe('Notifications', () => {
 
       await createTestCard(owner, project.id, statusId, {
         title: 'Mention test card',
-        description: `Hey @[${member.name}] please check this out`
+        description: `Hey @[${member.name}](${member.id}) please check this out`
       })
 
       const afterNotifications = await $fetch('/api/notifications', {
@@ -207,7 +207,7 @@ describe('Notifications', () => {
 
       await $fetch(`/api/cards/${card.id}`, {
         method: 'PUT',
-        body: { description: `Adding @[${member.name}] to this card` },
+        body: { description: `Adding @[${member.name}](${member.id}) to this card` },
         headers: owner.headers
       })
 
@@ -220,7 +220,7 @@ describe('Notifications', () => {
     })
 
     it('does not create duplicate notification on re-save with same mentions', async () => {
-      const desc = `Check with @[${member.name}] on this`
+      const desc = `Check with @[${member.name}](${member.id}) on this`
       const card = await createTestCard(owner, project.id, statusId, {
         title: 'No duplicate mention test',
         description: desc

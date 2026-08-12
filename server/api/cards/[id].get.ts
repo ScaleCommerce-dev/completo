@@ -21,8 +21,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Card not found' })
   }
 
+  let membership
   try {
-    requireProjectMember(row.cards.projectId, user.id, { isAdmin: user.isAdmin })
+    membership = requireProjectMember(row.cards.projectId, user.id, { isAdmin: user.isAdmin })
   } catch {
     throw createError({ statusCode: 404, message: 'Card not found' })
   }
@@ -64,6 +65,10 @@ export default defineEventHandler(async (event) => {
 
   return {
     ...row.cards,
+    // The viewer's role in this project, as boards and lists already return, so the
+    // client can show owner-only affordances (e.g. moderating others' comments).
+    // Admins get a synthetic 'owner' — don't render it as a real project role.
+    role: membership.role,
     assignee: row.users ? { id: row.users.id, name: row.users.name, avatarUrl: row.users.avatarUrl } : null,
     project: project ? { id: project.id, name: project.name, slug: project.slug, key: project.key } : null,
     statuses,

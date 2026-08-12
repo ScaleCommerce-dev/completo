@@ -125,6 +125,20 @@ export const attachments = sqliteTable('attachments', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })
 
+export const comments = sqliteTable('comments', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  // A comment belongs to a card, and the card owns the project relationship. No
+  // denormalised projectId here on purpose: it would be a second source of truth
+  // for permission checks, and would silently authorise against a stale project
+  // if a card ever moved between projects. Resolve it through the card instead.
+  cardId: integer('card_id').notNull().references(() => cards.id, { onDelete: 'cascade' }),
+  // Keep the comment when its author is deleted; the UI falls back to a placeholder.
+  authorId: text('author_id').references(() => users.id, { onDelete: 'set null' }),
+  body: text('body').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+})
+
 export const aiSkills = sqliteTable('ai_skills', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text('name').notNull(),
@@ -176,7 +190,9 @@ export const emailVerificationTokens = sqliteTable('email_verification_tokens', 
 export const notifications = sqliteTable('notifications', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  type: text('type', { enum: ['card_assigned', 'member_added', 'role_changed', 'member_removed', 'mentioned'] }).notNull(),
+  // Type-level only: SQLite stores this as plain text with no CHECK constraint,
+  // so adding a value here needs no migration.
+  type: text('type', { enum: ['card_assigned', 'member_added', 'role_changed', 'member_removed', 'mentioned', 'comment_added'] }).notNull(),
   title: text('title').notNull(),
   message: text('message').notNull(),
   linkUrl: text('link_url'),

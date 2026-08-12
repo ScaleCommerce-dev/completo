@@ -124,13 +124,28 @@ function closeMention() {
   mentionIndex.value = 0
 }
 
+/**
+ * Shorten a user id to its first UUID group for the stored mention, so the raw
+ * markdown stays readable in the textarea. Resolution is scoped to one project's
+ * members, so 8 hex chars is ample. If another member we know about shares that
+ * prefix, store the full id instead — the server refuses to resolve an ambiguous
+ * ref rather than guess, which would mean a missed notification.
+ */
+function mentionRef(userId: string): string {
+  const short = userId.slice(0, 8)
+  const clash = (props.members || []).some(m => m.id !== userId && m.id.startsWith(short))
+  return clash ? userId : short
+}
+
 function selectMention(item: { _type: 'user' | 'card', id: string | number, name?: string, title?: string }) {
   const el = editorRef.value?.textareaEl
   if (!el) return
 
   let mentionText: string
   if (item._type === 'user') {
-    mentionText = `@[${item.name}] `
+    // Carries a user-id reference so notifications resolve by identity, not display
+    // name — display names aren't unique and used to notify the wrong person.
+    mentionText = `@[${item.name}](${mentionRef(String(item.id))}) `
   } else {
     const slug = `${props.projectKey}-${item.id}`
     mentionText = `[${item.title} (${slug})](/projects/${props.projectSlug}/cards/${slug}) `
@@ -278,6 +293,7 @@ defineExpose({
     v-model="description"
     :min-height="minHeight"
     :max-height="maxHeight"
+    :overlay-open="mentionActive"
     @textarea-keydown="onTextareaKeydown"
     @textarea-input="onTextareaInput"
   >

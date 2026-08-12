@@ -9,6 +9,8 @@ const props = defineProps<{
   statusId?: string
   projectKey?: string
   projectSlug?: string
+  /** Viewer may delete others' comments (project owner or instance admin). */
+  canModerate?: boolean
   onEnsureCard?: (data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) => Promise<number>
 }>()
 
@@ -231,6 +233,9 @@ function cancelDiscardDraft() {
 
 function handleKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    // A nested editor claims the shortcut for itself, so Cmd+Enter follows focus:
+    // in the comment box it posts the comment instead of saving the card.
+    if ((e.target as HTMLElement | null)?.closest?.('[data-comment-editor]')) return
     e.preventDefault()
     e.stopImmediatePropagation()
     submit()
@@ -519,6 +524,21 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <AttachmentList
             :card-id="attachmentCardId"
             :on-before-upload="!isEdit ? handleBeforeUpload : undefined"
+          />
+        </div>
+
+        <!-- Comments: only once the card exists — there is nothing to comment on
+             while creating, and attachments' draft-card trick doesn't apply here. -->
+        <div
+          v-if="isEdit"
+          class="mx-5"
+        >
+          <CommentList
+            :card-id="props.card?.id"
+            :members="members"
+            :project-slug="projectSlug"
+            :project-key="projectKey"
+            :can-moderate="canModerate"
           />
         </div>
 

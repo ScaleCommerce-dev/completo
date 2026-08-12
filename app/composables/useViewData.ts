@@ -51,6 +51,17 @@ export function useViewData<T extends ViewDataResponse>(
     return false
   })
 
+  /**
+   * May delete another member's comment. Deliberately *not* canConfigureColumns:
+   * that also grants whoever created the view, which has no bearing on moderating
+   * other people's words. Mirrors requireProjectOwner on the server.
+   */
+  const canModerateComments = computed(() => {
+    if (!data.value) return false
+    if (user.value?.isAdmin) return true
+    return data.value.role === 'owner'
+  })
+
   // ─── Card CRUD (identical across views) ───
   async function createCard(statusId: string, title: string, cardOpts?: { description?: string, priority?: string, assigneeId?: string, dueDate?: string | null }) {
     const card = await mutate(
@@ -137,6 +148,7 @@ export function useViewData<T extends ViewDataResponse>(
     projectKey,
     doneStatusId,
     canConfigureColumns,
+    canModerateComments,
     // Card CRUD
     createCard,
     updateCard,

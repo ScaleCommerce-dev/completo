@@ -3,8 +3,11 @@
  */
 export function stripMarkdown(text: string): string {
   return text
-    // @[Name] mentions → @Name
-    .replace(/@\[([^\]]+)\]/g, '@$1')
+    // @[Name](userId) mentions → @Name. Must run before the Links rule below,
+    // which would otherwise swallow the trailing (userId). Mentions predating
+    // stored ids are left as-is, so previews match how ProseDescription renders
+    // them: literal text.
+    .replace(/@\[([^\]]+)\]\([^)\s]+\)/g, '@$1')
     // Code blocks (``` ... ```)
     .replace(/```[\s\S]*?```/g, '')
     // Inline code

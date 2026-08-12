@@ -79,7 +79,7 @@ export function createCard({ projectId, userId, userName, body }: CreateCardPara
       }
       if (needsMentionNotify) {
         notifyMentionedUsers({
-          description,
+          text: description,
           projectId: project.id,
           cardId: inserted.id,
           actorId: userId,

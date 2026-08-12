@@ -56,6 +56,10 @@
       "description": "File attachments on cards"
     },
     {
+      "name": "Comments",
+      "description": "Comments on cards"
+    },
+    {
       "name": "User",
       "description": "User profile and account"
     },
@@ -4419,6 +4423,168 @@
           }
         }
       }
+    },
+    "/api/cards/{id}/comments": {
+      "get": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "List card comments",
+        "operationId": "listComments",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of comments, oldest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Comment"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Add a comment",
+        "description": "Creates a comment on a card. Mentioned project members and the card assignee receive an in-app notification; the author is never notified about their own comment.",
+        "operationId": "createComment",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/comments/{id}": {
+      "put": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Edit a comment",
+        "description": "Only the comment author may edit it \u2014 not project owners or admins, since a rewritten comment would stay attributed to its original author. Editing notifies newly added mentions only.",
+        "operationId": "updateComment",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CommentId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Delete a comment",
+        "description": "The comment author, a project owner, or an instance admin may delete it. Owner-level deletion exists so inappropriate content can be removed without deleting the card, and is the only way to clear a comment whose author has deleted their account.",
+        "operationId": "deleteComment",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CommentId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4461,6 +4627,16 @@
           "type": "string"
         },
         "description": "Card ID (integer) or ticket slug (e.g. \"TK-42\")"
+      },
+      "CommentId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": "Comment ID"
       }
     },
     "schemas": {
@@ -4727,6 +4903,57 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "Comment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cardId": {
+            "type": "integer"
+          },
+          "body": {
+            "type": "string",
+            "description": "Markdown. User mentions are stored as `@[Display Name](ref)`, where ref is the first group of the user's UUID (8 hex chars); the full UUID is also accepted. An ambiguous ref resolves to nobody rather than guessing."
+          },
+          "authorId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Null if the author has been deleted."
+          },
+          "authorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorAvatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Greater than createdAt if the comment has been edited."
+          }
+        }
+      },
+      "CommentInput": {
+        "type": "object",
+        "required": [
+          "body"
+        ],
+        "properties": {
+          "body": {
+            "type": "string",
+            "description": "Markdown comment body. Must not be empty. User mentions are stored as `@[Display Name](ref)`, where ref is the first group of the user's UUID (8 hex chars); the full UUID is also accepted. An ambiguous ref resolves to nobody rather than guessing."
           }
         }
       },

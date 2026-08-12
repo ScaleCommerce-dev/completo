@@ -3,10 +3,21 @@ const props = withDefaults(defineProps<{
   placeholder?: string
   minHeight?: number
   maxHeight?: number | null
+  /**
+   * Set while an `after-textarea` overlay (e.g. the mention picker) is open.
+   *
+   * The root clips to its rounded corners with `overflow-hidden`, which also clips
+   * that overlay to the editor's height. A short editor — a comment box at
+   * minHeight 80 — left the results list invisible. Release the clip while the
+   * overlay is open so it can extend past the editor, and restore it after, since
+   * it's what keeps the toolbar and textarea inside the rounded border.
+   */
+  overlayOpen?: boolean
 }>(), {
   placeholder: 'Describe the task...',
   minHeight: 120,
-  maxHeight: null
+  maxHeight: null,
+  overlayOpen: false
 })
 
 const modelValue = defineModel<string>({ default: '' })
@@ -133,7 +144,10 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
 </script>
 
 <template>
-  <div class="rounded-lg border border-zinc-200/80 dark:border-zinc-700/50 overflow-hidden">
+  <div
+    class="rounded-lg border border-zinc-200/80 dark:border-zinc-700/50"
+    :class="overlayOpen ? 'overflow-visible' : 'overflow-hidden'"
+  >
     <!-- Tabs -->
     <div class="flex items-center border-b border-zinc-200/80 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-800/40">
       <button

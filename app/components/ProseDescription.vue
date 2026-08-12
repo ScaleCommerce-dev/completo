@@ -20,7 +20,10 @@ if (!(globalThis as Record<string, unknown>)[_markedConfigured]) {
     level: 'inline' as const,
     start(src: string) { return src.indexOf('@') },
     tokenizer(src: string) {
-      const match = src.match(/^@\[([^\]]+)\]/)
+      // `@[Display Name](userId)`. Mentions written before ids were stored no
+      // longer match and fall through to plain text — deliberate, see
+      // extractMentionedUserIds in server/utils/notifications.ts.
+      const match = src.match(/^@\[([^\]]+)\]\(([^)\s]+)\)/)
       if (match) {
         return {
           type: 'mention',

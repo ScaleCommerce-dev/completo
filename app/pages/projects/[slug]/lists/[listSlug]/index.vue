@@ -22,6 +22,7 @@ const {
   sortField,
   sortDirection,
   canConfigureColumns,
+  canModerateComments,
   canSaveSort,
   status: _status,
   refresh,
@@ -202,6 +203,7 @@ async function handleDeleteList() {
       :tags="tagsData"
       :project-key="projectKey"
       :project-slug="(route.params.slug as string)"
+      :can-moderate="canModerateComments"
       @update="handleUpdateCard"
       @delete="handleDeleteCard"
     />

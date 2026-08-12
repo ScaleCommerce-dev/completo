@@ -22,6 +22,8 @@ interface CardDetail {
   statuses: Array<{ id: string, name: string, color: string | null }>
   members: Array<{ id: string, name: string, avatarUrl: string | null }>
   projectTags: Array<{ id: string, name: string, color: string }>
+  /** Viewer's role in this project; admins get a synthetic 'owner'. */
+  role: string
 }
 const { data: cardData, error: fetchError, status } = useFetch<CardDetail>(`/api/cards/${cardId}`)
 watch(fetchError, (err) => {
@@ -34,6 +36,8 @@ const membersData = computed(() => cardData.value?.members || [])
 const projectKey = computed(() => cardData.value?.project?.key || 'TK')
 
 const projectTagsData = computed(() => cardData.value?.projectTags || [])
+// Owners (and admins, who resolve to a synthetic 'owner') may delete others' comments
+const canModerateComments = computed(() => cardData.value?.role === 'owner')
 
 const UNASSIGNED = '__unassigned__'
 const title = ref('')
@@ -214,6 +218,9 @@ function onBeforeUnload(e: BeforeUnloadEvent) {
 
 function handleKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    // A nested editor claims the shortcut for itself, so Cmd+Enter follows focus:
+    // in the comment box it posts the comment instead of saving the card.
+    if ((e.target as HTMLElement | null)?.closest?.('[data-comment-editor]')) return
     e.preventDefault()
     e.stopImmediatePropagation()
     submit()
@@ -668,6 +675,15 @@ async function confirmDelete() {
           <div class="mt-6">
             <AttachmentList :card-id="card?.id" />
           </div>
+
+          <!-- Comments -->
+          <CommentList
+            :card-id="card?.id"
+            :members="membersData"
+            :project-slug="projectSlug"
+            :project-key="projectKey"
+            :can-moderate="canModerateComments"
+          />
         </div>
       </form>
     </div>

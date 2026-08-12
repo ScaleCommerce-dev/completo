@@ -134,6 +134,32 @@ export async function createTestCard(user: TestUser, projectId: string, statusId
   }) as { id: number, title: string, statusId: string, projectId: string, position: number, priority: string, dueDate: string | null, createdById: string }
 }
 
+export async function createTestComment(user: TestUser, cardId: number, body?: string) {
+  return await $fetch(`/api/cards/${cardId}/comments`, {
+    method: 'POST',
+    body: { body: body || `Test comment ${Date.now()}` },
+    headers: user.headers
+  }) as {
+    id: string
+    cardId: number
+    body: string
+    authorId: string | null
+    authorName: string | null
+    authorAvatarUrl: string | null
+    createdAt: string
+    updatedAt: string
+  }
+}
+
+/**
+ * Mentions are stored as `@[Name](ref)`, where ref is the first UUID group —
+ * resolved by identity, not display name. Pass `full` to embed the whole id, which
+ * must resolve identically.
+ */
+export function mention(user: TestUser, opts?: { full?: boolean }): string {
+  return `@[${user.name}](${opts?.full ? user.id : user.id.slice(0, 8)})`
+}
+
 export async function uploadAttachment(
   user: TestUser,
   cardId: number,

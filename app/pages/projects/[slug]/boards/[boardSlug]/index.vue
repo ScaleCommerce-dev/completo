@@ -20,6 +20,7 @@ const {
   doneStatusId,
   availableColumns,
   canConfigureColumns,
+  canModerateComments,
   canAddColumns,
   status: _status,
   refresh,
@@ -196,6 +197,7 @@ async function handleDeleteBoard() {
       :tags="tagsData"
       :project-key="projectKey"
       :project-slug="(route.params.slug as string)"
+      :can-moderate="canModerateComments"
       @update="handleUpdateCard"
       @delete="handleDeleteCard"
     />

@@ -62,8 +62,8 @@ export default defineEventHandler(async (event) => {
       }
       if (needsMentionNotify) {
         notifyMentionedUsers({
-          description: body.description!,
-          oldDescription: existingCard.description,
+          text: body.description!,
+          oldText: existingCard.description,
           projectId: project.id,
           cardId: existingCard.id,
           actorId: user.id,
