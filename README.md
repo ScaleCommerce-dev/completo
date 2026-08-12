@@ -47,6 +47,8 @@ One command. One container. Open `localhost:3000` and log in with the admin emai
 
 No default accounts ship anywhere — set the env vars or no admin exists.
 
+> **Running it on another machine over plain HTTP?** Add `-e NUXT_SESSION_COOKIE_SECURE=false`. Reaching Completo at something like `http://192.168.1.50:3000` without it, signing in appears to work and then lands you back at the login page — browsers throw away a `Secure` cookie on an insecure origin, and say nothing about it. `localhost` is exempt (browsers count it as secure), so the commands above need no change, and neither does HTTPS terminated at a reverse proxy. Put TLS in front if you can; this flag is the fallback when you can't.
+
 ### Why it exists
 
 Because every ticket system starts as "we just need something simple" and ends as a mass of gantt charts, resource leveling matrices, and a 200-page admin guide that nobody reads, maintained by nobody, understood by nobody.
@@ -75,7 +77,7 @@ The only required environment variable is `NUXT_SESSION_PASSWORD` (min 32 charac
 | Variable | What it does | Default |
 |----------|-------------|---------|
 | `NUXT_SESSION_PASSWORD` | Session encryption key (required) | — |
-| `NUXT_SESSION_COOKIE_SECURE` | Send the session cookie with `Secure`. Set to `false` only if you serve Completo over plain HTTP — TLS terminated at a proxy still counts as HTTPS | `true` |
+| `NUXT_SESSION_COOKIE_SECURE` | Send the session cookie with `Secure`. Set to `false` only when serving over plain HTTP from a non-`localhost` address, or sign-in won't stick. `localhost` and TLS-terminating proxies both need the default | `true` |
 | `DATABASE_URL` | SQLite database path | `sqlite.db` |
 | `UPLOAD_DIR` | File attachment storage | `data/uploads` |
 | `SMTP_HOST` | SMTP server for email (empty = email disabled) | — |
