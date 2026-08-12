@@ -16,6 +16,8 @@ interface CardDetail {
   assigneeId: string | null
   dueDate: string | null
   tags: Array<{ id: string, name: string, color: string }>
+  /** Null if the creator's account was deleted, or the card predates creator tracking. */
+  creator: { id: string, name: string, avatarUrl: string | null } | null
   createdAt: string
   updatedAt: string
   project: { id: string, name: string, slug: string, key: string } | null
@@ -521,8 +523,18 @@ async function confirmDelete() {
               </div>
             </div>
 
-            <!-- Timestamps -->
+            <!-- Creator & timestamps -->
             <div class="px-4 py-2.5 border-t border-zinc-100 dark:border-zinc-700/40 flex flex-col gap-1">
+              <span
+                v-if="card.creator"
+                class="flex items-center gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-500"
+              >
+                <UIcon
+                  name="i-lucide-user-pen"
+                  class="text-[11px] opacity-60 shrink-0"
+                />
+                <span class="truncate">Created by {{ card.creator.name }}</span>
+              </span>
               <span
                 v-if="card.createdAt"
                 class="flex items-center gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-500 font-mono"

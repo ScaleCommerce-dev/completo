@@ -45,6 +45,7 @@ const ALL_FIELDS = [
   { field: 'title', label: 'Title', icon: 'i-lucide-type' },
   { field: 'status', label: 'Status', icon: 'i-lucide-circle-dot' },
   { field: 'assignee', label: 'Assignee', icon: 'i-lucide-user' },
+  { field: 'creator', label: 'Creator', icon: 'i-lucide-user-pen' },
   { field: 'priority', label: 'Priority', icon: 'i-lucide-signal' },
   { field: 'tags', label: 'Tags', icon: 'i-lucide-tag' },
   { field: 'dueDate', label: 'Due Date', icon: 'i-lucide-calendar' },

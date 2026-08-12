@@ -2,7 +2,7 @@
 import type { BaseCard, CardStatus, Member, Tag } from '~/types/card'
 
 const props = defineProps<{
-  card?: Pick<BaseCard, 'id' | 'title' | 'description' | 'priority' | 'statusId' | 'assigneeId' | 'dueDate'> & { tags?: Tag[] }
+  card?: Pick<BaseCard, 'id' | 'title' | 'description' | 'priority' | 'statusId' | 'assigneeId' | 'dueDate' | 'creator'> & { tags?: Tag[] }
   statuses: CardStatus[]
   members?: Member[]
   tags?: Tag[]
@@ -281,17 +281,31 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         class="flex flex-col"
         @submit.prevent="submit"
       >
-        <!-- Card ID (edit only) -->
+        <!-- Identity: the card's immutable facts — its ID, its author, its permalink.
+             The editable properties live in the grid below; keeping authorship up here
+             (rather than as a fifth chip in that grid) avoids dressing a read-only field
+             as one of the dropdowns. -->
         <div
           v-if="isEdit"
-          class="flex items-center justify-between px-5 pt-5 pb-2"
+          class="flex items-center justify-between gap-3 px-5 pt-5 pb-2"
         >
-          <TicketIdCopy
-            :project-key="projectKey"
-            :project-slug="projectSlug"
-            :card-id="card!.id"
-            variant="pill"
-          />
+          <div class="flex items-center gap-2.5 min-w-0">
+            <TicketIdCopy
+              :project-key="projectKey"
+              :project-slug="projectSlug"
+              :card-id="card!.id"
+              variant="pill"
+            />
+            <!-- "by" earns its place: a bare name beside the ticket ID reads as the
+                 assignee, which this modal also has a field for. -->
+            <span
+              v-if="card!.creator"
+              class="flex items-baseline gap-1 min-w-0 text-[12px] font-medium"
+            >
+              <span class="text-zinc-400 dark:text-zinc-500 shrink-0">by</span>
+              <span class="text-zinc-500 dark:text-zinc-400 truncate">{{ card!.creator.name }}</span>
+            </span>
+          </div>
           <NuxtLink
             v-if="projectSlug"
             :to="`/projects/${projectSlug}/cards/${formatTicketId(projectKey, card!.id)}`"

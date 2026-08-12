@@ -70,6 +70,7 @@ export default defineEventHandler(async (event) => {
     // Admins get a synthetic 'owner' — don't render it as a real project role.
     role: membership.role,
     assignee: row.users ? { id: row.users.id, name: row.users.name, avatarUrl: row.users.avatarUrl } : null,
+    creator: row.cards.createdById ? fetchCardCreators([row.cards]).get(row.cards.createdById) || null : null,
     project: project ? { id: project.id, name: project.name, slug: project.slug, key: project.key } : null,
     statuses,
     members,

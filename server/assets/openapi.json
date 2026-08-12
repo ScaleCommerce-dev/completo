@@ -4811,6 +4811,15 @@
           },
           "assignee": {
             "$ref": "#/components/schemas/UserSummary"
+          },
+          "creator": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            ],
+            "nullable": true,
+            "description": "The user who created the card. Null if their account was deleted, or the card predates creator tracking."
           }
         }
       },

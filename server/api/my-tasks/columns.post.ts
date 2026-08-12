@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm'
 
-const VALID_FIELDS = ['ticketId', 'title', 'status', 'assignee', 'priority', 'tags', 'dueDate', 'createdAt', 'updatedAt', 'description', 'done']
+const VALID_FIELDS = ['ticketId', 'title', 'status', 'assignee', 'creator', 'priority', 'tags', 'dueDate', 'createdAt', 'updatedAt', 'description', 'done']
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)

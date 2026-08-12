@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CardWithStatus, CardStatus, Tag, Member } from '~/types/card'
 
-const SORTABLE_FIELDS = new Set(['ticketId', 'title', 'status', 'priority', 'assignee', 'dueDate', 'createdAt', 'updatedAt'])
+const SORTABLE_FIELDS = new Set(['ticketId', 'title', 'status', 'priority', 'assignee', 'creator', 'dueDate', 'createdAt', 'updatedAt'])
 
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
 
@@ -78,6 +78,7 @@ const FIELD_LABELS: Record<string, string> = {
   title: 'Title',
   status: 'Status',
   assignee: 'Assignee',
+  creator: 'Creator',
   priority: 'Priority',
   tags: 'Tags',
   dueDate: 'Due Date',
@@ -92,6 +93,7 @@ const COL_WIDTHS: Record<string, string> = {
   status: '130px',
   priority: '104px',
   assignee: '148px',
+  creator: '148px',
   tags: '160px',
   dueDate: '120px',
   createdAt: '100px',
@@ -184,9 +186,11 @@ const sortedCards = computed(() => {
         cmp = pa - pb
         break
       }
-      case 'assignee': {
-        const na = a.assignee?.name || ''
-        const nb = b.assignee?.name || ''
+      case 'assignee':
+      case 'creator': {
+        const na = (field === 'assignee' ? a.assignee?.name : a.creator?.name) || ''
+        const nb = (field === 'assignee' ? b.assignee?.name : b.creator?.name) || ''
+        // Nameless rows sort last in both directions — return before `mul` is applied.
         if (!na && nb) return 1
         if (na && !nb) return -1
         cmp = na.localeCompare(nb)
@@ -327,6 +331,11 @@ const sortedCards = computed(() => {
               :popover-open="isPopoverOpen(card.id, 'assignee')"
               @select="selectAssignee(card.id, $event)"
               @update:popover-open="setPopoverOpen(card.id, 'assignee', $event)"
+            />
+
+            <ListCellCreator
+              v-else-if="col.field === 'creator'"
+              :creator="card.creator"
             />
 
             <ListCellPriority

@@ -31,6 +31,7 @@ const LIST_FIELD_OPTIONS = [
   { field: 'status', label: 'Status' },
   { field: 'priority', label: 'Priority' },
   { field: 'assignee', label: 'Assignee' },
+  { field: 'creator', label: 'Creator' },
   { field: 'tags', label: 'Tags' },
   { field: 'dueDate', label: 'Due Date' },
   { field: 'createdAt', label: 'Created' },

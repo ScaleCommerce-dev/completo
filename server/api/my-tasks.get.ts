@@ -46,8 +46,9 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // ─── Bulk-fetch tags & attachment counts ───
+  // ─── Bulk-fetch tags, attachment counts & creators ───
   const { tagsByCard, attachCountByCard } = fetchCardMetadata(visibleCards.map(c => c.id))
+  const creatorsById = fetchCardCreators(visibleCards)
 
   // ─── Fetch projects, statuses ───
   const visibleProjectIds = [...new Set(visibleCards.map(c => c.projectId))]
@@ -75,7 +76,8 @@ export default defineEventHandler(async (event) => {
     const cardsWithTags = projectCards.map(card => ({
       ...card,
       tags: tagsByCard.get(card.id) || [],
-      attachmentCount: attachCountByCard.get(card.id) || 0
+      attachmentCount: attachCountByCard.get(card.id) || 0,
+      creator: card.createdById ? creatorsById.get(card.createdById) || null : null
     }))
 
     return {

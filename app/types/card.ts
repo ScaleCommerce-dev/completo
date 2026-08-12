@@ -27,6 +27,8 @@ export interface BaseCard {
   dueDate: string | null
   position: number
   assignee: Member | null
+  /** Who created the card. Null for cards whose creator was deleted, or created before CF-24. */
+  creator?: Member | null
   tags?: Tag[]
   attachmentCount?: number
   createdAt: string

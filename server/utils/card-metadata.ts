@@ -2,6 +2,8 @@ import { eq, inArray, sql } from 'drizzle-orm'
 
 interface CardTag { id: string, name: string, color: string }
 
+interface CardUser { id: string, name: string, avatarUrl: string | null }
+
 interface CardMetadataMaps {
   tagsByCard: Map<number, CardTag[]>
   attachCountByCard: Map<number, number>
@@ -50,14 +52,40 @@ export function fetchCardMetadata(cardIds: number[]): CardMetadataMaps {
 }
 
 /**
- * Enrich an array of cards with tags and attachment counts.
- * Convenience wrapper around fetchCardMetadata.
+ * Bulk-fetch the users who created a set of cards, keyed by user ID.
+ *
+ * A second `leftJoin` on `users` is not an option here: every card query already
+ * joins it for the assignee, so resolving the creator in the same statement would
+ * need a drizzle `alias()`. Batch-fetching the distinct creator IDs instead matches
+ * how board and list creators are resolved in `projects/[id].get.ts`.
  */
-export function enrichCardsWithMetadata<T extends { id: number }>(cards: T[]) {
+export function fetchCardCreators(cards: Array<{ createdById: string | null }>): Map<string, CardUser> {
+  const creatorIds = [...new Set(cards.map(c => c.createdById).filter(Boolean))] as string[]
+  if (!creatorIds.length) return new Map()
+
+  const creators = db.select({
+    id: schema.users.id,
+    name: schema.users.name,
+    avatarUrl: schema.users.avatarUrl
+  })
+    .from(schema.users)
+    .where(inArray(schema.users.id, creatorIds))
+    .all()
+
+  return new Map(creators.map(c => [c.id, c]))
+}
+
+/**
+ * Enrich an array of cards with tags, attachment counts and creator info.
+ * Convenience wrapper around fetchCardMetadata + fetchCardCreators.
+ */
+export function enrichCardsWithMetadata<T extends { id: number, createdById: string | null }>(cards: T[]) {
   const { tagsByCard, attachCountByCard } = fetchCardMetadata(cards.map(c => c.id))
+  const creatorsById = fetchCardCreators(cards)
   return cards.map(card => ({
     ...card,
     tags: tagsByCard.get(card.id) || [],
-    attachmentCount: attachCountByCard.get(card.id) || 0
+    attachmentCount: attachCountByCard.get(card.id) || 0,
+    creator: card.createdById ? creatorsById.get(card.createdById) || null : null
   }))
 }

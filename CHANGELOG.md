@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### App
+- **Cards now show who created them.** The card detail page has a "Created by" line next to the timestamps, the card modal credits the author next to the ticket ID, and list views (including My Tasks) can show a **Creator** column, sortable like Assignee. Creator is set once when the card is created and can't be changed. Cards whose creator has since been deleted show "Unknown". Existing cards already show the right person — the creator has been recorded since the first release, just never displayed, so no backfill is needed.
 - **Fixed: using an AI skill on a comment, then pressing `Cmd+Enter`, closed the card and threw the comment away.** The shortcut is routed by which editor has focus, and the AI round-trip lost it: the skill menu took focus, then closed onto a button that had meanwhile been replaced by "Stop", leaving focus nowhere — so `Cmd+Enter` fell through to the card modal, which saved the card, closed, and took the unposted comment with it. Focus now stays inside the editor throughout: on the "Keep" button while you review the suggestion, and back in the text box once you keep or discard it. `Cmd+Enter` straight from the review state posts the comment as it stands.
 
 ## v0.7.0 (2026-08-12)

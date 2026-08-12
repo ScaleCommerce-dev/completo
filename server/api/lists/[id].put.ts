@@ -1,6 +1,6 @@
 import { eq, and, ne } from 'drizzle-orm'
 
-const SORTABLE_FIELDS = new Set(['ticketId', 'title', 'status', 'priority', 'assignee', 'createdAt', 'updatedAt'])
+const SORTABLE_FIELDS = new Set(['ticketId', 'title', 'status', 'priority', 'assignee', 'creator', 'createdAt', 'updatedAt'])
 
 export default defineEventHandler(async (event) => {
   const { user: _user, list } = await resolveList(event)
