@@ -56,6 +56,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      # The linux/arm64 leg is emulated, and until this step existed it used whatever QEMU the
+      # hosted runner image happened to ship. A runner roll then broke the release with
+      # `qemu: uncaught target signal 4 (Illegal instruction) - core dumped` during
+      # `pnpm install` — no change of ours involved, and v0.8.0's first attempt instead wedged
+      # for 48 minutes on the same fault. Pinning the binfmt image makes the emulator a
+      # declared dependency rather than a property of the runner. Bump deliberately.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:qemu-v9.2.2
+          platforms: arm64
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
