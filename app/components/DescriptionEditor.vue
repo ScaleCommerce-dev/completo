@@ -32,6 +32,7 @@ const emit = defineEmits<{
 }>()
 
 const editorRef = ref<{ editTab: 'write' | 'preview', textareaEl?: HTMLTextAreaElement, startEditing: () => void, autoResize: () => void }>()
+const aiKeepBtn = ref<HTMLButtonElement>()
 
 // ─── AI ───
 const { isGenerating: aiGenerating, error: aiError, pendingReview: aiPendingReview, generate: aiGenerate, cancel: aiCancel, accept: aiAcceptFn, decline: aiDeclineFn } = useAiDescription(description)
@@ -42,15 +43,49 @@ watch(aiGenerating, (generating) => {
   }
 })
 
+/**
+ * Keep focus inside this editor across the whole AI round-trip.
+ *
+ * Cmd+Enter is routed by focus (see CommentList), and the AI flow loses it twice:
+ * the skill popover takes focus, then closes onto a trigger that has meanwhile been
+ * swapped for the Stop button, so focus falls back to <body>; and clicking Keep
+ * focuses a button that immediately unmounts. In a comment editor that means the next
+ * Cmd+Enter reaches the card modal instead, which saves the card, closes it, and
+ * takes the unposted comment with it.
+ *
+ * While a proposal is under review the textarea is behind the preview tab and can't
+ * hold focus — the Keep button can, and it lives inside the same
+ * `[data-comment-editor]` wrapper, so the shortcut still resolves to this editor.
+ */
+watch(aiPendingReview, (pending) => {
+  if (pending) nextTick(() => aiKeepBtn.value?.focus())
+})
+
+function focusTextarea() {
+  nextTick(() => editorRef.value?.textareaEl?.focus())
+}
+
 function aiAccept() {
   aiAcceptFn()
   if (editorRef.value) editorRef.value.editTab = 'write'
+  focusTextarea()
 }
 
 function aiDecline() {
   aiDeclineFn()
   if (editorRef.value) editorRef.value.editTab = 'write'
+  focusTextarea()
 }
+
+/**
+ * An emptied editor has nothing left to review. Reachable by submitting straight from
+ * the review state (Cmd+Enter posts the comment and clears the draft), which would
+ * otherwise leave Keep/Discard hanging over an empty box — with Discard restoring the
+ * pre-AI text of an already-posted comment — and strand the editor on the preview tab.
+ */
+watch(description, (value) => {
+  if (aiPendingReview.value && !value.trim()) aiAccept()
+})
 
 // ─── Mention ───
 const mentionActive = ref(false)
@@ -394,6 +429,7 @@ defineExpose({
         <button
           type="button"
           class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[12px] font-medium text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+          @mousedown.prevent
           @click="aiDecline"
         >
           <UIcon
@@ -403,8 +439,10 @@ defineExpose({
           Discard
         </button>
         <button
+          ref="aiKeepBtn"
           type="button"
           class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-emerald-200 dark:ring-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 transition-colors"
+          @mousedown.prevent
           @click="aiAccept"
         >
           <UIcon
