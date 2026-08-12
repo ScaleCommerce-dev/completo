@@ -9,17 +9,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="flex items-center gap-1.5 min-h-[22px]">
-    <template v-if="creator">
-      <UAvatar
-        :alt="creator.name"
-        size="3xs"
-      />
-      <span class="text-muted truncate text-[13.5px]">{{ creator.name }}</span>
-    </template>
-    <span
-      v-else
-      class="text-dimmed text-[13px]"
-    >Unknown</span>
+  <div class="flex items-center min-h-[22px]">
+    <UiPerson :person="creator" />
   </div>
 </template>

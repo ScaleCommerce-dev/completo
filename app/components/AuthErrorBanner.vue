@@ -1,18 +1,44 @@
 <script setup lang="ts">
-defineProps<{
-  error: string | null
-}>()
+/**
+ * Inline feedback on the auth pages.
+ *
+ * The same markup existed as ten hand-rolled copies across the app — and
+ * `login.vue` re-inlined this very banner three more times while importing this
+ * component on the line below. Now a thin wrapper over UAlert, so the tone comes
+ * from the theme and the default slot can carry an action (login's expired-token
+ * banner offers "Resend verification email" inside it).
+ *
+ * `auth-field` keeps it in the staggered entrance sequence with the form fields.
+ */
+withDefaults(defineProps<{
+  message?: string | null
+  tone?: 'error' | 'success' | 'info'
+  icon?: string
+}>(), {
+  tone: 'error'
+})
+
+const DEFAULT_ICONS = {
+  error: 'i-lucide-alert-circle',
+  success: 'i-lucide-circle-check',
+  info: 'i-lucide-info'
+}
 </script>
 
 <template>
-  <div
-    v-if="error"
-    class="auth-field flex items-center gap-2 text-[13px] text-red-600 dark:text-red-400 bg-red-50/80 dark:bg-red-950/30 rounded-lg px-3 py-2.5 backdrop-blur-sm border border-red-200/50 dark:border-red-800/30"
+  <UAlert
+    v-if="message || $slots.default"
+    class="auth-field"
+    :color="tone"
+    variant="subtle"
+    :icon="icon || DEFAULT_ICONS[tone]"
+    :description="message || undefined"
   >
-    <UIcon
-      name="i-lucide-alert-circle"
-      class="shrink-0"
-    />
-    {{ error }}
-  </div>
+    <template
+      v-if="$slots.default"
+      #description
+    >
+      <slot />
+    </template>
+  </UAlert>
 </template>

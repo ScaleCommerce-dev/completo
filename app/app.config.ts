@@ -121,7 +121,7 @@ export default defineAppConfig({
 
     // Single-slot components take `base` directly rather than a `slots` object.
     kbd: {
-      base: 'rounded font-mono'
+      base: 'rounded-md font-mono'
     },
 
     skeleton: {

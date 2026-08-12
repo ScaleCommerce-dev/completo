@@ -47,7 +47,7 @@ function formatDate(iso: string): string {
             v-else
             class="w-16 h-16 rounded-full ring-[3px] ring-[var(--ui-bg)] shadow-md shadow-zinc-900/8 dark:shadow-black/20 bg-gradient-to-br from-indigo-400 via-violet-400 to-purple-500 flex items-center justify-center"
           >
-            <span class="text-[24px] font-bold text-white/90 leading-none select-none">{{ profileName.charAt(0)?.toUpperCase() || '?' }}</span>
+            <span class="text-2xl font-bold text-white/90 leading-none select-none">{{ profileName.charAt(0)?.toUpperCase() || '?' }}</span>
           </div>
         </div>
         <!-- Name + Email -->
@@ -56,14 +56,14 @@ function formatDate(iso: string): string {
             v-model="profileName"
             type="text"
             placeholder="Your name..."
-            class="w-full text-[18px] font-bold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b-2 border-transparent hover:border-default hover:border-accented focus:border-primary/40 focus:border-primary/30 rounded-none outline-none! ring-0! tracking-[-0.02em] leading-tight py-0.5 transition-colors"
+            class="w-full text-lg font-bold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b-2 border-transparent hover:border-default hover:border-accented focus:border-primary/40 focus:border-primary/30 rounded-none outline-none! ring-0! tracking-[-0.02em] leading-tight py-0.5 transition-colors"
           >
           <div class="flex items-center gap-1.5 mt-1">
             <UIcon
               name="i-lucide-mail"
-              class="text-[11px] text-dimmed"
+              class="text-xs text-dimmed"
             />
-            <span class="text-[13px] text-dimmed truncate">{{ user?.email }}</span>
+            <span class="text-sm text-dimmed truncate">{{ user?.email }}</span>
           </div>
           <div
             v-if="profileData"
@@ -75,9 +75,9 @@ function formatDate(iso: string): string {
             >
               <UIcon
                 name="i-lucide-calendar"
-                class="text-[10px] text-dimmed"
+                class="text-2xs text-dimmed"
               />
-              <span class="text-[11px] text-dimmed">Member since {{ formatDate(profileData.createdAt) }}</span>
+              <span class="text-xs text-dimmed">Member since {{ formatDate(profileData.createdAt) }}</span>
             </div>
             <div
               v-if="profileData.lastSeenAt"
@@ -85,9 +85,9 @@ function formatDate(iso: string): string {
             >
               <UIcon
                 name="i-lucide-activity"
-                class="text-[10px] text-dimmed"
+                class="text-2xs text-dimmed"
               />
-              <span class="text-[11px] text-dimmed">Active {{ relativeTime(profileData.lastSeenAt) }}</span>
+              <span class="text-xs text-dimmed">Active {{ relativeTime(profileData.lastSeenAt) }}</span>
             </div>
           </div>
         </div>
@@ -98,7 +98,7 @@ function formatDate(iso: string): string {
 
       <!-- Settings rows -->
       <div class="px-5 pt-3 pb-1">
-        <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-dimmed">Preferences</span>
+        <span class="text-xs font-semibold uppercase tracking-[0.08em] text-dimmed">Preferences</span>
       </div>
 
       <div class="mx-5 mt-2 rounded-lg border border-default divide-y divide-default overflow-hidden">
@@ -112,13 +112,13 @@ function formatDate(iso: string): string {
               name="i-lucide-image"
               class="text-sm text-dimmed"
             />
-            <span class="text-[13px] font-medium text-muted">Avatar</span>
+            <span class="text-sm font-medium text-muted">Avatar</span>
           </div>
           <div class="flex flex-1 items-center justify-between">
-            <span class="text-[13px] text-dimmed">via Gravatar</span>
+            <span class="text-sm text-dimmed">via Gravatar</span>
             <button
               type="button"
-              class="text-[12px] font-medium text-primary hover:text-primary transition-colors"
+              class="text-xs font-medium text-primary hover:text-primary transition-colors"
               @click="gravatarOverride = true"
             >
               Override
@@ -135,19 +135,19 @@ function formatDate(iso: string): string {
               name="i-lucide-image"
               class="text-sm text-dimmed"
             />
-            <span class="text-[13px] font-medium text-muted">Avatar URL</span>
+            <span class="text-sm font-medium text-muted">Avatar URL</span>
           </div>
           <div class="flex flex-1 items-center gap-2">
             <input
               v-model="profileAvatarUrl"
               type="text"
               placeholder="https://..."
-              class="flex-1 text-[14px] text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
+              class="flex-1 text-base text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
             >
             <button
               v-if="gravatarOverride"
               type="button"
-              class="text-[12px] font-medium text-dimmed hover:text-toned hover:text-default transition-colors shrink-0"
+              class="text-xs font-medium text-dimmed hover:text-toned hover:text-default transition-colors shrink-0"
               @click="gravatarOverride = false; profileAvatarUrl = ''"
             >
               Use Gravatar
@@ -162,20 +162,20 @@ function formatDate(iso: string): string {
               name="i-lucide-sun-moon"
               class="text-sm text-dimmed"
             />
-            <span class="text-[13px] font-medium text-muted">Theme</span>
+            <span class="text-sm font-medium text-muted">Theme</span>
           </div>
           <div class="flex gap-1">
             <button
               v-for="option in [{ value: 'system', label: 'System', icon: 'i-lucide-monitor' }, { value: 'light', label: 'Light', icon: 'i-lucide-sun' }, { value: 'dark', label: 'Dark', icon: 'i-lucide-moon' }]"
               :key="option.value"
               type="button"
-              class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-medium transition-colors"
+              class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
               :class="profileColorMode === option.value ? 'bg-primary/10 text-primary' : 'text-dimmed hover:text-toned hover:bg-elevated'"
               @click="profileColorMode = option.value"
             >
               <UIcon
                 :name="option.icon"
-                class="text-[13px]"
+                class="text-sm"
               />
               {{ option.label }}
             </button>
@@ -184,52 +184,40 @@ function formatDate(iso: string): string {
       </div>
 
       <!-- Profile error -->
-      <div
+      <UAlert
         v-if="profileError"
-        class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
-      >
-        <UIcon
-          name="i-lucide-alert-circle"
-          class="text-[14px] text-red-500 shrink-0"
-        />
-        <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ profileError }}</span>
-      </div>
+        color="error"
+        variant="subtle"
+        icon="i-lucide-alert-circle"
+        :description="profileError"
+        class="mx-5 mt-3"
+      />
 
       <!-- Profile success -->
       <div
         v-if="profileSuccess"
-        class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40"
+        class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/30"
       >
         <UIcon
           name="i-lucide-check-circle"
-          class="text-[14px] text-emerald-500 shrink-0"
+          class="text-base text-success shrink-0"
         />
-        <span class="text-[13px] font-medium text-emerald-600 dark:text-emerald-400">Profile updated</span>
+        <span class="text-sm font-medium text-success">Profile updated</span>
       </div>
 
       <!-- Profile actions -->
       <div class="flex items-center justify-end px-5 pt-4 pb-5 mt-3 border-t border-muted">
         <div class="flex items-center gap-2">
-          <span class="text-[10px] font-mono text-dimmed hidden sm:block">
-            <kbd class="px-1 py-0.5 rounded bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
+          <span class="text-2xs font-mono text-dimmed hidden sm:block">
+            <kbd class="px-1 py-0.5 rounded-md bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
           </span>
-          <button
+          <UButton
             type="submit"
-            class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            :disabled="!profileName.trim() || profileLoading"
-          >
-            <UIcon
-              v-if="!profileLoading"
-              name="i-lucide-check"
-              class="text-[14px]"
-            />
-            <UIcon
-              v-else
-              name="i-lucide-loader-2"
-              class="text-[14px] animate-spin"
-            />
-            Save
-          </button>
+            label="Save"
+            icon="i-lucide-check"
+            :loading="profileLoading"
+            :disabled="!profileName.trim()"
+          />
         </div>
       </div>
     </div>

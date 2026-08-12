@@ -60,7 +60,7 @@ defineEmits<{
       </nav>
       <UTooltip :text="activeFilterCount > 0 ? 'Filtered cards' : 'All cards'">
         <span
-          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold font-mono tabular-nums"
+          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold font-mono tabular-nums"
           :class="cardCount > 0
             ? 'text-muted bg-elevated'
             : 'text-dimmed bg-muted'"
@@ -83,7 +83,7 @@ defineEmits<{
         :text="filterSummary"
       >
         <button
-          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold font-mono tabular-nums text-primary bg-primary/10 hover:bg-primary/15 transition-colors cursor-pointer"
+          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold font-mono tabular-nums text-primary bg-primary/10 hover:bg-primary/15 transition-colors cursor-pointer"
           @click="$emit('open-settings')"
         >
           <UIcon

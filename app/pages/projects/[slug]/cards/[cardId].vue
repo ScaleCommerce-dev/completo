@@ -305,9 +305,9 @@ async function confirmDelete() {
         class="flex gap-6"
       >
         <div class="flex-1 flex flex-col gap-4">
-          <div class="h-8 w-32 bg-accented rounded animate-pulse" />
-          <div class="h-10 w-3/4 bg-accented rounded animate-pulse" />
-          <div class="h-64 w-full bg-accented rounded animate-pulse" />
+          <div class="h-8 w-32 bg-accented rounded-md animate-pulse" />
+          <div class="h-10 w-3/4 bg-accented rounded-md animate-pulse" />
+          <div class="h-64 w-full bg-accented rounded-md animate-pulse" />
         </div>
         <div class="hidden lg:block w-[260px] shrink-0">
           <div class="h-48 bg-accented rounded-xl animate-pulse" />
@@ -321,18 +321,18 @@ async function confirmDelete() {
       >
         <UIcon
           name="i-lucide-search-x"
-          class="text-[32px] text-dimmed mb-3"
+          class="text-2xl text-dimmed mb-3"
         />
-        <p class="text-[14px] text-muted">
+        <p class="text-base text-muted">
           Card not found
         </p>
         <NuxtLink
           :to="`/projects/${projectSlug}`"
-          class="inline-flex items-center gap-1 text-[13px] font-medium text-primary hover:text-primary mt-2 transition-colors"
+          class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary mt-2 transition-colors"
         >
           <UIcon
             name="i-lucide-arrow-left"
-            class="text-[13px]"
+            class="text-sm"
           />
           Back to project
         </NuxtLink>
@@ -361,7 +361,7 @@ async function confirmDelete() {
             <div class="divide-y divide-default">
               <!-- Status -->
               <div class="flex items-center gap-2 px-4 py-2.5">
-                <span class="text-[12px] font-medium text-dimmed w-[72px] shrink-0">Status</span>
+                <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Status</span>
                 <UDropdownMenu
                   :items="statusMenuItems"
                   :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
@@ -377,7 +377,7 @@ async function confirmDelete() {
                     {{ selectedStatusLabel }}
                     <UIcon
                       name="i-lucide-chevron-down"
-                      class="text-[10px] opacity-50"
+                      class="text-2xs opacity-50"
                     />
                   </button>
                   <template #item="{ item }">
@@ -394,7 +394,7 @@ async function confirmDelete() {
 
               <!-- Assignee -->
               <div class="flex items-center gap-2 px-4 py-2.5">
-                <span class="text-[12px] font-medium text-dimmed w-[72px] shrink-0">Assignee</span>
+                <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Assignee</span>
                 <UDropdownMenu
                   :items="assigneeMenuItems"
                   :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
@@ -405,13 +405,13 @@ async function confirmDelete() {
                   >
                     <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
                       name="i-lucide-user"
-                      class="text-[13px]"
+                      class="text-sm"
                       :class="selectedAssigneeId === UNASSIGNED ? 'text-dimmed' : 'text-primary'"
                     /></span>
                     {{ selectedAssigneeLabel }}
                     <UIcon
                       name="i-lucide-chevron-down"
-                      class="text-[10px] opacity-50"
+                      class="text-2xs opacity-50"
                     />
                   </button>
                 </UDropdownMenu>
@@ -419,7 +419,7 @@ async function confirmDelete() {
 
               <!-- Priority -->
               <div class="flex items-center gap-2 px-4 py-2.5">
-                <span class="text-[12px] font-medium text-dimmed w-[72px] shrink-0">Priority</span>
+                <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Priority</span>
                 <UDropdownMenu
                   :items="priorityMenuItems"
                   :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
@@ -431,12 +431,12 @@ async function confirmDelete() {
                   >
                     <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
                       :name="priorityIcon(priority)"
-                      class="text-[13px]"
+                      class="text-sm"
                     /></span>
                     {{ priority }}
                     <UIcon
                       name="i-lucide-chevron-down"
-                      class="text-[10px] opacity-50"
+                      class="text-2xs opacity-50"
                     />
                   </button>
                 </UDropdownMenu>
@@ -444,7 +444,7 @@ async function confirmDelete() {
 
               <!-- Due Date -->
               <div class="flex items-center gap-2 px-4 py-2.5">
-                <span class="text-[12px] font-medium text-dimmed w-[72px] shrink-0">Due</span>
+                <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Due</span>
                 <DueDatePicker
                   v-model:open="dueDateOpen"
                   :model-value="selectedDueDate"
@@ -458,12 +458,12 @@ async function confirmDelete() {
                   >
                     <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
                       :name="selectedDueDate ? dueDateIcon(getDueDateStatus(selectedDueDate)) : 'i-lucide-calendar'"
-                      class="text-[13px]"
+                      class="text-sm"
                     /></span>
                     {{ selectedDueDate ? formatDueDate(selectedDueDate) : 'Set date' }}
                     <UIcon
                       name="i-lucide-chevron-down"
-                      class="text-[10px] opacity-50"
+                      class="text-2xs opacity-50"
                     />
                   </button>
                 </DueDatePicker>
@@ -474,7 +474,7 @@ async function confirmDelete() {
                 v-if="projectTagsData.length"
                 class="flex items-center gap-2 px-4 py-2.5"
               >
-                <span class="text-[12px] font-medium text-dimmed w-[72px] shrink-0">Tags</span>
+                <span class="text-xs font-medium text-dimmed w-[72px] shrink-0">Tags</span>
                 <UPopover :content="{ align: 'start', side: 'bottom', sideOffset: 4 }">
                   <button
                     type="button"
@@ -489,17 +489,17 @@ async function confirmDelete() {
                       />
                       <UIcon
                         name="i-lucide-chevron-down"
-                        class="text-[10px] opacity-50 text-dimmed"
+                        class="text-2xs opacity-50 text-dimmed"
                       />
                     </template>
                     <span
                       v-else
-                      class="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full text-[10.5px] font-bold leading-none tracking-wide uppercase opacity-60 hover:opacity-80 transition-opacity"
+                      class="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full text-2xs font-bold leading-none tracking-wide uppercase opacity-60 hover:opacity-80 transition-opacity"
                       style="color: #a1a1aa; background-color: #a1a1aa20; box-shadow: inset 0 0 0 1px #a1a1aa35"
                     >
                       <UIcon
                         name="i-lucide-plus"
-                        class="text-[10px]"
+                        class="text-2xs"
                       />
                       Add tag
                     </span>
@@ -519,31 +519,31 @@ async function confirmDelete() {
             <div class="px-4 py-2.5 border-t border-muted flex flex-col gap-1">
               <span
                 v-if="card.creator"
-                class="flex items-center gap-1.5 text-[11px] text-dimmed"
+                class="flex items-center gap-1.5 text-xs text-dimmed"
               >
                 <UIcon
                   name="i-lucide-user-pen"
-                  class="text-[11px] opacity-60 shrink-0"
+                  class="text-xs opacity-60 shrink-0"
                 />
                 <span class="truncate">Created by {{ card.creator.name }}</span>
               </span>
               <span
                 v-if="card.createdAt"
-                class="flex items-center gap-1.5 text-[11px] text-dimmed font-mono"
+                class="flex items-center gap-1.5 text-xs text-dimmed font-mono"
               >
                 <UIcon
                   name="i-lucide-calendar-plus"
-                  class="text-[11px] opacity-60"
+                  class="text-xs opacity-60"
                 />
                 {{ formatDate(card.createdAt) }}
               </span>
               <span
                 v-if="card.updatedAt && card.updatedAt !== card.createdAt"
-                class="flex items-center gap-1.5 text-[11px] text-dimmed font-mono"
+                class="flex items-center gap-1.5 text-xs text-dimmed font-mono"
               >
                 <UIcon
                   name="i-lucide-calendar-clock"
-                  class="text-[11px] opacity-60"
+                  class="text-xs opacity-60"
                 />
                 {{ formatDate(card.updatedAt) }}
               </span>
@@ -553,50 +553,50 @@ async function confirmDelete() {
             <div class="px-4 py-3 border-t border-muted flex flex-col gap-2">
               <button
                 type="submit"
-                class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 :disabled="!title.trim() || !isDirty || saving"
               >
                 <UIcon
                   v-if="saving"
                   name="i-lucide-loader-2"
-                  class="text-[14px] animate-spin"
+                  class="text-base animate-spin"
                 />
                 <template v-else>
                   Save
-                  <kbd class="ml-2 text-[11px] font-mono opacity-75 bg-white/15 px-1.5 py-0.5 rounded">Cmd+Enter</kbd>
+                  <kbd class="ml-2 text-xs font-mono opacity-75 bg-white/15 px-1.5 py-0.5 rounded-md">Cmd+Enter</kbd>
                 </template>
               </button>
 
               <!-- Delete confirmation -->
               <div
                 v-if="showDeleteConfirm"
-                class="rounded-lg border border-red-200/60 dark:border-red-800/40 bg-red-50/50 dark:bg-red-950/20 p-3 flex flex-col gap-2"
+                class="rounded-lg border border-error/30 bg-red-50/50 dark:bg-red-950/20 p-3 flex flex-col gap-2"
               >
-                <p class="text-[12px] font-medium text-red-600 dark:text-red-400 leading-relaxed">
+                <p class="text-xs font-medium text-error leading-relaxed">
                   Are you sure you want to delete this card?
                 </p>
                 <div class="flex items-center gap-2">
                   <button
                     type="button"
-                    class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     :disabled="deletingCard"
                     @click="confirmDelete"
                   >
                     <UIcon
                       v-if="!deletingCard"
                       name="i-lucide-trash-2"
-                      class="text-[13px]"
+                      class="text-sm"
                     />
                     <UIcon
                       v-else
                       name="i-lucide-loader-2"
-                      class="text-[13px] animate-spin"
+                      class="text-sm animate-spin"
                     />
                     Delete
                   </button>
                   <button
                     type="button"
-                    class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+                    class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
                     @click="showDeleteConfirm = false"
                   >
                     Cancel
@@ -607,12 +607,12 @@ async function confirmDelete() {
               <button
                 v-else
                 type="button"
-                class="w-full flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-medium text-dimmed hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all"
+                class="w-full flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-dimmed hover:text-error hover:bg-error/10 transition-all"
                 @click="showDeleteConfirm = true"
               >
                 <UIcon
                   name="i-lucide-trash-2"
-                  class="text-[12px]"
+                  class="text-xs"
                 />
                 Delete card
               </button>
@@ -627,25 +627,25 @@ async function confirmDelete() {
             v-model="title"
             type="text"
             placeholder="Card title..."
-            class="w-full text-[20px] font-bold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.015em] leading-snug py-2 mb-4 transition-colors"
+            class="w-full text-xl font-bold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.015em] leading-snug py-2 mb-4 transition-colors"
           >
 
           <!-- Description header -->
           <div class="flex items-center gap-1.5 mb-2">
             <UIcon
               name="i-lucide-text"
-              class="text-[13px] text-dimmed"
+              class="text-sm text-dimmed"
             />
-            <span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed">Description</span>
+            <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">Description</span>
             <button
               v-if="!editingDescription"
               type="button"
-              class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="startEditingDescription"
             >
               <UIcon
                 name="i-lucide-pencil"
-                class="text-[12px]"
+                class="text-xs"
               />
               {{ description ? 'Edit' : 'Add' }}
             </button>
@@ -699,29 +699,29 @@ async function confirmDelete() {
     >
       <template #body>
         <div class="p-5 flex flex-col items-center text-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center">
+          <div class="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
             <UIcon
               name="i-lucide-triangle-alert"
-              class="text-[20px] text-amber-500"
+              class="text-xl text-warning"
             />
           </div>
-          <p class="text-[15px] font-semibold text-highlighted">
+          <p class="text-base font-semibold text-highlighted">
             Unsaved changes
           </p>
-          <p class="text-[13px] text-muted leading-relaxed">
+          <p class="text-sm text-muted leading-relaxed">
             You have unsaved changes that will be lost if you leave this page.
           </p>
           <div class="flex items-center gap-2 mt-1 w-full">
             <button
               type="button"
-              class="flex-1 px-3 py-2 rounded-lg text-[13px] font-semibold text-toned bg-elevated hover:bg-accented transition-colors"
+              class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-toned bg-elevated hover:bg-accented transition-colors"
               @click="cancelLeave"
             >
               Stay
             </button>
             <button
               type="button"
-              class="flex-1 px-3 py-2 rounded-lg text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors"
+              class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors"
               @click="confirmLeave"
             >
               Leave

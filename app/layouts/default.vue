@@ -51,8 +51,8 @@ const userMenuItems = computed(() => [
             v-if="!collapsed"
             class="flex flex-col"
           >
-            <span class="text-[9px] font-semibold text-dimmed tracking-widest uppercase leading-none">Drag. Drop.</span>
-            <span class="sidebar-brand font-extrabold text-[15px] leading-none text-highlighted mt-0.5">Completo</span>
+            <span class="text-2xs font-semibold text-dimmed tracking-widest uppercase leading-none">Drag. Drop.</span>
+            <span class="sidebar-brand font-extrabold text-base leading-none text-highlighted mt-0.5">Completo</span>
           </div>
         </div>
 
@@ -97,6 +97,7 @@ const userMenuItems = computed(() => [
                 :class="collapsed ? 'justify-center' : ''"
               >
                 <UAvatar
+                  :src="user?.avatarUrl || undefined"
                   :alt="user?.name || 'User'"
                   size="2xs"
                   class="ring-2 ring-accented flex-shrink-0"

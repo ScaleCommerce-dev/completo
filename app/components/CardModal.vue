@@ -369,7 +369,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                  assignee, which this modal also has a field for. -->
             <span
               v-if="card!.creator"
-              class="flex items-baseline gap-1 min-w-0 text-[12px] font-medium"
+              class="flex items-baseline gap-1 min-w-0 text-xs font-medium"
             >
               <span class="text-dimmed shrink-0">by</span>
               <span class="text-muted truncate">{{ card!.creator.name }}</span>
@@ -378,12 +378,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <NuxtLink
             v-if="projectSlug"
             :to="`/projects/${projectSlug}/cards/${formatTicketId(projectKey, card!.id)}`"
-            class="flex items-center gap-1 text-[12px] font-medium text-dimmed hover:text-toned transition-colors"
+            class="flex items-center gap-1 text-xs font-medium text-dimmed hover:text-toned transition-colors"
             @click="open = false"
           >
             <UIcon
               name="i-lucide-expand"
-              class="text-[14px]"
+              class="text-base"
             />
           </NuxtLink>
         </div>
@@ -395,7 +395,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             v-model="title"
             type="text"
             placeholder="Card title..."
-            class="w-full text-[16px] font-semibold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
+            class="w-full text-lg font-semibold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
           >
         </div>
 
@@ -424,18 +424,18 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             <div class="flex items-center gap-1.5 mb-1.5">
               <UIcon
                 name="i-lucide-text"
-                class="text-[13px] text-dimmed"
+                class="text-sm text-dimmed"
               />
-              <span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed">Description</span>
+              <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">Description</span>
               <button
                 v-if="!editingDescription"
                 type="button"
-                class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
+                class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
                 @click="startEditingDescription"
               >
                 <UIcon
                   name="i-lucide-pencil"
-                  class="text-[12px]"
+                  class="text-xs"
                 />
                 {{ description ? 'Edit' : 'Add' }}
               </button>
@@ -491,17 +491,17 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             >
               <button
                 type="button"
-                class="flex items-center gap-1.5 text-[13px] font-medium capitalize transition-all hover:opacity-80"
+                class="flex items-center gap-1.5 text-sm font-medium capitalize transition-all hover:opacity-80"
                 :class="priorityTextClass(priority)"
               >
                 <span class="w-[13px] flex items-center justify-center shrink-0"><UIcon
                   :name="priorityIcon(priority)"
-                  class="text-[13px]"
+                  class="text-sm"
                 /></span>
                 {{ priority }}
                 <UIcon
                   name="i-lucide-chevron-down"
-                  class="text-[10px] opacity-50"
+                  class="text-2xs opacity-50"
                 />
               </button>
             </UDropdownMenu>
@@ -511,7 +511,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <div class="flex items-center gap-2 rounded-lg border border-accented bg-default px-2.5 py-1.5">
             <UIcon
               name="i-lucide-user"
-              class="text-[12px] text-dimmed shrink-0"
+              class="text-xs text-dimmed shrink-0"
             />
             <USelect
               v-model="selectedAssigneeId"
@@ -527,7 +527,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <div class="flex items-center gap-2 rounded-lg border border-accented bg-default px-2.5 py-1.5">
             <UIcon
               name="i-lucide-calendar"
-              class="text-[12px] text-dimmed shrink-0"
+              class="text-xs text-dimmed shrink-0"
             />
             <DueDatePicker
               v-model:open="dueDateOpen"
@@ -537,13 +537,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             >
               <button
                 type="button"
-                class="flex items-center gap-1 text-[13px] font-medium transition-all hover:text-primary"
+                class="flex items-center gap-1 text-sm font-medium transition-all hover:text-primary"
                 :class="selectedDueDate ? dueDateTextClass(getDueDateStatus(selectedDueDate)) : 'text-dimmed'"
               >
                 {{ selectedDueDate ? formatDueDate(selectedDueDate) : 'Set date' }}
                 <UIcon
                   name="i-lucide-chevron-down"
-                  class="text-[10px] opacity-50"
+                  class="text-2xs opacity-50"
                 />
               </button>
             </DueDatePicker>
@@ -558,9 +558,9 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <div class="flex items-center gap-1.5 mb-2">
             <UIcon
               name="i-lucide-tag"
-              class="text-[12px] text-dimmed"
+              class="text-xs text-dimmed"
             />
-            <span class="text-[11px] font-semibold uppercase tracking-[0.04em] text-dimmed">Tags</span>
+            <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">Tags</span>
           </div>
           <UPopover :content="{ align: 'start', side: 'bottom', sideOffset: 4 }">
             <button
@@ -576,17 +576,17 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 />
                 <UIcon
                   name="i-lucide-chevron-down"
-                  class="text-[10px] opacity-50 text-dimmed"
+                  class="text-2xs opacity-50 text-dimmed"
                 />
               </template>
               <span
                 v-else
-                class="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full text-[10.5px] font-bold leading-none tracking-wide uppercase opacity-60 hover:opacity-80 transition-opacity"
+                class="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-full text-2xs font-bold leading-none tracking-wide uppercase opacity-60 hover:opacity-80 transition-opacity"
                 style="color: #a1a1aa; background-color: #a1a1aa20; box-shadow: inset 0 0 0 1px #a1a1aa35"
               >
                 <UIcon
                   name="i-lucide-plus"
-                  class="text-[10px]"
+                  class="text-2xs"
                 />
                 Add tag
               </span>
@@ -628,26 +628,26 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         <!-- Delete confirmation (edit mode only) -->
         <div
           v-if="isEdit && showDeleteConfirm"
-          class="mx-5 mt-3 rounded-lg border border-red-200/60 dark:border-red-800/40 bg-red-50/50 dark:bg-red-950/20 p-3 flex flex-col gap-2"
+          class="mx-5 mt-3 rounded-lg border border-error/30 bg-red-50/50 dark:bg-red-950/20 p-3 flex flex-col gap-2"
         >
-          <p class="text-[12px] font-medium text-red-600 dark:text-red-400 leading-relaxed">
+          <p class="text-xs font-medium text-error leading-relaxed">
             Are you sure you want to delete this card?
           </p>
           <div class="flex items-center gap-2">
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all"
               @click="confirmDelete"
             >
               <UIcon
                 name="i-lucide-trash-2"
-                class="text-[13px]"
+                class="text-sm"
               />
               Delete
             </button>
             <button
               type="button"
-              class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="showDeleteConfirm = false"
             >
               Cancel
@@ -661,25 +661,25 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           ref="confirmBannerRef"
           class="mx-5 mt-3 rounded-lg border border-orange-200/60 dark:border-orange-800/40 bg-orange-50/50 dark:bg-orange-950/20 p-3 flex flex-col gap-2"
         >
-          <p class="text-[12px] font-medium text-orange-600 dark:text-orange-400 leading-relaxed">
+          <p class="text-xs font-medium text-warning leading-relaxed">
             {{ uncommittedTextLabel }} Closing the card discards it.
           </p>
           <div class="flex items-center gap-2">
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-all"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-all"
               @click="confirmDiscardText"
             >
               <UIcon
                 name="i-lucide-trash-2"
-                class="text-[13px]"
+                class="text-sm"
               />
               Discard and close
             </button>
             <button
               ref="keepEditingRef"
               type="button"
-              class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="cancelDiscardText"
             >
               Keep editing
@@ -693,25 +693,25 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           ref="confirmBannerRef"
           class="mx-5 mt-3 rounded-lg border border-orange-200/60 dark:border-orange-800/40 bg-orange-50/50 dark:bg-orange-950/20 p-3 flex flex-col gap-2"
         >
-          <p class="text-[12px] font-medium text-orange-600 dark:text-orange-400 leading-relaxed">
+          <p class="text-xs font-medium text-warning leading-relaxed">
             You have unsaved changes. Discard this card?
           </p>
           <div class="flex items-center gap-2">
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-all"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-all"
               @click="confirmDiscardDraft"
             >
               <UIcon
                 name="i-lucide-trash-2"
-                class="text-[13px]"
+                class="text-sm"
               />
               Discard
             </button>
             <button
               ref="keepEditingRef"
               type="button"
-              class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="cancelDiscardDraft"
             >
               Cancel
@@ -724,30 +724,24 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <button
             v-if="isEdit && !showDeleteConfirm"
             type="button"
-            class="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[12px] font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all mr-auto"
+            class="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-error hover:bg-error/10 transition-all mr-auto"
             @click="showDeleteConfirm = true"
           >
             <UIcon
               name="i-lucide-trash-2"
-              class="text-[13px]"
+              class="text-sm"
             />
             Delete
           </button>
-          <span class="text-[10px] font-mono text-dimmed hidden sm:block">
-            <kbd class="px-1 py-0.5 rounded bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
+          <span class="text-2xs font-mono text-dimmed hidden sm:block">
+            <kbd class="px-1 py-0.5 rounded-md bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
           </span>
-          <button
+          <UButton
             type="submit"
-            class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            :label="isEdit ? 'Save' : 'Create'"
+            :icon="isEdit ? undefined : 'i-lucide-plus'"
             :disabled="!title.trim()"
-          >
-            <UIcon
-              v-if="!isEdit"
-              name="i-lucide-plus"
-              class="text-[14px]"
-            />
-            {{ isEdit ? 'Save' : 'Create' }}
-          </button>
+          />
         </div>
       </form>
     </template>

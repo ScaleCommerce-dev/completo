@@ -14,7 +14,7 @@ const { copiedState, copyUrl, copyId } = useCopyTicketId(
   () => props.cardId
 )
 
-const iconSize = computed(() => variant.value === 'pill' ? 'text-[12px]' : 'text-[11px]')
+const iconSize = computed(() => variant.value === 'pill' ? 'text-xs' : 'text-xs')
 const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-right-10')
 </script>
 
@@ -22,7 +22,7 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
   <span
     class="group/copy relative inline-flex items-center select-none cursor-pointer transition-colors"
     :class="variant === 'pill'
-      ? 'card-id font-mono text-[12px] font-semibold text-dimmed bg-elevated px-1.5 py-0.5 rounded hover:text-toned'
+      ? 'card-id font-mono text-xs font-semibold text-dimmed bg-elevated px-1.5 py-0.5 rounded-md hover:text-toned'
       : 'card-id text-muted hover:text-toned'"
     :title="copiedState === 'url' ? 'Link copied!' : 'Copy link'"
     @click.stop="copyUrl"
@@ -34,7 +34,7 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
     >
       <button
         type="button"
-        class="p-0.5 rounded hover:bg-elevated hover:text-primary transition-all"
+        class="p-0.5 rounded-md hover:bg-elevated hover:text-primary transition-all"
         :class="{ 'text-success!': copiedState === 'url' }"
         :title="copiedState === 'url' ? 'Copied!' : 'Copy link'"
         @click.stop="copyUrl"
@@ -46,7 +46,7 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
       </button>
       <button
         type="button"
-        class="p-0.5 rounded hover:bg-elevated hover:text-primary transition-all"
+        class="p-0.5 rounded-md hover:bg-elevated hover:text-primary transition-all"
         :class="{ 'text-success!': copiedState === 'id' }"
         :title="copiedState === 'id' ? 'Copied!' : 'Copy ticket ID'"
         @click.stop="copyId"

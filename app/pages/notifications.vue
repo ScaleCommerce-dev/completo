@@ -28,10 +28,10 @@ const notificationIconColor: Record<string, string> = {
 
 const notificationIconBg: Record<string, string> = {
   card_assigned: 'bg-primary/10',
-  member_added: 'bg-emerald-50 dark:bg-emerald-500/10',
-  role_changed: 'bg-amber-50 dark:bg-amber-500/10',
-  member_removed: 'bg-red-50 dark:bg-red-500/10',
-  mentioned: 'bg-cyan-50 dark:bg-cyan-500/10'
+  member_added: 'bg-success/10',
+  role_changed: 'bg-warning/10',
+  member_removed: 'bg-error/10',
+  mentioned: 'bg-info/10'
 }
 
 // Group notifications by date
@@ -79,12 +79,12 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
     <!-- Header bar -->
     <div class="flex items-center justify-between px-5 py-2.5 border-b border-default bg-default/60 backdrop-blur-sm">
       <div class="flex items-center gap-2.5">
-        <h1 class="text-[15px] font-extrabold tracking-[-0.02em] text-highlighted">
+        <h1 class="text-base font-extrabold tracking-[-0.02em] text-highlighted">
           Notifications
         </h1>
         <span
           v-if="unreadCount > 0"
-          class="inline-flex items-center gap-1 text-[12px] font-semibold text-primary"
+          class="inline-flex items-center gap-1 text-xs font-semibold text-primary"
         >
           <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
           {{ unreadCount }} unread
@@ -122,11 +122,11 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
       >
         <!-- Group label -->
         <div class="flex items-center gap-2 mb-2 px-1">
-          <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-dimmed">
+          <span class="text-xs font-semibold uppercase tracking-[0.08em] text-dimmed">
             {{ group.label }}
           </span>
           <div class="flex-1 h-px bg-elevated" />
-          <span class="text-[11px] font-mono text-dimmed tabular-nums">
+          <span class="text-xs font-mono text-dimmed tabular-nums">
             {{ group.items.length }}
           </span>
         </div>
@@ -170,7 +170,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
                 v-else-if="n.actorName"
                 class="w-8 h-8 rounded-full ring-2 ring-[var(--ui-bg)] bg-gradient-to-br from-indigo-400 via-violet-400 to-purple-500 flex items-center justify-center"
               >
-                <span class="text-[12px] font-bold text-white/90 leading-none select-none">
+                <span class="text-xs font-bold text-white/90 leading-none select-none">
                   {{ n.actorName.charAt(0).toUpperCase() }}
                 </span>
               </div>
@@ -181,7 +181,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
               >
                 <UIcon
                   :name="notificationIcon[n.type] || 'i-lucide-bell'"
-                  class="text-[14px]"
+                  class="text-base"
                   :style="{ color: notificationIconColor[n.type] || '#71717a' }"
                 />
               </div>
@@ -193,7 +193,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
               >
                 <UIcon
                   :name="notificationIcon[n.type] || 'i-lucide-bell'"
-                  class="text-[8px]"
+                  class="text-2xs"
                   :style="{ color: notificationIconColor[n.type] || '#71717a' }"
                 />
               </div>
@@ -202,12 +202,12 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
             <!-- Content -->
             <div class="flex-1 min-w-0">
               <p
-                class="text-[13px] leading-snug text-default"
+                class="text-sm leading-snug text-default"
                 :class="{ 'font-semibold': !n.readAt }"
               >
                 {{ n.message }}
               </p>
-              <p class="text-[11px] text-dimmed mt-1">
+              <p class="text-xs text-dimmed mt-1">
                 {{ relativeTime(n.createdAt) }}
               </p>
             </div>
@@ -216,38 +216,19 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
             <UIcon
               v-if="n.linkUrl"
               name="i-lucide-chevron-right"
-              class="text-[14px] text-dimmed flex-shrink-0 mt-1"
+              class="text-base text-dimmed flex-shrink-0 mt-1"
             />
           </button>
         </div>
       </div>
 
-      <!-- Empty state -->
-      <div
+      <UEmpty
         v-if="!notifications.length"
-        class="flex flex-col items-center justify-center py-20"
-      >
-        <div class="relative mb-5">
-          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-800 dark:to-zinc-800/50 flex items-center justify-center shadow-sm border border-default">
-            <UIcon
-              name="i-lucide-bell-off"
-              class="text-[28px] text-dimmed"
-            />
-          </div>
-          <div class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-            <UIcon
-              name="i-lucide-check"
-              class="text-[10px] text-emerald-500"
-            />
-          </div>
-        </div>
-        <p class="font-bold text-highlighted tracking-[-0.01em]">
-          All caught up!
-        </p>
-        <p class="text-[13px] text-dimmed mt-1">
-          No notifications to show right now.
-        </p>
-      </div>
+        class="py-16"
+        icon="i-lucide-bell-off"
+        title="No notifications"
+        description="Mentions, assignments and membership changes land here."
+      />
     </div>
   </div>
 </template>

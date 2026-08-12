@@ -133,7 +133,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
 
 <template>
   <div class="mt-6">
-    <h3 class="text-[11px] font-semibold tracking-wide text-dimmed uppercase mb-3">
+    <h3 class="text-xs font-semibold tracking-wide text-dimmed uppercase mb-3">
       Comments
       <span
         v-if="comments.length"
@@ -143,7 +143,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
 
     <div
       v-if="loading && !comments.length"
-      class="text-[13px] text-dimmed"
+      class="text-sm text-dimmed"
     >
       Loading…
     </div>
@@ -166,16 +166,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
 
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
-            <span class="text-[13px] font-medium text-default truncate">
+            <span class="text-sm font-medium text-default truncate">
               <!-- authorId is nulled when a user is deleted, so the name can be missing -->
               {{ comment.authorName ?? 'Deleted user' }}
             </span>
-            <span class="text-[11px] text-dimmed">
+            <span class="text-xs text-dimmed">
               {{ relativeTime(comment.createdAt) }}
             </span>
             <span
               v-if="wasEdited(comment)"
-              class="text-[11px] text-dimmed"
+              class="text-xs text-dimmed"
             >· edited</span>
 
             <div
@@ -183,7 +183,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
               class="ml-auto flex items-center gap-0.5"
             >
               <template v-if="confirmDeleteId === comment.id">
-                <span class="text-[11px] font-medium text-red-500">Delete?</span>
+                <span class="text-xs font-medium text-error">Delete?</span>
                 <UButton
                   icon="i-lucide-check"
                   variant="ghost"
@@ -249,7 +249,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
                 @click="saveEdit(comment.id)"
               >
                 Save
-                <kbd class="ml-1 text-[10px] font-mono opacity-75 bg-white/15 px-1 py-0.5 rounded">⌘↵</kbd>
+                <kbd class="ml-1 text-2xs font-mono opacity-75 bg-white/15 px-1 py-0.5 rounded-md">⌘↵</kbd>
               </UButton>
               <UButton
                 size="xs"
@@ -273,9 +273,9 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
 
     <p
       v-else
-      class="text-[13px] text-dimmed mb-4"
+      class="text-sm text-dimmed mb-4"
     >
-      No comments yet.
+      No comments yet
     </p>
 
     <div
@@ -300,7 +300,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
           @click="submit"
         >
           Comment
-          <kbd class="ml-1 text-[10px] font-mono opacity-75 bg-white/15 px-1 py-0.5 rounded">⌘↵</kbd>
+          <kbd class="ml-1 text-2xs font-mono opacity-75 bg-white/15 px-1 py-0.5 rounded-md">⌘↵</kbd>
         </UButton>
       </div>
     </div>

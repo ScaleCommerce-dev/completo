@@ -46,13 +46,13 @@ function onAreaDblClick(e: MouseEvent) {
     <div class="flex items-center justify-between px-3 py-3">
       <div
         class="flex items-center gap-2.5 px-1 py-0.5 rounded-md"
-        :class="isDone ? 'bg-emerald-50 dark:bg-emerald-950/25 ring-1 ring-emerald-200/60 dark:ring-emerald-800/40' : ''"
+        :class="isDone ? 'bg-emerald-50 dark:bg-emerald-950/25 ring-1 ring-success/30 dark:ring-emerald-800/40' : ''"
       >
         <!-- Done checkmark or colored dot -->
         <UIcon
           v-if="isDone"
           name="i-lucide-circle-check-big"
-          class="text-[13px] text-emerald-500 dark:text-emerald-400 shrink-0"
+          class="text-sm text-success dark:text-emerald-400 shrink-0"
         />
         <div
           v-else
@@ -60,13 +60,13 @@ function onAreaDblClick(e: MouseEvent) {
           :style="{ backgroundColor: accentColor || '#64748b' }"
         />
         <h3
-          class="font-bold text-[13.5px] uppercase tracking-[0.04em]"
+          class="font-bold text-sm uppercase tracking-[0.04em]"
           :class="isDone ? 'text-emerald-700 dark:text-emerald-300' : 'text-muted'"
         >
           {{ column.name }}
         </h3>
         <span
-          class="text-[12px] tabular-nums font-mono font-medium"
+          class="text-xs tabular-nums font-mono font-medium"
           :class="isDone ? 'text-emerald-500/70 dark:text-emerald-400/70' : 'text-dimmed'"
         >
           {{ cards.length }}
@@ -118,7 +118,7 @@ function onAreaDblClick(e: MouseEvent) {
     <!-- Add card button -->
     <div class="px-2 pb-2">
       <button
-        class="w-full flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-medium text-dimmed hover:text-toned hover:bg-accented transition-all"
+        class="w-full flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-dimmed hover:text-toned hover:bg-accented transition-all"
         @click="emit('add-card')"
       >
         <UIcon

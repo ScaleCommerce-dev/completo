@@ -53,12 +53,12 @@ function clear() {
         <button
           v-if="modelValue"
           type="button"
-          class="w-full mt-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+          class="w-full mt-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium text-muted hover:text-error hover:bg-error/10 transition-all"
           @click="clear"
         >
           <UIcon
             name="i-lucide-x"
-            class="text-[12px]"
+            class="text-xs"
           />
           Clear due date
         </button>

@@ -31,14 +31,14 @@ function accentFor(project: ProfileProject): string {
 <template>
   <div class="mt-6 rounded-xl border border-default bg-default shadow-sm overflow-hidden">
     <div class="px-5 pt-4 pb-2">
-      <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-dimmed">Activity</span>
+      <span class="text-xs font-semibold uppercase tracking-[0.08em] text-dimmed">Activity</span>
     </div>
 
     <!-- Priority breakdown -->
     <div class="px-5 pt-2 pb-4">
       <div class="flex items-baseline gap-2 mb-3">
-        <span class="text-[28px] font-extrabold tracking-[-0.03em] text-highlighted leading-none">{{ profileData.totalOpen }}</span>
-        <span class="text-[13px] font-medium text-dimmed">open {{ profileData.totalOpen === 1 ? 'card' : 'cards' }} assigned</span>
+        <span class="text-2xl font-extrabold tracking-[-0.03em] text-highlighted leading-none">{{ profileData.totalOpen }}</span>
+        <span class="text-sm font-medium text-dimmed">open {{ profileData.totalOpen === 1 ? 'card' : 'cards' }} assigned</span>
       </div>
 
       <!-- Stacked bar. Fills come from priorityChartClass(), which — unlike the
@@ -87,7 +87,7 @@ function accentFor(project: ProfileProject): string {
       class="border-t border-muted"
     >
       <div class="px-5 pt-3 pb-1">
-        <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-dimmed">Projects</span>
+        <span class="text-xs font-semibold uppercase tracking-[0.08em] text-dimmed">Projects</span>
       </div>
       <div class="px-5 pb-4 pt-1 space-y-1">
         <NuxtLink
@@ -102,28 +102,28 @@ function accentFor(project: ProfileProject): string {
           >
             <UIcon
               :name="`i-lucide-${project.icon || 'folder'}`"
-              class="text-[15px]"
+              class="text-base"
             />
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-1.5">
-              <span class="text-[13px] font-semibold text-default group-hover:text-primary transition-colors truncate">{{ project.name }}</span>
+              <span class="text-sm font-semibold text-default group-hover:text-primary transition-colors truncate">{{ project.name }}</span>
               <span
-                class="font-mono text-[8px] font-bold px-1 py-0.5 rounded tracking-wide shrink-0"
+                class="font-mono text-2xs font-bold px-1 py-0.5 rounded-md tracking-wide shrink-0"
                 :style="{ backgroundColor: accentFor(project) + '14', color: accentFor(project) }"
               >{{ project.key }}</span>
             </div>
-            <span class="text-[11px] text-dimmed">{{ project.openCards }} open {{ project.openCards === 1 ? 'card' : 'cards' }}</span>
+            <span class="text-xs text-dimmed">{{ project.openCards }} open {{ project.openCards === 1 ? 'card' : 'cards' }}</span>
           </div>
           <span
-            class="text-[9px] font-bold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded-full shrink-0"
+            class="text-2xs font-bold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded-full shrink-0"
             :class="project.role === 'owner'
               ? 'bg-primary/10 text-primary'
               : 'bg-elevated text-muted'"
           >{{ project.role }}</span>
           <UIcon
             name="i-lucide-chevron-right"
-            class="text-[14px] text-dimmed group-hover:text-dimmed transition-colors shrink-0"
+            class="text-base text-dimmed group-hover:text-dimmed transition-colors shrink-0"
           />
         </NuxtLink>
       </div>
@@ -134,10 +134,10 @@ function accentFor(project: ProfileProject): string {
       v-else-if="profileData.totalOpen === 0 && !profileData.projects?.length"
       class="px-5 pb-4"
     >
-      <div class="flex items-center gap-2 text-[13px] text-dimmed">
+      <div class="flex items-center gap-2 text-sm text-dimmed">
         <UIcon
           name="i-lucide-inbox"
-          class="text-[15px]"
+          class="text-base"
         />
         <span>No project memberships yet</span>
       </div>

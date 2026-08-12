@@ -377,14 +377,14 @@ defineExpose({
         >
           <UIcon
             name="i-lucide-image"
-            class="text-[14px]"
+            class="text-base"
           />
         </button>
         <template #content>
           <div class="p-2">
             <!-- Card Attachments -->
             <template v-if="imageAttachments.length > 0">
-              <div class="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-dimmed">
+              <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-[0.06em] text-dimmed">
                 Card Attachments
               </div>
               <div class="grid grid-cols-3 gap-1.5 mb-2">
@@ -407,7 +407,7 @@ defineExpose({
             </template>
 
             <!-- External URL -->
-            <div class="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-dimmed">
+            <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-[0.06em] text-dimmed">
               External URL
             </div>
             <div class="flex items-center gap-1.5">
@@ -415,18 +415,17 @@ defineExpose({
                 v-model="imageUrlInput"
                 type="text"
                 placeholder="https://..."
-                class="flex-1 text-[13px] text-default placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted border border-accented rounded-md px-2 py-1.5 outline-none focus:border-primary transition-colors"
+                class="flex-1 text-sm text-default placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted border border-accented rounded-md px-2 py-1.5 outline-none focus:border-primary transition-colors"
                 @keydown.enter.prevent="insertUrlImage"
                 @keydown.escape.prevent="closeImagePicker"
               >
-              <button
-                type="button"
-                class="shrink-0 px-2.5 py-1.5 rounded-md text-[12px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              <UButton
+                label="Insert"
+                size="xs"
+                class="shrink-0"
                 :disabled="!imageUrlInput.trim()"
                 @click="insertUrlImage"
-              >
-                Insert
-              </button>
+              />
             </div>
           </div>
         </template>
@@ -441,7 +440,7 @@ defineExpose({
       >
         <UIcon
           name="i-lucide-at-sign"
-          class="text-[14px]"
+          class="text-base"
         />
       </button>
     </template>
@@ -452,26 +451,26 @@ defineExpose({
       >
         <button
           type="button"
-          class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[12px] font-medium text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+          class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-muted hover:text-error hover:bg-error/10 transition-colors"
           @mousedown.prevent
           @click="aiDecline"
         >
           <UIcon
             name="i-lucide-undo-2"
-            class="text-[13px]"
+            class="text-sm"
           />
           Discard
         </button>
         <button
           ref="aiKeepBtn"
           type="button"
-          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-emerald-200 dark:ring-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 transition-colors"
+          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-emerald-600 bg-success/10 ring-1 ring-emerald-200 dark:ring-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 transition-colors"
           @mousedown.prevent
           @click="aiAccept"
         >
           <UIcon
             name="i-lucide-check"
-            class="text-[13px]"
+            class="text-sm"
           />
           Keep
         </button>
@@ -492,17 +491,17 @@ defineExpose({
     <template #preview-empty>
       <div
         v-if="aiGenerating"
-        class="flex items-center gap-2.5 text-[13px] text-dimmed"
+        class="flex items-center gap-2.5 text-sm text-dimmed"
       >
         <UIcon
           name="i-lucide-loader-2"
-          class="text-[16px] animate-spin text-primary"
+          class="text-lg animate-spin text-primary"
         />
         <span>Generating description<span class="loading-dots" /></span>
       </div>
       <p
         v-else
-        class="text-[14px] text-dimmed italic"
+        class="text-base text-dimmed italic"
       >
         Nothing to preview
       </p>
@@ -515,29 +514,29 @@ defineExpose({
         <div class="relative border-b border-default">
           <UIcon
             name="i-lucide-search"
-            class="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-dimmed"
+            class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-dimmed"
           />
           <input
             ref="mentionSearchInput"
             v-model="mentionSearchQuery"
             placeholder="Search members or cards..."
-            class="w-full pl-8 pr-3 py-2.5 text-[13px] text-default placeholder-zinc-400 dark:placeholder-zinc-500 bg-transparent border-0 outline-none"
+            class="w-full pl-8 pr-3 py-2.5 text-sm text-default placeholder-zinc-400 dark:placeholder-zinc-500 bg-transparent border-0 outline-none"
             @keydown="onMentionKeydown"
           >
         </div>
         <div class="max-h-[240px] overflow-y-auto">
           <div v-if="mentionUserResults.length > 0">
-            <div class="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-dimmed">
+            <div class="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-[0.06em] text-dimmed">
               Members
             </div>
             <button
               v-for="(user, i) in mentionUserResults"
               :key="'u-' + user.id"
               type="button"
-              class="w-full flex items-center gap-2.5 px-3 py-1.5 text-left text-[13px] transition-colors"
+              class="w-full flex items-center gap-2.5 px-3 py-1.5 text-left text-sm transition-colors"
               :class="i === mentionIndex
                 ? 'bg-primary/10 text-primary'
-                : 'text-default hover:bg-muted hover:bg-elevated'"
+                : 'text-default hover:bg-elevated'"
               @mousedown.prevent
               @click="selectMention({ ...user, _type: 'user' })"
             >
@@ -546,25 +545,25 @@ defineExpose({
                 size="2xs"
               />
               <span class="font-medium truncate">{{ user.name }}</span>
-              <span class="ml-auto text-[11px] text-dimmed truncate">{{ user.email }}</span>
+              <span class="ml-auto text-xs text-dimmed truncate">{{ user.email }}</span>
             </button>
           </div>
           <div v-if="mentionCardResults.length > 0">
-            <div class="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-dimmed">
+            <div class="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-[0.06em] text-dimmed">
               Cards
             </div>
             <button
               v-for="(c, i) in mentionCardResults"
               :key="'c-' + c.id"
               type="button"
-              class="w-full flex items-center gap-2.5 px-3 py-1.5 text-left text-[13px] transition-colors"
+              class="w-full flex items-center gap-2.5 px-3 py-1.5 text-left text-sm transition-colors"
               :class="(mentionUserResults.length + i) === mentionIndex
                 ? 'bg-primary/10 text-primary'
-                : 'text-default hover:bg-muted hover:bg-elevated'"
+                : 'text-default hover:bg-elevated'"
               @mousedown.prevent
               @click="selectMention({ ...c, _type: 'card' })"
             >
-              <span class="font-mono text-[11px] font-semibold text-dimmed bg-elevated px-1.5 py-0.5 rounded shrink-0">
+              <span class="font-mono text-xs font-semibold text-dimmed bg-elevated px-1.5 py-0.5 rounded-md shrink-0">
                 {{ projectKey }}-{{ c.id }}
               </span>
               <span class="truncate">{{ c.title }}</span>
@@ -572,7 +571,7 @@ defineExpose({
           </div>
           <div
             v-if="mentionUserResults.length === 0 && mentionCardResults.length === 0 && mentionSearchQuery.trim().length >= 2"
-            class="px-3 py-3 text-[12px] text-dimmed italic text-center"
+            class="px-3 py-3 text-xs text-dimmed italic text-center"
           >
             No matches found
           </div>

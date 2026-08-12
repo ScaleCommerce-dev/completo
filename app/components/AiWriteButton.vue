@@ -43,13 +43,13 @@ function handleCustomPrompt() {
       v-if="isGenerating"
       type="button"
       title="Cancel AI generation"
-      class="ai-btn-cancel flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold tracking-wide uppercase text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-200 dark:ring-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-all"
+      class="ai-btn-cancel flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide uppercase text-warning bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-200 dark:ring-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-all"
       @mousedown.prevent
       @click="emit('cancel')"
     >
       <UIcon
         name="i-lucide-loader-2"
-        class="text-[13px] animate-spin"
+        class="text-sm animate-spin"
       />
       <span>Stop</span>
     </button>
@@ -62,15 +62,15 @@ function handleCustomPrompt() {
       <button
         type="button"
         title="AI writing assistant"
-        class="ai-pill group flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide uppercase transition-all"
+        class="ai-pill group flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide uppercase transition-all"
         :class="error
-          ? 'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-950/30 ring-1 ring-red-200 dark:ring-red-800/50 hover:bg-red-100 dark:hover:bg-red-950/50'
+          ? 'text-error bg-error/10 ring-1 ring-red-200 dark:ring-red-800/50 hover:bg-red-100 dark:hover:bg-red-950/50'
           : 'text-white dark:text-white ring-0'"
         @mousedown.prevent
       >
         <UIcon
           name="i-lucide-sparkles"
-          class="text-[13px]"
+          class="text-sm"
         />
         <span>AI</span>
       </button>
@@ -86,12 +86,12 @@ function handleCustomPrompt() {
               v-for="skill in (skills as any[])"
               :key="skill.id"
               type="button"
-              class="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-default hover:bg-muted hover:bg-elevated transition-colors text-left"
+              class="w-full flex items-center gap-2 px-3 py-2 text-sm text-default hover:bg-elevated transition-colors text-left"
               @click="handleSkill(skill.id)"
             >
               <UIcon
                 name="i-lucide-wand-sparkles"
-                class="text-[14px] text-secondary shrink-0"
+                class="text-base text-secondary shrink-0"
               />
               <span class="font-medium truncate">{{ skill.name }}</span>
             </button>
@@ -110,7 +110,7 @@ function handleCustomPrompt() {
                 v-model="customPrompt"
                 type="text"
                 placeholder="Custom prompt..."
-                class="flex-1 min-w-0 px-2.5 py-1.5 text-[13px] text-default placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted bg-accented border border-default border-accented rounded-lg outline-none focus:border-primary transition-colors"
+                class="flex-1 min-w-0 px-2.5 py-1.5 text-sm text-default placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted bg-accented border border-default border-accented rounded-lg outline-none focus:border-primary transition-colors"
                 @keydown.enter.prevent="handleCustomPrompt"
                 @keydown.stop
               >
@@ -122,7 +122,7 @@ function handleCustomPrompt() {
               >
                 <UIcon
                   name="i-lucide-send"
-                  class="text-[14px]"
+                  class="text-base"
                 />
               </button>
             </div>
@@ -131,7 +131,7 @@ function handleCustomPrompt() {
           <!-- Error feedback -->
           <div
             v-if="error"
-            class="px-3 py-2 text-[11px] text-red-500 dark:text-red-400 border-t border-muted border-default"
+            class="px-3 py-2 text-xs text-error border-t border-muted border-default"
           >
             {{ error }}
           </div>
@@ -154,13 +154,13 @@ function handleCustomPrompt() {
   }
 }
 
-.ai-pill:not(.text-red-500) {
+.ai-pill:not(.text-error) {
   background: linear-gradient(-45deg, #7c3aed, #a855f7, #6366f1, #8b5cf6, #c084fc, #7c3aed);
   background-size: 300% 300%;
   animation: gradient-shift 6s ease infinite;
 }
 
-.ai-pill:not(.text-red-500):hover {
+.ai-pill:not(.text-error):hover {
   animation-duration: 2s;
   box-shadow: 0 0 16px rgba(139, 92, 246, 0.35);
 }

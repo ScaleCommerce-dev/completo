@@ -5,7 +5,7 @@ defineProps<{
 </script>
 
 <template>
-  <span class="text-dimmed text-[13px] font-mono tabular-nums">
+  <span class="text-dimmed text-sm font-mono tabular-nums">
     {{ relativeTime(value) }}
   </span>
 </template>

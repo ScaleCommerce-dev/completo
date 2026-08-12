@@ -109,7 +109,7 @@ function userBadgeLabel(u: AdminUser): string {
 }
 
 function userBadgeClass(u: AdminUser): string {
-  if (u.suspendedAt) return 'bg-red-100 dark:bg-red-500/10 text-red-500 dark:text-red-400'
+  if (u.suspendedAt) return 'bg-error/15 text-error'
   if (u.isAdmin) return 'bg-primary/10 text-primary'
   return 'bg-elevated text-muted'
 }
@@ -268,21 +268,21 @@ function formatDate(date: string | Date | null) {
         <h1 class="text-xl font-extrabold tracking-[-0.02em] text-highlighted">
           User Management
         </h1>
-        <p class="text-[14px] text-muted mt-1">
+        <p class="text-base text-muted mt-1">
           Manage all registered users
         </p>
       </div>
       <div class="flex items-center gap-3">
         <NotificationBell />
-        <span class="text-[13px] font-mono text-dimmed">{{ users?.length || 0 }} users</span>
+        <span class="text-sm font-mono text-dimmed">{{ users?.length || 0 }} users</span>
         <button
           type="button"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all"
           @click="openCreate"
         >
           <UIcon
             name="i-lucide-user-plus"
-            class="text-[14px]"
+            class="text-base"
           />
           Create User
         </button>
@@ -308,7 +308,7 @@ function formatDate(date: string | Date | null) {
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 flex-wrap">
               <h3
-                class="font-bold text-[14.5px] tracking-[-0.01em] truncate"
+                class="font-bold text-base tracking-[-0.01em] truncate"
                 :class="u.suspendedAt
                   ? 'text-dimmed'
                   : 'text-highlighted'"
@@ -321,44 +321,44 @@ function formatDate(date: string | Date | null) {
               >
                 <button
                   type="button"
-                  class="shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full cursor-pointer transition-all hover:ring-2 flex items-center gap-1"
+                  class="shrink-0 text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full cursor-pointer transition-all hover:ring-2 flex items-center gap-1"
                   :class="[userBadgeClass(u), userBadgeHoverRing(u)]"
                   :disabled="actionLoading === u.id"
                 >
                   <UIcon
                     v-if="actionLoading === u.id"
                     name="i-lucide-loader-2"
-                    class="text-[10px] animate-spin"
+                    class="text-2xs animate-spin"
                   />
                   <template v-else>
                     {{ userBadgeLabel(u) }}
                     <UIcon
                       name="i-lucide-chevron-down"
-                      class="text-[10px] opacity-60"
+                      class="text-2xs opacity-60"
                     />
                   </template>
                 </button>
               </UDropdownMenu>
               <span
                 v-else
-                class="shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full"
+                class="shrink-0 text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full"
                 :class="userBadgeClass(u)"
               >
                 {{ userBadgeLabel(u) }}
               </span>
               <span
                 v-if="u.pendingSetup"
-                class="shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                class="shrink-0 text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-warning/10 text-warning"
               >
                 Pending Setup
               </span>
             </div>
-            <p class="text-[13px] font-mono text-muted mt-0.5 truncate">
+            <p class="text-sm font-mono text-muted mt-0.5 truncate">
               {{ u.email }}
             </p>
           </div>
         </div>
-        <div class="flex items-center gap-1.5 mt-3 pt-3 border-t border-muted text-[12px] font-mono text-dimmed">
+        <div class="flex items-center gap-1.5 mt-3 pt-3 border-t border-muted text-xs font-mono text-dimmed">
           <UIcon
             name="i-lucide-eye"
             class="text-xs"
@@ -374,14 +374,14 @@ function formatDate(date: string | Date | null) {
         <div class="flex items-center gap-2 mb-4">
           <UIcon
             name="i-lucide-clock"
-            class="text-lg text-amber-500"
+            class="text-lg text-warning"
           />
-          <h2 class="text-[15px] font-bold tracking-[-0.01em] text-highlighted">
+          <h2 class="text-base font-bold tracking-[-0.01em] text-highlighted">
             Pending Project Invitations
           </h2>
-          <span class="text-[12px] font-mono text-dimmed">{{ pendingInvitations.length }}</span>
+          <span class="text-xs font-mono text-dimmed">{{ pendingInvitations.length }}</span>
         </div>
-        <p class="text-[13px] text-muted mb-4">
+        <p class="text-sm text-muted mb-4">
           These people have been invited to projects but haven't registered yet.
         </p>
         <div class="rounded-xl border border-amber-200/60 dark:border-amber-800/30 overflow-hidden">
@@ -397,37 +397,37 @@ function formatDate(date: string | Date | null) {
           >
             <UIcon
               name="i-lucide-mail"
-              class="text-[16px] text-amber-400 shrink-0"
+              class="text-lg text-amber-400 shrink-0"
             />
             <div class="min-w-0 flex-1">
-              <span class="text-[13px] font-mono text-default">{{ inv.email }}</span>
+              <span class="text-sm font-mono text-default">{{ inv.email }}</span>
             </div>
-            <span class="text-[12px] text-muted shrink-0">
+            <span class="text-xs text-muted shrink-0">
               <UIcon
                 name="i-lucide-folder"
-                class="text-[11px] inline-block mr-0.5"
+                class="text-xs inline-block mr-0.5"
               />
               {{ inv.projectName }}
             </span>
-            <span class="text-[12px] text-dimmed shrink-0">
+            <span class="text-xs text-dimmed shrink-0">
               by {{ inv.inviterName }}
             </span>
             <UDropdownMenu :items="invitationMenuItems(inv)">
               <button
                 type="button"
-                class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-amber-500/20 flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-amber-500/20 flex items-center gap-1 bg-warning/10 text-warning"
                 :disabled="invitationLoading === inv.id"
               >
                 <UIcon
                   v-if="invitationLoading === inv.id"
                   name="i-lucide-loader-2"
-                  class="text-[10px] animate-spin"
+                  class="text-2xs animate-spin"
                 />
                 <template v-else>
                   Pending
                   <UIcon
                     name="i-lucide-chevron-down"
-                    class="text-[10px] opacity-60"
+                    class="text-2xs opacity-60"
                   />
                 </template>
               </button>
@@ -437,193 +437,108 @@ function formatDate(date: string | Date | null) {
       </div>
     </template>
 
-    <!-- Create User Modal -->
-    <UModal v-model:open="showCreateModal">
-      <template #content>
-        <div class="rounded-xl bg-default overflow-hidden">
-          <div class="px-5 pt-5 pb-4">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
-                <UIcon
-                  name="i-lucide-user-plus"
-                  class="text-lg text-primary"
-                />
-              </div>
-              <div>
-                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-highlighted">
-                  Create User
-                </h2>
-                <p class="text-[13px] text-muted">
-                  They'll receive an email to set their password
-                </p>
-              </div>
-            </div>
-
-            <form
-              class="flex flex-col gap-3.5"
-              @submit.prevent="confirmCreate"
-            >
-              <div>
-                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
-                  Name
-                </label>
-                <input
-                  v-model="createName"
-                  type="text"
-                  placeholder="Full name"
-                  required
-                  class="w-full px-3 py-2 text-[14px] text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-default rounded-lg outline-none focus:border-primary transition-colors"
-                >
-              </div>
-
-              <div>
-                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
-                  Email
-                </label>
-                <input
-                  v-model="createEmail"
-                  type="email"
-                  placeholder="user@example.com"
-                  required
-                  class="w-full px-3 py-2 text-[14px] text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-default rounded-lg outline-none focus:border-primary transition-colors"
-                >
-              </div>
-
-              <!-- Error -->
-              <div
-                v-if="createError"
-                class="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
-              >
-                <UIcon
-                  name="i-lucide-alert-circle"
-                  class="text-[14px] text-red-500 shrink-0"
-                />
-                <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ createError }}</span>
-              </div>
-
-              <!-- Actions -->
-              <div class="flex items-center justify-end gap-2 pt-2 border-t border-muted mt-1">
-                <button
-                  type="button"
-                  class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
-                  @click="showCreateModal = false"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                  :disabled="creating || !createName.trim() || !createEmail.trim()"
-                >
-                  <UIcon
-                    v-if="!creating"
-                    name="i-lucide-user-plus"
-                    class="text-[14px]"
-                  />
-                  <UIcon
-                    v-else
-                    name="i-lucide-loader-2"
-                    class="text-[14px] animate-spin"
-                  />
-                  Create User
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </template>
-    </UModal>
-
-    <!-- Delete User Modal -->
-    <UModal v-model:open="showDeleteModal">
-      <template #content>
-        <div class="rounded-xl bg-default overflow-hidden">
-          <div class="px-5 pt-5 pb-4">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-950/30">
-                <UIcon
-                  name="i-lucide-alert-triangle"
-                  class="text-lg text-red-500"
-                />
-              </div>
-              <div>
-                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-highlighted">
-                  Delete User
-                </h2>
-                <p class="text-[13px] text-muted">
-                  This action cannot be undone
-                </p>
-              </div>
-            </div>
-
-            <div
-              v-if="deleteTarget"
-              class="rounded-lg border border-accented p-3 bg-muted mb-4"
-            >
-              <div class="flex items-center gap-3">
-                <UAvatar
-                  :src="deleteTarget.avatarUrl ?? undefined"
-                  :alt="deleteTarget.name"
-                  size="sm"
-                />
-                <div class="min-w-0">
-                  <p class="text-[14px] font-semibold text-highlighted truncate">
-                    {{ deleteTarget.name }}
-                  </p>
-                  <p class="text-[13px] font-mono text-muted truncate">
-                    {{ deleteTarget.email }}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <p class="text-[13px] text-muted leading-relaxed">
-              This will remove the user and all their project memberships. Cards assigned to this user will be unassigned.
-            </p>
-          </div>
-
-          <!-- Error -->
-          <div
-            v-if="deleteError"
-            class="mx-5 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
-          >
-            <UIcon
-              name="i-lucide-alert-circle"
-              class="text-[14px] text-red-500 shrink-0"
+    <UiModal
+      v-model:open="showCreateModal"
+      icon="i-lucide-user-plus"
+      tone="primary"
+      title="Create user"
+      description="They get an email to set their own password."
+      size="sm"
+    >
+      <template #body>
+        <form
+          class="flex flex-col gap-3"
+          @submit.prevent="confirmCreate"
+        >
+          <UFormField label="Name">
+            <UInput
+              v-model="createName"
+              placeholder="Full name"
+              required
+              class="w-full"
             />
-            <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ deleteError }}</span>
-          </div>
+          </UFormField>
 
-          <!-- Actions -->
-          <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
-            <button
-              type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
-              @click="showDeleteModal = false"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 shadow-sm shadow-red-500/20 hover:shadow-md hover:shadow-red-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              :disabled="deleting"
-              @click="confirmDelete"
-            >
-              <UIcon
-                v-if="!deleting"
-                name="i-lucide-trash-2"
-                class="text-[14px]"
-              />
-              <UIcon
-                v-else
-                name="i-lucide-loader-2"
-                class="text-[14px] animate-spin"
-              />
-              Delete User
-            </button>
-          </div>
-        </div>
+          <UFormField label="Email">
+            <UInput
+              v-model="createEmail"
+              type="email"
+              placeholder="user@example.com"
+              required
+              class="w-full"
+            />
+          </UFormField>
+
+          <UAlert
+            v-if="createError"
+            color="error"
+            variant="subtle"
+            icon="i-lucide-alert-circle"
+            :description="createError"
+          />
+        </form>
       </template>
-    </UModal>
+
+      <template #footer>
+        <UiSaveBar
+          submit-label="Create user"
+          :loading="creating"
+          :disabled="!createName.trim() || !createEmail.trim()"
+          :shortcut="false"
+          @submit="confirmCreate"
+          @cancel="showCreateModal = false"
+        />
+      </template>
+    </UiModal>
+
+    <UiModal
+      v-model:open="showDeleteModal"
+      icon="i-lucide-triangle-alert"
+      tone="error"
+      title="Delete user"
+      description="This cannot be undone."
+      size="sm"
+    >
+      <template #body>
+        <div
+          v-if="deleteTarget"
+          class="rounded-lg border border-default bg-muted p-3 mb-3"
+        >
+          <UiPerson
+            :person="deleteTarget"
+            size="sm"
+            strong
+          />
+          <p class="text-sm font-mono text-muted truncate mt-1">
+            {{ deleteTarget.email }}
+          </p>
+        </div>
+
+        <p class="text-sm text-muted leading-relaxed">
+          Removes the account and every project membership it has. Cards assigned to
+          them are left unassigned rather than deleted.
+        </p>
+
+        <UAlert
+          v-if="deleteError"
+          class="mt-3"
+          color="error"
+          variant="subtle"
+          icon="i-lucide-alert-circle"
+          :description="deleteError"
+        />
+      </template>
+
+      <template #footer>
+        <UiSaveBar
+          submit-label="Delete user"
+          submit-tone="error"
+          :loading="deleting"
+          :shortcut="false"
+          @submit="confirmDelete"
+          @cancel="showDeleteModal = false"
+        />
+      </template>
+    </UiModal>
   </div>
 </template>

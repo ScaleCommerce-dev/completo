@@ -81,51 +81,33 @@ async function resendVerification() {
       class="px-7 pb-7 flex flex-col gap-5"
       @submit.prevent="login"
     >
-      <!-- Verification success banner -->
-      <div
+      <AuthErrorBanner
         v-if="verifiedSuccess"
-        class="auth-field flex items-center gap-2 text-[13px] text-emerald-600 dark:text-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/30 rounded-lg px-3 py-2.5 backdrop-blur-sm border border-emerald-200/50 dark:border-emerald-800/30"
-      >
-        <UIcon
-          name="i-lucide-check-circle"
-          class="shrink-0"
-        />
-        Email verified! You can now sign in.
-      </div>
+        tone="success"
+        message="Email verified. You can sign in now."
+      />
 
-      <!-- Token error banner -->
-      <div
-        v-if="tokenError"
-        class="auth-field flex items-center gap-2 text-[13px] text-red-600 dark:text-red-400 bg-red-50/80 dark:bg-red-950/30 rounded-lg px-3 py-2.5 backdrop-blur-sm border border-red-200/50 dark:border-red-800/30"
-      >
-        <UIcon
-          name="i-lucide-alert-circle"
-          class="shrink-0"
-        />
-        <div>
-          {{ tokenError }}
-          <template v-if="isTokenExpired">
-            <button
-              v-if="!resendSuccess"
-              class="block mt-1 text-primary font-semibold hover:underline"
-              type="button"
-              :disabled="resendLoading"
-              @click="resendVerification"
-            >
-              {{ resendLoading ? 'Sending...' : 'Resend verification email' }}
-            </button>
-            <span
-              v-if="resendSuccess"
-              class="block mt-1 text-emerald-600 dark:text-emerald-400"
-            >
-              Verification email sent!
-            </span>
-          </template>
-        </div>
-      </div>
+      <AuthErrorBanner v-if="tokenError">
+        {{ tokenError }}
+        <template v-if="isTokenExpired">
+          <UButton
+            v-if="!resendSuccess"
+            label="Resend verification email"
+            variant="link"
+            size="sm"
+            class="block mt-1 px-0"
+            :loading="resendLoading"
+            @click="resendVerification"
+          />
+          <span
+            v-if="resendSuccess"
+            class="block mt-1 text-success"
+          >Verification email sent.</span>
+        </template>
+      </AuthErrorBanner>
 
       <!-- OAuth error banner -->
-      <AuthErrorBanner :error="oauthError" />
+      <AuthErrorBanner :message="oauthError" />
 
       <!-- Social login buttons -->
       <SocialLoginButtons />
@@ -168,39 +150,28 @@ async function resendVerification() {
       >
         <NuxtLink
           to="/auth/forgot-password"
-          class="text-[13px] text-primary font-semibold hover:underline"
+          class="text-sm text-primary font-semibold hover:underline"
         >
           Forgot password?
         </NuxtLink>
       </div>
 
-      <div
-        v-if="error"
-        class="auth-field flex items-center gap-2 text-[13px] text-red-600 dark:text-red-400 bg-red-50/80 dark:bg-red-950/30 rounded-lg px-3 py-2.5 backdrop-blur-sm border border-red-200/50 dark:border-red-800/30"
-      >
-        <UIcon
-          name="i-lucide-alert-circle"
-          class="shrink-0"
+      <AuthErrorBanner v-if="error">
+        {{ error }}
+        <UButton
+          v-if="isUnverified && !resendSuccess"
+          label="Resend verification email"
+          variant="link"
+          size="sm"
+          class="block mt-1 px-0"
+          :loading="resendLoading"
+          @click="resendVerification"
         />
-        <div>
-          {{ error }}
-          <button
-            v-if="isUnverified && !resendSuccess"
-            class="block mt-1 text-primary font-semibold hover:underline"
-            type="button"
-            :disabled="resendLoading"
-            @click="resendVerification"
-          >
-            {{ resendLoading ? 'Sending...' : 'Resend verification email' }}
-          </button>
-          <span
-            v-if="resendSuccess"
-            class="block mt-1 text-emerald-600 dark:text-emerald-400"
-          >
-            Verification email sent!
-          </span>
-        </div>
-      </div>
+        <span
+          v-if="resendSuccess"
+          class="block mt-1 text-success"
+        >Verification email sent.</span>
+      </AuthErrorBanner>
 
       <div
         class="auth-field"
@@ -218,7 +189,7 @@ async function resendVerification() {
 
     <div class="px-7 pb-6 pt-1">
       <div class="border-t border-muted pt-4">
-        <p class="text-[13px] text-center text-muted">
+        <p class="text-sm text-center text-muted">
           Don't have an account?
           <NuxtLink
             to="/register"

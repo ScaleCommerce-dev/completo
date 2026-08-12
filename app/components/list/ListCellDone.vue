@@ -16,9 +16,9 @@ const emit = defineEmits<{
   >
     <button
       type="button"
-      class="flex items-center justify-center w-[18px] h-[18px] rounded border transition-all"
+      class="flex items-center justify-center w-[18px] h-[18px] rounded-md border transition-all"
       :class="isDone
-        ? 'bg-emerald-500 border-emerald-500 text-white'
+        ? 'bg-success border-success text-white'
         : 'border-accented hover:border-accented text-transparent'"
       :disabled="disabled"
       @click="emit('toggle')"
@@ -26,7 +26,7 @@ const emit = defineEmits<{
       <UIcon
         v-if="isDone"
         name="i-lucide-check"
-        class="text-[13px]"
+        class="text-sm"
       />
     </button>
   </div>

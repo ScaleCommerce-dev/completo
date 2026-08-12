@@ -111,6 +111,36 @@ describe('priority', () => {
   })
 })
 
+describe('type scale', () => {
+  it('leaves no arbitrary font sizes in templates', () => {
+    // 726 inline `text-[Npx]` values spanned nineteen sizes, nine of them
+    // half-pixel nudges for one specific element. Six named steps replace them.
+    const files = execSync(`find ${ROOT}/app -name '*.vue'`, { encoding: 'utf8' })
+      .trim()
+      .split('\n')
+
+    const offenders: string[] = []
+    for (const file of files) {
+      readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
+        const m = line.match(/text-\[\d+(\.\d+)?px\]/)
+        if (m) offenders.push(`${file.replace(ROOT + '/', '')}:${i + 1}  ${m[0]}`)
+      })
+    }
+
+    expect(offenders).toEqual([])
+  })
+
+  it('defines exactly the steps that deviate from Tailwind', () => {
+    const css = readFileSync(join(ROOT, 'app/assets/css/main.css'), 'utf8')
+    expect(css).toMatch(/--text-2xs:\s*0\.625rem/) // 10px, added
+    expect(css).toMatch(/--text-sm:\s*0\.8125rem/) // 13px, was 14
+    expect(css).toMatch(/--text-base:\s*0\.875rem/) // 14px, was 16
+    expect(css).toMatch(/--text-lg:\s*1rem/) // 16px, was 18
+    // xs keeps Tailwind's 12px so Nuxt UI internals relying on it are untouched.
+    expect(css).not.toMatch(/--text-xs:/)
+  })
+})
+
 describe('main.css token layer', () => {
   const css = readFileSync(join(ROOT, 'app/assets/css/main.css'), 'utf8')
 

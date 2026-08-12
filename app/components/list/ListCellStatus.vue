@@ -27,11 +27,11 @@ const emit = defineEmits<{
           boxShadow: `inset 0 0 0 1px ${(status.color || '#a1a1aa')}30`
         }"
       />
-      <span class="text-toned truncate text-[13.5px]">{{ status.name }}</span>
+      <span class="text-toned truncate text-sm">{{ status.name }}</span>
     </template>
     <span
       v-else
-      class="text-dimmed text-[13.5px]"
+      class="text-dimmed text-sm"
     >&mdash;</span>
   </div>
 
@@ -42,7 +42,7 @@ const emit = defineEmits<{
     @update:open="emit('update:popoverOpen', $event)"
   >
     <div
-      class="flex items-center gap-1.5 rounded px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer"
+      class="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer"
       @click.stop
     >
       <template v-if="status">
@@ -53,15 +53,15 @@ const emit = defineEmits<{
             boxShadow: `inset 0 0 0 1px ${(status.color || '#a1a1aa')}30`
           }"
         />
-        <span class="text-toned truncate text-[13.5px]">{{ status.name }}</span>
+        <span class="text-toned truncate text-sm">{{ status.name }}</span>
         <UIcon
           name="i-lucide-chevron-down"
-          class="text-[10px] shrink-0 text-dimmed opacity-0 group-hover:opacity-60 transition-opacity"
+          class="text-2xs shrink-0 text-dimmed opacity-0 group-hover:opacity-60 transition-opacity"
         />
       </template>
       <span
         v-else
-        class="text-dimmed text-[13.5px]"
+        class="text-dimmed text-sm"
       >&mdash;</span>
     </div>
     <template #content>
@@ -70,7 +70,7 @@ const emit = defineEmits<{
           v-for="s in statuses"
           :key="s.id"
           type="button"
-          class="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-[12px] transition-colors"
+          class="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-xs transition-colors"
           :class="statusId === s.id
             ? 'bg-primary/10 text-primary'
             : 'text-default hover:bg-muted'"
@@ -84,7 +84,7 @@ const emit = defineEmits<{
           <UIcon
             v-if="statusId === s.id"
             name="i-lucide-check"
-            class="text-[13px] shrink-0 text-primary"
+            class="text-sm shrink-0 text-primary"
           />
         </button>
       </div>

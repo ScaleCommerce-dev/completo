@@ -98,7 +98,7 @@ function cancelAddColumn() {
     >
       <button
         v-if="!showAddColumn"
-        class="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-default py-10 text-[13px] font-medium text-dimmed hover:border-primary hover:text-primary hover:border-primary/50 hover:bg-primary/5 hover:bg-primary/10 transition-all"
+        class="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-default py-10 text-sm font-medium text-dimmed hover:border-primary hover:text-primary hover:border-primary/50 hover:bg-primary/5 hover:bg-primary/10 transition-all"
         @click="openAddColumn"
       >
         <UIcon
@@ -119,12 +119,12 @@ function cancelAddColumn() {
             v-if="availableColumns?.length"
             class="flex flex-col gap-1"
           >
-            <span class="text-[12px] font-bold text-muted uppercase tracking-[0.06em] mb-0.5">Available columns</span>
+            <span class="text-xs font-bold text-muted uppercase tracking-[0.06em] mb-0.5">Available columns</span>
             <button
               v-for="col in availableColumns"
               :key="col.id"
               type="button"
-              class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[14px] font-medium text-default hover:bg-elevated transition-colors text-left"
+              class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-base font-medium text-default hover:bg-elevated transition-colors text-left"
               @click="linkExisting(col.id)"
             >
               <div
@@ -136,7 +136,7 @@ function cancelAddColumn() {
           </div>
           <div
             v-else
-            class="text-[13px] text-dimmed py-2 text-center"
+            class="text-sm text-dimmed py-2 text-center"
           >
             No unlinked columns available
           </div>
@@ -148,21 +148,21 @@ function cancelAddColumn() {
             />
             <button
               type="button"
-              class="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13px] font-medium text-primary hover:bg-primary/10 hover:bg-primary/20 transition-colors"
+              class="flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm font-medium text-primary hover:bg-primary/10 hover:bg-primary/20 transition-colors"
               @click="switchToCreate"
             >
               <UIcon
                 name="i-lucide-plus"
                 class="text-sm"
               />
-              Create new column <span class="text-[10px] text-dimmed font-normal">(project-wide)</span>
+              Create new column <span class="text-2xs text-dimmed font-normal">(project-wide)</span>
             </button>
           </template>
 
           <div class="flex justify-end pt-0.5">
             <button
               type="button"
-              class="px-2 py-1 rounded-md text-[12px] font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="cancelAddColumn"
             >
               Cancel
@@ -178,12 +178,12 @@ function cancelAddColumn() {
           <div class="flex flex-col gap-2.5">
             <button
               type="button"
-              class="flex items-center gap-1 text-[12px] text-dimmed hover:text-toned transition-colors self-start"
+              class="flex items-center gap-1 text-xs text-dimmed hover:text-toned transition-colors self-start"
               @click="mode = 'pick'"
             >
               <UIcon
                 name="i-lucide-arrow-left"
-                class="text-[12px]"
+                class="text-xs"
               />
               Back
             </button>
@@ -192,7 +192,7 @@ function cancelAddColumn() {
               v-model="newColumnName"
               type="text"
               placeholder="Column name"
-              class="w-full text-[14px] font-medium text-highlighted placeholder-zinc-400 dark:placeholder-zinc-500 bg-transparent border border-accented rounded-lg px-2.5 py-1.5 outline-none focus:border-primary transition-colors"
+              class="w-full text-base font-medium text-highlighted placeholder-zinc-400 dark:placeholder-zinc-500 bg-transparent border border-accented rounded-lg px-2.5 py-1.5 outline-none focus:border-primary transition-colors"
               @keydown.escape="cancelAddColumn"
             >
             <div class="flex items-center gap-2">
@@ -208,26 +208,22 @@ function cancelAddColumn() {
                   </div>
                 </template>
               </UPopover>
-              <span class="text-[12px] text-dimmed">Color</span>
+              <span class="text-xs text-dimmed">Color</span>
               <div class="flex-1" />
               <button
                 type="button"
-                class="px-2 py-1 rounded-md text-[12px] font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
+                class="px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all"
                 @click="cancelAddColumn"
               >
                 Cancel
               </button>
-              <button
+              <UButton
                 type="submit"
-                class="flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                label="Add"
+                icon="i-lucide-plus"
+                size="xs"
                 :disabled="!newColumnName.trim()"
-              >
-                <UIcon
-                  name="i-lucide-plus"
-                  class="text-[12px]"
-                />
-                Add
-              </button>
+              />
             </div>
           </div>
         </form>

@@ -100,7 +100,7 @@ async function confirmDelete() {
 
 const scopeColors: Record<string, { text: string, bg: string }> = {
   card: { text: 'text-primary', bg: 'bg-primary/10' },
-  board: { text: 'text-emerald-500 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10' }
+  board: { text: 'text-success dark:text-emerald-400', bg: 'bg-success/10' }
 }
 </script>
 
@@ -111,48 +111,33 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
         <h1 class="text-xl font-extrabold tracking-[-0.02em] text-highlighted">
           AI Skills
         </h1>
-        <p class="text-[14px] text-muted mt-1">
+        <p class="text-base text-muted mt-1">
           Configurable prompt templates for AI writing
         </p>
       </div>
       <div class="flex items-center gap-3">
         <NotificationBell />
         <button
-          class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all"
+          class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all"
           @click="openCreate"
         >
           <UIcon
             name="i-lucide-plus"
-            class="text-[14px]"
+            class="text-base"
           />
           Add Skill
         </button>
       </div>
     </div>
 
-    <!-- Empty state -->
-    <div
+    <UEmpty
       v-if="!skills?.length"
-      class="text-center py-16"
-    >
-      <UIcon
-        name="i-lucide-sparkles"
-        class="text-[32px] text-dimmed mb-3"
-      />
-      <p class="text-[14px] text-muted">
-        No AI skills configured yet
-      </p>
-      <button
-        class="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-primary hover:text-primary bg-primary/10 hover:bg-primary/15 transition-all"
-        @click="openCreate"
-      >
-        <UIcon
-          name="i-lucide-plus"
-          class="text-[13px]"
-        />
-        Create your first skill
-      </button>
-    </div>
+      class="py-16"
+      icon="i-lucide-sparkles"
+      title="No AI skills yet"
+      description="Skills give the AI writer a house style for card descriptions and comments."
+      :actions="[{ label: 'Add a skill', icon: 'i-lucide-plus', variant: 'subtle', onClick: openCreate }]"
+    />
 
     <!-- Skills grid -->
     <div
@@ -168,9 +153,9 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
           <div class="flex items-center gap-2 min-w-0">
             <UIcon
               name="i-lucide-wand-sparkles"
-              class="text-[14px] text-secondary shrink-0"
+              class="text-base text-secondary shrink-0"
             />
-            <h3 class="font-bold text-[14.5px] tracking-[-0.01em] text-highlighted truncate">
+            <h3 class="font-bold text-base tracking-[-0.01em] text-highlighted truncate">
               {{ skill.name }}
             </h3>
           </div>
@@ -188,7 +173,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
             </UTooltip>
             <UTooltip text="Delete">
               <button
-                class="p-1.5 rounded-md text-dimmed hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+                class="p-1.5 rounded-md text-dimmed hover:text-error hover:bg-error/10 transition-all"
                 @click="openDelete(skill)"
               >
                 <UIcon
@@ -202,14 +187,14 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
 
         <!-- Scope badge -->
         <span
-          class="inline-block text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full mb-2"
+          class="inline-block text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full mb-2"
           :class="[scopeColors[skill.scope]?.text, scopeColors[skill.scope]?.bg]"
         >
           {{ skill.scope }}
         </span>
 
         <!-- Prompt preview -->
-        <p class="text-[12px] text-muted font-mono leading-relaxed line-clamp-3">
+        <p class="text-xs text-muted font-mono leading-relaxed line-clamp-3">
           {{ skill.prompt }}
         </p>
       </div>
@@ -223,27 +208,27 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
       <template #content>
         <div class="rounded-xl bg-default overflow-hidden">
           <div class="px-5 pt-5 pb-4">
-            <h2 class="text-[15px] font-bold tracking-[-0.02em] text-highlighted mb-4">
+            <h2 class="text-base font-bold tracking-[-0.02em] text-highlighted mb-4">
               {{ isEdit ? 'Edit Skill' : 'New Skill' }}
             </h2>
 
             <div class="flex flex-col gap-3.5">
               <!-- Name -->
               <div>
-                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
+                <label class="block text-xs font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
                   Name
                 </label>
                 <input
                   v-model="modalName"
                   type="text"
                   placeholder="e.g. Generate Description"
-                  class="w-full px-3 py-2 text-[14px] text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-accented rounded-lg outline-none focus:border-primary transition-colors"
+                  class="w-full px-3 py-2 text-base text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-accented rounded-lg outline-none focus:border-primary transition-colors"
                 >
               </div>
 
               <!-- Scope -->
               <div>
-                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
+                <label class="block text-xs font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
                   Scope
                 </label>
                 <div class="flex gap-2">
@@ -251,7 +236,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
                     v-for="s in (['card', 'board'] as const)"
                     :key="s"
                     type="button"
-                    class="px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all"
+                    class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all"
                     :class="modalScope === s
                       ? 'bg-primary/10 text-primary ring-1 ring-primary/30 ring-primary/50'
                       : 'text-dimmed hover:text-toned hover:bg-elevated'"
@@ -264,56 +249,54 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
 
               <!-- Prompt -->
               <div>
-                <label class="block text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
+                <label class="block text-xs font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
                   Prompt Template
                 </label>
                 <textarea
                   v-model="modalPrompt"
                   rows="6"
                   placeholder="Write a prompt template..."
-                  class="w-full px-3 py-2 text-[13px] font-mono text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-accented rounded-lg outline-none focus:border-primary transition-colors resize-y leading-relaxed"
+                  class="w-full px-3 py-2 text-sm font-mono text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-accented rounded-lg outline-none focus:border-primary transition-colors resize-y leading-relaxed"
                 />
-                <p class="text-[11px] text-dimmed mt-1">
-                  Variables: <code class="px-1 py-0.5 rounded bg-elevated text-[10px]">{title}</code>
-                  <code class="px-1 py-0.5 rounded bg-elevated text-[10px]">{description}</code>
-                  <code class="px-1 py-0.5 rounded bg-elevated text-[10px]">{tags}</code>
-                  <code class="px-1 py-0.5 rounded bg-elevated text-[10px]">{priority}</code>
+                <p class="text-xs text-dimmed mt-1">
+                  Variables: <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{title}</code>
+                  <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{description}</code>
+                  <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{tags}</code>
+                  <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{priority}</code>
                 </p>
               </div>
             </div>
           </div>
 
           <!-- Error -->
-          <div
+          <UAlert
             v-if="modalError"
-            class="mx-5 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
-          >
-            <UIcon
-              name="i-lucide-alert-circle"
-              class="text-[14px] text-red-500 shrink-0"
-            />
-            <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ modalError }}</span>
-          </div>
+            color="error"
+            variant="subtle"
+            icon="i-lucide-alert-circle"
+            :description="modalError"
+            class="mx-5 mb-3"
+          />
 
           <!-- Actions -->
           <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
             <button
               type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="showModal = false"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               :disabled="!modalName.trim() || !modalPrompt.trim() || modalSaving"
               @click="saveSkill"
             >
               <UIcon
                 v-if="modalSaving"
                 name="i-lucide-loader-2"
-                class="text-[14px] animate-spin"
+                class="text-base animate-spin"
               />
               {{ isEdit ? 'Save' : 'Create' }}
             </button>
@@ -328,24 +311,24 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
         <div class="rounded-xl bg-default overflow-hidden">
           <div class="px-5 pt-5 pb-4">
             <div class="flex items-center gap-3 mb-4">
-              <div class="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-950/30">
+              <div class="flex items-center justify-center w-10 h-10 rounded-full bg-error/10">
                 <UIcon
                   name="i-lucide-alert-triangle"
-                  class="text-lg text-red-500"
+                  class="text-lg text-error"
                 />
               </div>
               <div>
-                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-highlighted">
+                <h2 class="text-base font-bold tracking-[-0.02em] text-highlighted">
                   Delete Skill
                 </h2>
-                <p class="text-[13px] text-muted">
+                <p class="text-sm text-muted">
                   This action cannot be undone
                 </p>
               </div>
             </div>
             <p
               v-if="deleteTarget"
-              class="text-[13px] text-muted leading-relaxed"
+              class="text-sm text-muted leading-relaxed"
             >
               Are you sure you want to delete <strong class="text-default">"{{ deleteTarget.name }}"</strong>?
             </p>
@@ -353,26 +336,26 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
           <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
             <button
               type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="showDeleteModal = false"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 shadow-sm shadow-red-500/20 hover:shadow-md hover:shadow-red-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 shadow-sm shadow-red-500/20 hover:shadow-md hover:shadow-red-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               :disabled="deleting"
               @click="confirmDelete"
             >
               <UIcon
                 v-if="!deleting"
                 name="i-lucide-trash-2"
-                class="text-[14px]"
+                class="text-base"
               />
               <UIcon
                 v-else
                 name="i-lucide-loader-2"
-                class="text-[14px] animate-spin"
+                class="text-base animate-spin"
               />
               Delete
             </button>

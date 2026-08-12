@@ -53,43 +53,38 @@ function goHome() {
         <div class="w-[180px] rounded-xl bg-default border border-default shadow-xl shadow-zinc-900/[0.06] dark:shadow-black/30 p-3.5">
           <!-- Card header -->
           <div class="flex items-center justify-between mb-2.5">
-            <span class="font-mono text-[10px] font-bold text-primary/80 text-primary/70 bg-primary/10 bg-primary/15 px-1.5 py-0.5 rounded">
+            <span class="font-mono text-2xs font-bold text-primary/80 text-primary/70 bg-primary/10 bg-primary/15 px-1.5 py-0.5 rounded-md">
               ERR-{{ error.statusCode }}
             </span>
             <span class="w-2 h-2 rounded-full bg-red-400/60" />
           </div>
           <!-- Shimmer lines -->
           <div class="flex flex-col gap-1.5 mb-2.5">
-            <div class="h-2 w-full rounded bg-elevated" />
-            <div class="h-2 w-3/4 rounded bg-elevated bg-accented" />
-            <div class="h-2 w-1/2 rounded bg-elevated bg-accented" />
+            <div class="h-2 w-full rounded-md bg-elevated" />
+            <div class="h-2 w-3/4 rounded-md bg-elevated bg-accented" />
+            <div class="h-2 w-1/2 rounded-md bg-elevated bg-accented" />
           </div>
           <!-- Card footer -->
           <div class="flex items-center gap-1.5 pt-2 border-t border-muted">
             <div class="w-4 h-4 rounded-full bg-accented" />
-            <div class="h-1.5 w-10 rounded bg-accented/60 bg-accented" />
+            <div class="h-1.5 w-10 rounded-md bg-accented/60 bg-accented" />
           </div>
         </div>
       </div>
 
       <!-- Text + actions -->
-      <h2 class="text-[20px] font-extrabold text-highlighted tracking-[-0.02em] leading-tight mb-1.5">
+      <h2 class="text-xl font-extrabold text-highlighted tracking-[-0.02em] leading-tight mb-1.5">
         {{ title }}
       </h2>
-      <p class="text-[13px] text-muted leading-relaxed mb-8">
+      <p class="text-sm text-muted leading-relaxed mb-8">
         {{ subtitle }}
       </p>
-      <button
-        type="button"
-        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/25 transition-all active:scale-[0.97]"
+      <UButton
+        label="Back to home"
+        icon="i-lucide-arrow-left"
+        size="lg"
         @click="goHome"
-      >
-        <UIcon
-          name="i-lucide-arrow-left"
-          class="text-[14px]"
-        />
-        Back to home
-      </button>
+      />
     </div>
   </div>
 </template>

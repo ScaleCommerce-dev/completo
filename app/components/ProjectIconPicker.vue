@@ -43,15 +43,15 @@ function applyFilterAsIcon() {
           name="i-lucide-smile"
           class="text-sm text-dimmed"
         />
-        <span class="text-[13px] font-medium text-muted">Icon</span>
+        <span class="text-sm font-medium text-muted">Icon</span>
       </div>
       <div class="flex-1 flex items-center gap-2.5">
         <UIcon
           :name="`i-lucide-${props.modelValue}`"
-          class="text-[16px] text-default"
+          class="text-lg text-default"
         />
-        <span class="text-[14px] font-medium text-toned">{{ props.modelValue }}</span>
-        <span class="ml-auto text-[12px] font-semibold text-primary transition-colors">
+        <span class="text-base font-medium text-toned">{{ props.modelValue }}</span>
+        <span class="ml-auto text-xs font-semibold text-primary transition-colors">
           {{ showIconPicker ? 'Close' : 'Change' }}
         </span>
       </div>
@@ -65,7 +65,7 @@ function applyFilterAsIcon() {
         v-model="iconFilter"
         type="text"
         placeholder="Search or type any icon name..."
-        class="w-full text-[13px] text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-muted border border-default rounded-md px-2.5 py-1.5 outline-none focus:border-primary transition-colors"
+        class="w-full text-sm text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-muted border border-default rounded-md px-2.5 py-1.5 outline-none focus:border-primary transition-colors"
         @keydown.enter.prevent="applyFilterAsIcon"
       >
       <!-- Bounded and scrollable: an unfiltered list is 50 icons (~7 rows), but typing in
@@ -85,17 +85,17 @@ function applyFilterAsIcon() {
         >
           <UIcon
             :name="`i-lucide-${ic}`"
-            class="text-[16px]"
+            class="text-lg"
           />
         </button>
       </div>
       <div
         v-if="filteredIcons.length === 0"
-        class="text-center py-2 text-[12px] text-dimmed"
+        class="text-center py-2 text-xs text-dimmed"
       >
         No matching icons — press Enter to use "{{ iconFilter }}"
       </div>
-      <p class="text-[12px] text-dimmed">
+      <p class="text-xs text-dimmed">
         Can't find what you need? Find a name on
         <a
           href="https://lucide.dev/icons"
@@ -103,7 +103,7 @@ function applyFilterAsIcon() {
           class="text-primary hover:text-primary"
         >lucide.dev/icons<UIcon
           name="i-lucide-external-link"
-          class="text-[9px] ml-0.5 inline-block align-[1px]"
+          class="text-2xs ml-0.5 inline-block align-[1px]"
         /></a>
       </p>
     </div>

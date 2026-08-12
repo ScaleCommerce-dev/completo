@@ -28,10 +28,10 @@ async function handleInlineUpdate(cardId: number, updates: Record<string, unknow
     <!-- Header bar -->
     <div class="flex items-center justify-between px-5 py-2.5 border-b border-default bg-default/60 backdrop-blur-sm">
       <div class="flex items-center gap-2.5">
-        <h1 class="text-[15px] font-extrabold tracking-[-0.02em] text-highlighted">
+        <h1 class="text-base font-extrabold tracking-[-0.02em] text-highlighted">
           My Tasks
         </h1>
-        <span class="text-[12px] text-dimmed">Cards assigned to you across all projects</span>
+        <span class="text-xs text-dimmed">Cards assigned to you across all projects</span>
       </div>
       <div class="flex items-center gap-1.5">
         <NotificationBell />
@@ -59,19 +59,19 @@ async function handleInlineUpdate(cardId: number, updates: Record<string, unknow
         >
           <UIcon
             name="i-lucide-chevron-right"
-            class="text-[13px] text-dimmed transition-transform duration-150"
+            class="text-sm text-dimmed transition-transform duration-150"
             :class="{ 'rotate-90': !collapsedProjectIds.has(group.project.id) }"
           />
-          <div class="flex items-center justify-center w-5 h-5 rounded bg-elevated">
+          <div class="flex items-center justify-center w-5 h-5 rounded-md bg-elevated">
             <UIcon
               :name="`i-lucide-${group.project.icon || 'folder'}`"
-              class="text-[10px] text-dimmed"
+              class="text-2xs text-dimmed"
             />
           </div>
-          <span class="text-[14px] font-bold tracking-[-0.01em] text-default">
+          <span class="text-base font-bold tracking-[-0.01em] text-default">
             {{ group.project.name }}
           </span>
-          <span class="text-[12px] font-mono text-dimmed tabular-nums">
+          <span class="text-xs font-mono text-dimmed tabular-nums">
             {{ group.cards.length }}
           </span>
         </button>
@@ -95,24 +95,14 @@ async function handleInlineUpdate(cardId: number, updates: Record<string, unknow
         </div>
       </div>
 
-      <!-- Empty state -->
-      <div
+      <UEmpty
         v-if="!groups.length"
-        class="text-center py-20"
-      >
-        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 mb-4">
-          <UIcon
-            name="i-lucide-check-circle"
-            class="text-3xl text-emerald-500"
-          />
-        </div>
-        <p class="font-bold text-highlighted">
-          All clear!
-        </p>
-        <p class="text-[14px] text-muted mt-1">
-          No tasks assigned to you.
-        </p>
-      </div>
+        class="py-16"
+        icon="i-lucide-circle-check"
+        title="Nothing assigned to you"
+        description="Cards assigned to you across every project show up here."
+        :actions="[{ label: 'Browse projects', icon: 'i-lucide-layout-grid', variant: 'subtle', to: '/projects' }]"
+      />
     </div>
 
     <!-- Column config modal -->

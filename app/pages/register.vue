@@ -80,18 +80,18 @@ async function register() {
       <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
         <UIcon
           name="i-lucide-mail-check"
-          class="text-emerald-600 dark:text-emerald-400 text-xl"
+          class="text-success text-xl"
         />
       </div>
       <h2 class="text-base font-bold tracking-[-0.02em]">
         Check your email
       </h2>
-      <p class="text-[13px] text-muted">
+      <p class="text-sm text-muted">
         We sent a verification link to <span class="font-semibold text-default">{{ email }}</span>.
         Click the link to activate your account.
       </p>
       <div class="border-t border-muted pt-4 mt-2 w-full">
-        <p class="text-[13px] text-muted">
+        <p class="text-sm text-muted">
           Already verified?
           <NuxtLink
             to="/login"
@@ -122,7 +122,7 @@ async function register() {
         name="i-lucide-mail-plus"
         class="text-primary shrink-0"
       />
-      <span class="text-[13px] text-primary">
+      <span class="text-sm text-primary">
         You've been invited to <strong>{{ invitationInfo.projectName }}</strong>
       </span>
     </div>
@@ -132,7 +132,7 @@ async function register() {
       @submit.prevent="register"
     >
       <!-- OAuth error banner -->
-      <AuthErrorBanner :error="oauthError" />
+      <AuthErrorBanner :message="oauthError" />
 
       <!-- Social login buttons -->
       <SocialLoginButtons />
@@ -185,7 +185,7 @@ async function register() {
         />
       </UFormField>
 
-      <AuthErrorBanner :error="error" />
+      <AuthErrorBanner :message="error" />
 
       <div
         class="auth-field"
@@ -203,7 +203,7 @@ async function register() {
 
     <div class="px-7 pb-6 pt-1">
       <div class="border-t border-muted pt-4">
-        <p class="text-[13px] text-center text-muted">
+        <p class="text-sm text-center text-muted">
           Already have an account?
           <NuxtLink
             to="/login"

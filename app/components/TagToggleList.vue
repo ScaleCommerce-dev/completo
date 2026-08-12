@@ -15,7 +15,7 @@ const emit = defineEmits<{
       v-for="t in tags"
       :key="t.id"
       type="button"
-      class="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-[12px] transition-colors"
+      class="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-xs transition-colors"
       :class="selectedIds.includes(t.id)
         ? 'bg-primary/10'
         : 'hover:bg-muted'"
@@ -26,7 +26,7 @@ const emit = defineEmits<{
         :style="{ backgroundColor: t.color }"
       />
       <span
-        class="truncate flex-1 font-bold uppercase tracking-wide text-[11px]"
+        class="truncate flex-1 font-bold uppercase tracking-wide text-xs"
         :style="{ color: t.color }"
       >
         {{ t.name }}
@@ -34,7 +34,7 @@ const emit = defineEmits<{
       <UIcon
         v-if="selectedIds.includes(t.id)"
         name="i-lucide-check"
-        class="text-[13px] shrink-0 text-primary"
+        class="text-sm shrink-0 text-primary"
       />
     </button>
   </div>

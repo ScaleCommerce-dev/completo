@@ -122,7 +122,7 @@ async function setDoneStatus(statusId: string | null) {
         <input
           v-model="editingColName"
           type="text"
-          class="w-24 text-[12px] font-medium text-highlighted bg-transparent border-0 outline-none! ring-0! py-0"
+          class="w-24 text-xs font-medium text-highlighted bg-transparent border-0 outline-none! ring-0! py-0"
           @keydown.enter="saveEditStatus"
           @keydown.escape="cancelEditStatus"
         >
@@ -151,14 +151,14 @@ async function setDoneStatus(statusId: string | null) {
           type="button"
           class="group/chip flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 transition-colors"
           :class="col.id === doneStatusId
-            ? 'bg-emerald-50 dark:bg-emerald-950/25 ring-1 ring-emerald-200/60 dark:ring-emerald-800/40'
+            ? 'bg-emerald-50 dark:bg-emerald-950/25 ring-1 ring-success/30 dark:ring-emerald-800/40'
             : 'hover:bg-white hover:bg-elevated'"
           @dblclick="startEditStatus(col)"
         >
           <UIcon
             v-if="col.id === doneStatusId"
             name="i-lucide-circle-check-big"
-            class="text-[12px] text-emerald-500 dark:text-emerald-400"
+            class="text-xs text-success dark:text-emerald-400"
           />
           <span
             v-else
@@ -166,13 +166,13 @@ async function setDoneStatus(statusId: string | null) {
             :style="{ backgroundColor: col.color || '#a1a1aa' }"
           />
           <span
-            class="text-[12px] font-medium"
+            class="text-xs font-medium"
             :class="col.id === doneStatusId
               ? 'text-emerald-700 dark:text-emerald-300'
               : 'text-toned'"
           >{{ col.name }}</span>
           <span
-            class="text-[11px] font-semibold tabular-nums"
+            class="text-xs font-semibold tabular-nums"
             :class="col.id === doneStatusId
               ? 'text-emerald-500/70 dark:text-emerald-400/70'
               : 'text-dimmed'"
@@ -180,7 +180,7 @@ async function setDoneStatus(statusId: string | null) {
         </button>
         <template #content>
           <div class="p-2.5 w-44">
-            <p class="text-[11px] font-semibold text-muted uppercase tracking-wider mb-2">
+            <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
               Color
             </p>
             <ColorPicker
@@ -191,30 +191,30 @@ async function setDoneStatus(statusId: string | null) {
             <div class="flex flex-col gap-0.5 border-t border-muted pt-2">
               <button
                 type="button"
-                class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-[12px] font-medium text-muted hover:text-default hover:bg-muted hover:bg-elevated transition-colors"
+                class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs font-medium text-muted hover:text-default hover:bg-elevated transition-colors"
                 @click="colColorPopoverOpen[col.id] = false; startEditStatus(col)"
               >
                 <UIcon
                   name="i-lucide-pencil"
-                  class="text-[12px]"
+                  class="text-xs"
                 />
                 Rename
               </button>
               <button
                 v-if="col.id !== doneStatusId"
                 type="button"
-                class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-[12px] font-medium text-muted hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs font-medium text-muted hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
                 @click="setDoneStatus(col.id); colColorPopoverOpen[col.id] = false"
               >
                 <UIcon
                   name="i-lucide-circle-check-big"
-                  class="text-[12px]"
+                  class="text-xs"
                 />
                 Set as Done
               </button>
               <template v-if="confirmDeleteColId === col.id">
                 <div class="flex items-center gap-1 px-2 py-1.5">
-                  <span class="text-[11px] font-medium text-red-500">Delete?</span>
+                  <span class="text-xs font-medium text-error">Delete?</span>
                   <UButton
                     icon="i-lucide-check"
                     variant="ghost"
@@ -234,12 +234,12 @@ async function setDoneStatus(statusId: string | null) {
               <button
                 v-else-if="col.id !== doneStatusId"
                 type="button"
-                class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-[12px] font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs font-medium text-error hover:bg-error/10 transition-colors"
                 @click="requestDeleteStatus(col.id)"
               >
                 <UIcon
                   name="i-lucide-trash-2"
-                  class="text-[12px]"
+                  class="text-xs"
                 />
                 Delete
               </button>
@@ -253,13 +253,13 @@ async function setDoneStatus(statusId: string | null) {
         v-else
         class="flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 transition-colors"
         :class="col.id === doneStatusId
-          ? 'bg-emerald-50 dark:bg-emerald-950/25 ring-1 ring-emerald-200/60 dark:ring-emerald-800/40'
+          ? 'bg-emerald-50 dark:bg-emerald-950/25 ring-1 ring-success/30 dark:ring-emerald-800/40'
           : ''"
       >
         <UIcon
           v-if="col.id === doneStatusId"
           name="i-lucide-circle-check-big"
-          class="text-[12px] text-emerald-500 dark:text-emerald-400"
+          class="text-xs text-success dark:text-emerald-400"
         />
         <span
           v-else
@@ -267,13 +267,13 @@ async function setDoneStatus(statusId: string | null) {
           :style="{ backgroundColor: col.color || '#a1a1aa' }"
         />
         <span
-          class="text-[12px] font-medium"
+          class="text-xs font-medium"
           :class="col.id === doneStatusId
             ? 'text-emerald-700 dark:text-emerald-300'
             : 'text-toned'"
         >{{ col.name }}</span>
         <span
-          class="text-[11px] font-semibold tabular-nums"
+          class="text-xs font-semibold tabular-nums"
           :class="col.id === doneStatusId
             ? 'text-emerald-500/70 dark:text-emerald-400/70'
             : 'text-dimmed'"
@@ -288,11 +288,11 @@ async function setDoneStatus(statusId: string | null) {
     >
       <button
         type="button"
-        class="flex items-center gap-1 px-2 py-1 rounded-md text-[12px] font-medium text-dimmed hover:text-primary hover:bg-white hover:bg-elevated transition-colors shrink-0"
+        class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-primary hover:bg-white hover:bg-elevated transition-colors shrink-0"
       >
         <UIcon
           name="i-lucide-plus"
-          class="text-[12px]"
+          class="text-xs"
         />
         <span>Status</span>
       </button>
@@ -301,7 +301,7 @@ async function setDoneStatus(statusId: string | null) {
           class="p-3 w-52"
           @submit.prevent="addProjectStatus(); showAddColPopover = false"
         >
-          <p class="text-[11px] font-semibold text-muted uppercase tracking-wider mb-2">
+          <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
             New status
           </p>
           <div class="flex items-center gap-2 mb-2">
@@ -322,7 +322,7 @@ async function setDoneStatus(statusId: string | null) {
               v-model="newColName"
               type="text"
               placeholder="Status name..."
-              class="flex-1 text-[13px] font-medium text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border border-accented rounded-md px-2 py-1 outline-none! ring-0! focus:border-primary transition-colors"
+              class="flex-1 text-sm font-medium text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border border-accented rounded-md px-2 py-1 outline-none! ring-0! focus:border-primary transition-colors"
               @keydown.enter.prevent="addProjectStatus(); showAddColPopover = false"
             >
           </div>
@@ -342,7 +342,7 @@ async function setDoneStatus(statusId: string | null) {
 
     <p
       v-if="statuses.length === 0 && !isOwnerOrAdmin"
-      class="text-[12px] text-dimmed"
+      class="text-xs text-dimmed"
     >
       No statuses configured.
     </p>

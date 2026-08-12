@@ -208,7 +208,7 @@ const sortedCards = computed(() => {
           <th
             v-for="col in columns"
             :key="col.id"
-            class="px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] whitespace-nowrap select-none align-middle group/th"
+            class="px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] whitespace-nowrap select-none align-middle group/th"
             :class="[
               SORTABLE_FIELDS.has(col.field)
                 ? 'cursor-pointer hover:text-toned transition-colors' + (localSortField === col.field ? 'text-primary' : 'text-dimmed')
@@ -222,23 +222,23 @@ const sortedCards = computed(() => {
             >
               <template v-if="col.field === 'done'"><UIcon
                 name="i-lucide-circle-check-big"
-                class="text-[11px]"
+                class="text-xs"
               /></template>
               <template v-else>{{ fieldLabel(col.field) }}</template>
               <UIcon
                 v-if="localSortField === col.field && localSortDirection === 'asc'"
                 name="i-lucide-arrow-up"
-                class="text-[11px]"
+                class="text-xs"
               />
               <UIcon
                 v-else-if="localSortField === col.field && localSortDirection === 'desc'"
                 name="i-lucide-arrow-down"
-                class="text-[11px]"
+                class="text-xs"
               />
               <UIcon
                 v-else-if="SORTABLE_FIELDS.has(col.field)"
                 name="i-lucide-arrow-up-down"
-                class="text-[10px] opacity-0 group-hover/th:opacity-40 transition-opacity"
+                class="text-2xs opacity-0 group-hover/th:opacity-40 transition-opacity"
               />
             </span>
           </th>
@@ -352,57 +352,21 @@ const sortedCards = computed(() => {
           </td>
         </tr>
 
-        <!-- Empty state: filtered -->
-        <tr v-if="sortedCards.length === 0 && isFiltered">
-          <td
-            :colspan="columns.length"
-            class="text-center py-16"
-          >
-            <div class="flex flex-col items-center gap-2">
-              <UIcon
-                name="i-lucide-filter-x"
-                class="text-2xl text-dimmed"
-              />
-              <p class="text-[13px] text-dimmed">
-                No cards match the active filters
-              </p>
-            </div>
-          </td>
-        </tr>
-
-        <!-- Empty state: no cards -->
-        <tr v-else-if="sortedCards.length === 0">
-          <td
-            :colspan="columns.length"
-            class="text-center py-16"
-          >
-            <div class="flex flex-col items-center gap-2.5">
-              <div class="w-10 h-10 rounded-xl bg-elevated flex items-center justify-center">
-                <UIcon
-                  name="i-lucide-inbox"
-                  class="text-xl text-dimmed"
-                />
-              </div>
-              <div>
-                <p class="text-[14px] font-medium text-muted">
-                  No cards yet
-                </p>
-                <p class="text-[12px] text-dimmed mt-0.5">
-                  Get started by creating your first card
-                </p>
-              </div>
-              <button
-                type="button"
-                class="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-primary hover:text-primary bg-primary/10 hover:bg-primary/15 transition-all"
-                @click="emit('add-card')"
-              >
-                <UIcon
-                  name="i-lucide-plus"
-                  class="text-[13px]"
-                />
-                New Card
-              </button>
-            </div>
+        <tr v-if="sortedCards.length === 0">
+          <td :colspan="columns.length">
+            <UEmpty
+              v-if="isFiltered"
+              icon="i-lucide-filter-x"
+              title="No cards match these filters"
+              description="Clear a filter in view settings to see more."
+            />
+            <UEmpty
+              v-else
+              icon="i-lucide-inbox"
+              title="No cards yet"
+              description="Add the first one and it shows up here."
+              :actions="[{ label: 'New card', icon: 'i-lucide-plus', variant: 'subtle', onClick: () => emit('add-card') }]"
+            />
           </td>
         </tr>
       </tbody>

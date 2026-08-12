@@ -33,18 +33,18 @@ async function requestReset() {
       <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
         <UIcon
           name="i-lucide-mail-check"
-          class="text-emerald-600 dark:text-emerald-400 text-xl"
+          class="text-success text-xl"
         />
       </div>
       <h2 class="text-base font-bold tracking-[-0.02em]">
         Check your email
       </h2>
-      <p class="text-[13px] text-muted">
+      <p class="text-sm text-muted">
         If an account exists for <span class="font-semibold text-default">{{ email }}</span>,
         we've sent a password reset link.
       </p>
       <div class="border-t border-muted pt-4 mt-2 w-full">
-        <p class="text-[13px] text-center text-muted">
+        <p class="text-sm text-center text-muted">
           Remember your password?
           <NuxtLink
             to="/login"
@@ -64,7 +64,7 @@ async function requestReset() {
       <h2 class="text-base font-bold text-center tracking-[-0.02em]">
         Reset your password
       </h2>
-      <p class="text-[13px] text-center text-muted mt-1">
+      <p class="text-sm text-center text-muted mt-1">
         Enter your email and we'll send you a reset link
       </p>
     </div>
@@ -89,7 +89,7 @@ async function requestReset() {
         />
       </UFormField>
 
-      <AuthErrorBanner :error="error" />
+      <AuthErrorBanner :message="error" />
 
       <div
         class="auth-field"
@@ -107,7 +107,7 @@ async function requestReset() {
 
     <div class="px-7 pb-6 pt-1">
       <div class="border-t border-muted pt-4">
-        <p class="text-[13px] text-center text-muted">
+        <p class="text-sm text-center text-muted">
           Remember your password?
           <NuxtLink
             to="/login"

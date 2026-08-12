@@ -220,7 +220,7 @@ function confirmDelete() {
         type="text"
         placeholder="Project name..."
         autofocus
-        class="w-full text-[16px] font-semibold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
+        class="w-full text-lg font-semibold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
       >
     </div>
 
@@ -230,7 +230,7 @@ function confirmDelete() {
         v-model="formDescription"
         placeholder="What is this project about?"
         rows="2"
-        class="w-full text-[14px] text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-muted border border-default rounded-lg px-3 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-none leading-relaxed"
+        class="w-full text-base text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-muted border border-default rounded-lg px-3 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-none leading-relaxed"
       />
     </div>
 
@@ -239,12 +239,12 @@ function confirmDelete() {
       <button
         v-if="!showBriefingEditor"
         type="button"
-        class="flex items-center gap-1.5 text-[12px] font-semibold text-secondary hover:text-secondary transition-colors"
+        class="flex items-center gap-1.5 text-xs font-semibold text-secondary hover:text-secondary transition-colors"
         @click="showBriefingEditor = true"
       >
         <UIcon
           name="i-lucide-sparkles"
-          class="text-[12px]"
+          class="text-xs"
         />
         {{ formBriefing ? 'Edit agent briefing' : 'Add agent briefing' }}
       </button>
@@ -252,12 +252,12 @@ function confirmDelete() {
         <div class="flex items-center gap-1.5 mb-1.5">
           <UIcon
             name="i-lucide-sparkles"
-            class="text-[12px] text-secondary"
+            class="text-xs text-secondary"
           />
-          <span class="text-[11px] font-semibold uppercase tracking-[0.04em] text-dimmed">
+          <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">
             Agent Briefing
           </span>
-          <span class="text-[10px] text-dimmed">
+          <span class="text-2xs text-dimmed">
             — sent as context to AI
           </span>
         </div>
@@ -265,7 +265,7 @@ function confirmDelete() {
           v-model="formBriefing"
           placeholder="Describe the project scope, tech stack, conventions, goals... This context helps AI write better card descriptions."
           rows="6"
-          class="w-full text-[14px] text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-muted border border-default rounded-lg px-3 py-2.5 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/10 transition-all resize-none leading-relaxed"
+          class="w-full text-base text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-muted border border-default rounded-lg px-3 py-2.5 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/10 transition-all resize-none leading-relaxed"
         />
       </template>
     </div>
@@ -282,7 +282,7 @@ function confirmDelete() {
             name="i-lucide-key-round"
             class="text-sm text-dimmed"
           />
-          <span class="text-[13px] font-medium text-muted">Key</span>
+          <span class="text-sm font-medium text-muted">Key</span>
         </div>
         <div class="flex-1 flex items-center gap-2.5">
           <input
@@ -290,11 +290,11 @@ function confirmDelete() {
             type="text"
             placeholder="ENG"
             maxlength="5"
-            class="flex-1 text-[14px] font-semibold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0! uppercase tracking-wide"
+            class="flex-1 text-base font-semibold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0! uppercase tracking-wide"
             @input="onKeyInput"
           >
           <span
-            class="font-mono text-[10.5px] font-medium px-1.5 py-0.5 rounded transition-colors shrink-0"
+            class="font-mono text-2xs font-medium px-1.5 py-0.5 rounded-md transition-colors shrink-0"
             :class="formKey
               ? 'text-primary bg-primary/10'
               : 'text-dimmed bg-elevated'"
@@ -304,17 +304,17 @@ function confirmDelete() {
           <UIcon
             v-if="keyCheck.checking.value"
             name="i-lucide-loader-2"
-            class="text-[14px] text-dimmed animate-spin shrink-0"
+            class="text-base text-dimmed animate-spin shrink-0"
           />
           <UIcon
             v-else-if="formKey && keyValid && keyCheck.available.value === true"
             name="i-lucide-check"
-            class="text-[14px] text-emerald-500 shrink-0"
+            class="text-base text-success shrink-0"
           />
           <UIcon
             v-else-if="formKey && keyValid && keyCheck.available.value === false"
             name="i-lucide-x"
-            class="text-[14px] text-red-500 shrink-0"
+            class="text-base text-error shrink-0"
           />
         </div>
       </div>
@@ -326,30 +326,30 @@ function confirmDelete() {
             name="i-lucide-link"
             class="text-sm text-dimmed"
           />
-          <span class="text-[13px] font-medium text-muted">Slug</span>
+          <span class="text-sm font-medium text-muted">Slug</span>
         </div>
         <div class="flex-1 flex items-center gap-2.5">
           <input
             :value="formSlug"
             type="text"
             placeholder="my-project"
-            class="flex-1 text-[14px] font-medium text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0! tracking-wide"
+            class="flex-1 text-base font-medium text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0! tracking-wide"
             @input="onSlugInput"
           >
           <UIcon
             v-if="slugCheck.checking.value"
             name="i-lucide-loader-2"
-            class="text-[14px] text-dimmed animate-spin shrink-0"
+            class="text-base text-dimmed animate-spin shrink-0"
           />
           <UIcon
             v-else-if="formSlug && slugCheck.available.value === true"
             name="i-lucide-check"
-            class="text-[14px] text-emerald-500 shrink-0"
+            class="text-base text-success shrink-0"
           />
           <UIcon
             v-else-if="formSlug && slugCheck.available.value === false"
             name="i-lucide-x"
-            class="text-[14px] text-red-500 shrink-0"
+            class="text-base text-error shrink-0"
           />
         </div>
       </div>
@@ -361,14 +361,14 @@ function confirmDelete() {
             name="i-lucide-circle-check-big"
             class="text-sm text-dimmed"
           />
-          <span class="text-[13px] font-medium text-muted">Done status</span>
+          <span class="text-sm font-medium text-muted">Done status</span>
         </div>
         <div class="flex-1 flex items-center gap-3">
           <!-- Create mode: select by name -->
           <select
             v-if="mode === 'create'"
             v-model="doneStatusName"
-            class="text-[14px] font-medium text-highlighted bg-transparent border-0 outline-none cursor-pointer"
+            class="text-base font-medium text-highlighted bg-transparent border-0 outline-none cursor-pointer"
           >
             <option
               v-for="col in defaultStatusNames"
@@ -383,12 +383,12 @@ function confirmDelete() {
             <UIcon
               v-if="loadingStatuses"
               name="i-lucide-loader-2"
-              class="text-[14px] text-dimmed animate-spin"
+              class="text-base text-dimmed animate-spin"
             />
             <select
               v-else
               :value="doneStatusId || ''"
-              class="text-[14px] font-medium text-highlighted bg-transparent border-0 outline-none cursor-pointer"
+              class="text-base font-medium text-highlighted bg-transparent border-0 outline-none cursor-pointer"
               @change="doneStatusId = ($event.target as HTMLSelectElement).value || null"
             >
               <option value="">
@@ -405,32 +405,30 @@ function confirmDelete() {
           </template>
           <span class="text-dimmed">·</span>
           <div class="flex items-center gap-1.5 ml-auto">
-            <span class="text-[11px] font-medium text-dimmed uppercase tracking-wider">keep</span>
+            <span class="text-xs font-medium text-dimmed uppercase tracking-wider">keep</span>
             <input
               :value="doneRetentionDays ?? ''"
               type="number"
               min="1"
               placeholder="∞"
-              class="w-12 text-[13px] font-semibold text-center text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-elevated border-0 outline-none! ring-0! rounded-md py-0.5"
+              class="w-12 text-sm font-semibold text-center text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-elevated border-0 outline-none! ring-0! rounded-md py-0.5"
               @input="doneRetentionDays = ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null"
             >
-            <span class="text-[11px] font-medium text-dimmed uppercase tracking-wider">days</span>
+            <span class="text-xs font-medium text-dimmed uppercase tracking-wider">days</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Error -->
-    <div
+    <UAlert
       v-if="error"
-      class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
-    >
-      <UIcon
-        name="i-lucide-alert-circle"
-        class="text-[14px] text-red-500 shrink-0"
-      />
-      <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ error }}</span>
-    </div>
+      color="error"
+      variant="subtle"
+      icon="i-lucide-alert-circle"
+      :description="error"
+      class="mx-5 mt-3"
+    />
 
     <!-- Delete confirmation (edit mode only) -->
     <DeleteConfirmation
@@ -456,12 +454,12 @@ function confirmDelete() {
         <button
           v-if="!showDeleteConfirm"
           type="button"
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold text-error hover:text-error hover:bg-error/10 transition-all"
           @click="showDeleteConfirm = true"
         >
           <UIcon
             name="i-lucide-trash-2"
-            class="text-[14px]"
+            class="text-base"
           />
           Delete
         </button>
@@ -470,31 +468,21 @@ function confirmDelete() {
       <div class="flex items-center gap-2">
         <button
           type="button"
-          class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+          class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
           @click="emit('cancel')"
         >
           Cancel
         </button>
-        <span class="text-[10px] font-mono text-dimmed hidden sm:block">
-          <kbd class="px-1 py-0.5 rounded bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
+        <span class="text-2xs font-mono text-dimmed hidden sm:block">
+          <kbd class="px-1 py-0.5 rounded-md bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
         </span>
-        <button
+        <UButton
           type="submit"
-          class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 shadow-sm shadow-indigo-500/20 hover:shadow-md hover:shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          :label="mode === 'create' ? 'Create' : 'Save'"
+          :icon="mode === 'create' ? 'i-lucide-plus' : 'i-lucide-check'"
+          :loading="loading"
           :disabled="!canSubmit"
-        >
-          <UIcon
-            v-if="!loading"
-            :name="mode === 'create' ? 'i-lucide-plus' : 'i-lucide-check'"
-            class="text-[14px]"
-          />
-          <UIcon
-            v-else
-            name="i-lucide-loader-2"
-            class="text-[14px] animate-spin"
-          />
-          {{ mode === 'create' ? 'Create' : 'Save' }}
-        </button>
+        />
       </div>
     </div>
   </form>

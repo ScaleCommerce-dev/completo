@@ -107,7 +107,7 @@ const cardEl = ref<HTMLElement>()
     >
       <UIcon
         name="i-lucide-expand"
-        class="text-[14px]"
+        class="text-base"
       />
     </NuxtLink>
 
@@ -120,14 +120,14 @@ const cardEl = ref<HTMLElement>()
     />
 
     <!-- Title -->
-    <p class="text-[14px] font-semibold leading-[1.4] text-highlighted tracking-[-0.01em] pr-6">
+    <p class="text-base font-semibold leading-[1.4] text-highlighted tracking-[-0.01em] pr-6">
       {{ card.title }}
     </p>
 
     <!-- Description preview -->
     <p
       v-if="card.description"
-      class="text-[12.5px] leading-relaxed text-muted mt-1.5 line-clamp-2"
+      class="text-xs leading-relaxed text-muted mt-1.5 line-clamp-2"
     >
       {{ stripMarkdown(card.description) }}
     </p>
@@ -163,12 +163,12 @@ const cardEl = ref<HTMLElement>()
             <UIcon
               v-if="updatingField === 'priority'"
               name="i-lucide-loader-2"
-              class="text-[16px] animate-spin"
+              class="text-lg animate-spin"
             />
             <UIcon
               v-else
               :name="priorityIcon(card.priority)"
-              class="text-[16px]"
+              class="text-lg"
             />
           </button>
         </UDropdownMenu>
@@ -182,14 +182,14 @@ const cardEl = ref<HTMLElement>()
         >
           <button
             type="button"
-            class="flex items-center gap-1 whitespace-nowrap text-[11px] font-medium cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 rounded-md px-1 py-0.5 -mx-1 -my-0.5"
+            class="flex items-center gap-1 whitespace-nowrap text-xs font-medium cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 rounded-md px-1 py-0.5 -mx-1 -my-0.5"
             :class="dueDateTextClass(getDueDateStatus(card.dueDate))"
             :title="formatDueDate(card.dueDate)"
             @click.stop
           >
             <UIcon
               :name="dueDateIcon(getDueDateStatus(card.dueDate))"
-              class="text-[12px]"
+              class="text-xs"
             />
             <span class="select-none">{{ formatDueDate(card.dueDate) }}</span>
           </button>
@@ -202,7 +202,7 @@ const cardEl = ref<HTMLElement>()
         >
           <UIcon
             name="i-lucide-paperclip"
-            class="text-[12px]"
+            class="text-xs"
           />
           <span class="card-id select-none">{{ card.attachmentCount }}</span>
         </span>
@@ -215,7 +215,7 @@ const cardEl = ref<HTMLElement>()
       >
         <button
           type="button"
-          class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 rounded-full px-1.5 py-0.5 shrink-0"
+          class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 rounded-full px-1.5 py-0.5 shrink-0"
           :class="card.assignee
             ? 'bg-primary/10 text-primary'
             : 'bg-elevated text-dimmed'"
@@ -224,12 +224,12 @@ const cardEl = ref<HTMLElement>()
           <UIcon
             v-if="updatingField === 'assignee'"
             name="i-lucide-loader-2"
-            class="text-[11px] animate-spin"
+            class="text-xs animate-spin"
           />
           <template v-else>
             <UIcon
               name="i-lucide-user"
-              class="text-[11px]"
+              class="text-xs"
             />
             <span>{{ assigneeInitials }}</span>
           </template>

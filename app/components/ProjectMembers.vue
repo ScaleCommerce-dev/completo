@@ -319,11 +319,11 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           :alt="m.name"
           size="xs"
         />
-        <span class="text-[14px] font-medium flex-1 truncate">
+        <span class="text-base font-medium flex-1 truncate">
           {{ m.name }}
           <span
             v-if="m.id === currentUser?.id"
-            class="text-[12px] text-dimmed font-normal"
+            class="text-xs text-dimmed font-normal"
           >(you)</span>
         </span>
         <UDropdownMenu
@@ -332,7 +332,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
         >
           <button
             type="button"
-            class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 flex items-center gap-1"
+            class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 flex items-center gap-1"
             :class="m.role === 'owner'
               ? 'bg-primary/10 text-primary'
               : 'bg-elevated text-muted'"
@@ -341,20 +341,20 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
             <UIcon
               v-if="changingRole === m.id"
               name="i-lucide-loader-2"
-              class="text-[10px] animate-spin"
+              class="text-2xs animate-spin"
             />
             <template v-else>
               {{ m.role }}
               <UIcon
                 name="i-lucide-chevron-down"
-                class="text-[10px] opacity-60"
+                class="text-2xs opacity-60"
               />
             </template>
           </button>
         </UDropdownMenu>
         <span
           v-else
-          class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0"
+          class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0"
           :class="m.role === 'owner'
             ? 'bg-primary/10 text-primary'
             : 'bg-elevated text-muted'"
@@ -373,25 +373,25 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           >
             <UIcon
               name="i-lucide-mail"
-              class="text-[14px] text-amber-400 shrink-0"
+              class="text-base text-amber-400 shrink-0"
             />
-            <span class="text-[13px] font-mono text-muted flex-1 truncate">{{ inv.email }}</span>
+            <span class="text-sm font-mono text-muted flex-1 truncate">{{ inv.email }}</span>
             <UDropdownMenu :items="invitationMenuItems(inv)">
               <button
                 type="button"
-                class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-amber-500/20 flex items-center gap-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition-all hover:ring-2 hover:ring-amber-500/20 flex items-center gap-1 bg-warning/10 text-warning"
                 :disabled="resendingInvitation === inv.id || cancellingInvitation === inv.id"
               >
                 <UIcon
                   v-if="resendingInvitation === inv.id || cancellingInvitation === inv.id"
                   name="i-lucide-loader-2"
-                  class="text-[10px] animate-spin"
+                  class="text-2xs animate-spin"
                 />
                 <template v-else>
                   Pending
                   <UIcon
                     name="i-lucide-chevron-down"
-                    class="text-[10px] opacity-60"
+                    class="text-2xs opacity-60"
                   />
                 </template>
               </button>
@@ -406,15 +406,15 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           <div class="flex items-center gap-1.5 mb-2">
             <UIcon
               name="i-lucide-user-plus"
-              class="text-[13px] text-dimmed"
+              class="text-sm text-dimmed"
             />
-            <span class="text-[10px] font-bold text-dimmed uppercase tracking-[0.08em]">Add Member</span>
+            <span class="text-2xs font-bold text-dimmed uppercase tracking-[0.08em]">Add Member</span>
           </div>
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Search by name or enter email to invite..."
-            class="w-full text-[14px] text-highlighted placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted border border-default rounded-lg px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
+            class="w-full text-base text-highlighted placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted border border-default rounded-lg px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
             @focus="searchQuery.trim().length >= 2 && (showResults = true)"
             @blur="onInputBlur"
             @keydown="onInputKeydown"
@@ -422,7 +422,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           <UIcon
             v-if="searching"
             name="i-lucide-loader-2"
-            class="absolute right-6 bottom-4.5 text-[14px] text-dimmed animate-spin"
+            class="absolute right-6 bottom-4.5 text-base text-dimmed animate-spin"
           />
 
           <!-- Search results dropdown -->
@@ -437,7 +437,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
               class="flex items-center gap-2.5 w-full px-3 py-2 transition-colors text-left cursor-pointer"
               :class="i === highlightIndex
                 ? 'bg-primary/10'
-                : 'hover:bg-muted hover:bg-elevated'"
+                : 'hover:bg-elevated'"
               :disabled="adding"
               @mousedown.prevent="addMember(u)"
               @mouseenter="highlightIndex = i"
@@ -448,13 +448,13 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
                 size="xs"
               />
               <div class="min-w-0 flex-1">
-                <div class="text-[14px] font-medium text-highlighted truncate">
+                <div class="text-base font-medium text-highlighted truncate">
                   {{ u.name }}
                 </div>
               </div>
               <UIcon
                 name="i-lucide-plus"
-                class="text-[14px] text-dimmed shrink-0"
+                class="text-base text-dimmed shrink-0"
               />
             </button>
 
@@ -469,49 +469,47 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
               <div class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/15 bg-primary/20">
                 <UIcon
                   name="i-lucide-send"
-                  class="text-[12px] text-primary"
+                  class="text-xs text-primary"
                 />
               </div>
               <div class="min-w-0 flex-1">
-                <div class="text-[14px] font-medium text-primary">
+                <div class="text-base font-medium text-primary">
                   Invite {{ searchQuery.trim() }}
                 </div>
-                <div class="text-[12px] text-dimmed">
+                <div class="text-xs text-dimmed">
                   Send an invitation email
                 </div>
               </div>
               <UIcon
                 name="i-lucide-mail-plus"
-                class="text-[14px] text-primary shrink-0"
+                class="text-base text-primary shrink-0"
               />
             </button>
 
             <div
               v-if="!searching && searchResults.length === 0 && !isValidEmail(searchQuery.trim())"
-              class="px-3 py-3 text-center text-[13px] text-dimmed"
+              class="px-3 py-3 text-center text-sm text-dimmed"
             >
               No users found — enter a full email to invite
             </div>
           </div>
 
           <!-- Error -->
-          <div
+          <UAlert
             v-if="addError"
-            class="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40"
-          >
-            <UIcon
-              name="i-lucide-alert-circle"
-              class="text-[14px] text-red-500 shrink-0"
-            />
-            <span class="text-[13px] font-medium text-red-600 dark:text-red-400">{{ addError }}</span>
-          </div>
+            color="error"
+            variant="subtle"
+            icon="i-lucide-alert-circle"
+            :description="addError"
+            class="mt-2"
+          />
         </div>
       </template>
     </div>
 
     <div
       v-if="!(sortedMembers)?.length"
-      class="py-4 text-center text-[14px] text-dimmed"
+      class="py-4 text-center text-base text-dimmed"
     >
       No members
     </div>
@@ -526,24 +524,24 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
         <div class="rounded-xl bg-default overflow-hidden">
           <div class="px-5 pt-5 pb-4">
             <div class="flex items-center gap-3 mb-4">
-              <div class="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 dark:bg-red-950/30">
+              <div class="flex items-center justify-center w-10 h-10 rounded-full bg-error/10">
                 <UIcon
                   name="i-lucide-alert-triangle"
-                  class="text-lg text-red-500"
+                  class="text-lg text-error"
                 />
               </div>
               <div>
-                <h2 class="text-[14px] font-bold tracking-[-0.02em] text-highlighted">
+                <h2 class="text-base font-bold tracking-[-0.02em] text-highlighted">
                   Remove Member
                 </h2>
-                <p class="text-[13px] text-muted">
+                <p class="text-sm text-muted">
                   This action cannot be undone
                 </p>
               </div>
             </div>
             <p
               v-if="pendingRemove"
-              class="text-[13px] text-muted leading-relaxed"
+              class="text-sm text-muted leading-relaxed"
             >
               Are you sure you want to remove <strong class="text-default">{{ pendingRemove.name }}</strong> from this project?
             </p>
@@ -551,26 +549,26 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
             <button
               type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+              class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
               @click="pendingRemove = null"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 shadow-sm shadow-red-500/20 hover:shadow-md hover:shadow-red-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 shadow-sm shadow-red-500/20 hover:shadow-md hover:shadow-red-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               :disabled="removing === pendingRemove?.id"
               @click="confirmRemoveMember"
             >
               <UIcon
                 v-if="removing !== pendingRemove?.id"
                 name="i-lucide-user-minus"
-                class="text-[14px]"
+                class="text-base"
               />
               <UIcon
                 v-else
                 name="i-lucide-loader-2"
-                class="text-[14px] animate-spin"
+                class="text-base animate-spin"
               />
               Remove
             </button>

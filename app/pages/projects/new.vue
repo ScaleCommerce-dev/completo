@@ -28,17 +28,17 @@ async function handleSubmit(data: Record<string, unknown>) {
     <div class="w-full max-w-[520px]">
       <!-- Header with icon -->
       <div class="flex items-center gap-3 mb-6">
-        <div class="flex items-center justify-center w-9 h-9 rounded-[10px] bg-primary/10 bg-primary/15">
+        <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 bg-primary/15">
           <UIcon
             name="i-lucide-folder-plus"
-            class="text-[18px] text-primary"
+            class="text-lg text-primary"
           />
         </div>
         <div>
-          <h1 class="text-[16px] font-bold tracking-[-0.02em] text-highlighted">
+          <h1 class="text-lg font-bold tracking-[-0.02em] text-highlighted">
             New Project
           </h1>
-          <p class="text-[13px] text-dimmed">
+          <p class="text-sm text-dimmed">
             Create a project to organize your boards
           </p>
         </div>

@@ -194,7 +194,7 @@ function cancelDeleteTag() {
         <!-- Stats bar skeleton -->
         <div class="h-10 rounded-lg bg-elevated mb-8" />
         <!-- Board heading skeleton -->
-        <div class="h-3.5 w-16 rounded bg-accented mb-4" />
+        <div class="h-3.5 w-16 rounded-md bg-accented mb-4" />
         <!-- Board cards skeleton -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           <div
@@ -224,13 +224,13 @@ function cancelDeleteTag() {
               <h1 class="text-xl font-extrabold tracking-[-0.02em] text-highlighted">
                 {{ project.name }}
               </h1>
-              <span class="font-mono text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md tracking-wide">
+              <span class="font-mono text-2xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md tracking-wide">
                 {{ project.key }}
               </span>
             </div>
             <p
               v-if="project.description"
-              class="text-[14px] text-muted mt-0.5"
+              class="text-base text-muted mt-0.5"
             >
               {{ project.description }}
             </p>
@@ -241,7 +241,7 @@ function cancelDeleteTag() {
           <NuxtLink
             v-if="project.role === 'owner' || project.role === 'admin'"
             :to="`/projects?edit=${project.id}`"
-            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all shrink-0"
+            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium text-dimmed hover:text-toned hover:bg-elevated transition-all shrink-0"
           >
             <UIcon
               name="i-lucide-settings"
@@ -258,7 +258,7 @@ function cancelDeleteTag() {
         <div class="flex items-center border-b border-default border-accented px-3">
           <button
             type="button"
-            class="flex items-center gap-1.5 px-2.5 py-2 text-[12px] font-semibold transition-colors border-b-2 -mb-px"
+            class="flex items-center gap-1.5 px-2.5 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px"
             :class="configTab === 'statuses'
               ? 'text-default border-primary'
               : 'text-dimmed border-transparent hover:text-toned'"
@@ -266,14 +266,14 @@ function cancelDeleteTag() {
           >
             <UIcon
               name="i-lucide-columns-3"
-              class="text-[12px]"
+              class="text-xs"
             />
             Statuses
-            <span class="text-[11px] font-semibold tabular-nums text-dimmed">{{ projectStatuses.length }}</span>
+            <span class="text-xs font-semibold tabular-nums text-dimmed">{{ projectStatuses.length }}</span>
           </button>
           <button
             type="button"
-            class="flex items-center gap-1.5 px-2.5 py-2 text-[12px] font-semibold transition-colors border-b-2 -mb-px"
+            class="flex items-center gap-1.5 px-2.5 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px"
             :class="configTab === 'tags'
               ? 'text-default border-primary'
               : 'text-dimmed border-transparent hover:text-toned'"
@@ -281,41 +281,41 @@ function cancelDeleteTag() {
           >
             <UIcon
               name="i-lucide-tag"
-              class="text-[12px]"
+              class="text-xs"
             />
             Tags
-            <span class="text-[11px] font-semibold tabular-nums text-dimmed">{{ projectTags.length }}</span>
+            <span class="text-xs font-semibold tabular-nums text-dimmed">{{ projectTags.length }}</span>
           </button>
 
           <!-- Aggregate stats — right-aligned -->
           <div class="flex items-center gap-3 ml-auto shrink-0 pl-3">
             <span
-              class="flex items-center gap-1 text-[12px] font-medium tabular-nums text-dimmed"
+              class="flex items-center gap-1 text-xs font-medium tabular-nums text-dimmed"
               title="Open cards"
             >
               <UIcon
                 name="i-lucide-layers"
-                class="text-[13px]"
+                class="text-sm"
               />
               {{ project.openCards || 0 }}
             </span>
             <span
-              class="flex items-center gap-1 text-[12px] font-medium tabular-nums text-dimmed"
+              class="flex items-center gap-1 text-xs font-medium tabular-nums text-dimmed"
               title="Boards"
             >
               <UIcon
                 name="i-lucide-layout-dashboard"
-                class="text-[13px]"
+                class="text-sm"
               />
               {{ project.boards?.length || 0 }}
             </span>
             <span
-              class="flex items-center gap-1 text-[12px] font-medium tabular-nums text-dimmed"
+              class="flex items-center gap-1 text-xs font-medium tabular-nums text-dimmed"
               title="Lists"
             >
               <UIcon
                 name="i-lucide-list"
-                class="text-[13px]"
+                class="text-sm"
               />
               {{ project.lists?.length || 0 }}
             </span>
@@ -356,7 +356,7 @@ function cancelDeleteTag() {
                 <input
                   v-model="editingTagName"
                   type="text"
-                  class="w-24 text-[11px] font-bold text-highlighted bg-transparent border-0 outline-none! ring-0! py-0 uppercase tracking-wide"
+                  class="w-24 text-xs font-bold text-highlighted bg-transparent border-0 outline-none! ring-0! py-0 uppercase tracking-wide"
                   @keydown.enter="saveEditTag"
                   @keydown.escape="cancelEditTag"
                 >
@@ -383,7 +383,7 @@ function cancelDeleteTag() {
               >
                 <button
                   type="button"
-                  class="tag-pill group/chip flex items-center gap-1 px-2.5 py-1 rounded-full shrink-0 text-[11px] font-bold uppercase tracking-wide transition-all duration-150 hover:shadow-md active:scale-95"
+                  class="tag-pill group/chip flex items-center gap-1 px-2.5 py-1 rounded-full shrink-0 text-xs font-bold uppercase tracking-wide transition-all duration-150 hover:shadow-md active:scale-95"
                   :style="{
                     color: tag.color,
                     backgroundColor: tag.color + '25',
@@ -395,7 +395,7 @@ function cancelDeleteTag() {
                 </button>
                 <template #content>
                   <div class="p-2.5 w-44">
-                    <p class="text-[11px] font-semibold text-muted uppercase tracking-wider mb-2">
+                    <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
                       Color
                     </p>
                     <ColorPicker
@@ -407,18 +407,18 @@ function cancelDeleteTag() {
                     <div class="flex flex-col gap-0.5 border-t border-muted pt-2">
                       <button
                         type="button"
-                        class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-[12px] font-medium text-muted hover:text-default hover:bg-muted hover:bg-elevated transition-colors"
+                        class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs font-medium text-muted hover:text-default hover:bg-elevated transition-colors"
                         @click="tagColorPopoverOpen[tag.id] = false; startEditTag(tag)"
                       >
                         <UIcon
                           name="i-lucide-pencil"
-                          class="text-[12px]"
+                          class="text-xs"
                         />
                         Rename
                       </button>
                       <template v-if="confirmDeleteTagId === tag.id">
                         <div class="flex items-center gap-1 px-2 py-1.5">
-                          <span class="text-[11px] font-medium text-red-500">Delete?</span>
+                          <span class="text-xs font-medium text-error">Delete?</span>
                           <UButton
                             icon="i-lucide-check"
                             variant="ghost"
@@ -438,12 +438,12 @@ function cancelDeleteTag() {
                       <button
                         v-else
                         type="button"
-                        class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-[12px] font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                        class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs font-medium text-error hover:bg-error/10 transition-colors"
                         @click="requestDeleteTag(tag.id)"
                       >
                         <UIcon
                           name="i-lucide-trash-2"
-                          class="text-[12px]"
+                          class="text-xs"
                         />
                         Delete
                       </button>
@@ -455,7 +455,7 @@ function cancelDeleteTag() {
               <!-- Tag chip — read-only (members) -->
               <div
                 v-else
-                class="tag-pill flex items-center px-2.5 py-1 rounded-full shrink-0 text-[11px] font-bold uppercase tracking-wide"
+                class="tag-pill flex items-center px-2.5 py-1 rounded-full shrink-0 text-xs font-bold uppercase tracking-wide"
                 :style="{
                   color: tag.color,
                   backgroundColor: tag.color + '25',
@@ -473,11 +473,11 @@ function cancelDeleteTag() {
             >
               <button
                 type="button"
-                class="flex items-center gap-1 px-2 py-1 rounded-md text-[12px] font-medium text-dimmed hover:text-primary hover:bg-white hover:bg-elevated transition-colors shrink-0"
+                class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-primary hover:bg-white hover:bg-elevated transition-colors shrink-0"
               >
                 <UIcon
                   name="i-lucide-plus"
-                  class="text-[11px]"
+                  class="text-xs"
                 />
                 <span>Tag</span>
               </button>
@@ -486,7 +486,7 @@ function cancelDeleteTag() {
                   class="p-3 w-52"
                   @submit.prevent="addProjectTag"
                 >
-                  <p class="text-[11px] font-semibold text-muted uppercase tracking-wider mb-2">
+                  <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
                     New tag
                   </p>
                   <div class="flex items-center gap-2 mb-2">
@@ -510,7 +510,7 @@ function cancelDeleteTag() {
                       v-model="newTagName"
                       type="text"
                       placeholder="Tag name..."
-                      class="flex-1 text-[13px] font-medium text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border border-accented rounded-md px-2 py-1 outline-none! ring-0! focus:border-primary transition-colors"
+                      class="flex-1 text-sm font-medium text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border border-accented rounded-md px-2 py-1 outline-none! ring-0! focus:border-primary transition-colors"
                       @keydown.enter.prevent="addProjectTag"
                     >
                   </div>
@@ -530,7 +530,7 @@ function cancelDeleteTag() {
 
             <p
               v-if="projectTags.length === 0"
-              class="text-[12px] text-dimmed italic"
+              class="text-xs text-dimmed italic"
             >
               {{ isOwnerOrAdmin ? 'Create your first tag to label cards.' : 'No tags yet.' }}
             </p>
@@ -542,14 +542,14 @@ function cancelDeleteTag() {
       <div class="lg:grid lg:grid-cols-[2fr_1fr] lg:gap-8">
         <!-- Views (Boards + Lists) -->
         <div>
-          <h2 class="flex items-center gap-1.5 text-[13px] font-bold text-muted uppercase tracking-[0.08em] mb-2">
+          <h2 class="flex items-center gap-1.5 text-sm font-bold text-muted uppercase tracking-[0.08em] mb-2">
             <UIcon
               name="i-lucide-layout-grid"
-              class="text-[14px]"
+              class="text-base"
             />
             Views
           </h2>
-          <p class="text-[12px] text-dimmed mb-4">
+          <p class="text-xs text-dimmed mb-4">
             Boards and lists for viewing this project's cards
           </p>
 
@@ -571,7 +571,7 @@ function cancelDeleteTag() {
                   :text="`Delete ${view._type}`"
                 >
                   <button
-                    class="absolute top-2 right-2 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 p-1 rounded-md text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+                    class="absolute top-2 right-2 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 p-1 rounded-md text-error hover:text-error hover:bg-error/10 transition-all"
                     @click="openDeleteView(view, view._type, $event)"
                   >
                     <UIcon
@@ -591,15 +591,15 @@ function cancelDeleteTag() {
                         class="text-base"
                       />
                     </div>
-                    <span class="font-semibold text-[14.5px] tracking-[-0.01em] group-hover:text-primary transition-colors flex-1 min-w-0 truncate">
+                    <span class="font-semibold text-base tracking-[-0.01em] group-hover:text-primary transition-colors flex-1 min-w-0 truncate">
                       {{ view.name }}
                     </span>
                   </div>
-                  <div class="flex items-center justify-end gap-3 text-[12px] text-dimmed">
+                  <div class="flex items-center justify-end gap-3 text-xs text-dimmed">
                     <span class="flex items-center gap-1">
                       <UIcon
                         name="i-lucide-layers"
-                        class="text-[12px]"
+                        class="text-xs"
                       />
                       {{ view.cardCount ?? 0 }}
                     </span>
@@ -607,7 +607,7 @@ function cancelDeleteTag() {
                       <span class="flex items-center gap-1">
                         <UIcon
                           name="i-lucide-clock"
-                          class="text-[12px]"
+                          class="text-xs"
                         />
                         {{ relativeTime(view.lastActivity) }}
                       </span>
@@ -618,7 +618,7 @@ function cancelDeleteTag() {
                     >
                       <UIcon
                         name="i-lucide-user"
-                        class="text-[12px]"
+                        class="text-xs"
                       />
                       {{ view.createdBy.name.split(' ').map((w: string) => w[0]).join('').toUpperCase() }}
                     </span>
@@ -640,7 +640,7 @@ function cancelDeleteTag() {
                     class="text-base"
                   />
                 </div>
-                <span class="text-[14px] font-medium text-dimmed group-hover:text-primary transition-colors">
+                <span class="text-base font-medium text-dimmed group-hover:text-primary transition-colors">
                   New View
                 </span>
               </div>
@@ -650,14 +650,14 @@ function cancelDeleteTag() {
 
         <!-- Members -->
         <div class="max-lg:mt-8">
-          <h2 class="flex items-center gap-1.5 text-[13px] font-bold text-muted uppercase tracking-[0.08em] mb-2">
+          <h2 class="flex items-center gap-1.5 text-sm font-bold text-muted uppercase tracking-[0.08em] mb-2">
             <UIcon
               name="i-lucide-users"
-              class="text-[14px]"
+              class="text-base"
             />
             Members
           </h2>
-          <p class="text-[12px] text-dimmed mb-4">
+          <p class="text-xs text-dimmed mb-4">
             People with access to this project
           </p>
           <ProjectMembers :project-id="project.id" />
@@ -682,45 +682,45 @@ function cancelDeleteTag() {
       >
         <template #body>
           <div class="flex flex-col gap-3">
-            <p class="text-[14px] text-toned">
+            <p class="text-base text-toned">
               This will permanently delete <span class="font-bold text-highlighted">{{ deleteViewTarget?.name }}</span>.
               <template v-if="deleteViewType === 'board'">
                 Columns will be unlinked.
               </template>
               Cards and statuses are preserved at the project level.
             </p>
-            <p class="text-[13px] font-medium text-red-600 dark:text-red-400">
+            <p class="text-sm font-medium text-error">
               Type <span class="font-bold">{{ deleteViewTarget?.name }}</span> to confirm.
             </p>
             <input
               v-model="deleteViewConfirmName"
               type="text"
               :placeholder="deleteViewTarget?.name"
-              class="w-full text-[14px] text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-red-200 dark:border-red-800/50 rounded-lg px-3 py-2 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
+              class="w-full text-base text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-red-200 dark:border-red-800/50 rounded-lg px-3 py-2 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
             >
             <div class="flex items-center justify-end gap-2 pt-1">
               <button
                 type="button"
-                class="px-3 py-1.5 rounded-lg text-[13px] font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
+                class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-all"
                 @click="showDeleteView = false"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 :disabled="!deleteViewConfirmValid || deletingView"
                 @click="deleteView"
               >
                 <UIcon
                   v-if="!deletingView"
                   name="i-lucide-trash-2"
-                  class="text-[13px]"
+                  class="text-sm"
                 />
                 <UIcon
                   v-else
                   name="i-lucide-loader-2"
-                  class="text-[13px] animate-spin"
+                  class="text-sm animate-spin"
                 />
                 Delete {{ deleteViewType === 'board' ? 'Board' : 'List' }}
               </button>

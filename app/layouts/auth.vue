@@ -29,7 +29,7 @@
           <!-- Glow halo -->
           <div class="absolute -inset-4 rounded-full bg-primary/20 bg-primary/10 blur-2xl auth-icon-glow" />
           <!-- Icon -->
-          <div class="relative w-[72px] h-[72px] rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-500/25 dark:shadow-indigo-500/10 ring-1 ring-white/20">
+          <div class="relative w-[72px] h-[72px] rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-500/25 dark:shadow-indigo-500/10 ring-1 ring-white/20">
             <img
               src="/completo-icon.svg"
               alt="Completo"
@@ -38,14 +38,14 @@
           </div>
         </div>
         <div>
-          <h1 class="sidebar-brand text-[28px] font-extrabold tracking-[-0.04em] leading-none text-highlighted">
+          <h1 class="sidebar-brand text-2xl font-extrabold tracking-[-0.04em] leading-none text-highlighted">
             Completo
           </h1>
           <div class="mt-2 flex flex-col gap-px">
-            <p class="font-mono text-[11.5px] font-semibold uppercase tracking-[0.1em] text-primary/80 text-primary/70">
+            <p class="font-mono text-xs font-semibold uppercase tracking-[0.1em] text-primary/80 text-primary/70">
               All the toppings
             </p>
-            <p class="font-mono text-[11.5px] font-medium uppercase tracking-[0.1em] text-muted">
+            <p class="font-mono text-xs font-medium uppercase tracking-[0.1em] text-muted">
               None of the mess
             </p>
           </div>

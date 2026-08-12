@@ -38,7 +38,7 @@ async function setupAccount() {
       <h2 class="text-base font-bold text-center tracking-[-0.02em]">
         Set up your account
       </h2>
-      <p class="text-[13px] text-center text-muted mt-1">
+      <p class="text-sm text-center text-muted mt-1">
         Enter your name and choose a password
       </p>
     </div>
@@ -77,7 +77,7 @@ async function setupAccount() {
         />
       </UFormField>
 
-      <AuthErrorBanner :error="error" />
+      <AuthErrorBanner :message="error" />
 
       <div
         class="auth-field"
@@ -96,7 +96,7 @@ async function setupAccount() {
 
     <div class="px-7 pb-6 pt-1">
       <div class="border-t border-muted pt-4">
-        <p class="text-[13px] text-center text-muted">
+        <p class="text-sm text-center text-muted">
           Already have a password?
           <NuxtLink
             to="/login"

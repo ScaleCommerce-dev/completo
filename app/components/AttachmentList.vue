@@ -114,12 +114,12 @@ defineExpose({ upload, uploading })
     <div class="flex items-center gap-1.5 mb-2">
       <UIcon
         name="i-lucide-paperclip"
-        class="text-[13px] text-dimmed"
+        class="text-sm text-dimmed"
       />
-      <span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-dimmed">Attachments</span>
+      <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">Attachments</span>
       <span
         v-if="attachments.length"
-        class="text-[11px] font-semibold text-dimmed bg-elevated px-1.5 py-0.5 rounded-full"
+        class="text-xs font-semibold text-dimmed bg-elevated px-1.5 py-0.5 rounded-full"
       >
         {{ attachments.length }}
       </span>
@@ -132,9 +132,9 @@ defineExpose({ upload, uploading })
     >
       <UIcon
         name="i-lucide-loader-2"
-        class="text-[14px] text-primary animate-spin"
+        class="text-base text-primary animate-spin"
       />
-      <span class="text-[12px] font-medium text-primary">Uploading...</span>
+      <span class="text-xs font-medium text-primary">Uploading...</span>
     </div>
 
     <!-- Attachment list -->
@@ -158,7 +158,7 @@ defineExpose({ upload, uploading })
           <UIcon
             v-else
             :name="fileIcon(attachment.mimeType)"
-            class="text-[16px] text-dimmed"
+            class="text-lg text-dimmed"
           />
         </div>
 
@@ -167,12 +167,12 @@ defineExpose({ upload, uploading })
           <a
             :href="downloadUrl(attachment.id)"
             target="_blank"
-            class="text-[13px] font-medium text-default hover:text-primary truncate transition-colors"
+            class="text-sm font-medium text-default hover:text-primary truncate transition-colors"
             :title="attachment.originalName"
           >
             {{ attachment.originalName }}
           </a>
-          <span class="text-[11px] text-dimmed shrink-0">
+          <span class="text-xs text-dimmed shrink-0">
             {{ formatFileSize(attachment.size) }}
           </span>
         </div>
@@ -190,18 +190,18 @@ defineExpose({ upload, uploading })
           >
             <UIcon
               name="i-lucide-download"
-              class="text-[13px]"
+              class="text-sm"
             />
           </a>
           <button
             type="button"
-            class="p-1 rounded-md text-dimmed hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all"
+            class="p-1 rounded-md text-dimmed hover:text-error hover:bg-error/10 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-all"
             title="Remove"
             @click="remove(attachment.id)"
           >
             <UIcon
               name="i-lucide-trash-2"
-              class="text-[13px]"
+              class="text-sm"
             />
           </button>
         </div>
@@ -227,11 +227,11 @@ defineExpose({ upload, uploading })
     >
       <UIcon
         :name="dropActive ? 'i-lucide-upload-cloud' : 'i-lucide-plus'"
-        class="text-[14px]"
+        class="text-base"
         :class="dropActive ? 'text-primary' : 'text-dimmed'"
       />
       <span
-        class="text-[12px] font-medium"
+        class="text-xs font-medium"
         :class="dropActive ? 'text-primary' : 'text-dimmed'"
       >
         {{ dropActive ? 'Drop to upload' : 'Drop files here or click to browse' }}
@@ -241,9 +241,9 @@ defineExpose({ upload, uploading })
     <!-- Empty note when readonly -->
     <p
       v-else-if="!attachments.length && !uploading"
-      class="text-[12px] text-dimmed italic"
+      class="text-xs text-dimmed italic"
     >
-      No attachments
+      No attachments yet
     </p>
   </div>
 </template>

@@ -6,11 +6,11 @@ const props = withDefaults(defineProps<{
   /**
    * Set while an `after-textarea` overlay (e.g. the mention picker) is open.
    *
-   * The root clips to its rounded corners with `overflow-hidden`, which also clips
+   * The root clips to its rounded-md corners with `overflow-hidden`, which also clips
    * that overlay to the editor's height. A short editor — a comment box at
    * minHeight 80 — left the results list invisible. Release the clip while the
    * overlay is open so it can extend past the editor, and restore it after, since
-   * it's what keeps the toolbar and textarea inside the rounded border.
+   * it's what keeps the toolbar and textarea inside the rounded-md border.
    */
   overlayOpen?: boolean
 }>(), {
@@ -152,7 +152,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
     <div class="flex items-center border-b border-default bg-muted">
       <button
         type="button"
-        class="flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold transition-colors border-b-2 -mb-px"
+        class="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px"
         :class="editTab === 'write'
           ? 'text-default border-primary'
           : 'text-dimmed border-transparent hover:text-toned'"
@@ -160,13 +160,13 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
       >
         <UIcon
           name="i-lucide-pencil"
-          class="text-[12px]"
+          class="text-xs"
         />
         Write
       </button>
       <button
         type="button"
-        class="flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold transition-colors border-b-2 -mb-px"
+        class="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px"
         :class="editTab === 'preview'
           ? 'text-default border-primary'
           : 'text-dimmed border-transparent hover:text-toned'"
@@ -174,7 +174,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
       >
         <UIcon
           name="i-lucide-eye"
-          class="text-[12px]"
+          class="text-xs"
         />
         Preview
       </button>
@@ -199,7 +199,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
       >
         <UIcon
           name="i-lucide-bold"
-          class="text-[14px]"
+          class="text-base"
         />
       </button>
       <button
@@ -211,7 +211,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
       >
         <UIcon
           name="i-lucide-italic"
-          class="text-[14px]"
+          class="text-base"
         />
       </button>
       <div class="w-px h-4 bg-accented mx-1" />
@@ -224,7 +224,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
       >
         <UIcon
           name="i-lucide-code"
-          class="text-[14px]"
+          class="text-base"
         />
       </button>
       <button
@@ -236,7 +236,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
       >
         <UIcon
           name="i-lucide-square-code"
-          class="text-[14px]"
+          class="text-base"
         />
       </button>
       <div class="w-px h-4 bg-accented mx-1" />
@@ -249,7 +249,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
       >
         <UIcon
           name="i-lucide-text-quote"
-          class="text-[14px]"
+          class="text-base"
         />
       </button>
       <template v-if="$slots['toolbar-append']">
@@ -267,7 +267,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
         ref="textareaEl"
         v-model="modelValue"
         :placeholder="placeholder"
-        class="w-full text-[14px] text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border-0 px-4 py-3 outline-none transition-all resize-y leading-[1.7]"
+        class="w-full text-base text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border-0 px-4 py-3 outline-none transition-all resize-y leading-[1.7]"
         :style="{ minHeight: `${minHeight}px`, ...(maxHeight != null ? { maxHeight: `${maxHeight}px` } : {}) }"
         @keydown="onKeydown"
         @input="emit('textarea-input', $event)"
@@ -289,7 +289,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
         v-else
         name="preview-empty"
       >
-        <p class="text-[14px] text-dimmed italic">
+        <p class="text-base text-dimmed italic">
           Nothing to preview
         </p>
       </slot>
