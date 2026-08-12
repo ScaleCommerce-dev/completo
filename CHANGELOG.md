@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## v0.8.0 (2026-08-12)
+
+### Upgrading
+
+Two things to check before you deploy this one. Everything else is a straight upgrade.
+
+- **Serving Completo over plain HTTP from an address other than `localhost`?** Set `NUXT_SESSION_COOKIE_SECURE=false`, or nobody will be able to sign in: the session cookie is now marked `Secure`, and browsers silently discard those on an insecure origin. `localhost` needs no change, and neither does HTTPS terminated at a reverse proxy — which covers most installs.
+- **Migration `0004` stops the deploy if two accounts differ only in the capitalisation of their email.** It lowercases every address and adds a case-insensitive unique index, so a genuine pair — `foo@example.com` and `Foo@example.com` — has to be resolved by hand first, since only you can decide which identity keeps its cards and memberships. Check with `SELECT lower(email), count(*) FROM users GROUP BY lower(email) HAVING count(*) > 1`. No rows means nothing to do.
+
+API clients: `mimeType` on an attachment is now derived from the file extension rather than echoing the uploader's declared type, and attachment downloads send `Content-Disposition: attachment` for everything except images, PDF and plain text.
+
 ### App
 - **Cards now show who created them.** The card detail page has a "Created by" line next to the timestamps, the card modal credits the author next to the ticket ID, and list views (including My Tasks) can show a **Creator** column, sortable like Assignee. Creator is set once when the card is created and can't be changed. Cards whose creator has since been deleted show "Unknown". Existing cards already show the right person — the creator has been recorded since the first release, just never displayed, so no backfill is needed.
 - **Fixed: sorting a list by Due Date wouldn't stick.** Clicking the Due Date header sorted the rows and then failed with "Invalid sort field" — the column was sortable in the table but the server refused to remember it, so the order reset on reload. Due Date now saves like every other sortable column.
