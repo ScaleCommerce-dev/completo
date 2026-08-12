@@ -25,11 +25,20 @@ export default defineEventHandler(async (event) => {
   }
 
   if (tokenRow.expiresAt < new Date()) {
+    // Follow the session cookie's setting so one env var governs both. Previously keyed off
+    // NODE_ENV, which the prod image never sets — it happened to work only because Vite
+    // inlines it at build time, and it disagreed with the session cookie either way.
+    // `session.cookie` is typed as `false | CookieSerializeOptions`, so narrow before reading
+    // it. Anything other than an explicit `false` there falls back to secure — a missing or
+    // disabled config must never quietly downgrade this cookie.
+    const sessionCookie = useRuntimeConfig(event).session.cookie
+    const secure = typeof sessionCookie === 'object' ? sessionCookie.secure ?? true : true
+
     // Store expired token in a short-lived httpOnly cookie for the resend flow
     // instead of exposing it in the URL (browser history, referrer headers, analytics)
     setCookie(event, 'expired-verification-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure,
       sameSite: 'lax',
       maxAge: 600, // 10 minutes — just long enough for the resend click
       path: '/'

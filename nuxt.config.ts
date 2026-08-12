@@ -31,7 +31,18 @@ export default defineNuxtConfig({
       // password is provided via NUXT_SESSION_PASSWORD env var
       password: process.env.NUXT_SESSION_PASSWORD || '',
       cookie: {
-        secure: false,
+        // h3 defaults this to true; it used to be forced to false here, so every HTTPS
+        // install shipped its session cookie without the Secure flag and would hand it to
+        // any plain-HTTP request that reached the same host.
+        //
+        // This is a build-time default, but runtimeConfig is env-overridable, so an install
+        // genuinely served over plain HTTP (a LAN-only deployment) sets
+        // NUXT_SESSION_COOKIE_SECURE=false rather than rebuilding. It needs to be a
+        // deliberate choice: with Secure on and the site on http://, the browser silently
+        // discards the cookie and login appears to succeed and then do nothing.
+        // `http://localhost` is exempt — browsers treat it as a secure context — so local
+        // development over HTTP is unaffected.
+        secure: true,
         domain: ''
       }
     },

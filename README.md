@@ -75,6 +75,7 @@ The only required environment variable is `NUXT_SESSION_PASSWORD` (min 32 charac
 | Variable | What it does | Default |
 |----------|-------------|---------|
 | `NUXT_SESSION_PASSWORD` | Session encryption key (required) | — |
+| `NUXT_SESSION_COOKIE_SECURE` | Send the session cookie with `Secure`. Set to `false` only if you serve Completo over plain HTTP — TLS terminated at a proxy still counts as HTTPS | `true` |
 | `DATABASE_URL` | SQLite database path | `sqlite.db` |
 | `UPLOAD_DIR` | File attachment storage | `data/uploads` |
 | `SMTP_HOST` | SMTP server for email (empty = email disabled) | — |

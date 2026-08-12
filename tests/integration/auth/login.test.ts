@@ -33,6 +33,27 @@ describe('POST /auth/login', async () => {
     expect(setCookie).toBeTruthy()
   })
 
+  it('sets the session cookie with Secure, HttpOnly and SameSite', async () => {
+    // `secure` was pinned to false in nuxt.config, overriding h3's secure-by-default, so every
+    // HTTPS install shipped a session cookie that a plain-HTTP request to the same host could
+    // collect. The test server runs over HTTP and doesn't set NUXT_SESSION_COOKIE_SECURE, so
+    // what's asserted here is the shipped default — which is the thing that regressed.
+    const res = await fetch(url('/auth/login'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    })
+    expect(res.status).toBe(200)
+
+    const cookie = res.headers.getSetCookie().find(c => c.startsWith('nuxt-session='))
+    expect(cookie).toBeTruthy()
+    expect(cookie).toContain('Secure')
+    expect(cookie).toContain('HttpOnly')
+    expect(cookie).toContain('SameSite=Lax')
+    // An empty `domain` in the config must not become a `Domain=` attribute.
+    expect(cookie).not.toContain('Domain=')
+  })
+
   it('rejects login for unverified user', async () => {
     const unverifiedEmail = `unverified-${Date.now()}@test.com`
     await $fetch('/auth/register', {

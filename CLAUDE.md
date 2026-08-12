@@ -221,7 +221,7 @@ zdev migrate             # apply migrations; also: generate | push | seed | clea
 
 **To release:** `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag push triggers two workflows:
 - **CI** (`ci.yml`) — runs lint + tests against the tag.
-- **Release** (`release.yml`) — builds multi-arch Docker image, cross-compiles Go CLI binaries (5 targets), pushes Docker to GHCR (`ghcr.io/scalecommerce-dev/completo`), and creates a GitHub Release with changelog notes and CLI binaries attached.
+- **Release** (`release-build.yml`) — builds multi-arch Docker image, cross-compiles Go CLI binaries (5 targets), pushes Docker to GHCR (`ghcr.io/scalecommerce-dev/completo`), and creates a GitHub Release with changelog notes and CLI binaries attached.
 
 **To re-tag** (e.g. after a fix): delete the GitHub release (`gh release delete vX.Y.Z --yes`), delete remote + local tag (`git push origin --delete vX.Y.Z && git tag -d vX.Y.Z`), then re-tag and push.
 
