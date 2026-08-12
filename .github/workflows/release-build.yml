@@ -51,6 +51,10 @@ jobs:
   build-docker:
     needs: [ci]
     runs-on: ubuntu-latest
+    # The whole workflow ran 12-14 minutes across five releases, so anything past this is stuck,
+    # not slow. Without it the default is GitHub's 360 minutes: v0.8.0's first two attempts each
+    # sat wedged for ~48 minutes on the emulated arm64 leg and had to be killed by hand.
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
