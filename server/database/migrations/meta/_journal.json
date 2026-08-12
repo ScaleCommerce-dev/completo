@@ -36,6 +36,13 @@
       "when": 1786547119028,
       "tag": "0004_normalise_user_emails",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1786547120028,
+      "tag": "0005_claim_used_invites",
+      "breakpoints": true
     }
   ]
 }
