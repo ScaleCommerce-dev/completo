@@ -37,31 +37,41 @@ function clear() {
 <template>
   <UPopover
     v-model:open="open"
-    :content="popoverOptions || { align: 'start', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
+    :content="{ ...FIELD_MENU_ALIGN_START, ...popoverOptions }"
   >
     <slot />
     <template #content>
-      <div
-        class="p-1"
-        @click.stop
-      >
-        <UCalendar
-          v-model="calendarValue"
-          size="sm"
-          color="primary"
-        />
-        <button
-          v-if="modelValue"
-          type="button"
-          class="w-full mt-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium text-muted hover:text-error hover:bg-error/10 transition-colors"
-          @click="clear"
-        >
-          <UIcon
-            name="i-lucide-x"
-            class="text-xs"
+      <div @click.stop>
+        <!--
+          The same header the four `FieldMenu` fields carry, hand-written because
+          a calendar isn't a list of menu items and so can't be given one by
+          passing `type: 'label'`. Classes copied from Nuxt UI's rendered label
+          slot rather than approximated: a header that is a point off the others
+          is worse than no header, since it reads as a different kind of thing.
+        -->
+        <div class="w-full flex items-center font-semibold text-highlighted p-1.5 text-sm border-b border-default">
+          Due date
+        </div>
+
+        <div class="p-1">
+          <UCalendar
+            v-model="calendarValue"
+            size="sm"
+            color="primary"
           />
-          Clear due date
-        </button>
+          <button
+            v-if="modelValue"
+            type="button"
+            class="w-full mt-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium text-muted hover:text-error hover:bg-error/10 transition-colors"
+            @click="clear"
+          >
+            <UIcon
+              name="i-lucide-x"
+              class="text-xs"
+            />
+            Clear due date
+          </button>
+        </div>
       </div>
     </template>
   </UPopover>

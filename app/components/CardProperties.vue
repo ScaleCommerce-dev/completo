@@ -108,7 +108,7 @@ function row(label: string, icon: string, align?: 'start') {
       <StatusMenu
         :statuses="statuses"
         :status-id="statusId"
-        :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
+        :content="FIELD_MENU_ALIGN_START"
         @select="id => statusId = id"
       >
         <template #default="{ label }">
@@ -136,7 +136,7 @@ function row(label: string, icon: string, align?: 'start') {
       <AssigneeMenu
         :members="members"
         :assignee-id="selectedAssignee?.id"
-        :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
+        :content="FIELD_MENU_ALIGN_START"
         @select="id => assigneeId = id ?? unassignedValue"
       >
         <template #default="{ label }">
@@ -165,7 +165,7 @@ function row(label: string, icon: string, align?: 'start') {
     >
       <PriorityMenu
         :priority="priority"
-        :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
+        :content="FIELD_MENU_ALIGN_START"
         @select="p => priority = p"
       >
         <template #default="{ label }">
@@ -196,7 +196,7 @@ function row(label: string, icon: string, align?: 'start') {
       <DueDatePicker
         v-model:open="dueDateOpen"
         :model-value="dueDate"
-        :popover-options="{ align: 'start', side: 'bottom', sideOffset: 4 }"
+        :popover-options="FIELD_MENU_ALIGN_START"
         @update:model-value="dueDate = $event"
       >
         <button
@@ -226,7 +226,7 @@ function row(label: string, icon: string, align?: 'start') {
       <TagMenu
         :tags="tags"
         :selected-ids="tagIds"
-        :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
+        :content="FIELD_MENU_ALIGN_START"
         @toggle="toggleTag"
       >
         <template #default="{ label }">

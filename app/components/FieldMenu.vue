@@ -62,10 +62,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
 const { onCloseAutoFocus } = useMenuFocusReturn(open)
 
 const contentProps = computed(() => ({
-  align: 'start' as const,
-  side: 'bottom' as const,
-  sideOffset: 4,
-  collisionPadding: 8,
+  ...FIELD_MENU_ALIGN_START,
   ...props.content,
   onCloseAutoFocus
 }))

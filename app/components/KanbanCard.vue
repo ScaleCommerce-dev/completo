@@ -181,6 +181,36 @@ const tipOff = (name: Control) => openControl.value === name || suppressed.value
 
 const reveal = computed(() => openControl.value ? 'transition-opacity' : REVEAL)
 
+/**
+ * All four menus open in the same place on every card.
+ *
+ * They are end-aligned, which keeps a 200px menu over the card rather than
+ * spilling into the next column — but end-aligned to the *button* meant four
+ * different positions on one card (measured: 78px apart) and a different set
+ * again on the next, because the strip is `ml-auto` and the due-date control
+ * grows from a 24px icon to a 60px chip once a date is set, shoving its
+ * neighbours 36px left. Clicking the same field on two cards put the menu in two
+ * places for a reason that has nothing to do with the field.
+ *
+ * The strip's *right* edge, on the other hand, is the card's content edge — the
+ * same on every card by construction. Offsetting each menu by the gap between
+ * its button and that edge anchors all of them to it.
+ *
+ * Measured on the way in (capture, so it lands before Reka opens the menu on
+ * `pointerdown`) rather than computed from slot widths, which would have to be
+ * kept in step with the markup by hand.
+ */
+const strip = useTemplateRef<HTMLElement>('strip')
+const alignOffset = ref(0)
+
+function anchorToStrip(e: Event) {
+  const control = (e.target as HTMLElement | null)?.closest('button')
+  if (!control || !strip.value) return
+  alignOffset.value = Math.round(control.getBoundingClientRect().right - strip.value.getBoundingClientRect().right)
+}
+
+const menuPlacement = computed(() => ({ ...FIELD_MENU_ALIGN_END, alignOffset: alignOffset.value }))
+
 const selectedTagIds = computed(() => (props.card.tags || []).map(t => t.id))
 
 function toggleTag(tagId: string) {
@@ -308,12 +338,17 @@ function toggleTag(tagId: string) {
           pills exist is what makes the cluster learnable — every card's fields
           are at the same four positions.
         -->
-        <div class="ml-auto flex items-center gap-0.5 shrink-0">
+        <div
+          ref="strip"
+          class="ml-auto flex items-center gap-0.5 shrink-0"
+          @pointerdown.capture="anchorToStrip"
+          @keydown.capture="anchorToStrip"
+        >
           <TagMenu
             :tags="kanbanContext.tags.value || []"
             :selected-ids="selectedTagIds"
             :open="openControl === 'tags'"
-            :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
+            :content="menuPlacement"
             @update:open="v => setOpen('tags', !!v)"
             @toggle="toggleTag"
           >
@@ -345,7 +380,7 @@ function toggleTag(tagId: string) {
           <PriorityMenu
             :priority="card.priority"
             :open="openControl === 'priority'"
-            :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
+            :content="menuPlacement"
             @update:open="v => setOpen('priority', !!v)"
             @select="p => emit('update', card.id, { priority: p })"
           >
@@ -380,7 +415,7 @@ function toggleTag(tagId: string) {
 
           <DueDatePicker
             :open="openControl === 'due'"
-            :popover-options="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8, onCloseAutoFocus }"
+            :popover-options="{ ...menuPlacement, onCloseAutoFocus }"
             :model-value="card.dueDate"
             @update:open="v => setOpen('due', v)"
             @update:model-value="val => emit('update', card.id, { dueDate: val })"
@@ -418,7 +453,7 @@ function toggleTag(tagId: string) {
             :members="kanbanContext.members.value"
             :assignee-id="card.assignee?.id"
             :open="openControl === 'assignee'"
-            :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
+            :content="menuPlacement"
             @update:open="v => setOpen('assignee', !!v)"
             @select="id => emit('update', card.id, { assigneeId: id })"
           >

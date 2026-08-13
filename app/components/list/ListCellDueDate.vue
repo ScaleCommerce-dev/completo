@@ -22,7 +22,7 @@ const status = computed(() => getDueDateStatus(props.dueDate))
     <button
       type="button"
       :aria-label="dueDate ? `Due ${formatDueDate(dueDate)}. Change due date` : 'Set a due date'"
-      class="flex items-center gap-1 rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer text-sm font-mono tabular-nums"
+      class="flex items-center gap-1 rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer text-sm font-mono tabular-nums min-h-[22px]"
       :class="dueDate ? dueDateTextClass(status) : ''"
       @click.stop
     >

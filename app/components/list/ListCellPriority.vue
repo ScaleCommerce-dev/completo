@@ -36,7 +36,7 @@ const resting = computed(() => isSignalPriority(props.priority)
       <button
         type="button"
         :aria-label="label"
-        class="flex items-center gap-1 text-sm font-medium rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer"
+        class="flex items-center gap-1 text-sm font-medium rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-[22px]"
         :class="[priorityTextClass(priority), resting, priority === 'urgent' ? 'priority-urgent-pulse' : '']"
         @click.stop
       >
@@ -44,7 +44,15 @@ const resting = computed(() => isSignalPriority(props.priority)
           :name="priorityIcon(priority)"
           class="text-sm"
         />
-        <span>{{ label }}</span>
+        <!--
+          `priorityLabel`, not the slot's `label`: that one is the *field's* name
+          for a screen reader ("Priority: Urgent. Change priority"), and printing
+          it here put that whole sentence in the cell. Medium and low hid it at
+          `opacity-0`, so it only showed on hover — but an urgent row displayed
+          it outright, wrapped over four lines, which also stretched the trigger
+          to 72px and dropped this one menu 27px below its neighbours'.
+        -->
+        <span>{{ priorityLabel(priority) }}</span>
         <UIcon
           name="i-lucide-chevron-down"
           class="text-2xs shrink-0 opacity-0 group-hover:opacity-60 transition-opacity"
