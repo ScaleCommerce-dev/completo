@@ -64,18 +64,30 @@ function write(scope: string, text: string) {
  * @param scope Stable identity for this text, e.g. `card:42:description` or
  *              `card:42:comment`. Must not collide between fields.
  * @param source The live editor value.
+ * @param baseline What the server already holds, so text equal to it is not a
+ *              draft. Without this the composable stores every description of
+ *              every card you merely open, and `restored` would then fire on
+ *              text nobody typed. Defaults to "anything non-empty is a draft",
+ *              which is right for a new comment.
  */
-export function useTextDraft(scope: MaybeRefOrGetter<string | null>, source: Ref<string>) {
+export function useTextDraft(
+  scope: MaybeRefOrGetter<string | null>,
+  source: Ref<string>,
+  baseline: MaybeRefOrGetter<string> = ''
+) {
   /** A draft found on disk that differs from what the editor was given. */
   const restored = ref<string | null>(null)
 
   const resolvedScope = computed(() => toValue(scope))
 
+  /** Text that is merely what the server already holds is not worth keeping. */
+  const isDraft = (val: string) => val.trim() !== toValue(baseline).trim()
+
   function load() {
     const s = resolvedScope.value
     if (!s) return
     const saved = read(s)
-    if (saved && saved !== source.value) {
+    if (saved && saved !== source.value && isDraft(saved)) {
       restored.value = saved
       source.value = saved
     }
@@ -97,14 +109,16 @@ export function useTextDraft(scope: MaybeRefOrGetter<string | null>, source: Ref
     const s = resolvedScope.value
     if (!s) return
     if (timer) clearTimeout(timer)
-    timer = setTimeout(() => write(s, val), 400)
+    // `write` removes the key for empty text, so text that has caught up with
+    // the server clears its own draft rather than shadowing it forever.
+    timer = setTimeout(() => write(s, isDraft(val) ? val : ''), 400)
   })
 
   onBeforeUnmount(() => {
     if (timer) clearTimeout(timer)
     // Flush synchronously: unmount is exactly the case this exists for.
     const s = resolvedScope.value
-    if (s) write(s, source.value)
+    if (s) write(s, isDraft(source.value) ? source.value : '')
   })
 
   return { restored, load, clear, dismissNotice }

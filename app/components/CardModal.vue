@@ -27,19 +27,19 @@ const hasUnsavedWork = computed(() =>
 )
 
 /**
- * Text typed into a nested editor that hasn't been committed anywhere.
+ * Closing an existing card is unconditional.
  *
- * Unlike the fields in the properties grid, this content has no other home: closing the
- * modal unmounts the editor and it's gone. Deliberately narrower than "the form is dirty"
- * — a changed status or priority is one click to redo and shows its own state, so it
- * doesn't earn a confirmation.
+ * There used to be a second confirmation here, for text sitting in a nested
+ * editor. It existed because that text had nowhere else to live — but every
+ * editor on this panel now persists its draft (`useTextDraft`), so closing
+ * cannot destroy anything: the description, a new comment and an in-progress
+ * comment edit all come back, announced, when the card is reopened. A dialog
+ * that asks permission to do something harmless is pure friction, and this one
+ * was charged on every close.
+ *
+ * Creating still confirms, because discarding a half-made card deletes a real
+ * server row that the draft mechanism knows nothing about.
  */
-const hasUncommittedText = computed(() => {
-  if (commentListRef.value?.hasUnsavedDraft) return true
-  return editingDescription.value
-    && description.value.trim() !== (props.card?.description || '').trim()
-})
-
 const open = computed({
   get: () => openModel.value,
   set: (val: boolean) => {
@@ -47,13 +47,6 @@ const open = computed({
       // Intercept close — show discard confirmation instead
       focusBeforeConfirm.value = document.activeElement as HTMLElement | null
       showDraftDiscardConfirm.value = true
-      return
-    }
-    // Esc no longer escapes an editor (see DescriptionEditor), but clicking outside and
-    // the close button still land here — and would silently take the text with them.
-    if (!val && isEdit.value && hasUncommittedText.value) {
-      focusBeforeConfirm.value = document.activeElement as HTMLElement | null
-      showTextDiscardConfirm.value = true
       return
     }
     openModel.value = val
@@ -85,8 +78,6 @@ const descriptionEditorRef = ref<{ startEditing: () => void }>()
 const showDeleteConfirm = ref(false)
 const draftCardId = ref<number | null>(null)
 const showDraftDiscardConfirm = ref(false)
-const showTextDiscardConfirm = ref(false)
-const commentListRef = ref<{ hasUnsavedDraft: boolean }>()
 /** UButton's root *is* the <button>, so `$el` is what takes focus. */
 const keepEditingRef = ref<{ $el?: HTMLElement } | null>(null)
 /**
@@ -135,6 +126,21 @@ async function handleBeforeUpload() {
   ensureCardPromise = null
 }
 
+/**
+ * The description is the one field on an existing card that is still an explicit
+ * draft, so it is the one field a close can destroy. Persisting it locally makes
+ * an accidental close, a reload or a crash recoverable, which is what lets the
+ * editor offer a plain Cancel rather than a confirmation.
+ *
+ * Explicit discard still discards — `cancelEditingDescription` clears the draft —
+ * because restoring text somebody deliberately threw away is worse than losing it.
+ */
+const descriptionDraft = useTextDraft(
+  () => (props.card ? `card:${props.card.id}:description` : null),
+  description,
+  () => props.card?.description || ''
+)
+
 function populateFromCard(card: NonNullable<typeof props.card>) {
   title.value = card.title || ''
   description.value = card.description || ''
@@ -145,6 +151,12 @@ function populateFromCard(card: NonNullable<typeof props.card>) {
   selectedDueDate.value = toDateInput(card.dueDate)
   editingDescription.value = false
   showDeleteConfirm.value = false
+  // After the card's own text, so a draft wins over what the server holds — and
+  // straight into the editor, because a restored draft rendered as prose would
+  // read exactly like a saved description. That is the bug
+  // `cancelEditingDescription` exists to prevent; restoring must not reintroduce it.
+  descriptionDraft.load()
+  if (descriptionDraft.restored.value) editingDescription.value = true
 }
 
 watch(() => props.card, (card) => {
@@ -183,6 +195,22 @@ function startEditingDescription() {
 }
 
 /**
+ * Leaving the editor without saving must not leave the typed text on screen
+ * looking saved.
+ *
+ * It used to do exactly that: Escape only unmounted the editor, so the panel
+ * rendered the *unsaved* value as prose — indistinguishable from a stored
+ * description — and `hasUncommittedText`, which requires `editingDescription`,
+ * went false along with it. The close guard then had nothing to warn about and
+ * the text went silently.
+ */
+function cancelEditingDescription() {
+  description.value = props.card?.description || ''
+  editingDescription.value = false
+  descriptionDraft.clear()
+}
+
+/**
  * What Save still has to do. Creating needs a title; editing needs something
  * genuinely pending — which, now that properties persist themselves, means the
  * description differs (or an unflushed title does).
@@ -208,7 +236,11 @@ function reset() {
 }
 
 function submit() {
-  if (!title.value.trim() || !selectedStatusId.value) return
+  // The same condition the Save button is disabled by. Without it ⌘↵ wrote and
+  // closed a card nobody had edited — a redundant PUT that still moved
+  // `updatedAt`, so merely reading a card and pressing ⌘↵ to dismiss it marked
+  // the card as changed.
+  if (!canSubmit.value || !selectedStatusId.value) return
 
   const assigneeId = selectedAssigneeId.value === UNASSIGNED ? null : selectedAssigneeId.value
 
@@ -221,6 +253,7 @@ function submit() {
       description: description.value.trim()
     })
     editingDescription.value = false
+    descriptionDraft.clear()
   } else if (draftCardId.value) {
     // Draft was auto-created for attachments — update it with final form data
     emit('update', draftCardId.value, {
@@ -268,42 +301,21 @@ function cancelDiscardDraft() {
   restoreFocusAfterConfirm()
 }
 
-/** Names what's actually at risk, so the warning isn't guesswork for the reader. */
-const uncommittedTextLabel = computed(() => {
-  const hasComment = !!commentListRef.value?.hasUnsavedDraft
-  const hasDescription = editingDescription.value
-    && description.value.trim() !== (props.card?.description || '').trim()
-  if (hasComment && hasDescription) return 'You have an unposted comment and an unsaved description.'
-  if (hasComment) return 'You have an unposted comment.'
-  return 'Your description edit isn\'t saved yet.'
-})
-
 /**
- * All three confirmations now live in the panel's pinned footer rather than in the
+ * Both remaining confirmations live in the panel's pinned footer rather than in the
  * scrolling body, which is what actually fixes the original complaint: they used to sit
  * above the actions, which on a card with comments was well below the fold, so refusing
  * to close looked like nothing happening at all. `scrollIntoView` papered over that; the
  * footer is visible by construction and needs no scrolling at all.
  *
- * Focus still moves to the safe answer — it is the only way a keyboard user reaches the
+ * Focus moves to the safe answer — it is the only way a keyboard user reaches the
  * banner without tabbing the whole panel, and backing out returns focus to wherever the
- * guard interrupted (see `restoreFocusAfterConfirm`). The two discard banners are
- * mutually exclusive (one create-mode, one edit-mode), so they share the ref.
+ * guard interrupted (see `restoreFocusAfterConfirm`).
  */
-watch([showTextDiscardConfirm, showDraftDiscardConfirm], ([text, draft]) => {
-  if (!text && !draft) return
+watch(showDraftDiscardConfirm, (shown) => {
+  if (!shown) return
   nextTick(() => keepEditingRef.value?.$el?.focus())
 })
-
-function confirmDiscardText() {
-  showTextDiscardConfirm.value = false
-  openModel.value = false
-}
-
-function cancelDiscardText() {
-  showTextDiscardConfirm.value = false
-  restoreFocusAfterConfirm()
-}
 
 function handleKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -331,7 +343,6 @@ watch(open, (isOpen) => {
   }
   if (!isOpen) {
     showDeleteConfirm.value = false
-    showTextDiscardConfirm.value = false
     if (!isEdit.value) {
       reset()
     }
@@ -499,6 +510,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             </button>
           </div>
 
+          <UiDraftNotice
+            v-if="editingDescription && descriptionDraft.restored.value"
+            class="mb-1.5"
+            @discard="cancelEditingDescription"
+          />
+
           <DescriptionEditor
             v-if="editingDescription"
             ref="descriptionEditorRef"
@@ -512,7 +529,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             :card-id="card?.id"
             :min-height="120"
             :max-height="360"
-            @escape="editingDescription = false"
+            @escape="cancelEditingDescription"
           />
           <!-- No inner scroll box. The panel already scrolls, and a scroll area
                nested inside one traps the wheel over whichever half you happen to
@@ -541,7 +558,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         class="mx-4 sm:mx-6 pb-5"
       >
         <CommentList
-          ref="commentListRef"
           :card-id="props.card?.id"
           :members="members"
           :project-slug="projectSlug"
@@ -574,33 +590,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             label="Cancel"
             size="sm"
             @click="showDeleteConfirm = false"
-          />
-        </div>
-      </div>
-
-      <!-- Uncommitted text confirmation (edit mode) -->
-      <div
-        v-if="isEdit && showTextDiscardConfirm"
-        class="mb-3 rounded-lg border border-warning/30 bg-warning/5 p-3 flex flex-col gap-2"
-      >
-        <p class="text-xs font-medium text-warning leading-relaxed">
-          {{ uncommittedTextLabel }} Closing the card discards it.
-        </p>
-        <div class="flex items-center gap-2">
-          <UButton
-            color="warning"
-            icon="i-lucide-trash-2"
-            label="Discard and close"
-            size="sm"
-            @click="confirmDiscardText"
-          />
-          <UButton
-            ref="keepEditingRef"
-            color="neutral"
-            variant="ghost"
-            label="Keep editing"
-            size="sm"
-            @click="cancelDiscardText"
           />
         </div>
       </div>

@@ -23,6 +23,31 @@ const draft = ref('')
 const editingId = ref<string | null>(null)
 const editDraft = ref('')
 
+/**
+ * Unposted comment text has nowhere to live but this component, and the component
+ * unmounts whenever the card panel closes. Persisting it means a mis-click can no
+ * longer cost a written comment — the text is waiting when the card reopens.
+ *
+ * Both editors, not just the new-comment box: it is precisely because *every*
+ * editor's text now survives an unmount that the card panel can drop its
+ * blocking "you have unsaved text" confirmation. Leave one editor unprotected
+ * and that guard has to come back for it.
+ */
+const commentDraft = useTextDraft(
+  () => (props.cardId ? `card:${props.cardId}:comment` : null),
+  draft
+)
+
+const editingComment = computed(() => comments.value.find(c => c.id === editingId.value))
+
+const commentEditDraft = useTextDraft(
+  () => (props.cardId && editingId.value ? `card:${props.cardId}:comment:${editingId.value}` : null),
+  editDraft,
+  () => editingComment.value?.body || ''
+)
+
+watch(cardIdRef, () => commentDraft.load(), { immediate: true })
+
 // Two-step inline confirm with a timeout, matching StatusManager — cards use a
 // simple confirm rather than type-name-to-confirm (see CLAUDE.md).
 const confirmDeleteId = ref<string | null>(null)
@@ -45,20 +70,6 @@ onBeforeUnmount(() => {
   if (confirmTimeout) clearTimeout(confirmTimeout)
 })
 
-/**
- * Whether this thread is holding text that would be lost on unmount, so a host that can
- * disappear (CardModal) can intercept its own close. An edit counts only once it actually
- * diverges from the stored comment — opening the editor and changing nothing is not work.
- */
-const hasUnsavedDraft = computed(() => {
-  if (draft.value.trim()) return true
-  if (!editingId.value) return false
-  const original = comments.value.find(c => c.id === editingId.value)?.body ?? ''
-  return editDraft.value.trim() !== original.trim()
-})
-
-defineExpose({ hasUnsavedDraft })
-
 function isOwn(comment: Comment): boolean {
   return !!comment.authorId && comment.authorId === currentUser.value?.id
 }
@@ -77,15 +88,27 @@ async function submit() {
   if (!body) return
   await add(body)
   draft.value = ''
+  commentDraft.clear()
+}
+
+function discardCommentDraft() {
+  draft.value = ''
+  commentDraft.clear()
 }
 
 function startEdit(comment: Comment) {
   cancelDelete()
   editingId.value = comment.id
   editDraft.value = comment.body
+  // The scope follows `editingId`, so this reads the draft belonging to the
+  // comment just opened rather than the one left behind.
+  commentEditDraft.load()
 }
 
 function cancelEdit() {
+  // Clear before dropping the id: the scope is derived from it, so releasing it
+  // first would leave the draft keyed to a comment nothing can reach.
+  commentEditDraft.clear()
   editingId.value = null
   editDraft.value = ''
 }
@@ -230,6 +253,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
             :data-comment-editor="comment.id"
             class="mt-1.5"
           >
+            <UiDraftNotice
+              v-if="commentEditDraft.restored.value"
+              label="edit"
+              class="mb-1.5"
+              @discard="cancelEdit"
+            />
+
             <DescriptionEditor
               v-model="editDraft"
               :members="members"
@@ -282,6 +312,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
       v-if="!readonly && cardId"
       data-comment-editor="new"
     >
+      <UiDraftNotice
+        v-if="commentDraft.restored.value"
+        label="comment"
+        class="mb-1.5"
+        @discard="discardCommentDraft"
+      />
+
       <DescriptionEditor
         v-model="draft"
         :members="members"

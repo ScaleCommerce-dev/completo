@@ -64,6 +64,13 @@ const selectedTagNames = computed(() => (projectTagsData.value || []).filter(t =
 // Sync from fetched data once loaded
 const synced = ref(false)
 
+/** See CardModal — the description is the one field a navigation can destroy. */
+const descriptionDraft = useTextDraft(
+  () => (card.value ? `card:${card.value.id}:description` : null),
+  description,
+  () => card.value?.description || ''
+)
+
 function populateFromCard(c: CardDetail) {
   title.value = c.title || ''
   description.value = c.description || ''
@@ -72,6 +79,10 @@ function populateFromCard(c: CardDetail) {
   selectedAssigneeId.value = c.assigneeId || UNASSIGNED
   selectedTagIds.value = (c.tags || []).map(t => t.id)
   selectedDueDate.value = toDateInput(c.dueDate)
+  // See CardModal: restoring into the read view would render unsaved text as if
+  // it were stored, so a restored draft opens the editor it belongs to.
+  descriptionDraft.load()
+  if (descriptionDraft.restored.value) editingDescription.value = true
 }
 
 watch(card, (c) => {
@@ -151,6 +162,17 @@ function formatDate(iso: string): string {
 function startEditingDescription() {
   editingDescription.value = true
   nextTick(() => descriptionEditorRef.value?.startEditing())
+}
+
+/**
+ * Same contract as CardModal: leaving the editor reverts, so the page never
+ * renders unsaved text as if it were stored. The draft survives an accidental
+ * navigation; an explicit cancel clears it.
+ */
+function cancelEditingDescription() {
+  description.value = card.value?.description || ''
+  editingDescription.value = false
+  descriptionDraft.clear()
 }
 
 /**
@@ -238,6 +260,7 @@ async function submit() {
       description: description.value.trim()
     })
     editingDescription.value = false
+    descriptionDraft.clear()
   } finally {
     saving.value = false
   }
@@ -482,6 +505,12 @@ async function confirmDelete() {
         </div>
 
         <!-- Description: edit mode -->
+        <UiDraftNotice
+          v-if="editingDescription && descriptionDraft.restored.value"
+          class="mb-1.5"
+          @discard="cancelEditingDescription"
+        />
+
         <DescriptionEditor
           v-if="editingDescription"
           ref="descriptionEditorRef"
@@ -494,7 +523,7 @@ async function confirmDelete() {
           :members="membersData"
           :card-id="card?.id"
           :min-height="240"
-          @escape="editingDescription = false"
+          @escape="cancelEditingDescription"
         />
 
         <!-- Description: read mode -->
