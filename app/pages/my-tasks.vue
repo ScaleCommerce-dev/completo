@@ -10,7 +10,8 @@ const {
   removeColumn,
   reorderColumns,
   toggleCollapse,
-  updateCard
+  updateCard,
+  updateCardTags
 } = useMyTasks()
 
 const showColumnConfig = ref(false)
@@ -21,6 +22,10 @@ function handleCardClick(card: { id: number }, projectSlug: string, projectKey: 
 
 async function handleInlineUpdate(cardId: number, updates: Record<string, unknown>) {
   await updateCard(cardId, updates)
+}
+
+async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
+  await updateCardTags(cardId, tagIds)
 }
 </script>
 
@@ -81,9 +86,11 @@ async function handleInlineUpdate(cardId: number, updates: Record<string, unknow
             :project-key="group.project.key"
             :project-slug="group.project.slug"
             :done-status-id="group.project.doneStatusId"
-            :read-only-fields="['status', 'assignee']"
+            :tags="group.tags"
+            :members="group.members"
             @card-click="(card) => handleCardClick(card, group.project.slug, group.project.key)"
             @update="handleInlineUpdate"
+            @update-tags="handleInlineTagUpdate"
           />
         </div>
       </div>

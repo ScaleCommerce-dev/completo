@@ -57,6 +57,23 @@ export default defineEventHandler(async (event) => {
     .where(inArray(schema.statuses.projectId, visibleProjectIds))
     .all()
 
+  // Tags and members per project, so My Tasks can edit the same fields a
+  // project's own list view can. Without them the tag and assignee cells fall
+  // back to read-only and the page renders the same table with fewer controls.
+  const allTags = db.select().from(schema.tags)
+    .where(inArray(schema.tags.projectId, visibleProjectIds))
+    .all()
+  const allMembers = db.select({
+    projectId: schema.projectMembers.projectId,
+    id: schema.users.id,
+    name: schema.users.name,
+    avatarUrl: schema.users.avatarUrl
+  })
+    .from(schema.projectMembers)
+    .innerJoin(schema.users, eq(schema.projectMembers.userId, schema.users.id))
+    .where(inArray(schema.projectMembers.projectId, visibleProjectIds))
+    .all()
+
   // ─── Group by project ───
   const groups = allProjects.map((project) => {
     const projectStatuses = allStatuses.filter(s => s.projectId === project.id)
@@ -89,6 +106,8 @@ export default defineEventHandler(async (event) => {
         doneRetentionDays: project.doneRetentionDays
       },
       statuses: projectStatuses.map(s => ({ id: s.id, name: s.name, color: s.color })),
+      tags: allTags.filter(t => t.projectId === project.id).map(t => ({ id: t.id, name: t.name, color: t.color })),
+      members: allMembers.filter(m => m.projectId === project.id).map(m => ({ id: m.id, name: m.name, avatarUrl: m.avatarUrl })),
       cards: cardsWithTags
     }
   }).filter(g => g.cards.length > 0)

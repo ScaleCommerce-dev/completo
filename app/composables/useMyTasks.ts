@@ -9,6 +9,8 @@ interface MyTasksGroup {
     doneRetentionDays: number | null
   }
   statuses: Array<{ id: string, name: string, color: string | null }>
+  tags: Array<{ id: string, name: string, color: string }>
+  members: Array<{ id: string, name: string, avatarUrl: string | null }>
   cards: Array<{
     id: number
     title: string
@@ -96,12 +98,24 @@ export function useMyTasks() {
     await refresh()
   }
 
-  // ─── Card updates (inline priority + done) ───
+  // ─── Card updates ───
   async function updateCard(cardId: number, updates: Record<string, unknown>) {
     try {
       await mutate(
         () => $fetch(`/api/cards/${cardId}`, { method: 'PUT', body: updates }),
         'Failed to update card'
+      )
+    } catch {
+      // error already toasted
+    }
+    await refresh()
+  }
+
+  async function updateCardTags(cardId: number, tagIds: string[]) {
+    try {
+      await mutate(
+        () => $fetch(`/api/cards/${cardId}/tags`, { method: 'PUT', body: { tagIds } }),
+        'Failed to update tags'
       )
     } catch {
       // error already toasted
@@ -120,6 +134,7 @@ export function useMyTasks() {
     removeColumn,
     reorderColumns,
     toggleCollapse,
-    updateCard
+    updateCard,
+    updateCardTags
   }
 }
