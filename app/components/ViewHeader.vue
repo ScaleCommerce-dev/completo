@@ -9,19 +9,24 @@
  * go in the `#title` slot, and the global chrome (notifications, search) comes
  * from UiPage for free.
  */
-interface ViewSwitcherItem {
-  label: string
-  icon: string
-  disabled?: boolean
-  onSelect: () => void
+import type { FieldMenuOption } from '~/types/field-menu'
+
+interface View {
+  id: string
+  name: string
+  slug: string
 }
 
 const props = defineProps<{
   projectName: string
   projectSlug: string
   viewName: string
-  viewIcon: string
-  viewSwitcherItems: ViewSwitcherItem[][]
+  /** Which kind of view this page is — picks the breadcrumb glyph. */
+  viewKind: 'board' | 'list'
+  /** Slug *or* id, whichever the route carried, so the current view can be marked. */
+  viewSlug: string
+  boards?: View[]
+  lists?: View[]
   cardCount: number
   activeFilterCount: number
   filterSummary: string
@@ -35,6 +40,43 @@ defineEmits<{
 useSeoMeta({
   title: () => `${props.viewName} · ${props.projectName} · Completo`
 })
+
+const KIND_ICON = { board: 'i-lucide-layout-dashboard', list: 'i-lucide-list' } as const
+
+/**
+ * Switching view is the same act as picking a status — one from a list, the
+ * current one marked — so it is the same menu. See `FieldMenu`.
+ *
+ * It was a bare `UDropdownMenu` fed by a builder duplicated across the board and
+ * the list page, and the two copies marked the current view by *swapping its
+ * icon for a check* and disabling the row. That cost twice: the view you are
+ * looking at was the one row that didn't say whether it was a board or a list,
+ * and it rendered greyed out, which reads as "unavailable" rather than "you are
+ * here". `FieldMenu` puts the check in the trailing slot, so the type glyph
+ * stays where it is on every row.
+ *
+ * One flat list rather than a group per kind: the glyph already says which is
+ * which, and a project's views are few enough that two headers would be more
+ * furniture than the list itself.
+ */
+const isCurrent = (view: View) => view.slug === props.viewSlug || view.id === props.viewSlug
+
+const viewOptions = computed<FieldMenuOption[]>(() => [
+  ...(props.boards || []).map(board => ({
+    key: `board:${board.id}`,
+    label: board.name,
+    checked: props.viewKind === 'board' && isCurrent(board),
+    icon: KIND_ICON.board,
+    onSelect: () => navigateTo(`/projects/${props.projectSlug}/boards/${board.slug || board.id}`)
+  })),
+  ...(props.lists || []).map(list => ({
+    key: `list:${list.id}`,
+    label: list.name,
+    checked: props.viewKind === 'list' && isCurrent(list),
+    icon: KIND_ICON.list,
+    onSelect: () => navigateTo(`/projects/${props.projectSlug}/lists/${list.slug || list.id}`)
+  }))
+])
 </script>
 
 <template>
@@ -57,23 +99,34 @@ useSeoMeta({
           name="i-lucide-chevron-right"
           class="size-3.5 text-dimmed shrink-0 max-md:hidden"
         />
-        <UDropdownMenu :items="viewSwitcherItems">
-          <button
-            type="button"
-            class="group/name flex items-center gap-1.5 font-bold tracking-[-0.01em] text-highlighted cursor-pointer hover:text-primary transition-colors min-w-0"
-            aria-label="Switch view"
-          >
-            <UIcon
-              :name="viewIcon"
-              class="size-4 shrink-0 text-dimmed"
-            />
-            <span class="truncate max-w-60">{{ viewName }}</span>
-            <UIcon
-              name="i-lucide-chevron-down"
-              class="size-3 text-dimmed shrink-0 opacity-40 group-hover/name:opacity-100 transition-opacity"
-            />
-          </button>
-        </UDropdownMenu>
+        <FieldMenu
+          label="Views"
+          :options="viewOptions"
+        >
+          <UTooltip text="Switch view">
+            <button
+              type="button"
+              class="group/name flex items-center gap-1.5 font-bold tracking-[-0.01em] text-highlighted cursor-pointer hover:text-primary transition-colors min-w-0"
+              :aria-label="`Switch view — currently ${viewName}`"
+            >
+              <UIcon
+                :name="KIND_ICON[viewKind]"
+                class="size-4 shrink-0 text-dimmed"
+              />
+              <span class="truncate max-w-60">{{ viewName }}</span>
+              <!--
+                Steady, not `opacity-40` fading in on hover. This is the only
+                thing marking the view name as a control, and a project's header
+                carries exactly one of them — the quiet-until-hovered treatment
+                belongs to the list cells, where there are dozens per screen.
+              -->
+              <UIcon
+                name="i-lucide-chevron-down"
+                class="size-3 shrink-0 text-dimmed group-hover/name:text-primary transition-colors"
+              />
+            </button>
+          </UTooltip>
+        </FieldMenu>
       </nav>
     </template>
 

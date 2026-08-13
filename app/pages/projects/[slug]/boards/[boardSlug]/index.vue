@@ -43,7 +43,19 @@ watch(boardError, (err) => {
   if (err) showError(err)
 }, { immediate: true })
 
+interface View {
+  id: string
+  name: string
+  slug: string
+}
+
 const { data: projectData } = await useFetch(`/api/projects/${projectSlug}`)
+
+/** The project's other views, for the switcher in `ViewHeader`. */
+const projectViews = computed(() => {
+  const project = projectData.value as { boards?: View[], lists?: View[] } | null
+  return { boards: project?.boards || [], lists: project?.lists || [] }
+})
 
 // Derive flat card list from cardsByColumn for the shared composable
 const allCards = computed(() => {
@@ -82,36 +94,6 @@ const {
   createCard,
   updateCard,
   deleteCard
-})
-
-interface ViewSwitcherItem {
-  label: string
-  icon: string
-  disabled?: boolean
-  onSelect: () => void
-}
-
-const viewSwitcherItems = computed(() => {
-  const pd = projectData.value as { boards?: Array<{ id: string, name: string, slug: string }>, lists?: Array<{ id: string, name: string, slug: string }> } | null
-  const boards = pd?.boards || []
-  const lists = pd?.lists || []
-  const items: ViewSwitcherItem[][] = []
-  if (boards.length) {
-    items.push(boards.map(b => ({
-      label: b.name,
-      icon: b.slug === boardSlug || b.id === boardSlug ? 'i-lucide-check' : 'i-lucide-layout-dashboard',
-      disabled: b.slug === boardSlug || b.id === boardSlug,
-      onSelect: () => navigateTo(`/projects/${projectSlug}/boards/${b.slug || b.id}`)
-    })))
-  }
-  if (lists.length) {
-    items.push(lists.map(l => ({
-      label: l.name,
-      icon: 'i-lucide-list',
-      onSelect: () => navigateTo(`/projects/${projectSlug}/lists/${l.slug || l.id}`)
-    })))
-  }
-  return items
 })
 
 const showColumnConfig = ref(false)
@@ -169,8 +151,10 @@ async function handleDeleteBoard() {
     :project-name="board?.project?.name || ''"
     :project-slug="projectSlug"
     :view-name="board?.name || ''"
-    view-icon="i-lucide-layout-dashboard"
-    :view-switcher-items="viewSwitcherItems"
+    view-kind="board"
+    :view-slug="boardSlug"
+    :boards="projectViews.boards"
+    :lists="projectViews.lists"
     :card-count="visibleCardCount"
     :active-filter-count="activeFilterCount"
     :filter-summary="filterSummary"

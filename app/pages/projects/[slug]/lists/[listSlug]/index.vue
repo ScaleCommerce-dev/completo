@@ -41,7 +41,19 @@ watch(listError, (err) => {
   if (err) showError(err)
 }, { immediate: true })
 
+interface View {
+  id: string
+  name: string
+  slug: string
+}
+
 const { data: projectData } = await useFetch(`/api/projects/${projectSlug}`)
+
+/** The project's other views, for the switcher in `ViewHeader`. */
+const projectViews = computed(() => {
+  const project = projectData.value as { boards?: View[], lists?: View[] } | null
+  return { boards: project?.boards || [], lists: project?.lists || [] }
+})
 
 const {
   activeTagFilters,
@@ -72,36 +84,6 @@ const {
   createCard,
   updateCard,
   deleteCard
-})
-
-interface ViewSwitcherItem {
-  label: string
-  icon: string
-  disabled?: boolean
-  onSelect: () => void
-}
-
-const viewSwitcherItems = computed(() => {
-  const pd = projectData.value as { boards?: Array<{ id: string, name: string, slug: string }>, lists?: Array<{ id: string, name: string, slug: string }> } | null
-  const boards = pd?.boards || []
-  const lists = pd?.lists || []
-  const items: ViewSwitcherItem[][] = []
-  if (boards.length) {
-    items.push(boards.map(b => ({
-      label: b.name,
-      icon: 'i-lucide-layout-dashboard',
-      onSelect: () => navigateTo(`/projects/${projectSlug}/boards/${b.slug || b.id}`)
-    })))
-  }
-  if (lists.length) {
-    items.push(lists.map(l => ({
-      label: l.name,
-      icon: l.slug === listSlug || l.id === listSlug ? 'i-lucide-check' : 'i-lucide-list',
-      disabled: l.slug === listSlug || l.id === listSlug,
-      onSelect: () => navigateTo(`/projects/${projectSlug}/lists/${l.slug || l.id}`)
-    })))
-  }
-  return items
 })
 
 const showColumnConfig = ref(false)
@@ -153,8 +135,10 @@ async function handleDeleteList() {
     :project-name="list?.project?.name || ''"
     :project-slug="projectSlug"
     :view-name="list?.name || ''"
-    view-icon="i-lucide-list"
-    :view-switcher-items="viewSwitcherItems"
+    view-kind="list"
+    :view-slug="listSlug"
+    :boards="projectViews.boards"
+    :lists="projectViews.lists"
     :card-count="visibleCardCount"
     :active-filter-count="activeFilterCount"
     :filter-summary="filterSummary"
