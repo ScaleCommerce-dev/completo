@@ -175,95 +175,63 @@ function cancelEditingDescription() {
   descriptionDraft.clear()
 }
 
+const descriptionDirty = computed(() =>
+  description.value.trim() !== (card.value?.description || '').trim()
+)
+
 /**
- * What is genuinely unsaved. Properties are no longer in here: they persist as
- * they change, so listing them meant the leave guard fired over a status the
- * server had already accepted.
+ * Leaving is unconditional, as it is on the card panel.
  *
- * Title is included because it is debounced — normally settled within a second,
- * but a navigation inside that window still has something to flush.
+ * This page used to hold a route guard, a modal and a `beforeunload` handler for
+ * text that had nowhere to live. It lives somewhere now: the description is
+ * drafted locally as it is typed and comes back, announced, when the card is
+ * reopened — on this page or in the panel, since both key the draft to the card
+ * rather than the surface. The title is debounced rather than a draft, so it is
+ * still flushed on the way out; that is a commit, not a question.
  */
-const isDirty = computed(() => {
-  if (!card.value) return false
-  return title.value !== (card.value.title || '')
-    || description.value !== (card.value.description || '')
-})
-
-// Warn before leaving with unsaved changes
-const showLeaveWarning = ref(false)
-let pendingNavigation: (() => void) | null = null
-let allowLeave = false
-
-onBeforeRouteLeave((to) => {
-  if (allowLeave) return true
-  // Commit any title keystrokes the debounce hasn't flushed, so the guard only
-  // ever fires over a description that is actually still a draft.
+onBeforeRouteLeave(() => {
   flushTitle()
-  if (isDirty.value) {
-    showLeaveWarning.value = true
-    const path = to.fullPath
-    pendingNavigation = () => navigateTo(path)
-    return false
-  }
-})
-
-function confirmLeave() {
-  showLeaveWarning.value = false
-  allowLeave = true
-  const nav = pendingNavigation
-  pendingNavigation = null
-  nav?.()
-}
-
-function cancelLeave() {
-  showLeaveWarning.value = false
-  pendingNavigation = null
-}
-
-function onBeforeUnload(e: BeforeUnloadEvent) {
-  if (isDirty.value) {
-    e.preventDefault()
-  }
-}
-
-function handleKeydown(e: KeyboardEvent) {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-    // A nested editor claims the shortcut for itself, so Cmd+Enter follows focus:
-    // in the comment box it posts the comment instead of saving the card.
-    if ((e.target as HTMLElement | null)?.closest?.('[data-comment-editor]')) return
-    e.preventDefault()
-    e.stopImmediatePropagation()
-    submit()
-  }
-}
-
-onMounted(() => {
-  window.addEventListener('beforeunload', onBeforeUnload)
-  document.addEventListener('keydown', handleKeydown, true)
-})
-onUnmounted(() => {
-  window.removeEventListener('beforeunload', onBeforeUnload)
-  document.removeEventListener('keydown', handleKeydown, true)
 })
 
 /**
- * Commits the description, and the title if the debounce hasn't already. The
- * properties this used to send are saved the moment they change, so sending them
- * again here would be a second write of values the server already holds.
+ * ⌘↵ commits the editor you are in — see CardModal for the routing. A comment
+ * editor claims it first; otherwise it belongs to the description, which is the
+ * only thing on this page that is still explicitly saved.
+ */
+function handleKeydown(e: KeyboardEvent) {
+  if (!((e.metaKey || e.ctrlKey) && e.key === 'Enter')) return
+  if ((e.target as HTMLElement | null)?.closest?.('[data-comment-editor]')) return
+  if (!editingDescription.value) return
+  e.preventDefault()
+  e.stopImmediatePropagation()
+  submit()
+}
+
+onMounted(() => document.addEventListener('keydown', handleKeydown, true))
+onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
+
+/**
+ * Commits the description, from the button under the editor it belongs to. The
+ * properties this used to send save the moment they change, and the title saves
+ * on blur, so this is the last field on the page that is still a draft.
  */
 async function submit() {
-  if (!title.value.trim() || !card.value || !isDirty.value) return
+  if (!card.value || !descriptionDirty.value) return
   saving.value = true
   try {
-    await persist({
-      title: title.value.trim(),
-      description: description.value.trim()
-    })
+    await persist({ description: description.value.trim() })
     editingDescription.value = false
     descriptionDraft.clear()
   } finally {
     saving.value = false
   }
+}
+
+/** See CardModal — click the prose, but never at the cost of a link or a selection. */
+function onProseClick(e: MouseEvent) {
+  if ((e.target as HTMLElement | null)?.closest('a')) return
+  if (!window.getSelection()?.isCollapsed) return
+  startEditingDescription()
 }
 
 async function confirmDelete() {
@@ -316,11 +284,12 @@ async function confirmDelete() {
       }]"
     />
 
-    <!-- Card detail: two-panel layout -->
-    <form
+    <!-- Card detail: two-panel layout. Not a <form> any more — there is no submit
+         button left to own, since every field commits itself and the description
+         commits from the button beside its editor. -->
+    <div
       v-else-if="card"
       class="flex flex-col lg:flex-row gap-6 lg:items-start"
-      @submit.prevent="submit"
     >
       <!-- ═══ SIDEBAR — properties, priority, actions (sticky on desktop) ═══ -->
       <aside class="w-full lg:w-[304px] shrink-0 lg:order-2 lg:sticky lg:top-4">
@@ -397,76 +366,19 @@ async function confirmDelete() {
             </div>
           </dl>
 
-          <!-- Actions -->
-          <div class="px-4 py-3 border-t border-muted flex flex-col gap-2">
+          <!-- Actions. No Save: every field here commits itself, and the
+               description commits from the button under its own editor. What is
+               left is the one action that isn't a field. -->
+          <div class="px-4 py-3 border-t border-muted">
             <UButton
-              type="submit"
-              label="Save"
+              label="Delete card"
+              icon="i-lucide-trash-2"
+              color="error"
+              variant="ghost"
+              size="sm"
               block
-              :loading="saving"
-              :disabled="!title.trim() || !isDirty"
-            >
-              <template #trailing>
-                <UKbd
-                  value="meta"
-                  size="sm"
-                />
-                <UKbd
-                  value="enter"
-                  size="sm"
-                />
-              </template>
-            </UButton>
-
-            <!-- Delete confirmation -->
-            <div
-              v-if="showDeleteConfirm"
-              class="rounded-lg border border-error/30 bg-red-50/50 dark:bg-red-950/20 p-3 flex flex-col gap-2"
-            >
-              <p class="text-xs font-medium text-error leading-relaxed">
-                Are you sure you want to delete this card?
-              </p>
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  :disabled="deletingCard"
-                  @click="confirmDelete"
-                >
-                  <UIcon
-                    v-if="!deletingCard"
-                    name="i-lucide-trash-2"
-                    class="text-sm"
-                  />
-                  <UIcon
-                    v-else
-                    name="i-lucide-loader-2"
-                    class="text-sm animate-spin"
-                  />
-                  Delete
-                </button>
-                <button
-                  type="button"
-                  class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
-                  @click="showDeleteConfirm = false"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-
-            <button
-              v-else
-              type="button"
-              class="w-full flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-dimmed hover:text-error hover:bg-error/10 transition-colors"
               @click="showDeleteConfirm = true"
-            >
-              <UIcon
-                name="i-lucide-trash-2"
-                class="text-xs"
-              />
-              Delete card
-            </button>
+            />
           </div>
         </div>
       </aside>
@@ -481,6 +393,7 @@ async function confirmDelete() {
           placeholder="Card title..."
           class="w-full text-xl font-bold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.015em] leading-snug py-2 mb-4 transition-colors"
           @blur="flushTitle"
+          @keydown.enter.prevent="flushTitle"
         >
 
         <!-- Description header -->
@@ -511,25 +424,47 @@ async function confirmDelete() {
           @discard="cancelEditingDescription"
         />
 
-        <DescriptionEditor
-          v-if="editingDescription"
-          ref="descriptionEditorRef"
-          v-model="description"
-          :title="title"
-          :tags="selectedTagNames"
-          :priority="priority"
-          :project-slug="projectSlug"
-          :project-key="projectKey"
-          :members="membersData"
-          :card-id="card?.id"
-          :min-height="240"
-          @escape="cancelEditingDescription"
-        />
+        <template v-if="editingDescription">
+          <DescriptionEditor
+            ref="descriptionEditorRef"
+            v-model="description"
+            :title="title"
+            :tags="selectedTagNames"
+            :priority="priority"
+            :project-slug="projectSlug"
+            :project-key="projectKey"
+            :members="membersData"
+            :card-id="card?.id"
+            :min-height="240"
+            @escape="cancelEditingDescription"
+          />
 
-        <!-- Description: read mode -->
+          <div class="flex items-center gap-2 mt-2">
+            <UButton
+              size="xs"
+              :loading="saving"
+              :disabled="!descriptionDirty"
+              @click="submit"
+            >
+              Save
+              <UKbd value="meta" />
+              <UKbd value="enter" />
+            </UButton>
+            <UButton
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              label="Cancel"
+              @click="cancelEditingDescription"
+            />
+          </div>
+        </template>
+
+        <!-- Description: read mode. The prose is the edit target; see CardModal. -->
         <div
           v-else-if="description"
-          class="select-text"
+          class="select-text rounded-lg -mx-1.5 px-1.5 py-1 hover:bg-muted/60 transition-colors"
+          @click="onProseClick"
         >
           <ProseDescription :content="description" />
         </div>
@@ -548,45 +483,16 @@ async function confirmDelete() {
           :can-moderate="canModerateComments"
         />
       </div>
-    </form>
+    </div>
 
-    <!-- Unsaved changes warning -->
-    <UModal
-      v-model:open="showLeaveWarning"
-      :ui="{ content: 'sm:max-w-[400px]', header: 'hidden', footer: 'hidden', body: 'p-0 sm:p-0' }"
-    >
-      <template #body>
-        <div class="p-5 flex flex-col items-center text-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
-            <UIcon
-              name="i-lucide-triangle-alert"
-              class="text-xl text-warning"
-            />
-          </div>
-          <p class="text-base font-semibold text-highlighted">
-            Unsaved changes
-          </p>
-          <p class="text-sm text-muted leading-relaxed">
-            You have unsaved changes that will be lost if you leave this page.
-          </p>
-          <div class="flex items-center gap-2 mt-1 w-full">
-            <button
-              type="button"
-              class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-toned bg-elevated hover:bg-accented transition-colors"
-              @click="cancelLeave"
-            >
-              Stay
-            </button>
-            <button
-              type="button"
-              class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors"
-              @click="confirmLeave"
-            >
-              Leave
-            </button>
-          </div>
-        </div>
-      </template>
-    </UModal>
+    <!-- The one destructive idiom, shared with the card panel. -->
+    <UiConfirmDialog
+      v-model:open="showDeleteConfirm"
+      title="Delete this card?"
+      description="Its comments and attachments go with it. This cannot be undone."
+      action-label="Delete card"
+      :loading="deletingCard"
+      @confirm="confirmDelete"
+    />
   </UiPage>
 </template>

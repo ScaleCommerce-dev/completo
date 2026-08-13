@@ -195,6 +195,21 @@ function startEditingDescription() {
 }
 
 /**
+ * Click the paragraph to edit it — without costing prose the two things prose is
+ * for. A click that landed on a link follows the link, and a click that ends a
+ * selection is somebody copying a line out, not somebody asking to rewrite it.
+ *
+ * This is why the rendered description is a `div` and not a `button`: a button
+ * cannot legally contain the links a description routinely has, and it would
+ * swallow the drag-select as a press.
+ */
+function onProseClick(e: MouseEvent) {
+  if ((e.target as HTMLElement | null)?.closest('a')) return
+  if (!window.getSelection()?.isCollapsed) return
+  startEditingDescription()
+}
+
+/**
  * Leaving the editor without saving must not leave the typed text on screen
  * looking saved.
  *
@@ -210,17 +225,35 @@ function cancelEditingDescription() {
   descriptionDraft.clear()
 }
 
+/** Create needs a title and somewhere to put the card. Nothing else is batched. */
+const canSubmit = computed(() => !!title.value.trim() && !!selectedStatusId.value)
+
+const descriptionDirty = computed(() =>
+  description.value.trim() !== (props.card?.description || '').trim()
+)
+
 /**
- * What Save still has to do. Creating needs a title; editing needs something
- * genuinely pending — which, now that properties persist themselves, means the
- * description differs (or an unflushed title does).
+ * The description commits itself, from a button that sits under the editor it
+ * belongs to.
+ *
+ * It used to be the panel's footer Save — a button in a different region, past
+ * the attachments and every comment, sharing a row with Delete. On a card with a
+ * thread that is several hundred pixels below the editor you are typing in, and
+ * it is the same button whether you have written a description or not. Every
+ * other field on this panel already saves where it lives; this is the last one
+ * that didn't.
+ *
+ * Deliberately still explicit rather than autosaved. The editor is a markdown
+ * textarea, so writing and reading are different modes, and a mode you leave by
+ * saving is honest about that. When the editors become WYSIWYG this can become
+ * a blur-and-debounce like the title.
  */
-const canSubmit = computed(() => {
-  if (!title.value.trim()) return false
-  if (!isEdit.value) return true
-  return description.value.trim() !== (props.card?.description || '').trim()
-    || title.value.trim() !== (props.card?.title || '')
-})
+function saveDescription() {
+  if (!props.card || !descriptionDirty.value) return
+  emit('update', props.card.id, { description: description.value.trim() })
+  editingDescription.value = false
+  descriptionDraft.clear()
+}
 
 function reset() {
   title.value = ''
@@ -235,26 +268,19 @@ function reset() {
   showDraftDiscardConfirm.value = false
 }
 
+/**
+ * Create only. An existing card has nothing left to batch: its properties save on
+ * change, its title on blur, its description from its own button — so the panel
+ * stopped carrying a Save at all rather than keeping one that is disabled for the
+ * whole life of the card and enabled for the seconds between typing a description
+ * and committing it.
+ */
 function submit() {
-  // The same condition the Save button is disabled by. Without it ⌘↵ wrote and
-  // closed a card nobody had edited — a redundant PUT that still moved
-  // `updatedAt`, so merely reading a card and pressing ⌘↵ to dismiss it marked
-  // the card as changed.
-  if (!canSubmit.value || !selectedStatusId.value) return
+  if (isEdit.value || !canSubmit.value) return
 
   const assigneeId = selectedAssigneeId.value === UNASSIGNED ? null : selectedAssigneeId.value
 
-  if (isEdit.value) {
-    // Properties already saved themselves as they changed, so this commits the
-    // description — the only field on an existing card that is still a draft —
-    // plus any title keystrokes the debounce hasn't flushed yet.
-    emit('update', props.card!.id, {
-      title: title.value.trim(),
-      description: description.value.trim()
-    })
-    editingDescription.value = false
-    descriptionDraft.clear()
-  } else if (draftCardId.value) {
+  if (draftCardId.value) {
     // Draft was auto-created for attachments — update it with final form data
     emit('update', draftCardId.value, {
       title: title.value.trim(),
@@ -280,6 +306,13 @@ function submit() {
 
   open.value = false
 }
+
+const cardMenuItems = computed(() => [[{
+  label: 'Delete card',
+  icon: 'i-lucide-trash-2',
+  color: 'error' as const,
+  onSelect: () => { showDeleteConfirm.value = true }
+}]])
 
 function confirmDelete() {
   if (!props.card) return
@@ -317,15 +350,34 @@ watch(showDraftDiscardConfirm, (shown) => {
   nextTick(() => keepEditingRef.value?.$el?.focus())
 })
 
+/**
+ * ⌘↵ commits the editor you are in.
+ *
+ * A comment editor claims it first — that check is containment, not listener
+ * order, so neither side depends on which component mounted (see CommentList).
+ * Otherwise, on an existing card the only thing that can be committed is the
+ * description, and on a new card the only thing is the card itself.
+ *
+ * Note the description branch doesn't require focus to be *inside* the editor:
+ * open it, click a status, hit ⌘↵ and the intent is unambiguous, since nothing
+ * else on an existing card is pending. Falling through to "nothing happens"
+ * there would look like the shortcut had broken.
+ */
 function handleKeydown(e: KeyboardEvent) {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-    // A nested editor claims the shortcut for itself, so Cmd+Enter follows focus:
-    // in the comment box it posts the comment instead of saving the card.
-    if ((e.target as HTMLElement | null)?.closest?.('[data-comment-editor]')) return
+  if (!((e.metaKey || e.ctrlKey) && e.key === 'Enter')) return
+  if ((e.target as HTMLElement | null)?.closest?.('[data-comment-editor]')) return
+
+  if (isEdit.value) {
+    if (!editingDescription.value) return
     e.preventDefault()
     e.stopImmediatePropagation()
-    submit()
+    saveDescription()
+    return
   }
+
+  e.preventDefault()
+  e.stopImmediatePropagation()
+  submit()
 }
 
 watch(open, (isOpen) => {
@@ -421,6 +473,26 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           class="text-2xs font-semibold uppercase tracking-[0.08em] text-dimmed"
         >New card</span>
 
+        <!-- Card-level actions. Delete lives here rather than in the footer
+             because the footer is gone on an existing card: with the description
+             committing itself there is no Save to sit beside, and a pinned bar
+             holding one destructive button is a bar that exists to hold a
+             destructive button. -->
+        <UDropdownMenu
+          v-if="isEdit"
+          :items="cardMenuItems"
+          :content="FIELD_MENU_ALIGN_END"
+        >
+          <UButton
+            icon="i-lucide-ellipsis"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Card actions"
+            class="ml-auto shrink-0"
+          />
+        </UDropdownMenu>
+
         <!-- Our own close, because overriding #header replaces the panel's default
              header content — the button included. Esc and clicking outside both route
              through the same `open` setter, so all three honour the discard guards. -->
@@ -430,7 +502,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           variant="ghost"
           size="sm"
           aria-label="Close card"
-          class="ml-auto -mr-1.5 shrink-0"
+          class="-mr-1.5 shrink-0"
+          :class="isEdit ? '' : 'ml-auto'"
           @click="open = false"
         />
       </div>
@@ -510,33 +583,63 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             </button>
           </div>
 
-          <UiDraftNotice
-            v-if="editingDescription && descriptionDraft.restored.value"
-            class="mb-1.5"
-            @discard="cancelEditingDescription"
-          />
+          <div v-if="editingDescription">
+            <UiDraftNotice
+              v-if="descriptionDraft.restored.value"
+              class="mb-1.5"
+              @discard="cancelEditingDescription"
+            />
 
-          <DescriptionEditor
-            v-if="editingDescription"
-            ref="descriptionEditorRef"
-            v-model="description"
-            :title="title"
-            :tags="selectedTagNames"
-            :priority="priority"
-            :project-slug="projectSlug"
-            :project-key="projectKey"
-            :members="members"
-            :card-id="card?.id"
-            :min-height="120"
-            :max-height="360"
-            @escape="cancelEditingDescription"
-          />
+            <DescriptionEditor
+              ref="descriptionEditorRef"
+              v-model="description"
+              :title="title"
+              :tags="selectedTagNames"
+              :priority="priority"
+              :project-slug="projectSlug"
+              :project-key="projectKey"
+              :members="members"
+              :card-id="card?.id"
+              :min-height="120"
+              :max-height="360"
+              @escape="cancelEditingDescription"
+            />
+
+            <!-- The description's own commit, under the editor it belongs to.
+                 Same shape as the comment composer's, because they are the same
+                 act: write prose, then decide to keep it. -->
+            <div class="flex items-center gap-2 mt-2">
+              <UButton
+                size="xs"
+                :disabled="!descriptionDirty"
+                @click="saveDescription"
+              >
+                Save
+                <UKbd value="meta" />
+                <UKbd value="enter" />
+              </UButton>
+              <UButton
+                size="xs"
+                variant="ghost"
+                color="neutral"
+                label="Cancel"
+                @click="cancelEditingDescription"
+              />
+            </div>
+          </div>
+
           <!-- No inner scroll box. The panel already scrolls, and a scroll area
                nested inside one traps the wheel over whichever half you happen to
-               be pointing at. -->
+               be pointing at.
+
+               The prose is the edit target. Hunting for a 19px "Edit" button to
+               change a paragraph you are already looking at is the mode showing
+               through; clicking the thing you want to change is not. The button
+               stays for discoverability and for keyboard reach. -->
           <div
             v-else-if="description"
-            class="select-text"
+            class="select-text rounded-lg -mx-1.5 px-1.5 py-1 hover:bg-muted/60 transition-colors"
+            @click="onProseClick"
           >
             <ProseDescription :content="description" />
           </div>
@@ -567,33 +670,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
       </div>
     </template>
 
-    <template #footer>
-      <!-- Delete confirmation (edit mode only) -->
-      <div
-        v-if="isEdit && showDeleteConfirm"
-        class="mb-3 rounded-lg border border-error/30 bg-error/5 p-3 flex flex-col gap-2"
-      >
-        <p class="text-xs font-medium text-error leading-relaxed">
-          Are you sure you want to delete this card?
-        </p>
-        <div class="flex items-center gap-2">
-          <UButton
-            color="error"
-            icon="i-lucide-trash-2"
-            label="Delete"
-            size="sm"
-            @click="confirmDelete"
-          />
-          <UButton
-            color="neutral"
-            variant="ghost"
-            label="Cancel"
-            size="sm"
-            @click="showDeleteConfirm = false"
-          />
-        </div>
-      </div>
-
+    <!--
+      Edit mode has no footer at all. Properties save on change, the title on
+      blur, the description from its own button — so a pinned action bar would
+      hold nothing but Delete, and Delete belongs with the card's other
+      card-level actions in the header menu. The body gains the height back.
+    -->
+    <template
+      v-if="!isEdit"
+      #footer
+    >
       <!-- Draft discard confirmation (create mode with draft) -->
       <div
         v-if="showDraftDiscardConfirm"
@@ -621,33 +707,33 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         </div>
       </div>
 
-      <!-- Actions. Destructive far left, primary last — the fixed order UiSaveBar
-           established, so the same two buttons never swap places between surfaces. -->
-      <div class="flex items-center gap-2">
+      <div class="flex items-center justify-end">
         <UButton
-          v-if="isEdit && !showDeleteConfirm"
-          color="error"
-          variant="ghost"
-          icon="i-lucide-trash-2"
-          label="Delete"
-          size="sm"
-          class="mr-auto"
-          @click="showDeleteConfirm = true"
-        />
-        <span
-          v-else
-          class="mr-auto"
-        />
-        <span class="text-2xs font-mono text-dimmed hidden sm:block">
-          <kbd class="px-1 py-0.5 rounded-md bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
-        </span>
-        <UButton
-          :label="isEdit ? 'Save' : 'Create'"
-          :icon="isEdit ? undefined : 'i-lucide-plus'"
+          label="Create"
+          icon="i-lucide-plus"
           :disabled="!canSubmit"
           @click="submit"
-        />
+        >
+          <template #trailing>
+            <UKbd value="meta" />
+            <UKbd value="enter" />
+          </template>
+        </UButton>
       </div>
     </template>
   </USlideover>
+
+  <!-- One destructive idiom, the one CLAUDE.md names. No `confirmText`: a card is
+       cheap to recreate, so it is a single click rather than type-the-name.
+
+       A sibling of the slideover, never a child: USlideover's default slot is its
+       *trigger*, so a dialog placed there renders into the page behind the panel —
+       centred, with its buttons under the panel's left edge and unclickable. -->
+  <UiConfirmDialog
+    v-model:open="showDeleteConfirm"
+    title="Delete this card?"
+    description="Its comments and attachments go with it. This cannot be undone."
+    action-label="Delete card"
+    @confirm="confirmDelete"
+  />
 </template>
