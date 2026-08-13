@@ -205,7 +205,6 @@ async function handleDeleteBoard() {
       @quick-add="(columnId: string, title: string) => createCard(columnId, title)"
       @add-column="(name: string, color?: string) => addColumn(name, color)"
       @link-column="linkColumn"
-      @configure="showColumnConfig = true"
     />
 
     <CardModal

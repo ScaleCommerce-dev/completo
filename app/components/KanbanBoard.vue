@@ -28,7 +28,6 @@ const emit = defineEmits<{
   'quick-add': [columnId: string, title: string]
   'add-column': [name: string, color?: string]
   'link-column': [columnId: string]
-  'configure': []
 }>()
 
 function handleCardChange(columnId: string, evt: { added?: { element: { id: number }, newIndex: number }, moved?: { element: { id: number }, newIndex: number } }) {
@@ -124,14 +123,12 @@ watch(() => _props.columns.length, () => nextTick(updateFade))
       :cards="cardsByColumn[column.id] || []"
       :accent-color="column.color || undefined"
       :is-done="column.id === doneStatusId"
-      :can-configure="canConfigureColumns"
       :index="i"
       @card-click="(card) => emit('card-click', card)"
       @card-change="(evt) => handleCardChange(column.id, evt)"
       @card-update="(cardId, updates) => emit('card-update', cardId, updates)"
       @add-card="emit('add-card', column.id)"
       @quick-add="(title) => emit('quick-add', column.id, title)"
-      @configure="emit('configure')"
     />
 
     <!-- Add column -->

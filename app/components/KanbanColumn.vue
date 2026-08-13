@@ -8,8 +8,12 @@ import type { BoardCard, CardStatus } from '~/types/card'
  *  - The column now reads as a tray. Its fill was a 50-shade neutral at 80%
  *    opacity on white, which is almost invisible, so cards appeared to float on
  *    the page rather than sit in a container.
- *  - There is an overflow menu. Renaming, recolouring or unlinking a column was
- *    only reachable through the view's Settings dialog.
+ *  - The header carries one control, `+`. It briefly also had a `…` menu, whose
+ *    two entries were "Add a card" (the same thing as `+`, one click further
+ *    away) and "Column settings", which opened the *board's* settings dialog —
+ *    already one click away in the view header, and not per-column at all
+ *    despite where it was hung. A menu that only restates its neighbours is
+ *    noise on a control that repeats once per column.
  *  - "New card" opens an inline composer instead of a 640px modal. All three
  *    previous add paths opened the full modal for what is usually one line of
  *    text.
@@ -25,7 +29,6 @@ const props = defineProps<{
   cards: BoardCard[]
   accentColor?: string
   isDone?: boolean
-  canConfigure?: boolean
   /** Stagger index for the first-mount reveal. */
   index?: number
 }>()
@@ -36,7 +39,6 @@ const emit = defineEmits<{
   'card-update': [cardId: number, updates: Record<string, unknown>]
   'add-card': []
   'quick-add': [title: string]
-  'configure': []
 }>()
 
 // Use vuedraggable's :list mode (mutates this array directly) instead of
@@ -102,15 +104,6 @@ function cancelComposing() {
 const countLabel = computed(() =>
   `${props.cards.length} ${props.cards.length === 1 ? 'card' : 'cards'}`
 )
-
-const menuItems = computed(() => [[
-  { label: 'Add a card', icon: 'i-lucide-plus', onSelect: startComposing },
-  {
-    label: 'Column settings',
-    icon: 'i-lucide-settings-2',
-    onSelect: () => emit('configure')
-  }
-]])
 </script>
 
 <template>
@@ -137,29 +130,15 @@ const menuItems = computed(() => [[
       </h3>
       <span class="text-xs font-mono tabular-nums text-dimmed shrink-0">{{ cards.length }}</span>
 
-      <div class="ml-auto flex items-center shrink-0">
-        <UButton
-          icon="i-lucide-plus"
-          variant="ghost"
-          color="neutral"
-          size="xs"
-          :aria-label="`Add a card to ${column.name}`"
-          @click="startComposing"
-        />
-        <UDropdownMenu
-          v-if="canConfigure"
-          :items="menuItems"
-          :content="{ align: 'end' }"
-        >
-          <UButton
-            icon="i-lucide-ellipsis"
-            variant="ghost"
-            color="neutral"
-            size="xs"
-            :aria-label="`${column.name} column options`"
-          />
-        </UDropdownMenu>
-      </div>
+      <UButton
+        icon="i-lucide-plus"
+        variant="ghost"
+        color="neutral"
+        size="xs"
+        class="ml-auto shrink-0"
+        :aria-label="`Add a card to ${column.name}`"
+        @click="startComposing"
+      />
     </header>
 
     <!-- Cards -->
