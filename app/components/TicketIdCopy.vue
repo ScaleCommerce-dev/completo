@@ -11,8 +11,8 @@ const props = defineProps<{
    *
    * It also drops the two slide-out buttons. They were absolutely positioned and
    * landed on top of the attachment count beside them, and on a board card they
-   * put *actions* in the corner reserved for facts — the ID, the attachment
-   * count, the description glyph — while the card's field controls lived at the
+   * put *actions* in the corner reserved for facts — the ID, the comment and
+   * attachment counts — while the card's field controls lived at the
    * opposite end. Clicking the ID copies its link either way; copying the bare
    * ID stays available wherever the card is actually open.
    */

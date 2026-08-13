@@ -19,9 +19,8 @@ import type { CardField } from '#shared/utils/card-fields'
  *    it. See below.
  *  - **Tags,** as many as fit on one line plus a count of what didn't, each an
  *    outlined pill rather than a filled one. See TagPill's `quiet` variant.
- *  - **A footer of two zones.** Facts on the left — the ticket ID, a description
- *    glyph, comment and attachment counts — and the card's four fields on the
- *    right.
+ *  - **A footer of two zones.** Facts on the left — the ticket ID, comment and
+ *    attachment counts — and the card's four fields on the right.
  *
  * The card carries three kinds of thing and they used to be mixed: facts, fields
  * (a value when set, a control when not) and actions on the card *as an object*.
@@ -39,14 +38,19 @@ import type { CardField } from '#shared/utils/card-fields'
  * way to acquire one short of opening it; priority used to render always, in its
  * own colour, duplicating the edge bar an inch away.
  *
- * **The description and the tag row are per-board** (`boards.show_description`
- * and `boards.show_tags`, both default on), which
- * is how the list view has always treated it — an opt-in field column. Removing
- * it from the card face outright fixed the wall-of-paragraphs problem and lost
- * the at-a-glance context with it; a switch is the honest answer, because whether
- * an excerpt helps depends entirely on how that team writes descriptions. Two
- * lines, `text-xs` and `text-muted`, so it reads as subordinate to the title
- * rather than competing with it the way the pre-overhaul card did.
+ * **Every one of these is per-board** — see `shared/utils/card-fields.ts` for
+ * the registry and `shows(...)` below for how the card reads it. The description
+ * is the one that needed it first: removing the excerpt from the card face
+ * outright fixed the wall-of-paragraphs problem and lost the at-a-glance context
+ * with it, and whether an excerpt helps depends entirely on how that team writes
+ * descriptions. Two lines, `text-xs` and `text-muted`, so it reads as
+ * subordinate to the title rather than competing with it the way the
+ * pre-overhaul card did.
+ *
+ * There is no longer a glyph marking a card that *has* a description when the
+ * excerpt is switched off. It existed for exactly that case, and it made "off"
+ * mean "smaller" rather than off — the one thing a switch on this list must not
+ * do.
  *
  * The title is clamped at two rather than one. A line holds about 38 characters
  * at this width, so one line truncates roughly a card in ten on a board of short
@@ -414,18 +418,6 @@ function toggleTag(tagId: string) {
           :card-id="card.id"
           size="xs"
         />
-
-        <!-- Says a spec exists, for boards that don't show the excerpt. When the
-             excerpt is right there, the glyph is restating what you can read. -->
-        <UTooltip
-          v-if="card.description && !descriptionExcerpt"
-          text="Has a description"
-        >
-          <UIcon
-            name="i-lucide-align-left"
-            class="text-2xs text-dimmed shrink-0"
-          />
-        </UTooltip>
 
         <span
           v-for="mark in contentMarks"
