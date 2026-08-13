@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui/runtime/components/DropdownMenu.vue'
+import type { TableColumn } from '@nuxt/ui/runtime/components/Table.vue'
 
 definePageMeta({ layout: 'default' })
 useSeoMeta({ title: 'Users · Completo' })
@@ -103,22 +104,28 @@ async function toggleAdmin(u: AdminUser) {
   }
 }
 
-function userBadgeLabel(u: AdminUser): string {
-  if (u.suspendedAt) return 'Suspended'
-  if (u.isAdmin) return 'Admin'
-  return 'User'
-}
+/**
+ * Only exceptions get a badge, but the two columns differ in what "no badge" means.
+ *
+ * **Role** — every account has one, so an empty cell would be a lie (and reads as data
+ * that failed to load). Admins get the badge; everyone else gets the word in `text-dimmed`.
+ * That's cheap enough not to bury the admins: what made a priority column of "= Medium"
+ * noise was the colour and the icon on every row, not the letters.
+ *
+ * **Status** — "not suspended, not awaiting setup" is a genuine absence, so the cell is
+ * genuinely empty. An em-dash on seventeen of eighteen rows is a column announcing that
+ * nothing is wrong, which is the noise this pass has been removing everywhere else. There
+ * is nothing to click here either, so unlike the list view's cells the dash isn't
+ * earning its place as a hit target.
+ */
+const roleBadge = (u: AdminUser) => u.isAdmin
+  ? { label: 'Admin', color: 'primary' as const }
+  : null
 
-function userBadgeClass(u: AdminUser): string {
-  if (u.suspendedAt) return 'bg-error/15 text-error'
-  if (u.isAdmin) return 'bg-primary/10 text-primary'
-  return 'bg-elevated text-muted'
-}
-
-function userBadgeHoverRing(u: AdminUser): string {
-  if (u.suspendedAt) return 'hover:ring-red-500/20'
-  if (u.isAdmin) return 'hover:ring-primary/20'
-  return 'hover:ring-zinc-500/20'
+const statusBadge = (u: AdminUser) => {
+  if (u.suspendedAt) return { label: 'Suspended', color: 'error' as const }
+  if (u.pendingSetup) return { label: 'Pending setup', color: 'warning' as const }
+  return null
 }
 
 function userMenuItems(u: AdminUser) {
@@ -256,9 +263,46 @@ async function confirmCreate() {
   }
 }
 
+/** Absolute date for the `title` attribute — the cell itself shows "5mo ago". */
 function formatDate(date: string | Date | null) {
-  if (!date) return 'Never'
+  if (!date) return 'Never signed in'
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+/**
+ * Eighteen near-identical cards do not scan: every account carried an avatar, a bold
+ * name, a monospace email, a role pill and a "Last seen" footer in a 3-across grid, so
+ * finding the one suspended account meant reading all eighteen. A table puts each fact in
+ * the same place on every row and lets the eye run down one column at a time.
+ */
+const userColumns: TableColumn<AdminUser>[] = [
+  { accessorKey: 'name', header: 'Person' },
+  { accessorKey: 'email', header: 'Email' },
+  { accessorKey: 'isAdmin', header: 'Role', meta: { class: { th: 'w-[92px]', td: 'w-[92px]' } } },
+  { accessorKey: 'suspendedAt', header: 'Status', meta: { class: { th: 'w-[130px]', td: 'w-[130px]' } } },
+  { accessorKey: 'lastSeenAt', header: 'Last seen', meta: { class: { th: 'w-[110px]', td: 'w-[110px]' } } },
+  { id: 'actions', header: '', meta: { class: { th: 'w-[44px]', td: 'w-[44px]' } } }
+]
+
+const invitationColumns: TableColumn<PendingInvitation>[] = [
+  { accessorKey: 'email', header: 'Invited' },
+  { accessorKey: 'projectName', header: 'Project', meta: { class: { th: 'w-[180px]', td: 'w-[180px]' } } },
+  { accessorKey: 'inviterName', header: 'Invited by', meta: { class: { th: 'w-[160px]', td: 'w-[160px]' } } },
+  { id: 'actions', header: '', meta: { class: { th: 'w-[44px]', td: 'w-[44px]' } } }
+]
+
+/**
+ * One table vocabulary in the app: these are ListView's header and cell metrics, so the
+ * admin tables and the project list views describe a row the same way. UTable's own
+ * defaults are a step looser (`px-4 py-3.5`, sentence-case `text-sm` headers) than a
+ * dense instrument panel wants.
+ */
+const TABLE_UI = {
+  base: 'min-w-full',
+  thead: 'bg-muted',
+  th: 'px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-dimmed whitespace-nowrap',
+  td: 'px-3 py-2 text-sm text-default align-middle',
+  tr: 'transition-colors hover:bg-muted/60'
 }
 </script>
 
@@ -279,150 +323,124 @@ function formatDate(date: string | Date | null) {
       />
     </template>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-      <div
-        v-for="u in users"
-        :key="u.id"
-        class="group rounded-xl border p-4 transition-colors"
-        :class="u.suspendedAt
-          ? 'border-red-200/60 dark:border-red-800/30 bg-red-50/30 dark:bg-red-950/10'
-          : 'border-default hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5'"
+    <!-- Suspended rows keep the error tint; `meta.class.tr` is resolved per row. -->
+    <div class="rounded-xl border border-default overflow-hidden">
+      <UTable
+        :data="users || []"
+        :columns="userColumns"
+        :ui="TABLE_UI"
+        :meta="{ class: { tr: (row: { original: AdminUser }) => row.original.suspendedAt ? 'bg-error/5 hover:bg-error/10' : '' } }"
+        empty="No accounts yet."
       >
-        <div class="flex items-start gap-3">
-          <UAvatar
-            :src="u.avatarUrl ?? undefined"
-            :alt="u.name"
-            size="md"
-            :class="u.suspendedAt ? 'opacity-50' : ''"
+        <template #name-cell="{ row }">
+          <UiPerson
+            :person="row.original"
+            size="2xs"
+            strong
           />
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2 flex-wrap">
-              <h3
-                class="font-bold text-base tracking-[-0.01em] truncate"
-                :class="u.suspendedAt
-                  ? 'text-dimmed'
-                  : 'text-highlighted'"
-              >
-                {{ u.name }}
-              </h3>
-              <UDropdownMenu
-                v-if="u.id !== currentUser?.id"
-                :items="userMenuItems(u)"
-              >
-                <button
-                  type="button"
-                  class="shrink-0 text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full cursor-pointer transition hover:ring-2 flex items-center gap-1"
-                  :class="[userBadgeClass(u), userBadgeHoverRing(u)]"
-                  :disabled="actionLoading === u.id"
-                >
-                  <UIcon
-                    v-if="actionLoading === u.id"
-                    name="i-lucide-loader-2"
-                    class="text-2xs animate-spin"
-                  />
-                  <template v-else>
-                    {{ userBadgeLabel(u) }}
-                    <UIcon
-                      name="i-lucide-chevron-down"
-                      class="text-2xs opacity-60"
-                    />
-                  </template>
-                </button>
-              </UDropdownMenu>
-              <span
-                v-else
-                class="shrink-0 text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full"
-                :class="userBadgeClass(u)"
-              >
-                {{ userBadgeLabel(u) }}
-              </span>
-              <span
-                v-if="u.pendingSetup"
-                class="shrink-0 text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-warning/10 text-warning"
-              >
-                Pending Setup
-              </span>
-            </div>
-            <p class="text-sm font-mono text-muted mt-0.5 truncate">
-              {{ u.email }}
-            </p>
-          </div>
-        </div>
-        <div class="flex items-center gap-1.5 mt-3 pt-3 border-t border-muted text-xs font-mono text-dimmed">
-          <UIcon
-            name="i-lucide-eye"
-            class="text-xs"
+        </template>
+
+        <template #email-cell="{ row }">
+          <span class="font-mono text-xs text-muted truncate block">{{ row.original.email }}</span>
+        </template>
+
+        <template #isAdmin-cell="{ row }">
+          <UBadge
+            v-if="roleBadge(row.original)"
+            :color="roleBadge(row.original)!.color"
+            :label="roleBadge(row.original)!.label"
           />
-          <span>Last seen {{ formatDate(u.lastSeenAt) }}</span>
-        </div>
-      </div>
+          <span
+            v-else
+            class="text-xs text-dimmed"
+          >User</span>
+        </template>
+
+        <template #suspendedAt-cell="{ row }">
+          <UBadge
+            v-if="statusBadge(row.original)"
+            :color="statusBadge(row.original)!.color"
+            :label="statusBadge(row.original)!.label"
+          />
+        </template>
+
+        <!-- Relative time is what you scan a "last seen" column for; the exact date is
+             one hover away rather than eighteen rows of "Jan 5, 2026". -->
+        <template #lastSeenAt-cell="{ row }">
+          <span
+            class="font-mono tabular-nums text-xs text-dimmed"
+            :title="formatDate(row.original.lastSeenAt)"
+          >
+            {{ row.original.lastSeenAt ? relativeTime(row.original.lastSeenAt) : 'Never' }}
+          </span>
+        </template>
+
+        <!-- The role pill used to double as the action menu's trigger, so the only way to
+             suspend someone was to click the word "User". Actions get their own control. -->
+        <template #actions-cell="{ row }">
+          <UDropdownMenu
+            v-if="row.original.id !== currentUser?.id"
+            :items="userMenuItems(row.original)"
+            :content="{ align: 'end' }"
+          >
+            <UButton
+              icon="i-lucide-ellipsis"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              :loading="actionLoading === row.original.id"
+              :aria-label="`Actions for ${row.original.name}`"
+            />
+          </UDropdownMenu>
+        </template>
+      </UTable>
     </div>
 
     <!-- Pending Project Invitations -->
     <template v-if="pendingInvitations?.length">
       <div class="mt-10">
-        <div class="flex items-center gap-2 mb-4">
-          <UIcon
-            name="i-lucide-clock"
-            class="text-lg text-warning"
-          />
-          <h2 class="text-base font-bold tracking-[-0.01em] text-highlighted">
-            Pending Project Invitations
-          </h2>
-          <span class="text-xs font-mono text-dimmed">{{ pendingInvitations.length }}</span>
-        </div>
-        <p class="text-sm text-muted mb-4">
+        <UiSectionLabel
+          icon="i-lucide-clock"
+          label="Pending project invitations"
+          :count="pendingInvitations.length"
+        />
+        <p class="text-sm text-muted mt-1 mb-3">
           These people have been invited to projects but haven't registered yet.
         </p>
-        <div class="rounded-xl border border-amber-200/60 dark:border-amber-800/30 overflow-hidden">
-          <div
-            v-for="(inv, idx) in pendingInvitations"
-            :key="inv.id"
-            class="flex items-center gap-3 px-4 py-3 transition-colors"
-            :class="[
-              idx % 2 === 0 ? 'bg-default' : 'bg-amber-50/30 dark:bg-amber-950/5',
-              idx === 0 ? 'rounded-t-xl' : '',
-              idx === pendingInvitations.length - 1 ? 'rounded-b-xl' : ''
-            ]"
+        <div class="rounded-xl border border-default overflow-hidden">
+          <UTable
+            :data="pendingInvitations"
+            :columns="invitationColumns"
+            :ui="TABLE_UI"
           >
-            <UIcon
-              name="i-lucide-mail"
-              class="text-lg text-amber-400 shrink-0"
-            />
-            <div class="min-w-0 flex-1">
-              <span class="text-sm font-mono text-default">{{ inv.email }}</span>
-            </div>
-            <span class="text-xs text-muted shrink-0">
-              <UIcon
-                name="i-lucide-folder"
-                class="text-xs inline-block mr-0.5"
-              />
-              {{ inv.projectName }}
-            </span>
-            <span class="text-xs text-dimmed shrink-0">
-              by {{ inv.inviterName }}
-            </span>
-            <UDropdownMenu :items="invitationMenuItems(inv)">
-              <button
-                type="button"
-                class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition hover:ring-2 hover:ring-amber-500/20 flex items-center gap-1 bg-warning/10 text-warning"
-                :disabled="invitationLoading === inv.id"
+            <template #email-cell="{ row }">
+              <span class="font-mono text-xs text-default truncate block">{{ row.original.email }}</span>
+            </template>
+
+            <template #projectName-cell="{ row }">
+              <span class="text-muted truncate block">{{ row.original.projectName }}</span>
+            </template>
+
+            <template #inviterName-cell="{ row }">
+              <span class="text-dimmed truncate block">{{ row.original.inviterName }}</span>
+            </template>
+
+            <template #actions-cell="{ row }">
+              <UDropdownMenu
+                :items="invitationMenuItems(row.original)"
+                :content="{ align: 'end' }"
               >
-                <UIcon
-                  v-if="invitationLoading === inv.id"
-                  name="i-lucide-loader-2"
-                  class="text-2xs animate-spin"
+                <UButton
+                  icon="i-lucide-ellipsis"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  :loading="invitationLoading === row.original.id"
+                  :aria-label="`Actions for the invitation to ${row.original.email}`"
                 />
-                <template v-else>
-                  Pending
-                  <UIcon
-                    name="i-lucide-chevron-down"
-                    class="text-2xs opacity-60"
-                  />
-                </template>
-              </button>
-            </UDropdownMenu>
-          </div>
+              </UDropdownMenu>
+            </template>
+          </UTable>
         </div>
       </div>
     </template>
