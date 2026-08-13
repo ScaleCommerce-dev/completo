@@ -34,7 +34,7 @@ export interface ListFieldDef {
 
 export const LIST_FIELDS: readonly ListFieldDef[] = [
   // `done` renders a checkmark icon in the header rather than text, hence the empty shortLabel.
-  { field: 'done', label: 'Done', shortLabel: '', icon: 'i-lucide-circle-check-big', width: '36px' },
+  { field: 'done', label: 'Done', shortLabel: '', icon: 'i-lucide-circle-check-big', width: '44px' },
   { field: 'ticketId', label: 'Ticket ID', shortLabel: 'ID', icon: 'i-lucide-hash', sortable: true, width: '88px' },
   { field: 'title', label: 'Title', icon: 'i-lucide-type', sortable: true },
   { field: 'status', label: 'Status', icon: 'i-lucide-circle-dot', sortable: true, width: '130px' },

@@ -16,16 +16,22 @@ defineProps<{
     >
       {{ title }}
     </span>
+    <!--
+      The same control as the board card's, so it is the same glyph, the same
+      24px box and the same hover fill. It was `arrow-up-right` in a 20px box
+      that filled with `bg-primary/10` — one action with two icons, and a
+      primary-tinted hover no other control in the app uses.
+    -->
     <UTooltip text="Open full page">
       <NuxtLink
         v-if="detailUrl"
         :to="detailUrl"
-        class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-md text-dimmed hover:text-primary hover:bg-primary/10 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition"
+        class="shrink-0 inline-flex items-center justify-center size-6 rounded-md text-dimmed hover:text-primary hover:bg-elevated opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition"
         @click.stop
       >
         <UIcon
-          name="i-lucide-arrow-up-right"
-          class="text-sm"
+          name="i-lucide-maximize-2"
+          class="text-xs"
         />
       </NuxtLink>
     </UTooltip>

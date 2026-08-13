@@ -11,5 +11,6 @@ defineProps<{
     :project-key="projectKey"
     :project-slug="projectSlug"
     :card-id="cardId"
+    :copy-buttons="false"
   />
 </template>

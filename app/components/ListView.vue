@@ -208,13 +208,55 @@ const sortedCards = computed(() => {
     return (cmp * mul) || (a.id - b.id)
   })
 })
+
+// ─── Horizontal scroll affordance ───────────────────────────────────────────
+// The same `.board-scroll` mask the board uses, for the same reason and a worse
+// symptom: a list with enough columns ends in a hard cut through the assignee
+// column, and unlike the board there is no gap between items to suggest the row
+// continues — a truncated name reads as a truncated name, not as "scroll right".
+// Only the edge that actually has content beyond it fades, so a table that fits
+// shows nothing.
+const scroller = ref<HTMLElement>()
+const fadeStart = ref(0)
+const fadeEnd = ref(0)
+
+const fadeStyle = computed(() => ({
+  '--board-fade-start': `${fadeStart.value}px`,
+  '--board-fade-end': `${fadeEnd.value}px`
+}))
+
+function updateFade() {
+  const el = scroller.value
+  if (!el) return
+  const max = el.scrollWidth - el.clientWidth
+  fadeStart.value = el.scrollLeft > 4 ? 28 : 0
+  fadeEnd.value = el.scrollLeft < max - 4 ? 28 : 0
+}
+
+onMounted(() => {
+  updateFade()
+  const el = scroller.value
+  if (!el || typeof ResizeObserver === 'undefined') return
+  const ro = new ResizeObserver(updateFade)
+  ro.observe(el)
+  onBeforeUnmount(() => ro.disconnect())
+})
+
+// Columns are added and removed from the settings dialog, which changes the
+// table's width without resizing the scroller.
+watch(() => props.columns.length, () => nextTick(updateFade))
 </script>
 
 <template>
   <!-- px-2 so the first and last columns are not clipped against the panel edge:
        the table was full-bleed, and at 1512px the ID header sat under the sidebar
        divider while the assignee column ran off the right. -->
-  <div class="flex-1 overflow-auto thin-scroll px-2">
+  <div
+    ref="scroller"
+    class="flex-1 overflow-auto thin-scroll board-scroll px-2"
+    :style="fadeStyle"
+    @scroll="updateFade"
+  >
     <table
       class="w-full border-collapse text-left table-fixed"
       :style="{ minWidth: `${tableMinWidth}px` }"

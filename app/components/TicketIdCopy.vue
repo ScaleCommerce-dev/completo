@@ -17,9 +17,17 @@ const props = defineProps<{
    * ID stays available wherever the card is actually open.
    */
   size?: 'xs' | 'sm'
+  /**
+   * The slide-out buttons are absolutely positioned ~40px right of the ID, so
+   * they need that much clear space beside them. In an 88px table cell they do
+   * not have it: they rendered 7px into the next column, over its content, on
+   * every row hover — the same overlap that got them dropped from the board
+   * card. Defaults to on for the card surfaces, which have the room.
+   */
+  copyButtons?: boolean
 }>()
 
-const showCopyButtons = computed(() => props.size !== 'xs')
+const showCopyButtons = computed(() => props.copyButtons ?? props.size !== 'xs')
 
 const variant = computed(() => props.variant || 'plain')
 const plainClass = computed(() => props.size === 'xs'
