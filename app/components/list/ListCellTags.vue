@@ -11,12 +11,6 @@ const emit = defineEmits<{
   'update:popoverOpen': [open: boolean]
 }>()
 
-const label = computed(() =>
-  props.cardTags.length
-    ? `Tags: ${props.cardTags.map(t => t.name).join(', ')}. Change tags`
-    : 'Add tags'
-)
-
 /**
  * One, then a count.
  *
@@ -60,46 +54,44 @@ const allTagNames = computed(() => props.cardTags.map(t => t.name).join(', '))
   </div>
 
   <!-- editable -->
-  <UPopover
+  <TagMenu
     v-else
+    :tags="tags || []"
+    :selected-ids="cardTags.map(t => t.id)"
     :open="popoverOpen"
-    @update:open="emit('update:popoverOpen', $event)"
+    @update:open="emit('update:popoverOpen', !!$event)"
+    @toggle="emit('toggle', $event)"
   >
-    <button
-      type="button"
-      :aria-label="label"
-      class="flex gap-2 items-center rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-[22px] max-w-full min-w-0 text-left"
-      @click.stop
-    >
-      <TagPill
-        v-for="tag in visibleTags"
-        :key="tag.id"
-        :name="tag.name"
-        :color="tag.color"
-        variant="quiet"
-        class="min-w-0"
-      />
-      <UTooltip
-        v-if="hiddenTagCount"
-        :text="allTagNames"
+    <template #default="{ label }">
+      <button
+        type="button"
+        :aria-label="label"
+        class="flex gap-2 items-center rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-[22px] max-w-full min-w-0 text-left"
+        @click.stop
       >
-        <span class="text-2xs font-medium text-dimmed shrink-0">+{{ hiddenTagCount }}</span>
-      </UTooltip>
-      <span
-        v-if="!cardTags.length"
-        :class="EMPTY_CELL_CLASS"
-      >&mdash;</span>
-      <UIcon
-        name="i-lucide-chevron-down"
-        class="text-2xs shrink-0 text-dimmed opacity-0 group-hover:opacity-60 transition-opacity"
-      />
-    </button>
-    <template #content>
-      <TagToggleList
-        :tags="tags || []"
-        :selected-ids="cardTags.map(t => t.id)"
-        @toggle="emit('toggle', $event)"
-      />
+        <TagPill
+          v-for="tag in visibleTags"
+          :key="tag.id"
+          :name="tag.name"
+          :color="tag.color"
+          variant="quiet"
+          class="min-w-0"
+        />
+        <UTooltip
+          v-if="hiddenTagCount"
+          :text="allTagNames"
+        >
+          <span class="text-2xs font-medium text-dimmed shrink-0">+{{ hiddenTagCount }}</span>
+        </UTooltip>
+        <span
+          v-if="!cardTags.length"
+          :class="EMPTY_CELL_CLASS"
+        >&mdash;</span>
+        <UIcon
+          name="i-lucide-chevron-down"
+          class="text-2xs shrink-0 text-dimmed opacity-0 group-hover:opacity-60 transition-opacity"
+        />
+      </button>
     </template>
-  </UPopover>
+  </TagMenu>
 </template>

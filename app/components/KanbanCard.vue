@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { DropdownMenuItem } from '@nuxt/ui/runtime/components/DropdownMenu.vue'
 import type { BoardCard } from '~/types/card'
 
 /**
@@ -126,49 +125,56 @@ const REVEAL = 'opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 focus-vis
 const SLOT = 'flex items-center justify-center size-6 shrink-0 hover:bg-elevated transition-colors'
 const SLOT_TEXT = 'flex items-center gap-1 h-6 px-1.5 shrink-0 cursor-pointer hover:bg-elevated transition-colors'
 
-function priorityMenuItems() {
-  return [[
-    ...PRIORITIES.slice().reverse().map(p => ({
-      label: p.label,
-      icon: p.icon,
-      color: priorityUiColor(p.value),
-      type: 'checkbox' as const,
-      checked: props.card.priority === p.value,
-      onSelect() {
-        if (props.card.priority === p.value) return
-        emit('update', props.card.id, { priority: p.value })
-      }
-    }))
-  ]]
-}
+type Control = 'tags' | 'priority' | 'due' | 'assignee'
 
-function assigneeMenuItems(): DropdownMenuItem[][] {
-  const items: DropdownMenuItem[] = [{
-    label: 'Nobody',
-    icon: 'i-lucide-user-x',
-    type: 'checkbox',
-    checked: !props.card.assignee,
-    onSelect() {
-      if (!props.card.assignee) return
-      emit('update', props.card.id, { assigneeId: null })
-    }
-  }]
-  for (const m of (kanbanContext.members.value || [])) {
-    items.push({
-      label: m.name,
-      avatar: { src: m.avatarUrl || undefined, alt: m.name },
-      type: 'checkbox',
-      checked: props.card.assignee?.id === m.id,
-      onSelect() {
-        if (props.card.assignee?.id === m.id) return
-        emit('update', props.card.id, { assigneeId: m.id })
-      }
-    })
+/**
+ * Which field control currently has its popup open.
+ *
+ * Two bugs share this one piece of state.
+ *
+ * **The strip vanished on click.** `UDropdownMenu` is modal, so Reka sets
+ * `pointer-events: none` on `<body>` while it is open. The card then stops
+ * matching `:hover`, `group-hover` stops applying, and every control revealed by
+ * `REVEAL` — including the one you just clicked — drops to zero opacity. Only
+ * priority and assignee showed it, because only those two are dropdowns; the tag
+ * and due-date popovers are non-modal. Rather than making the dropdowns
+ * non-modal (which would trade a focus trap for a hover quirk), the strip simply
+ * stays revealed for as long as anything on it is open. That also covers the
+ * case hover never handled: moving the pointer into the popup, which is portaled
+ * to `<body>` and so is never "inside" the card.
+ *
+ * **The tooltip stuck after Escape.** Reka closes the popup and restores focus
+ * to the trigger, and a Reka tooltip opens on focus — correct for a keyboard
+ * user, but nothing then blurs, so for a pointer user it hung there until the
+ * next click. Disabling the tooltip only while the popup is open is not enough:
+ * the focus restore lands *after* the close, so the tooltip re-enables just in
+ * time to catch it. It stays suppressed until the pointer or focus actually
+ * leaves the trigger — an event, not a timer, so there is no window to guess.
+ *
+ * The cost is that the tooltip will not reappear while you rest on the control
+ * you just used. Which is fine: you have already found out what it does.
+ */
+const openControl = ref<Control | null>(null)
+const suppressed = ref<Control | null>(null)
+
+function setOpen(name: Control, open: boolean) {
+  if (open) {
+    openControl.value = name
+    suppressed.value = null
+  } else if (openControl.value === name) {
+    openControl.value = null
+    suppressed.value = name
   }
-  return [items]
 }
 
-const dueDateOpen = ref(false)
+/** Called from the trigger's own `pointerleave`/`blur`. */
+function releaseTip(name: Control) {
+  if (suppressed.value === name) suppressed.value = null
+}
+
+const tipOff = (name: Control) => openControl.value === name || suppressed.value === name
+
+const reveal = computed(() => openControl.value ? 'transition-opacity' : REVEAL)
 
 const selectedTagIds = computed(() => (props.card.tags || []).map(t => t.id))
 
@@ -208,7 +214,7 @@ function toggleTag(tagId: string) {
         v-if="detailUrl"
         :to="detailUrl"
         class="absolute top-2 right-2 z-10 text-dimmed hover:text-primary"
-        :class="[SLOT, REVEAL, 'rounded-md']"
+        :class="[SLOT, reveal, 'rounded-md']"
         :aria-label="`Open ${formatTicketId(kanbanContext.projectKey.value, card.id)} in full`"
         @click.stop
       >
@@ -298,71 +304,94 @@ function toggleTag(tagId: string) {
           are at the same four positions.
         -->
         <div class="ml-auto flex items-center gap-0.5 shrink-0">
-          <UPopover :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }">
-            <UTooltip text="Tags">
-              <button
-                v-if="kanbanContext.tags.value?.length"
-                type="button"
-                :class="[SLOT, REVEAL, 'rounded-md text-dimmed']"
-                :aria-label="card.tags?.length ? `Tags: ${allTagNames}. Change tags` : 'Add tags'"
-                @click.stop
+          <TagMenu
+            :tags="kanbanContext.tags.value || []"
+            :selected-ids="selectedTagIds"
+            :open="openControl === 'tags'"
+            :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
+            @update:open="v => setOpen('tags', !!v)"
+            @toggle="toggleTag"
+          >
+            <template #default="{ label }">
+              <UTooltip
+                text="Tags"
+                :disabled="tipOff('tags')"
               >
-                <UIcon
-                  name="i-lucide-tag"
-                  class="text-xs"
-                />
-              </button>
-            </UTooltip>
-            <template #content>
-              <TagToggleList
-                :tags="kanbanContext.tags.value || []"
-                :selected-ids="selectedTagIds"
-                @toggle="toggleTag"
-              />
+                <button
+                  v-if="kanbanContext.tags.value?.length"
+                  type="button"
+                  :class="[SLOT, reveal, 'rounded-md text-dimmed']"
+                  :aria-label="label"
+                  @blur="releaseTip('tags')"
+                  @pointerleave="releaseTip('tags')"
+                  @click.stop
+                >
+                  <UIcon
+                    name="i-lucide-tag"
+                    class="text-xs"
+                  />
+                </button>
+              </UTooltip>
             </template>
-          </UPopover>
+          </TagMenu>
 
           <!-- Priority. High and urgent are always lit; medium and low are a
                control without a colour, so they wait for hover. -->
-          <UDropdownMenu
-            :items="priorityMenuItems()"
+          <PriorityMenu
+            :priority="card.priority"
+            :open="openControl === 'priority'"
             :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
+            @update:open="v => setOpen('priority', !!v)"
+            @select="p => emit('update', card.id, { priority: p })"
           >
-            <UTooltip text="Priority">
-              <button
-                type="button"
-                :class="[
-                  SLOT,
-                  'rounded-md',
-                  priorityTextClass(card.priority),
-                  isSignalPriority(card.priority)
-                    ? (card.priority === 'urgent' ? 'priority-urgent-pulse' : '')
-                    : REVEAL
-                ]"
-                :aria-label="`Priority: ${priorityLabel(card.priority)}. Change priority`"
-                @click.stop
+            <template #default="{ label }">
+              <UTooltip
+                text="Priority"
+                :disabled="tipOff('priority')"
               >
-                <UIcon
-                  :name="priorityIcon(card.priority)"
-                  class="text-xs"
-                />
-              </button>
-            </UTooltip>
-          </UDropdownMenu>
+                <button
+                  type="button"
+                  :class="[
+                    SLOT,
+                    'rounded-md',
+                    priorityTextClass(card.priority),
+                    isSignalPriority(card.priority)
+                      ? (card.priority === 'urgent' ? 'priority-urgent-pulse' : '')
+                      : reveal
+                  ]"
+                  :aria-label="label"
+                  @blur="releaseTip('priority')"
+                  @pointerleave="releaseTip('priority')"
+                  @click.stop
+                >
+                  <UIcon
+                    :name="priorityIcon(card.priority)"
+                    class="text-xs"
+                  />
+                </button>
+              </UTooltip>
+            </template>
+          </PriorityMenu>
 
           <DueDatePicker
-            v-model:open="dueDateOpen"
+            :open="openControl === 'due'"
             :model-value="card.dueDate"
+            @update:open="v => setOpen('due', v)"
             @update:model-value="val => emit('update', card.id, { dueDate: val })"
           >
-            <UTooltip text="Due date">
+            <UTooltip
+              text="Due date"
+              :disabled="tipOff('due')"
+            >
               <button
                 type="button"
                 class="whitespace-nowrap text-2xs font-semibold rounded-md"
                 :class="card.dueDate
                   ? [SLOT_TEXT, dueDateTextClass(dueStatus)]
-                  : [SLOT, REVEAL, 'text-dimmed']"
+                  : [SLOT, reveal, 'text-dimmed']"
                 :aria-label="card.dueDate ? `Due ${formatDueDate(card.dueDate)}. Change due date` : 'Set a due date'"
+                @blur="releaseTip('due')"
+                @pointerleave="releaseTip('due')"
                 @click.stop
               >
                 <UIcon
@@ -379,38 +408,49 @@ function toggleTag(tagId: string) {
 
           <!-- Assignee: a real avatar, and absent when unassigned — the assign
                control takes its place on hover rather than an "N/A" pill. -->
-          <UDropdownMenu
-            :items="assigneeMenuItems()"
+          <AssigneeMenu
+            :members="kanbanContext.members.value"
+            :assignee-id="card.assignee?.id"
+            :open="openControl === 'assignee'"
             :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
+            @update:open="v => setOpen('assignee', !!v)"
+            @select="id => emit('update', card.id, { assigneeId: id })"
           >
-            <!-- The one tooltip that isn't just the slot's name. An avatar is the
+            <template #default="{ label }">
+              <!-- The one tooltip that isn't just the slot's name. An avatar is the
                  only value here rendered as a picture rather than as text or
                  colour, so naming the person is the only one that adds anything
                  the card isn't already showing. -->
-            <UTooltip :text="card.assignee ? `Assigned to ${card.assignee.name}` : 'Assignee'">
-              <button
-                type="button"
-                :class="[
-                  SLOT,
-                  card.assignee ? 'rounded-full' : ['rounded-md text-dimmed', REVEAL]
-                ]"
-                :aria-label="card.assignee ? `Assigned to ${card.assignee.name}. Change assignee` : 'Assign someone'"
-                @click.stop
+              <UTooltip
+                :text="card.assignee ? `Assigned to ${card.assignee.name}` : 'Assignee'"
+                :disabled="tipOff('assignee')"
               >
-                <UAvatar
-                  v-if="card.assignee"
-                  :src="card.assignee.avatarUrl || undefined"
-                  :alt="card.assignee.name"
-                  size="2xs"
-                />
-                <UIcon
-                  v-else
-                  name="i-lucide-user-plus"
-                  class="text-xs"
-                />
-              </button>
-            </UTooltip>
-          </UDropdownMenu>
+                <button
+                  type="button"
+                  :class="[
+                    SLOT,
+                    card.assignee ? 'rounded-full' : ['rounded-md text-dimmed', reveal]
+                  ]"
+                  :aria-label="label"
+                  @blur="releaseTip('assignee')"
+                  @pointerleave="releaseTip('assignee')"
+                  @click.stop
+                >
+                  <UAvatar
+                    v-if="card.assignee"
+                    :src="card.assignee.avatarUrl || undefined"
+                    :alt="card.assignee.name"
+                    size="2xs"
+                  />
+                  <UIcon
+                    v-else
+                    name="i-lucide-user-plus"
+                    class="text-xs"
+                  />
+                </button>
+              </UTooltip>
+            </template>
+          </AssigneeMenu>
         </div>
       </div>
     </div>

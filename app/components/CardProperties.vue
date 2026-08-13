@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { DropdownMenuItem } from '@nuxt/ui/runtime/components/DropdownMenu.vue'
 import type { CardStatus, Member, Tag } from '~/types/card'
 
 /**
@@ -57,43 +56,6 @@ const selectedTags = computed(() =>
   (props.tags || []).filter(t => tagIds.value.includes(t.id))
 )
 
-const statusMenuItems = computed<DropdownMenuItem[][]>(() => [
-  props.statuses.map(s => ({
-    label: s.name,
-    type: 'checkbox' as const,
-    checked: statusId.value === s.id,
-    onSelect: () => { statusId.value = s.id }
-  }))
-])
-
-const assigneeMenuItems = computed<DropdownMenuItem[][]>(() => [[
-  {
-    label: 'Nobody',
-    icon: 'i-lucide-user-x',
-    type: 'checkbox' as const,
-    checked: assigneeId.value === props.unassignedValue,
-    onSelect: () => { assigneeId.value = props.unassignedValue }
-  },
-  ...(props.members || []).map(m => ({
-    label: m.name,
-    avatar: { src: m.avatarUrl || undefined, alt: m.name },
-    type: 'checkbox' as const,
-    checked: assigneeId.value === m.id,
-    onSelect: () => { assigneeId.value = m.id }
-  }))
-]])
-
-const priorityMenuItems = computed<DropdownMenuItem[][]>(() => [
-  PRIORITIES.slice().reverse().map(p => ({
-    label: p.label,
-    icon: p.icon,
-    color: priorityUiColor(p.value),
-    type: 'checkbox' as const,
-    checked: priority.value === p.value,
-    onSelect: () => { priority.value = p.value }
-  }))
-])
-
 function toggleTag(tagId: string) {
   tagIds.value = tagIds.value.includes(tagId)
     ? tagIds.value.filter(id => id !== tagId)
@@ -143,23 +105,27 @@ function row(label: string, icon: string, align?: 'start') {
       v-bind="row('Status', 'i-lucide-circle-dot')"
       :class="CHIP"
     >
-      <UDropdownMenu
-        :items="statusMenuItems"
+      <StatusMenu
+        :statuses="statuses"
+        :status-id="statusId"
         :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
+        @select="id => statusId = id"
       >
-        <button
-          type="button"
-          :class="TRIGGER"
-          :aria-label="`Status: ${selectedStatus?.name || 'none'}. Change status`"
-        >
-          <UiStatusDot :color="selectedStatus?.color" />
-          <span class="truncate text-default">{{ selectedStatus?.name || 'Pick a status' }}</span>
-          <UIcon
-            name="i-lucide-chevron-down"
-            class="text-2xs text-dimmed shrink-0"
-          />
-        </button>
-      </UDropdownMenu>
+        <template #default="{ label }">
+          <button
+            type="button"
+            :class="TRIGGER"
+            :aria-label="label"
+          >
+            <UiStatusDot :color="selectedStatus?.color" />
+            <span class="truncate text-default">{{ selectedStatus?.name || 'Pick a status' }}</span>
+            <UIcon
+              name="i-lucide-chevron-down"
+              class="text-2xs text-dimmed shrink-0"
+            />
+          </button>
+        </template>
+      </StatusMenu>
     </component>
 
     <component
@@ -167,25 +133,29 @@ function row(label: string, icon: string, align?: 'start') {
       v-bind="row('Assignee', 'i-lucide-user')"
       :class="CHIP"
     >
-      <UDropdownMenu
-        :items="assigneeMenuItems"
+      <AssigneeMenu
+        :members="members"
+        :assignee-id="selectedAssignee?.id"
         :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
+        @select="id => assigneeId = id ?? unassignedValue"
       >
-        <button
-          type="button"
-          :class="TRIGGER"
-          :aria-label="selectedAssignee ? `Assigned to ${selectedAssignee.name}. Change assignee` : 'Assign someone'"
-        >
-          <UiPerson
-            :person="selectedAssignee"
-            empty-label="Nobody"
-          />
-          <UIcon
-            name="i-lucide-chevron-down"
-            class="text-2xs text-dimmed shrink-0"
-          />
-        </button>
-      </UDropdownMenu>
+        <template #default="{ label }">
+          <button
+            type="button"
+            :class="TRIGGER"
+            :aria-label="label"
+          >
+            <UiPerson
+              :person="selectedAssignee"
+              empty-label="Nobody"
+            />
+            <UIcon
+              name="i-lucide-chevron-down"
+              class="text-2xs text-dimmed shrink-0"
+            />
+          </button>
+        </template>
+      </AssigneeMenu>
     </component>
 
     <component
@@ -193,26 +163,29 @@ function row(label: string, icon: string, align?: 'start') {
       v-bind="row('Priority', 'i-lucide-signal')"
       :class="CHIP"
     >
-      <UDropdownMenu
-        :items="priorityMenuItems"
+      <PriorityMenu
+        :priority="priority"
         :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
+        @select="p => priority = p"
       >
-        <button
-          type="button"
-          :class="[TRIGGER, priorityTextClass(priority)]"
-          :aria-label="`Priority: ${priorityLabel(priority)}. Change priority`"
-        >
-          <UIcon
-            :name="priorityIcon(priority)"
-            class="text-sm shrink-0"
-          />
-          <span class="truncate">{{ priorityLabel(priority) }}</span>
-          <UIcon
-            name="i-lucide-chevron-down"
-            class="text-2xs text-dimmed shrink-0"
-          />
-        </button>
-      </UDropdownMenu>
+        <template #default="{ label }">
+          <button
+            type="button"
+            :class="[TRIGGER, priorityTextClass(priority)]"
+            :aria-label="label"
+          >
+            <UIcon
+              :name="priorityIcon(priority)"
+              class="text-sm shrink-0"
+            />
+            <span class="truncate">{{ priorityLabel(priority) }}</span>
+            <UIcon
+              name="i-lucide-chevron-down"
+              class="text-2xs text-dimmed shrink-0"
+            />
+          </button>
+        </template>
+      </PriorityMenu>
     </component>
 
     <component
@@ -250,42 +223,42 @@ function row(label: string, icon: string, align?: 'start') {
       v-bind="row('Tags', 'i-lucide-tag', 'start')"
       :class="TAG_CHIP"
     >
-      <UPopover :content="{ align: 'start', side: 'bottom', sideOffset: 4 }">
-        <button
-          type="button"
-          class="flex flex-wrap items-center gap-1 max-w-full rounded-md px-1.5 py-1 -mx-1.5 transition-colors hover:bg-elevated cursor-pointer text-left"
-          :aria-label="selectedTags.length ? `Tags: ${selectedTags.map(t => t.name).join(', ')}. Change tags` : 'Add tags'"
-        >
-          <TagPill
-            v-for="tag in selectedTags"
-            :key="tag.id"
-            :name="tag.name"
-            :color="tag.color"
-            variant="quiet"
-          />
-          <span
-            v-if="!selectedTags.length"
-            class="inline-flex items-center gap-0.5 text-sm text-dimmed"
+      <TagMenu
+        :tags="tags"
+        :selected-ids="tagIds"
+        :content="{ align: 'start', side: 'bottom', sideOffset: 4 }"
+        @toggle="toggleTag"
+      >
+        <template #default="{ label }">
+          <button
+            type="button"
+            class="flex flex-wrap items-center gap-1 max-w-full rounded-md px-1.5 py-1 -mx-1.5 transition-colors hover:bg-elevated cursor-pointer text-left"
+            :aria-label="label"
           >
-            <UIcon
-              name="i-lucide-plus"
-              class="text-2xs"
+            <TagPill
+              v-for="tag in selectedTags"
+              :key="tag.id"
+              :name="tag.name"
+              :color="tag.color"
+              variant="quiet"
             />
-            Add tags
-          </span>
-          <UIcon
-            name="i-lucide-chevron-down"
-            class="text-2xs text-dimmed shrink-0"
-          />
-        </button>
-        <template #content>
-          <TagToggleList
-            :tags="tags"
-            :selected-ids="tagIds"
-            @toggle="toggleTag"
-          />
+            <span
+              v-if="!selectedTags.length"
+              class="inline-flex items-center gap-0.5 text-sm text-dimmed"
+            >
+              <UIcon
+                name="i-lucide-plus"
+                class="text-2xs"
+              />
+              Add tags
+            </span>
+            <UIcon
+              name="i-lucide-chevron-down"
+              class="text-2xs text-dimmed shrink-0"
+            />
+          </button>
         </template>
-      </UPopover>
+      </TagMenu>
     </component>
   </component>
 </template>
