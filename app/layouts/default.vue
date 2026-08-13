@@ -71,7 +71,7 @@ const searchGroups = computed(() => [
       { label: 'My profile', icon: 'i-lucide-user', to: '/profile' },
       {
         label: sidebarCollapsed.value ? 'Expand sidebar' : 'Collapse sidebar',
-        icon: 'i-lucide-panel-left',
+        icon: sidebarCollapsed.value ? 'i-lucide-chevron-right' : 'i-lucide-chevron-left',
         onSelect: () => { sidebarCollapsed.value = !sidebarCollapsed.value }
       },
       { label: 'Sign out', icon: 'i-lucide-log-out', onSelect: logout }
@@ -89,7 +89,7 @@ const searchGroups = computed(() => [
       :min-size="14"
       :default-size="17"
       :max-size="26"
-      :ui="{ footer: 'border-t border-default gap-1' }"
+      :ui="{ root: 'overflow-visible z-10', header: 'relative overflow-visible', footer: 'border-t border-default gap-1' }"
     >
       <template #header="{ collapsed }">
         <NuxtLink
@@ -114,18 +114,35 @@ const searchGroups = computed(() => [
           </span>
         </NuxtLink>
 
-        <UDashboardSidebarCollapse
-          v-if="!collapsed"
-          class="ml-auto"
-        />
+        <!--
+          On the seam, not in the header. The panel-left glyph next to the
+          wordmark competed with the logo and read as a second brand mark.
+          A chevron on the divider is the old Completo control and the one
+          Linear/Notion trained people to look for.
+
+          The seam is the same seam in both states. Collapsed, this used `right-1`,
+          which tucks the chevron *inside* the 64px rail — landing on top of the
+          right half of the logo tile, which is the only other thing in the header
+          at that width. Straddling the divider is the whole idea of the control,
+          so it does that whether the sidebar is 300px or 64px wide; the sidebar
+          root and header are already `overflow-visible` for exactly this.
+
+          Wrapped: UButton's theme is `relative`, which wins a class-merge
+          against `absolute` on the button itself.
+        -->
+        <span class="absolute top-1/2 right-0 z-20 -translate-y-1/2 translate-x-1/2">
+          <UDashboardSidebarCollapse
+            :icon="collapsed ? 'i-lucide-chevron-right' : 'i-lucide-chevron-left'"
+            size="xs"
+            color="neutral"
+            variant="outline"
+            square
+            class="size-6 rounded-full bg-default shadow-raise hover:bg-elevated"
+          />
+        </span>
       </template>
 
       <template #default="{ collapsed }">
-        <UDashboardSidebarCollapse
-          v-if="collapsed"
-          class="mx-auto"
-        />
-
         <UDashboardSearchButton
           :collapsed="collapsed"
           variant="outline"
