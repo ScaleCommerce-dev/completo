@@ -403,18 +403,17 @@ async function confirmDelete() {
             class="text-sm text-dimmed"
           />
           <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">Description</span>
-          <button
-            v-if="!editingDescription"
-            type="button"
-            class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+          <!-- See CardModal: with no description, its placeholder is the button. -->
+          <UButton
+            v-if="!editingDescription && description"
+            icon="i-lucide-pencil"
+            label="Edit"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            class="ml-auto"
             @click="startEditingDescription"
-          >
-            <UIcon
-              name="i-lucide-pencil"
-              class="text-xs"
-            />
-            {{ description ? 'Edit' : 'Add' }}
-          </button>
+          />
         </div>
 
         <!-- Description: edit mode -->
@@ -468,6 +467,15 @@ async function confirmDelete() {
         >
           <ProseDescription :content="description" />
         </div>
+
+        <button
+          v-else
+          type="button"
+          class="w-full rounded-lg border border-dashed border-default px-3 py-2 text-left text-sm text-dimmed hover:border-accented hover:bg-muted transition-colors"
+          @click="startEditingDescription"
+        >
+          Add a description…
+        </button>
 
         <!-- Attachments -->
         <div class="mt-6">

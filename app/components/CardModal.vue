@@ -569,18 +569,20 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               class="text-sm text-dimmed"
             />
             <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">Description</span>
-            <button
-              v-if="!editingDescription"
-              type="button"
-              class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+            <!-- Only when there is something to edit. With the description empty
+                 its own placeholder is the affordance, and two invitations to
+                 write the same paragraph — a 19px ghost button up here and a
+                 full-width target below — is one too many. -->
+            <UButton
+              v-if="!editingDescription && description"
+              icon="i-lucide-pencil"
+              label="Edit"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              class="ml-auto"
               @click="startEditingDescription"
-            >
-              <UIcon
-                name="i-lucide-pencil"
-                class="text-xs"
-              />
-              {{ description ? 'Edit' : 'Add' }}
-            </button>
+            />
           </div>
 
           <div v-if="editingDescription">
@@ -643,6 +645,19 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           >
             <ProseDescription :content="description" />
           </div>
+
+          <!-- Empty: the placeholder is the button. A heading with a void under
+               it reads as a section that failed to render, and it is what the
+               panel used to show — twice over, since attachments did the same
+               thing an inch below. -->
+          <button
+            v-else
+            type="button"
+            class="w-full rounded-lg border border-dashed border-default px-3 py-2 text-left text-sm text-dimmed hover:border-accented hover:bg-muted transition-colors"
+            @click="startEditingDescription"
+          >
+            Add a description…
+          </button>
         </template>
       </div>
 

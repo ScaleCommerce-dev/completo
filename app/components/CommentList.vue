@@ -46,7 +46,53 @@ const commentEditDraft = useTextDraft(
   () => editingComment.value?.body || ''
 )
 
-watch(cardIdRef, () => commentDraft.load(), { immediate: true })
+/**
+ * The composer is a single row until you mean to write something.
+ *
+ * Expanded, it is roughly 215px of chrome — Write/Preview tabs, seven toolbar
+ * buttons, an AI control and a 120px textarea — and it was mounted on every card
+ * whether or not anyone was commenting. On a card with nothing on it that made
+ * the largest thing on the panel an empty box, and it sat directly under an
+ * equally large description editor wearing the identical chrome, so the only
+ * thing distinguishing the two was a heading well above them both.
+ *
+ * Collapsed it also *is* the comments empty state, which is why "No comments yet"
+ * could go: a row saying "Leave a comment…" reports the same fact and offers the
+ * action, where the sentence only reported it.
+ */
+const composerOpen = ref(false)
+
+function openComposer() {
+  composerOpen.value = true
+  nextTick(() => newCommentEditor.value?.startEditing())
+}
+
+function closeComposer() {
+  draft.value = ''
+  commentDraft.clear()
+  composerOpen.value = false
+}
+
+/**
+ * Escape collapses an empty composer and does nothing to one you have written
+ * in. Turning Escape into "discard what I typed" is the shortcut CLAUDE.md rules
+ * out — a keystroke away from the editor's own Cancel, with no confirmation and
+ * no undo.
+ */
+function escapeComposer() {
+  if (draft.value.trim()) return
+  closeComposer()
+}
+
+const newCommentEditor = ref<{ startEditing: () => void }>()
+
+watch(cardIdRef, () => {
+  commentDraft.load()
+  // Text that came back has to be visible, for the same reason a restored
+  // description opens its editor: a draft you cannot see is a draft you will
+  // overwrite.
+  composerOpen.value = !!draft.value.trim()
+}, { immediate: true })
 
 // Two-step inline confirm with a timeout, matching StatusManager — cards use a
 // simple confirm rather than type-name-to-confirm (see CLAUDE.md).
@@ -87,13 +133,11 @@ async function submit() {
   const body = draft.value.trim()
   if (!body) return
   await add(body)
-  draft.value = ''
-  commentDraft.clear()
+  closeComposer()
 }
 
 function discardCommentDraft() {
-  draft.value = ''
-  commentDraft.clear()
+  closeComposer()
 }
 
 function startEdit(comment: Comment) {
@@ -301,45 +345,68 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
       </li>
     </ul>
 
-    <p
-      v-else
-      class="text-sm text-dimmed mb-4"
-    >
-      No comments yet
-    </p>
-
     <div
       v-if="!readonly && cardId"
       data-comment-editor="new"
     >
-      <UiDraftNotice
-        v-if="commentDraft.restored.value"
-        label="comment"
-        class="mb-1.5"
-        @discard="discardCommentDraft"
-      />
-
-      <DescriptionEditor
-        v-model="draft"
-        :members="members"
-        :project-slug="projectSlug"
-        :project-key="projectKey"
-        :card-id="cardId"
-        :min-height="120"
-        :max-height="300"
-        ai-scope="comment"
-      />
-      <div class="flex justify-end mt-2">
-        <UButton
+      <!-- Collapsed: one row that reads as an input and doubles as the empty
+           state for the whole section. -->
+      <button
+        v-if="!composerOpen"
+        type="button"
+        class="w-full flex items-center gap-2.5 rounded-lg border border-default bg-default px-3 py-2 text-left hover:bg-muted transition-colors"
+        @click="openComposer"
+      >
+        <UAvatar
+          :src="currentUser?.avatarUrl ?? undefined"
+          :alt="currentUser?.name ?? 'You'"
           size="xs"
-          :loading="saving"
-          :disabled="!draft.trim()"
-          @click="submit"
-        >
-          Comment
-          <kbd class="ml-1 text-2xs font-mono opacity-75 bg-white/15 px-1 py-0.5 rounded-md">⌘↵</kbd>
-        </UButton>
-      </div>
+          class="shrink-0"
+        />
+        <span class="text-sm text-dimmed">Leave a comment…</span>
+      </button>
+
+      <template v-else>
+        <UiDraftNotice
+          v-if="commentDraft.restored.value"
+          label="comment"
+          class="mb-1.5"
+          @discard="discardCommentDraft"
+        />
+
+        <DescriptionEditor
+          ref="newCommentEditor"
+          v-model="draft"
+          :members="members"
+          :project-slug="projectSlug"
+          :project-key="projectKey"
+          :card-id="cardId"
+          :min-height="120"
+          :max-height="300"
+          placeholder="Leave a comment…"
+          ai-scope="comment"
+          @escape="escapeComposer"
+        />
+        <div class="flex items-center gap-2 mt-2">
+          <UButton
+            size="xs"
+            :loading="saving"
+            :disabled="!draft.trim()"
+            @click="submit"
+          >
+            Comment
+            <UKbd value="meta" />
+            <UKbd value="enter" />
+          </UButton>
+          <UButton
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            label="Cancel"
+            @click="closeComposer"
+          />
+        </div>
+      </template>
     </div>
   </div>
 </template>

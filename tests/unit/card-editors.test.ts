@@ -71,6 +71,51 @@ describe('the shortcut belongs to an editor', () => {
 })
 
 /**
+ * An empty section says what goes there by offering it, rather than by printing
+ * a sentence about its own emptiness or — worse — rendering a heading with
+ * nothing under it, which reads as a section that failed to load. A card with
+ * nothing on it used to show two of those in a row.
+ */
+describe('empty sections are their own invitation', () => {
+  const surfaces: Array<[string, string]> = [
+    ['CardModal', CARD_MODAL],
+    ['the card detail page', CARD_PAGE]
+  ]
+
+  it.each(surfaces)('%s offers the description instead of leaving a void', (_name, src) => {
+    expect(src).toContain('Add a description…')
+  })
+
+  it.each(surfaces)('%s drops the header button when there is nothing to edit', (_name, src) => {
+    // Two invitations to write the same paragraph is one too many, and the
+    // header one was a 19px hit target in ~2.5:1 grey.
+    expect(src).toMatch(/v-if="!editingDescription && description"/)
+    expect(src).not.toMatch(/'Edit' : 'Add'/)
+  })
+
+  it('the comment composer is the comments empty state', () => {
+    const comments = read('app/components/CommentList.vue')
+
+    expect(comments).toContain('Leave a comment…')
+    // The sentence reported the fact; the collapsed row reports it and offers
+    // the action, so the sentence is redundant. Matched as a rendered text node,
+    // since the prose above explains why it went and would match a plain
+    // substring check.
+    expect(comments).not.toMatch(/>\s*No comments yet\s*</)
+  })
+
+  it('the comment editor stops telling people to describe the task', () => {
+    // MarkdownEditor's default placeholder belongs to a card description, and
+    // the comment boxes reuse the component.
+    const comments = read('app/components/CommentList.vue')
+    const editor = read('app/components/DescriptionEditor.vue')
+
+    expect(editor).toMatch(/placeholder\?:/)
+    expect(comments).toMatch(/placeholder="Leave a comment…"/)
+  })
+})
+
+/**
  * The trap that cost a debugging round: `USlideover`'s default slot is its
  * *trigger*. A dialog placed there renders into the page behind the panel —
  * centred, with its buttons under the panel's left edge and unreachable — and it

@@ -12,6 +12,12 @@ const props = withDefaults(defineProps<{
   minHeight?: number
   maxHeight?: number
   /**
+   * Ghost text in the empty editor. The default belongs to a card description,
+   * and the comment boxes reuse this component — so a comment editor spent a
+   * long time telling people to "Describe the task...".
+   */
+  placeholder?: string
+  /**
    * Which AI skills this editor offers, and which AI endpoint it targets. Defaults
    * to 'card' so existing callers are unaffected; CommentList passes 'comment' so
    * the comment box doesn't offer card skills that interpolate card placeholders.
@@ -24,6 +30,7 @@ const props = withDefaults(defineProps<{
   cardId: null,
   minHeight: 120,
   maxHeight: 300,
+  placeholder: 'Describe the task...',
   aiScope: 'card'
 })
 
@@ -359,6 +366,7 @@ defineExpose({
     v-model="description"
     :min-height="minHeight"
     :max-height="maxHeight"
+    :placeholder="placeholder"
     :overlay-open="mentionActive"
     @textarea-keydown="onTextareaKeydown"
     @textarea-input="onTextareaInput"
