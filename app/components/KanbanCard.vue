@@ -155,6 +155,11 @@ type Control = 'tags' | 'priority' | 'due' | 'assignee'
  * you just used. Which is fine: you have already found out what it does.
  */
 const openControl = ref<Control | null>(null)
+
+// The due date is a popover rather than a FieldMenu, so it needs the same
+// focus-return rule wired by hand. See `useMenuFocusReturn`.
+const dueOpen = computed(() => openControl.value === 'due')
+const { onCloseAutoFocus } = useMenuFocusReturn(dueOpen)
 const suppressed = ref<Control | null>(null)
 
 function setOpen(name: Control, open: boolean) {
@@ -375,6 +380,7 @@ function toggleTag(tagId: string) {
 
           <DueDatePicker
             :open="openControl === 'due'"
+            :popover-options="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8, onCloseAutoFocus }"
             :model-value="card.dueDate"
             @update:open="v => setOpen('due', v)"
             @update:model-value="val => emit('update', card.id, { dueDate: val })"

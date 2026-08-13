@@ -54,6 +54,22 @@ const items = computed<DropdownMenuItem[][]>(() => [
   }))
 ])
 
+/**
+ * Focus goes back to the trigger only when the keyboard opened the menu — see
+ * `useMenuFocusReturn`. Merged into `content` rather than exposed as a prop:
+ * every menu in the app wants this, and none should have to remember it.
+ */
+const { onCloseAutoFocus } = useMenuFocusReturn(open)
+
+const contentProps = computed(() => ({
+  align: 'start' as const,
+  side: 'bottom' as const,
+  sideOffset: 4,
+  collisionPadding: 8,
+  ...props.content,
+  onCloseAutoFocus
+}))
+
 /** The header item has no option, so the leading box is skipped for it. */
 const opt = (item: unknown) => (item as { option?: FieldMenuOption }).option
 </script>
@@ -62,7 +78,7 @@ const opt = (item: unknown) => (item as { option?: FieldMenuOption }).option
   <UDropdownMenu
     v-model:open="open"
     :items="items"
-    :content="content || { align: 'start', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
+    :content="contentProps"
     :ui="{
       content: 'min-w-[200px] max-h-80 overflow-y-auto thin-scroll',
       // The default check is `size-5` — taller than the 18px line box, so the
