@@ -204,6 +204,12 @@ const sortedCards = computed(() => {
       case 'updatedAt':
         cmp = compareDate(a.updatedAt, b.updatedAt)
         break
+      case 'commentCount':
+        cmp = (a.commentCount || 0) - (b.commentCount || 0)
+        break
+      case 'attachmentCount':
+        cmp = (a.attachmentCount || 0) - (b.attachmentCount || 0)
+        break
     }
     return (cmp * mul) || (a.id - b.id)
   })
@@ -396,6 +402,18 @@ watch(() => props.columns.length, () => nextTick(updateFade))
             <ListCellCreator
               v-else-if="col.field === 'creator'"
               :creator="card.creator"
+            />
+
+            <ListCellCount
+              v-else-if="col.field === 'commentCount'"
+              :count="card.commentCount"
+              icon="i-lucide-message-square"
+            />
+
+            <ListCellCount
+              v-else-if="col.field === 'attachmentCount'"
+              :count="card.attachmentCount"
+              icon="i-lucide-paperclip"
             />
 
             <ListCellPriority

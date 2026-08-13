@@ -45,7 +45,11 @@ export const LIST_FIELDS: readonly ListFieldDef[] = [
   { field: 'dueDate', label: 'Due Date', icon: 'i-lucide-calendar', sortable: true, width: '120px' },
   { field: 'createdAt', label: 'Created', icon: 'i-lucide-calendar-plus', sortable: true, width: '100px' },
   { field: 'updatedAt', label: 'Updated', icon: 'i-lucide-calendar-clock', sortable: true, width: '100px' },
-  { field: 'description', label: 'Description', icon: 'i-lucide-text', width: '200px' }
+  { field: 'description', label: 'Description', icon: 'i-lucide-text', width: '200px' },
+  // Sortable because "most discussed first" is the question these answer, and
+  // the counts already travel with the row — see `enrichCardsWithMetadata`.
+  { field: 'commentCount', label: 'Comments', shortLabel: 'Comments', icon: 'i-lucide-message-square', sortable: true, width: '104px' },
+  { field: 'attachmentCount', label: 'Attachments', shortLabel: 'Files', icon: 'i-lucide-paperclip', sortable: true, width: '96px' }
 ]
 
 /** Every valid column field. Used by both column-add endpoints. */

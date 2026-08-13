@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   LIST_FIELDS,
   LIST_FIELD_KEYS,
@@ -34,6 +36,19 @@ describe('list field definitions', () => {
     for (const field of SORTABLE_LIST_FIELDS) {
       expect(LIST_FIELD_KEYS, `sortable field ${field}`).toContain(field)
     }
+  })
+
+  /**
+   * The header comment above names "a field marked sortable that ListView can't
+   * sort" as one of the ways to break this, and nothing was checking it: the
+   * server would accept and store the sortField while the table quietly left
+   * the rows in their original order — the same shape as the `dueDate` bug,
+   * with the halves swapped.
+   */
+  it.each([...SORTABLE_LIST_FIELDS])('%s has a comparison in ListView', (field) => {
+    const view = readFileSync(join(import.meta.dirname, '../../app/components/ListView.vue'), 'utf8')
+
+    expect(view).toContain(`case '${field}'`)
   })
 
   it('only names real fields in the default column sets', () => {
