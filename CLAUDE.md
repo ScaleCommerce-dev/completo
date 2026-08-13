@@ -267,7 +267,15 @@ zdev migrate             # apply migrations; also: generate | push | seed | clea
 
 ### Changelog
 
-`CHANGELOG.md` uses `## vX.Y.Z` sections (latest on top) with `### App` and `### CLI` subsections. When making changes, add entries under `## Unreleased` at the top. If no `## Unreleased` section exists, create one. Use concise, user-facing language (not commit messages). At release time, rename `## Unreleased` to `## vX.Y.Z` with the date — and **don't** add an empty `## Unreleased` back. A heading with nothing under it reads as "a release is pending" to anyone landing on the file, which is the opposite of what it means; the next change to land creates the section, as above. (Both v0.7.0 and v0.8.0 shipped with that empty heading at the top of `main` because this used to say otherwise.)
+`CHANGELOG.md` uses `## vX.Y.Z` sections (latest on top) with `### App`, `### CLI` and — where a release needs them — `### Upgrading` (anything an operator must do *before* deploying) and `### Dev` (migrations, security internals, invariants a contributor has to know). When making changes, add entries under `## Unreleased` at the top. If no `## Unreleased` section exists, create one. Use concise, user-facing language (not commit messages). At release time, rename `## Unreleased` to `## vX.Y.Z` with the date — and **don't** add an empty `## Unreleased` back. A heading with nothing under it reads as "a release is pending" to anyone landing on the file, which is the opposite of what it means; the next change to land creates the section, as above. (Both v0.7.0 and v0.8.0 shipped with that empty heading at the top of `main` because this used to say otherwise.)
+
+**Not every change earns an entry, and a commit is not the unit.** `### App` is read by people *using* Completo, so the test is whether someone who never sees the repository would notice: a new capability, changed behaviour, or a bug they could have hit in a version they actually ran. Refactors, renames, consolidations, test and doc changes and dependency bumps are not entries however much work they were — if a contributor needs to know, that is what `### Dev` is for, and most of the time nobody does. Three failure modes to watch, all of which the UI overhaul produced:
+
+- **A bug introduced and fixed between two releases never happened.** Nobody outside the branch could have met it, so "Fixed: …" is telling users about a stumble in the workshop. Delete the note along with the bug.
+- **One user-visible change is one entry, however many commits it took.** Three separate bullets saying tag colours became readable — in the picker, in the tag manager, on a card — read as three changes to a user who experienced one.
+- **"We unified six implementations" is not a user-facing sentence.** Say what they now see (every menu names its field, marks the selection the same way), not how many there used to be. The reasoning that justified the work to us is rarely what a user needs; that belongs in the commit message, where it is preserved anyway.
+
+A release with two dozen entries is fine when two dozen things changed for users. A release with two dozen entries because twenty-seven commits landed is not.
 
 ### Releasing
 
