@@ -198,28 +198,30 @@ defineExpose({ upload, uploading })
           v-if="!readonly"
           class="flex items-center gap-1 shrink-0"
         >
-          <a
-            :href="downloadUrl(attachment.id)"
-            target="_blank"
-            class="p-1 rounded-md text-dimmed hover:text-toned hover:bg-elevated opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition"
-            title="Download"
-          >
-            <UIcon
-              name="i-lucide-download"
-              class="text-sm"
-            />
-          </a>
-          <button
-            type="button"
-            class="p-1 rounded-md text-dimmed hover:text-error hover:bg-error/10 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition"
-            title="Remove"
-            @click="remove(attachment.id)"
-          >
-            <UIcon
-              name="i-lucide-trash-2"
-              class="text-sm"
-            />
-          </button>
+          <UTooltip text="Download">
+            <a
+              :href="downloadUrl(attachment.id)"
+              target="_blank"
+              class="p-1 rounded-md text-dimmed hover:text-toned hover:bg-elevated opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition"
+            >
+              <UIcon
+                name="i-lucide-download"
+                class="text-sm"
+              />
+            </a>
+          </UTooltip>
+          <UTooltip text="Remove">
+            <button
+              type="button"
+              class="p-1 rounded-md text-dimmed hover:text-error hover:bg-error/10 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition"
+              @click="remove(attachment.id)"
+            >
+              <UIcon
+                name="i-lucide-trash-2"
+                class="text-sm"
+              />
+            </button>
+          </UTooltip>
         </div>
       </div>
     </div>

@@ -39,41 +39,45 @@ function handleCustomPrompt() {
 <template>
   <div class="relative">
     <!-- Generating state: show cancel button -->
-    <button
+    <UTooltip
       v-if="isGenerating"
-      type="button"
-      title="Cancel AI generation"
-      class="ai-btn-cancel flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide uppercase text-warning bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-200 dark:ring-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-colors"
-      @mousedown.prevent
-      @click="emit('cancel')"
+      text="Cancel AI generation"
     >
-      <UIcon
-        name="i-lucide-loader-2"
-        class="text-sm animate-spin"
-      />
-      <span>Stop</span>
-    </button>
+      <button
+        type="button"
+        class="ai-btn-cancel flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide uppercase text-warning bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-200 dark:ring-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-colors"
+        @mousedown.prevent
+        @click="emit('cancel')"
+      >
+        <UIcon
+          name="i-lucide-loader-2"
+          class="text-sm animate-spin"
+        />
+        <span>Stop</span>
+      </button>
+    </UTooltip>
 
     <!-- Normal state: AI button -->
     <UPopover
       v-else
       v-model:open="menuOpen"
     >
-      <button
-        type="button"
-        title="AI writing assistant"
-        class="ai-pill group flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide uppercase transition-colors"
-        :class="error
-          ? 'text-error bg-error/10 ring-1 ring-red-200 dark:ring-red-800/50 hover:bg-red-100 dark:hover:bg-red-950/50'
-          : 'text-white dark:text-white ring-0'"
-        @mousedown.prevent
-      >
-        <UIcon
-          name="i-lucide-sparkles"
-          class="text-sm"
-        />
-        <span>AI</span>
-      </button>
+      <UTooltip text="AI writing assistant">
+        <button
+          type="button"
+          class="ai-pill group flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide uppercase transition-colors"
+          :class="error
+            ? 'text-error bg-error/10 ring-1 ring-red-200 dark:ring-red-800/50 hover:bg-red-100 dark:hover:bg-red-950/50'
+            : 'text-white dark:text-white ring-0'"
+          @mousedown.prevent
+        >
+          <UIcon
+            name="i-lucide-sparkles"
+            class="text-sm"
+          />
+          <span>AI</span>
+        </button>
+      </UTooltip>
 
       <template #content>
         <div class="min-w-[220px] max-w-[280px]">

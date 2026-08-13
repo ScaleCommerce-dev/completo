@@ -45,6 +45,7 @@ const emit = defineEmits<{
   'card-click': [card: BoardCard]
   'card-change': [evt: Record<string, unknown>]
   'card-update': [cardId: number, updates: Record<string, unknown>]
+  'card-update-tags': [cardId: number, tagIds: string[]]
   'add-card': []
   'quick-add': [title: string]
 }>()
@@ -173,6 +174,7 @@ const countLabel = computed(() =>
               :card="card"
               @click="emit('card-click', card)"
               @update="(cardId, updates) => emit('card-update', cardId, updates)"
+              @update-tags="(cardId, tagIds) => emit('card-update-tags', cardId, tagIds)"
             />
           </template>
         </draggable>

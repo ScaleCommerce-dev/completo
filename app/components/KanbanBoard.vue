@@ -12,12 +12,14 @@ const _props = defineProps<{
   canAddColumns?: boolean
   availableColumns?: CardStatus[]
   members?: Member[]
+  tags?: Array<{ id: string, name: string, color: string }>
 }>()
 
 const kanbanContext = {
   projectKey: computed(() => _props.projectKey),
   projectSlug: computed(() => _props.projectSlug),
   members: computed(() => _props.members),
+  tags: computed(() => _props.tags),
   // Through the context rather than as a prop: KanbanColumn has no use for it
   // and would only be forwarding it to KanbanCard.
   showDescription: computed(() => _props.showDescription ?? true)
@@ -28,6 +30,7 @@ const emit = defineEmits<{
   'card-click': [card: BoardCard]
   'card-moved': [cardId: number, toColumnId: string, toPosition: number]
   'card-update': [cardId: number, updates: Record<string, unknown>]
+  'card-update-tags': [cardId: number, tagIds: string[]]
   'add-card': [columnId: string]
   'quick-add': [columnId: string, title: string]
   'add-column': [name: string, color?: string]
@@ -131,6 +134,7 @@ watch(() => _props.columns.length, () => nextTick(updateFade))
       @card-click="(card) => emit('card-click', card)"
       @card-change="(evt) => handleCardChange(column.id, evt)"
       @card-update="(cardId, updates) => emit('card-update', cardId, updates)"
+      @card-update-tags="(cardId, tagIds) => emit('card-update-tags', cardId, tagIds)"
       @add-card="emit('add-card', column.id)"
       @quick-add="(title) => emit('quick-add', column.id, title)"
     />

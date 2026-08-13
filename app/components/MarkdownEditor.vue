@@ -190,68 +190,73 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
       v-show="editTab === 'write'"
       class="flex items-center gap-0.5 px-3 py-1.5 border-b border-default bg-muted bg-elevated"
     >
-      <button
-        type="button"
-        title="Bold (⌘B)"
-        class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
-        @mousedown.prevent
-        @click="insertMarkdown('bold')"
-      >
-        <UIcon
-          name="i-lucide-bold"
-          class="text-base"
-        />
-      </button>
-      <button
-        type="button"
-        title="Italic (⌘I)"
-        class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
-        @mousedown.prevent
-        @click="insertMarkdown('italic')"
-      >
-        <UIcon
-          name="i-lucide-italic"
-          class="text-base"
-        />
-      </button>
+      <UTooltip text="Bold ⌘B">
+        <button
+          type="button"
+          class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
+          @mousedown.prevent
+          @click="insertMarkdown('bold')"
+        >
+          <UIcon
+            name="i-lucide-bold"
+            class="text-base"
+          />
+        </button>
+      </UTooltip>
+      <UTooltip text="Italic ⌘I">
+        <button
+          type="button"
+          class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
+          @mousedown.prevent
+          @click="insertMarkdown('italic')"
+        >
+          <UIcon
+            name="i-lucide-italic"
+            class="text-base"
+          />
+        </button>
+      </UTooltip>
       <div class="w-px h-4 bg-accented mx-1" />
-      <button
-        type="button"
-        title="Inline code (⌘E)"
-        class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
-        @mousedown.prevent
-        @click="insertMarkdown('code')"
-      >
-        <UIcon
-          name="i-lucide-code"
-          class="text-base"
-        />
-      </button>
-      <button
-        type="button"
-        title="Code block"
-        class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
-        @mousedown.prevent
-        @click="insertMarkdown('codeblock')"
-      >
-        <UIcon
-          name="i-lucide-square-code"
-          class="text-base"
-        />
-      </button>
+      <UTooltip text="Inline code ⌘E">
+        <button
+          type="button"
+          class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
+          @mousedown.prevent
+          @click="insertMarkdown('code')"
+        >
+          <UIcon
+            name="i-lucide-code"
+            class="text-base"
+          />
+        </button>
+      </UTooltip>
+      <UTooltip text="Code block">
+        <button
+          type="button"
+          class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
+          @mousedown.prevent
+          @click="insertMarkdown('codeblock')"
+        >
+          <UIcon
+            name="i-lucide-square-code"
+            class="text-base"
+          />
+        </button>
+      </UTooltip>
       <div class="w-px h-4 bg-accented mx-1" />
-      <button
-        type="button"
-        title="Quote"
-        class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
-        @mousedown.prevent
-        @click="insertMarkdown('quote')"
-      >
-        <UIcon
-          name="i-lucide-text-quote"
-          class="text-base"
-        />
-      </button>
+      <UTooltip text="Quote">
+        <button
+          type="button"
+          class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
+          @mousedown.prevent
+          @click="insertMarkdown('quote')"
+        >
+          <UIcon
+            name="i-lucide-text-quote"
+            class="text-base"
+          />
+        </button>
+      </UTooltip>
       <template v-if="$slots['toolbar-append']">
         <div class="w-px h-4 bg-accented mx-1" />
         <slot name="toolbar-append" />

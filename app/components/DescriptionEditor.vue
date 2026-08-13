@@ -368,18 +368,19 @@ defineExpose({
         v-model:open="imagePickerActive"
         :ui="{ content: 'w-72' }"
       >
-        <button
-          type="button"
-          title="Insert image"
-          class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
-          @mousedown.prevent
-          @click="openImagePicker"
-        >
-          <UIcon
-            name="i-lucide-image"
-            class="text-base"
-          />
-        </button>
+        <UTooltip text="Insert image">
+          <button
+            type="button"
+            class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
+            @mousedown.prevent
+            @click="openImagePicker"
+          >
+            <UIcon
+              name="i-lucide-image"
+              class="text-base"
+            />
+          </button>
+        </UTooltip>
         <template #content>
           <div class="p-2">
             <!-- Card Attachments -->
@@ -431,18 +432,19 @@ defineExpose({
         </template>
       </UPopover>
       <div class="w-px h-4 bg-accented mx-1" />
-      <button
-        type="button"
-        title="Mention (@)"
-        class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
-        @mousedown.prevent
-        @click="openMention(false)"
-      >
-        <UIcon
-          name="i-lucide-at-sign"
-          class="text-base"
-        />
-      </button>
+      <UTooltip text="Mention @">
+        <button
+          type="button"
+          class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
+          @mousedown.prevent
+          @click="openMention(false)"
+        >
+          <UIcon
+            name="i-lucide-at-sign"
+            class="text-base"
+          />
+        </button>
+      </UTooltip>
     </template>
     <template #toolbar-right>
       <div

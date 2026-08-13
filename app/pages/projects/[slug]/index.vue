@@ -274,36 +274,39 @@ function cancelDeleteTag() {
 
           <!-- Aggregate stats — right-aligned -->
           <div class="flex items-center gap-3 ml-auto shrink-0 pl-3">
-            <span
-              class="flex items-center gap-1 text-xs font-medium tabular-nums text-dimmed"
-              title="Open cards"
-            >
-              <UIcon
-                name="i-lucide-layers"
-                class="text-sm"
-              />
-              {{ project.openCards || 0 }}
-            </span>
-            <span
-              class="flex items-center gap-1 text-xs font-medium tabular-nums text-dimmed"
-              title="Boards"
-            >
-              <UIcon
-                name="i-lucide-layout-dashboard"
-                class="text-sm"
-              />
-              {{ project.boards?.length || 0 }}
-            </span>
-            <span
-              class="flex items-center gap-1 text-xs font-medium tabular-nums text-dimmed"
-              title="Lists"
-            >
-              <UIcon
-                name="i-lucide-list"
-                class="text-sm"
-              />
-              {{ project.lists?.length || 0 }}
-            </span>
+            <UTooltip text="Open cards">
+              <span
+                class="flex items-center gap-1 text-xs font-medium tabular-nums text-dimmed"
+              >
+                <UIcon
+                  name="i-lucide-layers"
+                  class="text-sm"
+                />
+                {{ project.openCards || 0 }}
+              </span>
+            </UTooltip>
+            <UTooltip text="Boards">
+              <span
+                class="flex items-center gap-1 text-xs font-medium tabular-nums text-dimmed"
+              >
+                <UIcon
+                  name="i-lucide-layout-dashboard"
+                  class="text-sm"
+                />
+                {{ project.boards?.length || 0 }}
+              </span>
+            </UTooltip>
+            <UTooltip text="Lists">
+              <span
+                class="flex items-center gap-1 text-xs font-medium tabular-nums text-dimmed"
+              >
+                <UIcon
+                  name="i-lucide-list"
+                  class="text-sm"
+                />
+                {{ project.lists?.length || 0 }}
+              </span>
+            </UTooltip>
           </div>
         </div>
 
