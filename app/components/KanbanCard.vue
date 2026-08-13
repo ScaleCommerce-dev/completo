@@ -30,10 +30,12 @@ import type { BoardCard } from '~/types/card'
  * (clicking the ID still copies its link), and what is left is a clean split:
  * left tells you about the card, right changes it.
  *
- * Medium and low priority stay invisible until the card is hovered — the control
- * is there, the ink is not. The same is now true of due date and tags, which
- * previously rendered *only* when set, so a card with neither offered no way to
- * acquire one short of opening it.
+ * All four field controls are hover-only ink: the control is always there, the
+ * mark appears when you reach for it. Due date is the single exception and shows
+ * its date once it has one, because nothing else on the card carries it. Tags
+ * and due date used to render *only* when set, so a card with neither offered no
+ * way to acquire one short of opening it; priority used to render always, in its
+ * own colour, duplicating the edge bar an inch away.
  *
  * **The description is per-board** (`boards.show_description`, default on), which
  * is how the list view has always treated it — an opt-in field column. Removing
@@ -375,8 +377,23 @@ function toggleTag(tagId: string) {
             </template>
           </TagMenu>
 
-          <!-- Priority. High and urgent are always lit; medium and low are a
-               control without a colour, so they wait for hover. -->
+          <!--
+            The edge bar is the readout; this is only the control.
+
+            It used to be both: high and urgent stayed lit in their own colour
+            with the urgent one pulsing, right beside an edge bar already saying
+            exactly that in the same colour with the same pulse. Two marks for
+            one fact, and it made priority the only field on the strip whose
+            control changed shape with its value — the row read as three buttons
+            and one status light.
+
+            So it becomes the field's own glyph, dimmed and hover-revealed, the
+            same as tags. Nothing is lost from the card face: high and urgent
+            keep the bar, and medium and low were never marked here either, by
+            design. The value moves into the tooltip, which is what the assignee
+            slot already does for the one other field whose control can't spell
+            out its own value.
+          -->
           <PriorityMenu
             :priority="card.priority"
             :open="openControl === 'priority'"
@@ -386,26 +403,19 @@ function toggleTag(tagId: string) {
           >
             <template #default="{ label }">
               <UTooltip
-                text="Priority"
+                :text="`Priority: ${priorityLabel(card.priority)}`"
                 :disabled="tipOff('priority')"
               >
                 <button
                   type="button"
-                  :class="[
-                    SLOT,
-                    'rounded-md',
-                    priorityTextClass(card.priority),
-                    isSignalPriority(card.priority)
-                      ? (card.priority === 'urgent' ? 'priority-urgent-pulse' : '')
-                      : reveal
-                  ]"
+                  :class="[SLOT, reveal, 'rounded-md text-dimmed']"
                   :aria-label="label"
                   @blur="releaseTip('priority')"
                   @pointerleave="releaseTip('priority')"
                   @click.stop
                 >
                   <UIcon
-                    :name="priorityIcon(card.priority)"
+                    name="i-lucide-signal"
                     class="text-xs"
                   />
                 </button>
