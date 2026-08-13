@@ -1545,13 +1545,13 @@
                   "slug": {
                     "type": "string"
                   },
-                  "showDescription": {
-                    "type": "boolean",
-                    "description": "Show a two-line description excerpt on this board's cards."
-                  },
-                  "showTags": {
-                    "type": "boolean",
-                    "description": "Show the card's tags on this board's cards."
+                  "hiddenCardFields": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": ["description", "assignee", "tags", "dueDate", "ticketId", "priority", "commentCount", "attachmentCount"]
+                    },
+                    "description": "Fields this board's cards do not display at rest. Unknown values are ignored. Hiding a field does not remove its editor, which stays available on card hover."
                   }
                 }
               }
@@ -4713,15 +4713,13 @@
           "position": {
             "type": "integer"
           },
-          "showDescription": {
-            "type": "boolean",
-            "description": "Whether cards on this board show a description excerpt.",
-            "default": true
-          },
-          "showTags": {
-            "type": "boolean",
-            "description": "Whether cards on this board show their tags.",
-            "default": true
+          "hiddenCardFields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["description", "assignee", "tags", "dueDate", "ticketId", "priority", "commentCount", "attachmentCount"]
+            },
+            "description": "Fields this board's cards do not display at rest. Empty means every field is shown."
           },
           "createdById": {
             "type": "string",

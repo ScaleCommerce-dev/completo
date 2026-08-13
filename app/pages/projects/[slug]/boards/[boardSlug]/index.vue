@@ -18,8 +18,7 @@ const {
   priorityFilters,
   projectKey,
   doneStatusId,
-  showDescription,
-  showTags,
+  hiddenCardFields,
   availableColumns,
   canConfigureColumns,
   canModerateComments,
@@ -181,8 +180,7 @@ async function handleDeleteBoard() {
       :project-key="projectKey"
       :project-slug="(route.params.slug as string)"
       :done-status-id="doneStatusId"
-      :show-description="showDescription"
-      :show-tags="showTags"
+      :hidden-card-fields="hiddenCardFields"
       :can-configure-columns="canConfigureColumns"
       :can-add-columns="canAddColumns"
       :available-columns="availableColumns"
@@ -226,8 +224,7 @@ async function handleDeleteBoard() {
       :active-status-filters="[...statusFilters]"
       :active-assignee-filters="[...assigneeFilters]"
       :active-priority-filters="[...priorityFilters]"
-      :show-description="showDescription"
-      :show-tags="showTags"
+      :hidden-card-fields="hiddenCardFields"
       :view-name="board?.name || ''"
       :view-type="'board'"
       @add="addColumn"

@@ -64,6 +64,20 @@
       "when": 1786649423901,
       "tag": "0008_exotic_catseye",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1786653384129,
+      "tag": "0009_tiny_ultragirl",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1786653394891,
+      "tag": "0010_mysterious_sharon_carter",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Explicit import: shared/utils is auto-imported for Nitro but not into app components.
 import { LIST_FIELDS } from '#shared/utils/list-fields'
+import { CARD_FIELDS, type CardField } from '#shared/utils/card-fields'
 
 const draggable = defineAsyncComponent(() => import('vuedraggable'))
 
@@ -25,8 +26,7 @@ const props = defineProps<{
   activeAssigneeFilters?: string[]
   activePriorityFilters?: string[]
   /** Board mode only — whether cards show a description excerpt. */
-  showDescription?: boolean
-  showTags?: boolean
+  hiddenCardFields?: string[]
   viewName?: string
   viewType?: 'board' | 'list'
 }>()
@@ -40,7 +40,7 @@ const emit = defineEmits<{
   'reorder': [columns: { id: string, position: number }[]]
   'link': [statusId: string]
   'update-filters': [filters: { tagFilters?: string[], statusFilters?: string[], assigneeFilters?: string[], priorityFilters?: string[] }]
-  'update-display': [display: { showDescription?: boolean, showTags?: boolean }]
+  'update-display': [display: { hiddenCardFields: string[] }]
   'rename': [name: string]
   'delete-view': []
 }>()
@@ -99,8 +99,7 @@ const localTagFilters = ref<string[]>([])
 const localStatusFilters = ref<string[]>([])
 const localAssigneeFilters = ref<string[]>([])
 const localPriorityFilters = ref<string[]>([])
-const localShowDescription = ref(true)
-const localShowTags = ref(true)
+const localHiddenFields = ref<string[]>([])
 const editName = ref('')
 
 // Snapshot on open to detect changes
@@ -109,8 +108,27 @@ const snapshotTagFilters = ref<string[]>([])
 const snapshotStatusFilters = ref<string[]>([])
 const snapshotAssigneeFilters = ref<string[]>([])
 const snapshotPriorityFilters = ref<string[]>([])
-const snapshotShowDescription = ref(true)
-const snapshotShowTags = ref(true)
+const snapshotHiddenFields = ref<string[]>([])
+
+/**
+ * The switches read as "show X", so they are the inverse of what is stored —
+ * see `card-fields.ts` for why the *hidden* set is what persists.
+ */
+function fieldShown(key: CardField) {
+  return !localHiddenFields.value.includes(key)
+}
+
+function setFieldShown(key: CardField, shown: boolean) {
+  localHiddenFields.value = shown
+    ? localHiddenFields.value.filter(k => k !== key)
+    : [...localHiddenFields.value, key]
+}
+
+// Order-insensitive: toggling a field off and on again is not a change to save.
+const hiddenFieldsChanged = computed(() => {
+  const before = [...snapshotHiddenFields.value].sort().join(',')
+  return before !== [...localHiddenFields.value].sort().join(',')
+})
 const snapshotName = ref('')
 
 function resetToProps() {
@@ -119,16 +137,14 @@ function resetToProps() {
   localStatusFilters.value = [...(props.activeStatusFilters || [])]
   localAssigneeFilters.value = [...(props.activeAssigneeFilters || [])]
   localPriorityFilters.value = [...(props.activePriorityFilters || [])]
-  localShowDescription.value = props.showDescription ?? true
-  localShowTags.value = props.showTags ?? true
+  localHiddenFields.value = [...(props.hiddenCardFields || [])]
   editName.value = props.viewName || ''
   snapshotColumnOrder.value = props.columns.map(c => c.id)
   snapshotTagFilters.value = [...(props.activeTagFilters || [])]
   snapshotStatusFilters.value = [...(props.activeStatusFilters || [])]
   snapshotAssigneeFilters.value = [...(props.activeAssigneeFilters || [])]
   snapshotPriorityFilters.value = [...(props.activePriorityFilters || [])]
-  snapshotShowDescription.value = props.showDescription ?? true
-  snapshotShowTags.value = props.showTags ?? true
+  snapshotHiddenFields.value = [...(props.hiddenCardFields || [])]
   snapshotName.value = props.viewName || ''
 }
 
@@ -254,8 +270,7 @@ const isDirty = computed(() => {
   if (filtersChanged(localStatusFilters.value, snapshotStatusFilters.value)) return true
   if (filtersChanged(localAssigneeFilters.value, snapshotAssigneeFilters.value)) return true
   if (filtersChanged(localPriorityFilters.value, snapshotPriorityFilters.value)) return true
-  if (localShowDescription.value !== snapshotShowDescription.value) return true
-  if (localShowTags.value !== snapshotShowTags.value) return true
+  if (hiddenFieldsChanged.value) return true
   return false
 })
 
@@ -295,15 +310,8 @@ function save() {
     emit('update-filters', filterUpdates)
   }
 
-  const display: { showDescription?: boolean, showTags?: boolean } = {}
-  if (localShowDescription.value !== snapshotShowDescription.value) {
-    display.showDescription = localShowDescription.value
-  }
-  if (localShowTags.value !== snapshotShowTags.value) {
-    display.showTags = localShowTags.value
-  }
-  if (Object.keys(display).length) {
-    emit('update-display', display)
+  if (hiddenFieldsChanged.value) {
+    emit('update-display', { hiddenCardFields: [...localHiddenFields.value] })
   }
 
   open.value = false
@@ -647,23 +655,31 @@ function handleDeleteView() {
             <div class="flex flex-col gap-2.5">
               <UiSectionLabel
                 icon="i-lucide-square-menu"
-                label="Cards"
+                label="Card shows"
               />
-              <!-- First switch in the app. USwitch rather than a hand-rolled
-                   toggle: the app has been through four competing idioms for
-                   confirmation dialogs already. -->
-              <USwitch
-                v-model="localShowDescription"
-                label="Show description"
-                description="Two lines of the description under each card title. Cards without one are unaffected."
-                :ui="{ wrapper: 'ms-3' }"
-              />
-              <USwitch
-                v-model="localShowTags"
-                label="Show tags"
-                description="The card's tags, as many as fit on one line. Tags can still be changed from the card either way."
-                :ui="{ wrapper: 'ms-3' }"
-              />
+              <!--
+                A grid of labels rather than eight switches each with a sentence
+                under it: this is a picker for what a card displays, the board's
+                version of a list's Fields dialog, and at that length prose per
+                row is what turns a decision into a control panel. The one thing
+                worth saying applies to all eight, so it is said once below.
+
+                Two columns, filled row-major from `CARD_FIELDS`, so the order in
+                that file is the order on screen.
+              -->
+              <div class="grid grid-cols-2 gap-x-6 gap-y-2.5 ms-3">
+                <USwitch
+                  v-for="field in CARD_FIELDS"
+                  :key="field.key"
+                  :model-value="fieldShown(field.key)"
+                  :label="field.label"
+                  @update:model-value="setFieldShown(field.key, $event)"
+                />
+              </div>
+              <p class="text-xs text-muted ms-3">
+                Hiding a field only stops the card painting it. Every field is
+                still there to set when you hover the card.
+              </p>
             </div>
           </template>
         </UTabs>

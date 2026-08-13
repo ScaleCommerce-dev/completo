@@ -2,18 +2,17 @@ import { eq, and, ne } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user: _user, board } = await resolveBoard(event)
-  const { name, slug, tagFilters, statusFilters, assigneeFilters, priorityFilters, showDescription, showTags } = await readBody<{
+  const { name, slug, tagFilters, statusFilters, assigneeFilters, priorityFilters, hiddenCardFields } = await readBody<{
     name?: string
     slug?: string
     tagFilters?: string[]
     statusFilters?: string[]
     assigneeFilters?: string[]
     priorityFilters?: string[]
-    showDescription?: boolean
-    showTags?: boolean
+    hiddenCardFields?: string[]
   }>(event)
 
-  if (!name && !slug && tagFilters === undefined && statusFilters === undefined && assigneeFilters === undefined && priorityFilters === undefined && showDescription === undefined && showTags === undefined) {
+  if (!name && !slug && tagFilters === undefined && statusFilters === undefined && assigneeFilters === undefined && priorityFilters === undefined && hiddenCardFields === undefined) {
     throw createError({ statusCode: 400, message: 'Name, slug, filters, or display settings required' })
   }
 
@@ -58,17 +57,16 @@ export default defineEventHandler(async (event) => {
     updates.priorityFilters = priorityFilters.length ? JSON.stringify(priorityFilters) : null
   }
 
-  // Stored 0/1 to match the rest of the schema; coerced here so a JSON `true`
-  // and a stray `1` both land as the integer the column expects.
-  if (showDescription !== undefined) {
-    updates.showDescription = showDescription ? 1 : 0
-  }
-
-  if (showTags !== undefined) {
-    updates.showTags = showTags ? 1 : 0
+  // Filtered to keys this release knows, so an unrecognised one is dropped
+  // rather than stored and handed back out. A board hiding nothing stores null
+  // rather than `[]`, which keeps "never configured" and "configured back to
+  // the default" the same row.
+  if (hiddenCardFields !== undefined) {
+    const hidden = normalizeHiddenCardFields(hiddenCardFields)
+    updates.hiddenCardFields = hidden.length ? JSON.stringify(hidden) : null
   }
 
   db.update(schema.boards).set(updates).where(eq(schema.boards.id, board.id)).run()
   const updated = db.select().from(schema.boards).where(eq(schema.boards.id, board.id)).get()
-  return updated ? { ...updated, showDescription: !!updated.showDescription, showTags: !!updated.showTags } : updated
+  return updated ? { ...updated, hiddenCardFields: normalizeHiddenCardFields(safeParseJson(updated.hiddenCardFields, [])) } : updated
 })

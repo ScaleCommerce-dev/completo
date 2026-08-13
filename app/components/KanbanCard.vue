@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { BoardCard } from '~/types/card'
+import type { CardField } from '#shared/utils/card-fields'
 
 /**
  * A card on the board.
@@ -62,9 +63,11 @@ const kanbanContext = inject<{
   projectSlug: ComputedRef<string | undefined>
   members: ComputedRef<Array<{ id: string, name: string, avatarUrl: string | null }> | undefined>
   tags: ComputedRef<Array<{ id: string, name: string, color: string }> | undefined>
-  showDescription: ComputedRef<boolean>
-  showTags: ComputedRef<boolean>
+  cardFieldVisible: ComputedRef<(key: CardField) => boolean>
 }>('kanbanContext')!
+
+/** `shows('tags')` — see `shared/utils/card-fields.ts`. */
+const shows = (key: CardField) => kanbanContext.cardFieldVisible.value(key)
 
 /**
  * Stripped, because the raw source puts `## Kontext` and `- [ ]` on the card
@@ -72,7 +75,7 @@ const kanbanContext = inject<{
  * two views excerpt a description identically.
  */
 const descriptionExcerpt = computed(() => {
-  if (!kanbanContext.showDescription.value || !props.card.description) return ''
+  if (!shows('description') || !props.card.description) return ''
   return stripMarkdown(props.card.description)
 })
 
@@ -88,7 +91,7 @@ const detailUrl = computed(() => {
   return `/projects/${kanbanContext.projectSlug.value}/cards/${formatTicketId(kanbanContext.projectKey.value, props.card.id)}`
 })
 
-const showTags = computed(() => kanbanContext.showTags.value && !!props.card.tags?.length)
+const showTags = computed(() => shows('tags') && !!props.card.tags?.length)
 const allTagNames = computed(() => (props.card.tags || []).map(t => t.name).join(', '))
 
 /**
@@ -169,14 +172,27 @@ watch(() => props.card.tags, () => remeasureTags(), { deep: true })
  * came to read "1 attachments".
  */
 const contentMarks = computed(() => [
-  { icon: 'i-lucide-message-square', count: props.card.commentCount || 0, noun: 'comment' },
-  { icon: 'i-lucide-paperclip', count: props.card.attachmentCount || 0, noun: 'attachment' }
-].filter(m => m.count > 0).map(m => ({
+  { key: 'commentCount' as const, icon: 'i-lucide-message-square', count: props.card.commentCount || 0, noun: 'comment' },
+  { key: 'attachmentCount' as const, icon: 'i-lucide-paperclip', count: props.card.attachmentCount || 0, noun: 'attachment' }
+].filter(m => m.count > 0 && shows(m.key)).map(m => ({
   ...m,
   label: `${m.count} ${m.noun}${m.count === 1 ? '' : 's'}`
 })))
 
 const dueStatus = computed(() => getDueDateStatus(props.card.dueDate))
+
+/**
+ * Whether the slot paints its value or stays a bare control.
+ *
+ * A hidden field behaves exactly as an empty one: neutral glyph, revealed on
+ * hover, and the tooltip still names the current value. That is what makes these
+ * switches free — the board gets quieter, but nothing on it becomes uneditable,
+ * so there is no setting that can strand a card with a due date you cannot
+ * change. The assignee's glyph is `user` rather than `user-plus` when there *is*
+ * someone assigned, since "add" would be a lie.
+ */
+const paintDue = computed(() => shows('dueDate') && !!props.card.dueDate)
+const paintAssignee = computed(() => shows('assignee') && !!props.card.assignee)
 
 /**
  * Hover-only controls share this, so they appear and disappear as one group.
@@ -316,7 +332,7 @@ function toggleTag(tagId: string) {
   >
     <!-- Priority edge bar. High and urgent only. -->
     <span
-      v-if="priorityBarClass(card.priority)"
+      v-if="shows('priority') && priorityBarClass(card.priority)"
       class="absolute left-0 top-0 bottom-0 w-[2.5px]"
       :class="[priorityBarClass(card.priority), card.priority === 'urgent' ? 'priority-urgent-pulse' : '']"
       aria-hidden="true"
@@ -392,6 +408,7 @@ function toggleTag(tagId: string) {
       <!-- Footer. Identity on the left, decision signals on the right. -->
       <div class="flex items-center gap-1.5 mt-1.5 min-w-0">
         <TicketIdCopy
+          v-if="shows('ticketId')"
           :project-key="kanbanContext.projectKey.value"
           :project-slug="kanbanContext.projectSlug.value"
           :card-id="card.id"
@@ -525,13 +542,13 @@ function toggleTag(tagId: string) {
             @update:model-value="val => emit('update', card.id, { dueDate: val })"
           >
             <UTooltip
-              text="Due date"
+              :text="card.dueDate ? `Due ${formatDueDate(card.dueDate)}` : 'Due date'"
               :disabled="tipOff('due')"
             >
               <button
                 type="button"
                 class="whitespace-nowrap text-2xs font-semibold rounded-md"
-                :class="card.dueDate
+                :class="paintDue
                   ? [SLOT_TEXT, dueDateTextClass(dueStatus)]
                   : [SLOT, reveal, 'text-dimmed']"
                 :aria-label="card.dueDate ? `Due ${formatDueDate(card.dueDate)}. Change due date` : 'Set a due date'"
@@ -540,13 +557,13 @@ function toggleTag(tagId: string) {
                 @click.stop
               >
                 <UIcon
-                  :name="card.dueDate ? dueDateIcon(dueStatus) : 'i-lucide-calendar-plus'"
-                  :class="card.dueDate ? 'text-2xs' : 'text-xs'"
+                  :name="paintDue ? dueDateIcon(dueStatus) : 'i-lucide-calendar-plus'"
+                  :class="paintDue ? 'text-2xs' : 'text-xs'"
                 />
                 <span
-                  v-if="card.dueDate"
+                  v-if="paintDue"
                   class="select-none"
-                >{{ formatDueDate(card.dueDate) }}</span>
+                >{{ formatDueDate(card.dueDate!) }}</span>
               </button>
             </UTooltip>
           </DueDatePicker>
@@ -574,7 +591,7 @@ function toggleTag(tagId: string) {
                   type="button"
                   :class="[
                     SLOT,
-                    card.assignee ? 'rounded-full' : ['rounded-md text-dimmed', reveal]
+                    paintAssignee ? 'rounded-full' : ['rounded-md text-dimmed', reveal]
                   ]"
                   :aria-label="label"
                   @blur="releaseTip('assignee')"
@@ -582,14 +599,14 @@ function toggleTag(tagId: string) {
                   @click.stop
                 >
                   <UAvatar
-                    v-if="card.assignee"
-                    :src="card.assignee.avatarUrl || undefined"
-                    :alt="card.assignee.name"
+                    v-if="paintAssignee"
+                    :src="card.assignee!.avatarUrl || undefined"
+                    :alt="card.assignee!.name"
                     size="2xs"
                   />
                   <UIcon
                     v-else
-                    name="i-lucide-user-plus"
+                    :name="card.assignee ? 'i-lucide-user' : 'i-lucide-user-plus'"
                     class="text-xs"
                   />
                 </button>

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { BoardCard, CardStatus, Member } from '~/types/card'
+// `shared/utils` is auto-imported for Nitro but not for app components.
+import { cardFieldVisible, type CardField } from '#shared/utils/card-fields'
 
 const _props = defineProps<{
   columns: CardStatus[]
@@ -7,8 +9,7 @@ const _props = defineProps<{
   projectKey?: string
   projectSlug?: string
   doneStatusId?: string | null
-  showDescription?: boolean
-  showTags?: boolean
+  hiddenCardFields?: string[]
   canConfigureColumns?: boolean
   canAddColumns?: boolean
   availableColumns?: CardStatus[]
@@ -23,8 +24,7 @@ const kanbanContext = {
   tags: computed(() => _props.tags),
   // Through the context rather than as a prop: KanbanColumn has no use for it
   // and would only be forwarding it to KanbanCard.
-  showDescription: computed(() => _props.showDescription ?? true),
-  showTags: computed(() => _props.showTags ?? true)
+  cardFieldVisible: computed(() => (key: CardField) => cardFieldVisible(_props.hiddenCardFields, key))
 }
 provide('kanbanContext', kanbanContext)
 

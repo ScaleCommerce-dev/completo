@@ -19,8 +19,7 @@ interface Board {
   statusFilters: string[]
   assigneeFilters: string[]
   priorityFilters: string[]
-  showDescription: boolean
-  showTags: boolean
+  hiddenCardFields: string[]
   createdBy: { id: string, name: string, avatarUrl: string | null } | null
   role: string
   project: { id: string, name: string, slug: string, key: string, doneStatusId: string | null, doneRetentionDays: number | null } | null
@@ -155,10 +154,9 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
    * column, so `undefined` must not read as "off" while the first fetch is in
    * flight — the cards would render, then visibly lose a line.
    */
-  const showDescription = computed(() => board.value?.showDescription ?? true)
-  const showTags = computed(() => board.value?.showTags ?? true)
+  const hiddenCardFields = computed(() => board.value?.hiddenCardFields ?? [])
 
-  async function updateDisplay(display: { showDescription?: boolean, showTags?: boolean }) {
+  async function updateDisplay(display: { hiddenCardFields?: string[] }) {
     await mutate(
       () => $fetch(`/api/boards/${boardId.value}` as string, { method: 'PUT' as const, body: display }),
       'Failed to update display settings'
@@ -212,8 +210,7 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
     priorityFilters,
     projectKey,
     doneStatusId,
-    showDescription,
-    showTags,
+    hiddenCardFields,
     availableColumns,
     canConfigureColumns,
     canModerateComments,

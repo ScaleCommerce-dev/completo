@@ -116,9 +116,9 @@ export default defineEventHandler(async (event) => {
     statusFilters: safeParseJson(board.statusFilters, []),
     assigneeFilters: safeParseJson(board.assigneeFilters, []),
     priorityFilters: safeParseJson(board.priorityFilters, []),
-    // Column is 0/1; the board renders it as a boolean.
-    showDescription: !!board.showDescription,
-    showTags: !!board.showTags,
+    // Normalised on the way out so a value written by a newer release naming a
+    // field this one doesn't have can't reach the card face.
+    hiddenCardFields: normalizeHiddenCardFields(safeParseJson(board.hiddenCardFields, [])),
     createdBy,
     role: membership.role,
     project: project ? { id: project.id, name: project.name, slug: project.slug, key: project.key, doneStatusId: project.doneStatusId, doneRetentionDays: project.doneRetentionDays } : null,

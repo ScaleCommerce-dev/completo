@@ -51,11 +51,11 @@ export const boards = sqliteTable('boards', {
   statusFilters: text('status_filters'),
   assigneeFilters: text('assignee_filters'),
   priorityFilters: text('priority_filters'),
-  // 0/1, following `users.is_admin` — this schema stores booleans as integers
-  // rather than through drizzle's `mode: 'boolean'`. The board GET normalises it
-  // to a real boolean on the way out, beside where it parses the filter JSON.
-  showDescription: integer('show_description').notNull().default(1),
-  showTags: integer('show_tags').notNull().default(1),
+  // JSON array of `CARD_FIELDS` keys the board's cards do *not* paint at rest —
+  // see `shared/utils/card-fields.ts` for why it stores the off set rather than
+  // the on set. `null` means nothing is hidden. Parsed by the board GET beside
+  // the filter JSON.
+  hiddenCardFields: text('hidden_card_fields'),
   createdById: text('created_by_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })

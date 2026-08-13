@@ -4,12 +4,14 @@ import { registerTestUser, type TestUser } from '../../setup/auth'
 import { createTestProject, createTestBoard, getBoard } from '../../setup/fixtures'
 
 /**
- * `boards.show_description` decides whether board cards carry a description
- * excerpt. It is stored 0/1 like the rest of the schema's booleans, so the two
- * things worth pinning down are that it survives the round trip as a *boolean*
- * (a client binding a switch to `1` is a bug waiting to happen) and that it
- * defaults to on — a board created before the column existed must not silently
- * lose the excerpt.
+ * `boards.hidden_card_fields` decides what a board's cards paint at rest. It
+ * stores the fields that are *off* — see `shared/utils/card-fields.ts` — so the
+ * things worth pinning down are that a fresh board hides nothing, that an
+ * unknown key never survives the round trip, and that "hide nothing" persists as
+ * `null` rather than an empty array, since those must stay the same row.
+ *
+ * It replaced a boolean column per field. That shape meant a migration for every
+ * new card element, and it hid each new one from every board that predated it.
  */
 describe('board display settings', async () => {
   let user: TestUser
@@ -22,72 +24,76 @@ describe('board display settings', async () => {
     return await createTestBoard(user, project.id)
   }
 
-  it('defaults showDescription to true', async () => {
-    const board = await freshBoard()
-    const result = await getBoard(user, board.id)
+  function put(boardId: string, hiddenCardFields: string[], headers = user.headers) {
+    return $fetch(`/api/boards/${boardId}`, {
+      method: 'PUT',
+      body: { hiddenCardFields },
+      headers
+    }) as Promise<{ hiddenCardFields: string[] }>
+  }
 
-    expect(result.showDescription).toBe(true)
+  it('hides nothing on a new board', async () => {
+    const board = await freshBoard()
+
+    expect((await getBoard(user, board.id)).hiddenCardFields).toEqual([])
   })
 
-  it('persists showDescription: false', async () => {
+  it('persists a hidden field', async () => {
     const board = await freshBoard()
 
-    const updated = await $fetch(`/api/boards/${board.id}`, {
-      method: 'PUT',
-      body: { showDescription: false },
-      headers: user.headers
-    }) as { showDescription: boolean }
+    const updated = await put(board.id, ['tags'])
 
-    expect(updated.showDescription).toBe(false)
-    expect((await getBoard(user, board.id)).showDescription).toBe(false)
+    expect(updated.hiddenCardFields).toEqual(['tags'])
+    expect((await getBoard(user, board.id)).hiddenCardFields).toEqual(['tags'])
   })
 
-  it('turns showDescription back on', async () => {
+  it('turns a field back on', async () => {
     const board = await freshBoard()
 
-    await $fetch(`/api/boards/${board.id}`, {
-      method: 'PUT',
-      body: { showDescription: false },
-      headers: user.headers
-    })
-    await $fetch(`/api/boards/${board.id}`, {
-      method: 'PUT',
-      body: { showDescription: true },
-      headers: user.headers
-    })
+    await put(board.id, ['tags'])
+    await put(board.id, [])
 
-    expect((await getBoard(user, board.id)).showDescription).toBe(true)
+    expect((await getBoard(user, board.id)).hiddenCardFields).toEqual([])
   })
 
-  it('leaves showDescription alone when the body only carries a rename', async () => {
+  it('holds several at once, sorted', async () => {
     const board = await freshBoard()
 
-    await $fetch(`/api/boards/${board.id}`, {
-      method: 'PUT',
-      body: { showDescription: false },
-      headers: user.headers
-    })
+    const updated = await put(board.id, ['ticketId', 'assignee', 'priority'])
+
+    expect(updated.hiddenCardFields).toEqual(['assignee', 'priority', 'ticketId'])
+  })
+
+  it('drops a field name it does not know', async () => {
+    // A board configured by a newer release must not hand this one a key it will
+    // then compare against the card face.
+    const board = await freshBoard()
+
+    const updated = await put(board.id, ['tags', 'somethingFromTheFuture'])
+
+    expect(updated.hiddenCardFields).toEqual(['tags'])
+    expect((await getBoard(user, board.id)).hiddenCardFields).toEqual(['tags'])
+  })
+
+  it('leaves the setting alone when the body only carries a rename', async () => {
+    const board = await freshBoard()
+
+    await put(board.id, ['tags'])
     await $fetch(`/api/boards/${board.id}`, {
       method: 'PUT',
       body: { name: `Renamed ${Date.now()}` },
       headers: user.headers
     })
 
-    expect((await getBoard(user, board.id)).showDescription).toBe(false)
+    expect((await getBoard(user, board.id)).hiddenCardFields).toEqual(['tags'])
   })
 
-  it('accepts showDescription as the only field in the body', async () => {
-    // The endpoint rejects an empty update; `showDescription` alone must count
-    // as a real one rather than falling through to the 400.
+  it('accepts hiddenCardFields as the only field in the body', async () => {
+    // The endpoint rejects an empty update; this alone must count as a real one
+    // rather than falling through to the 400.
     const board = await freshBoard()
 
-    const updated = await $fetch(`/api/boards/${board.id}`, {
-      method: 'PUT',
-      body: { showDescription: false },
-      headers: user.headers
-    }) as { showDescription: boolean }
-
-    expect(updated.showDescription).toBe(false)
+    expect((await put(board.id, ['tags'])).hiddenCardFields).toEqual(['tags'])
   })
 
   it('still rejects a body with nothing in it', async () => {
@@ -107,48 +113,6 @@ describe('board display settings', async () => {
     const board = await freshBoard()
     const outsider = await registerTestUser()
 
-    await expectError(
-      $fetch(`/api/boards/${board.id}`, {
-        method: 'PUT',
-        body: { showDescription: false },
-        headers: outsider.headers
-      }),
-      404
-    )
-  })
-
-  it('defaults showTags to true', async () => {
-    const board = await freshBoard()
-
-    expect((await getBoard(user, board.id)).showTags).toBe(true)
-  })
-
-  it('persists showTags: false', async () => {
-    const board = await freshBoard()
-
-    const updated = await $fetch(`/api/boards/${board.id}`, {
-      method: 'PUT',
-      body: { showTags: false },
-      headers: user.headers
-    }) as { showTags: boolean }
-
-    expect(updated.showTags).toBe(false)
-    expect((await getBoard(user, board.id)).showTags).toBe(false)
-  })
-
-  it('carries the two display settings independently', async () => {
-    // They travel in one body from the settings dialog, which is exactly how a
-    // shared `updates` object comes to write both when only one changed.
-    const board = await freshBoard()
-
-    await $fetch(`/api/boards/${board.id}`, {
-      method: 'PUT',
-      body: { showTags: false },
-      headers: user.headers
-    })
-    const result = await getBoard(user, board.id)
-
-    expect(result.showTags).toBe(false)
-    expect(result.showDescription).toBe(true)
+    await expectError(put(board.id, ['tags'], outsider.headers), 404)
   })
 })
