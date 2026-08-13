@@ -482,10 +482,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
       <!-- Identity: the card's immutable facts — its ID, its author, its permalink.
            The editable properties sit below; keeping authorship up here (rather than as
            a sixth chip among them) avoids dressing a read-only field as a dropdown. -->
+      <!-- `outline-none!` with the bang, which is why the title fields below
+           carry one too: the app's focus ring is an *unlayered* `:focus-visible`
+           rule in main.css, and unlayered CSS beats Tailwind's layered utilities
+           whatever their specificity. Only `!important` gets past it. A
+           `tabindex="-1"` container is never a keyboard destination, so it never
+           wants the ring. -->
       <div
         ref="panelTop"
         tabindex="-1"
-        class="flex items-center gap-2.5 min-w-0 h-6 outline-none"
+        class="flex items-center gap-2.5 min-w-0 h-6 outline-none!"
       >
         <template v-if="isEdit">
           <TicketIdCopy

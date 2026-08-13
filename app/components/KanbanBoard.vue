@@ -116,6 +116,43 @@ onMounted(() => {
 })
 
 watch(() => _props.columns.length, () => nextTick(updateFade))
+
+// ─── Get out of the panel's way ─────────────────────────────────────────────
+/**
+ * Opening a card slides a panel over the right of the viewport, and the column
+ * you clicked in is the one most likely to end up underneath it — you scroll to
+ * the column you are working in, which puts it on the right. So the board scrolls
+ * just far enough to bring that column clear before the panel arrives.
+ *
+ * The arithmetic is in `scrollToClearPanel`, which decides when the move would
+ * make things worse and declines. See that file for why the panel stays on the
+ * right.
+ */
+function revealColumn(columnId: string) {
+  const el = scroller.value
+  const column = el?.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(columnId)}"]`)
+  if (!el || !column) return
+
+  const left = scrollToClearPanel({
+    column: column.getBoundingClientRect(),
+    board: el.getBoundingClientRect(),
+    viewportWidth: window.innerWidth
+  })
+  if (!left) return
+
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  el.scrollBy({ left, behavior: reduced ? 'auto' : 'smooth' })
+}
+
+/**
+ * The column id comes from the template rather than the card: `BoardCard` has no
+ * `statusId`, deliberately — on a board the column already says what the status
+ * is, so carrying it on every card would be a second copy to keep in step.
+ */
+function onCardClick(columnId: string, card: BoardCard) {
+  revealColumn(columnId)
+  emit('card-click', card)
+}
 </script>
 
 <template>
@@ -128,12 +165,13 @@ watch(() => _props.columns.length, () => nextTick(updateFade))
     <KanbanColumn
       v-for="(column, i) in columns"
       :key="column.id"
+      :data-column-id="column.id"
       :column="column"
       :cards="cardsByColumn[column.id] || []"
       :accent-color="column.color || undefined"
       :is-done="column.id === doneStatusId"
       :index="i"
-      @card-click="(card) => emit('card-click', card)"
+      @card-click="(card) => onCardClick(column.id, card)"
       @card-change="(evt) => handleCardChange(column.id, evt)"
       @card-update="(cardId, updates) => emit('card-update', cardId, updates)"
       @card-update-tags="(cardId, tagIds) => emit('card-update-tags', cardId, tagIds)"
