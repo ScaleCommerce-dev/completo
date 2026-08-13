@@ -14,9 +14,17 @@ import type { BoardCard, CardStatus } from '~/types/card'
  *    already one click away in the view header, and not per-column at all
  *    despite where it was hung. A menu that only restates its neighbours is
  *    noise on a control that repeats once per column.
- *  - "New card" opens an inline composer instead of a 640px modal. All three
- *    previous add paths opened the full modal for what is usually one line of
- *    text.
+ *  - The two add paths do different things, and where they sit is the reason.
+ *    Quick add is the one-line composer, and it lives on the tray floor at the
+ *    end of the stack — the place a card actually lands, and the place you are
+ *    already looking when you want another one. It stays open so a backlog can
+ *    be typed in one go. The header `+` is column chrome, so it opens the full
+ *    dialog with this column prefilled: the same "New card" the view header
+ *    offers, scoped to one column, under the same name.
+ *
+ *    Both used to open the composer, which meant clicking at the top of a tall
+ *    column put the caret at the bottom of it, and the full form was reachable
+ *    from the board only via the toolbar (where it always picked column one).
  *  - The header no longer sets its name in uppercase with letterspacing; at 13px
  *    that is measurably harder to scan than sentence case.
  *  - The entrance animation ran with `animation-delay: ${0}ms` — a literal zero,
@@ -130,15 +138,19 @@ const countLabel = computed(() =>
       </h3>
       <span class="text-xs font-mono tabular-nums text-dimmed shrink-0">{{ cards.length }}</span>
 
-      <UButton
-        icon="i-lucide-plus"
-        variant="ghost"
-        color="neutral"
-        size="xs"
-        class="ml-auto shrink-0"
-        :aria-label="`Add a card to ${column.name}`"
-        @click="startComposing"
-      />
+      <!-- Icon-only, so it says out loud what it is. Without the tooltip the two
+           add paths were indistinguishable until you clicked one. -->
+      <UTooltip text="New card">
+        <UButton
+          icon="i-lucide-plus"
+          variant="ghost"
+          color="neutral"
+          size="xs"
+          class="ml-auto shrink-0"
+          :aria-label="`New card in ${column.name}`"
+          @click="emit('add-card')"
+        />
+      </UTooltip>
     </header>
 
     <!-- Cards -->
@@ -219,7 +231,7 @@ const countLabel = computed(() =>
 
       <UButton
         v-else
-        label="New card"
+        label="Quick add"
         icon="i-lucide-plus"
         variant="ghost"
         color="neutral"
