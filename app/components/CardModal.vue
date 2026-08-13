@@ -87,8 +87,8 @@ const draftCardId = ref<number | null>(null)
 const showDraftDiscardConfirm = ref(false)
 const showTextDiscardConfirm = ref(false)
 const commentListRef = ref<{ hasUnsavedDraft: boolean }>()
-const confirmBannerRef = ref<HTMLElement>()
-const keepEditingRef = ref<HTMLButtonElement>()
+/** UButton's root *is* the <button>, so `$el` is what takes focus. */
+const keepEditingRef = ref<{ $el?: HTMLElement } | null>(null)
 /**
  * Where focus was when a confirmation interrupted, so backing out returns it there.
  * Without this, dismissing the banner unmounts the focused button and focus falls to
@@ -279,18 +279,20 @@ const uncommittedTextLabel = computed(() => {
 })
 
 /**
- * Both confirmations sit above the actions, which on a card with comments is well below
- * the fold — so refusing to close looked like nothing happening at all. Bring the banner
- * into view and put focus on the safe answer, which is also the only way a keyboard user
- * reaches it without tabbing through the whole form. The two banners are mutually
- * exclusive (one is create-mode, one edit-mode), so they can share the ref.
+ * All three confirmations now live in the panel's pinned footer rather than in the
+ * scrolling body, which is what actually fixes the original complaint: they used to sit
+ * above the actions, which on a card with comments was well below the fold, so refusing
+ * to close looked like nothing happening at all. `scrollIntoView` papered over that; the
+ * footer is visible by construction and needs no scrolling at all.
+ *
+ * Focus still moves to the safe answer — it is the only way a keyboard user reaches the
+ * banner without tabbing the whole panel, and backing out returns focus to wherever the
+ * guard interrupted (see `restoreFocusAfterConfirm`). The two discard banners are
+ * mutually exclusive (one create-mode, one edit-mode), so they share the ref.
  */
 watch([showTextDiscardConfirm, showDraftDiscardConfirm], ([text, draft]) => {
   if (!text && !draft) return
-  nextTick(() => {
-    confirmBannerRef.value?.scrollIntoView({ block: 'center' })
-    keepEditingRef.value?.focus()
-  })
+  nextTick(() => keepEditingRef.value?.$el?.focus())
 })
 
 function confirmDiscardText() {
@@ -343,49 +345,58 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
 </script>
 
 <template>
-  <UModal
+  <!--
+    A right-hand slideover, not a centred dialog.
+
+    As a 640px modal this had two structural problems. It covered the board, so reading a
+    card and then moving it — the loop this app exists for — meant closing the dialog to
+    see anything; and the actions lived inline at the bottom of a scrolling column, so on
+    a card with comments Save and Delete were simply off-screen with nothing to say they
+    were there. A panel pinned to the right leaves the board visible beside it, runs the
+    full height of the viewport, and has real header and footer regions: the card's
+    identity and properties stay put at the top, the actions stay put at the bottom, and
+    only the content between them scrolls.
+
+    There is no <form> element any more — one cannot span three sibling regions — so
+    Enter in the title field and the Save button call `submit()` directly. Cmd+Enter was
+    never the form's anyway: it is a global capture-phase listener, because portalled
+    popovers break @keydown on a form (see CLAUDE.md).
+  -->
+  <USlideover
     v-model:open="open"
     :ui="{
-      content: 'sm:max-w-[640px]',
-      header: 'hidden',
+      content: 'sm:max-w-[620px]',
+      header: 'block',
       body: 'p-0 sm:p-0',
-      footer: 'p-0 sm:p-0'
+      footer: 'block'
     }"
   >
-    <template #body>
-      <form
-        class="flex flex-col"
-        @submit.prevent="submit"
-      >
-        <!-- Identity: the card's immutable facts — its ID, its author, its permalink.
-             The editable properties live in the grid below; keeping authorship up here
-             (rather than as a fifth chip in that grid) avoids dressing a read-only field
-             as one of the dropdowns. -->
-        <div
-          v-if="isEdit"
-          class="flex items-center justify-between gap-3 px-5 pt-5 pb-2"
-        >
-          <div class="flex items-center gap-2.5 min-w-0">
-            <TicketIdCopy
-              :project-key="projectKey"
-              :project-slug="projectSlug"
-              :card-id="card!.id"
-              variant="pill"
-            />
-            <!-- "by" earns its place: a bare name beside the ticket ID reads as the
-                 assignee, which this modal also has a field for. -->
-            <span
-              v-if="card!.creator"
-              class="flex items-baseline gap-1 min-w-0 text-xs font-medium"
-            >
-              <span class="text-dimmed shrink-0">by</span>
-              <span class="text-muted truncate">{{ card!.creator.name }}</span>
-            </span>
-          </div>
+    <template #header>
+      <!-- Identity: the card's immutable facts — its ID, its author, its permalink.
+           The editable properties sit below; keeping authorship up here (rather than as
+           a sixth chip among them) avoids dressing a read-only field as a dropdown. -->
+      <div class="flex items-center gap-2.5 min-w-0 h-6">
+        <template v-if="isEdit">
+          <TicketIdCopy
+            :project-key="projectKey"
+            :project-slug="projectSlug"
+            :card-id="card!.id"
+            variant="pill"
+          />
+          <!-- "by" earns its place: a bare name beside the ticket ID reads as the
+               assignee, which this panel also has a field for. -->
+          <span
+            v-if="card!.creator"
+            class="flex items-baseline gap-1 min-w-0 text-xs font-medium"
+          >
+            <span class="text-dimmed shrink-0">by</span>
+            <span class="text-muted truncate">{{ card!.creator.name }}</span>
+          </span>
           <NuxtLink
             v-if="projectSlug"
             :to="`/projects/${projectSlug}/cards/${formatTicketId(projectKey, card!.id)}`"
             class="flex items-center gap-1 text-xs font-medium text-dimmed hover:text-toned transition-colors"
+            aria-label="Open this card as a full page"
             @click="open = false"
           >
             <UIcon
@@ -393,249 +404,261 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               class="text-base"
             />
           </NuxtLink>
-        </div>
+        </template>
+        <span
+          v-else
+          class="text-2xs font-semibold uppercase tracking-[0.08em] text-dimmed"
+        >New card</span>
 
-        <!-- Title input -->
-        <div :class="isEdit ? 'px-5 pb-1' : 'px-5 pt-5 pb-1'">
-          <!-- Blur commits the title immediately rather than waiting out the
-               debounce; leaving the field is an unambiguous "done typing". -->
-          <input
-            ref="titleInput"
-            v-model="title"
-            type="text"
-            :aria-label="isEdit ? 'Card title' : 'New card title'"
-            placeholder="Card title..."
-            class="w-full text-lg font-semibold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
-            @blur="flushTitle"
-          >
-        </div>
+        <!-- Our own close, because overriding #header replaces the panel's default
+             header content — the button included. Esc and clicking outside both route
+             through the same `open` setter, so all three honour the discard guards. -->
+        <UButton
+          icon="i-lucide-x"
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          aria-label="Close card"
+          class="ml-auto -mr-1.5 shrink-0"
+          @click="open = false"
+        />
+      </div>
 
-        <!-- Description -->
-        <div class="px-5 pt-1">
-          <!-- Create mode: always show editor -->
-          <template v-if="!isEdit">
-            <DescriptionEditor
-              ref="descriptionEditorRef"
-              v-model="description"
-              :title="title"
-              :tags="selectedTagNames"
-              :priority="priority"
-              :project-slug="projectSlug"
-              :project-key="projectKey"
-              :members="members"
-              :card-id="attachmentCardId"
-              :min-height="120"
-              :max-height="300"
-            />
-          </template>
+      <!-- Title. Blur commits immediately rather than waiting out the debounce;
+           leaving the field is an unambiguous "done typing". On a new card Enter is
+           the whole create flow — type a name, press Enter, keep going. -->
+      <input
+        ref="titleInput"
+        v-model="title"
+        type="text"
+        :aria-label="isEdit ? 'Card title' : 'New card title'"
+        placeholder="Card title..."
+        class="w-full mt-1 text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-1.5 transition-colors"
+        @blur="flushTitle"
+        @keydown.enter.prevent="isEdit ? flushTitle() : submit()"
+      >
 
-          <!-- Edit mode: read-only view with edit toggle -->
-          <template v-else>
-            <!-- Description label + edit button -->
-            <div class="flex items-center gap-1.5 mb-1.5">
-              <UIcon
-                name="i-lucide-text"
-                class="text-sm text-dimmed"
-              />
-              <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">Description</span>
-              <button
-                v-if="!editingDescription"
-                type="button"
-                class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-colors"
-                @click="startEditingDescription"
-              >
-                <UIcon
-                  name="i-lucide-pencil"
-                  class="text-xs"
-                />
-                {{ description ? 'Edit' : 'Add' }}
-              </button>
-            </div>
+      <!-- Properties as a run of chips rather than five labelled rows. See
+           CardProperties' `compact` layout for why. Pinned with the identity, so
+           status and assignee stay readable while you scroll the comments. -->
+      <div class="mt-2">
+        <CardProperties
+          v-model:status-id="selectedStatusId"
+          v-model:assignee-id="selectedAssigneeId"
+          v-model:priority="priority"
+          v-model:due-date="selectedDueDate"
+          v-model:tag-ids="selectedTagIds"
+          :statuses="statuses"
+          :members="members"
+          :tags="tags"
+          :unassigned-value="UNASSIGNED"
+          layout="compact"
+        />
+      </div>
+    </template>
 
-            <DescriptionEditor
-              v-if="editingDescription"
-              ref="descriptionEditorRef"
-              v-model="description"
-              :title="title"
-              :tags="selectedTagNames"
-              :priority="priority"
-              :project-slug="projectSlug"
-              :project-key="projectKey"
-              :members="members"
-              :card-id="card?.id"
-              :min-height="120"
-              :max-height="300"
-              @escape="editingDescription = false"
-            />
-            <div
-              v-else-if="description"
-              class="max-h-[300px] overflow-y-auto select-text"
-            >
-              <ProseDescription :content="description" />
-            </div>
-          </template>
-        </div>
-
-        <!-- Properties. One control vocabulary, shared with the card detail
-             page — this was a 2x2 grid mixing two USelects with two hand-rolled
-             buttons at different heights. -->
-        <div class="mx-5 mt-3">
-          <CardProperties
-            v-model:status-id="selectedStatusId"
-            v-model:assignee-id="selectedAssigneeId"
-            v-model:priority="priority"
-            v-model:due-date="selectedDueDate"
-            v-model:tag-ids="selectedTagIds"
-            :statuses="statuses"
-            :members="members"
-            :tags="tags"
-            :unassigned-value="UNASSIGNED"
-          />
-        </div>
-
-        <!-- Attachments -->
-        <div class="mx-5 mt-3">
-          <AttachmentList
-            :card-id="attachmentCardId"
-            :on-before-upload="!isEdit ? handleBeforeUpload : undefined"
-          />
-        </div>
-
-        <!-- Comments: only once the card exists — there is nothing to comment on
-             while creating, and attachments' draft-card trick doesn't apply here. -->
-        <div
-          v-if="isEdit"
-          class="mx-5"
-        >
-          <CommentList
-            ref="commentListRef"
-            :card-id="props.card?.id"
-            :members="members"
+    <template #body>
+      <!-- Description -->
+      <div class="px-4 sm:px-6 pt-4">
+        <!-- Create mode: always show editor -->
+        <template v-if="!isEdit">
+          <DescriptionEditor
+            ref="descriptionEditorRef"
+            v-model="description"
+            :title="title"
+            :tags="selectedTagNames"
+            :priority="priority"
             :project-slug="projectSlug"
             :project-key="projectKey"
-            :can-moderate="canModerate"
+            :members="members"
+            :card-id="attachmentCardId"
+            :min-height="120"
+            :max-height="360"
           />
-        </div>
+        </template>
 
-        <!-- Delete confirmation (edit mode only) -->
-        <div
-          v-if="isEdit && showDeleteConfirm"
-          class="mx-5 mt-3 rounded-lg border border-error/30 bg-red-50/50 dark:bg-red-950/20 p-3 flex flex-col gap-2"
-        >
-          <p class="text-xs font-medium text-error leading-relaxed">
-            Are you sure you want to delete this card?
-          </p>
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors"
-              @click="confirmDelete"
-            >
-              <UIcon
-                name="i-lucide-trash-2"
-                class="text-sm"
-              />
-              Delete
-            </button>
-            <button
-              type="button"
-              class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
-              @click="showDeleteConfirm = false"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-
-        <!-- Uncommitted text confirmation (edit mode) -->
-        <div
-          v-if="isEdit && showTextDiscardConfirm"
-          ref="confirmBannerRef"
-          class="mx-5 mt-3 rounded-lg border border-orange-200/60 dark:border-orange-800/40 bg-orange-50/50 dark:bg-orange-950/20 p-3 flex flex-col gap-2"
-        >
-          <p class="text-xs font-medium text-warning leading-relaxed">
-            {{ uncommittedTextLabel }} Closing the card discards it.
-          </p>
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-colors"
-              @click="confirmDiscardText"
-            >
-              <UIcon
-                name="i-lucide-trash-2"
-                class="text-sm"
-              />
-              Discard and close
-            </button>
-            <button
-              ref="keepEditingRef"
-              type="button"
-              class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
-              @click="cancelDiscardText"
-            >
-              Keep editing
-            </button>
-          </div>
-        </div>
-
-        <!-- Draft discard confirmation (create mode with draft) -->
-        <div
-          v-if="showDraftDiscardConfirm"
-          ref="confirmBannerRef"
-          class="mx-5 mt-3 rounded-lg border border-orange-200/60 dark:border-orange-800/40 bg-orange-50/50 dark:bg-orange-950/20 p-3 flex flex-col gap-2"
-        >
-          <p class="text-xs font-medium text-warning leading-relaxed">
-            You have unsaved changes. Discard this card?
-          </p>
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 active:bg-orange-700 transition-colors"
-              @click="confirmDiscardDraft"
-            >
-              <UIcon
-                name="i-lucide-trash-2"
-                class="text-sm"
-              />
-              Discard
-            </button>
-            <button
-              ref="keepEditingRef"
-              type="button"
-              class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
-              @click="cancelDiscardDraft"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="flex items-center justify-end gap-2 px-5 pt-4 pb-5 mt-4 border-t border-muted">
-          <button
-            v-if="isEdit && !showDeleteConfirm"
-            type="button"
-            class="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-error hover:bg-error/10 transition-colors mr-auto"
-            @click="showDeleteConfirm = true"
-          >
+        <!-- Edit mode: read-only view with edit toggle -->
+        <template v-else>
+          <div class="flex items-center gap-1.5 mb-1.5">
             <UIcon
-              name="i-lucide-trash-2"
-              class="text-sm"
+              name="i-lucide-text"
+              class="text-sm text-dimmed"
             />
-            Delete
-          </button>
-          <span class="text-2xs font-mono text-dimmed hidden sm:block">
-            <kbd class="px-1 py-0.5 rounded-md bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
-          </span>
+            <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">Description</span>
+            <button
+              v-if="!editingDescription"
+              type="button"
+              class="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+              @click="startEditingDescription"
+            >
+              <UIcon
+                name="i-lucide-pencil"
+                class="text-xs"
+              />
+              {{ description ? 'Edit' : 'Add' }}
+            </button>
+          </div>
+
+          <DescriptionEditor
+            v-if="editingDescription"
+            ref="descriptionEditorRef"
+            v-model="description"
+            :title="title"
+            :tags="selectedTagNames"
+            :priority="priority"
+            :project-slug="projectSlug"
+            :project-key="projectKey"
+            :members="members"
+            :card-id="card?.id"
+            :min-height="120"
+            :max-height="360"
+            @escape="editingDescription = false"
+          />
+          <!-- No inner scroll box. The panel already scrolls, and a scroll area
+               nested inside one traps the wheel over whichever half you happen to
+               be pointing at. -->
+          <div
+            v-else-if="description"
+            class="select-text"
+          >
+            <ProseDescription :content="description" />
+          </div>
+        </template>
+      </div>
+
+      <!-- Attachments -->
+      <div class="mx-4 sm:mx-6 mt-3">
+        <AttachmentList
+          :card-id="attachmentCardId"
+          :on-before-upload="!isEdit ? handleBeforeUpload : undefined"
+        />
+      </div>
+
+      <!-- Comments: only once the card exists — there is nothing to comment on
+           while creating, and attachments' draft-card trick doesn't apply here. -->
+      <div
+        v-if="isEdit"
+        class="mx-4 sm:mx-6 pb-5"
+      >
+        <CommentList
+          ref="commentListRef"
+          :card-id="props.card?.id"
+          :members="members"
+          :project-slug="projectSlug"
+          :project-key="projectKey"
+          :can-moderate="canModerate"
+        />
+      </div>
+    </template>
+
+    <template #footer>
+      <!-- Delete confirmation (edit mode only) -->
+      <div
+        v-if="isEdit && showDeleteConfirm"
+        class="mb-3 rounded-lg border border-error/30 bg-error/5 p-3 flex flex-col gap-2"
+      >
+        <p class="text-xs font-medium text-error leading-relaxed">
+          Are you sure you want to delete this card?
+        </p>
+        <div class="flex items-center gap-2">
           <UButton
-            type="submit"
-            :label="isEdit ? 'Save' : 'Create'"
-            :icon="isEdit ? undefined : 'i-lucide-plus'"
-            :disabled="!canSubmit"
+            color="error"
+            icon="i-lucide-trash-2"
+            label="Delete"
+            size="sm"
+            @click="confirmDelete"
+          />
+          <UButton
+            color="neutral"
+            variant="ghost"
+            label="Cancel"
+            size="sm"
+            @click="showDeleteConfirm = false"
           />
         </div>
-      </form>
+      </div>
+
+      <!-- Uncommitted text confirmation (edit mode) -->
+      <div
+        v-if="isEdit && showTextDiscardConfirm"
+        class="mb-3 rounded-lg border border-warning/30 bg-warning/5 p-3 flex flex-col gap-2"
+      >
+        <p class="text-xs font-medium text-warning leading-relaxed">
+          {{ uncommittedTextLabel }} Closing the card discards it.
+        </p>
+        <div class="flex items-center gap-2">
+          <UButton
+            color="warning"
+            icon="i-lucide-trash-2"
+            label="Discard and close"
+            size="sm"
+            @click="confirmDiscardText"
+          />
+          <UButton
+            ref="keepEditingRef"
+            color="neutral"
+            variant="ghost"
+            label="Keep editing"
+            size="sm"
+            @click="cancelDiscardText"
+          />
+        </div>
+      </div>
+
+      <!-- Draft discard confirmation (create mode with draft) -->
+      <div
+        v-if="showDraftDiscardConfirm"
+        class="mb-3 rounded-lg border border-warning/30 bg-warning/5 p-3 flex flex-col gap-2"
+      >
+        <p class="text-xs font-medium text-warning leading-relaxed">
+          You have unsaved changes. Discard this card?
+        </p>
+        <div class="flex items-center gap-2">
+          <UButton
+            color="warning"
+            icon="i-lucide-trash-2"
+            label="Discard"
+            size="sm"
+            @click="confirmDiscardDraft"
+          />
+          <UButton
+            ref="keepEditingRef"
+            color="neutral"
+            variant="ghost"
+            label="Cancel"
+            size="sm"
+            @click="cancelDiscardDraft"
+          />
+        </div>
+      </div>
+
+      <!-- Actions. Destructive far left, primary last — the fixed order UiSaveBar
+           established, so the same two buttons never swap places between surfaces. -->
+      <div class="flex items-center gap-2">
+        <UButton
+          v-if="isEdit && !showDeleteConfirm"
+          color="error"
+          variant="ghost"
+          icon="i-lucide-trash-2"
+          label="Delete"
+          size="sm"
+          class="mr-auto"
+          @click="showDeleteConfirm = true"
+        />
+        <span
+          v-else
+          class="mr-auto"
+        />
+        <span class="text-2xs font-mono text-dimmed hidden sm:block">
+          <kbd class="px-1 py-0.5 rounded-md bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
+        </span>
+        <UButton
+          :label="isEdit ? 'Save' : 'Create'"
+          :icon="isEdit ? undefined : 'i-lucide-plus'"
+          :disabled="!canSubmit"
+          @click="submit"
+        />
+      </div>
     </template>
-  </UModal>
+  </USlideover>
 </template>

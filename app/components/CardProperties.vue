@@ -12,16 +12,30 @@ import type { CardStatus, Member, Tag } from '~/types/card'
  * stacked rows. Same data, two vocabularies, and the identical hardcoded "Add
  * tag" chip (`#a1a1aa` inline, fixed in both themes) copy-pasted into both.
  *
- * One layout for both surfaces: labelled rows work in a 640px modal and a 260px
- * sidebar alike, and the 2x2 grid did not.
+ * One set of controls, two layouts:
+ *
+ *  - `rows` — labelled rows in a bordered group. Right for the card detail page's
+ *    rail, where the properties *are* the panel and there is vertical room.
+ *  - `compact` — the same five controls as a wrapped run of chips. Right for the
+ *    card panel you open forty times a day: five labelled rows cost 210px there,
+ *    which pushed the description and every comment below the fold before you had
+ *    read a word. A label column that repeats "Status / Assignee / Priority / Due
+ *    / Tags" on every card open is an editor's form, not a card.
+ *
+ * Both layouts render the identical triggers from the identical definitions —
+ * splitting them into two components is how this file's two predecessors ended up
+ * with different controls for the same five fields.
  */
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   statuses: CardStatus[]
   members?: Member[]
   tags?: Tag[]
   /** Sentinel for "nobody", since a select needs a value for the empty case. */
   unassignedValue: string
-}>()
+  layout?: 'rows' | 'compact'
+}>(), {
+  layout: 'rows'
+})
 
 const statusId = defineModel<string>('statusId', { required: true })
 const assigneeId = defineModel<string>('assigneeId', { required: true })
@@ -86,14 +100,48 @@ function toggleTag(tagId: string) {
     : [...tagIds.value, tagId]
 }
 
-const TRIGGER = 'flex items-center gap-1.5 max-w-full rounded-md px-1.5 py-1 -mx-1.5 text-sm font-medium transition-colors hover:bg-elevated cursor-pointer'
+const TRIGGER = computed(() => [
+  'flex items-center gap-1.5 max-w-full rounded-md px-1.5 py-1 text-sm font-medium transition-colors hover:bg-elevated cursor-pointer',
+  // Pulls the control's text out to the row's content edge. In compact there is no
+  // label column to align with, and negative margins would eat the gap between chips.
+  isCompact.value ? '' : '-mx-1.5'
+])
+
+/**
+ * Compact drops the label column, so the row wrapper drops out with it and the
+ * controls become flex children of one wrapping line. Props are handed over per
+ * layout rather than unconditionally: `label` and `icon` on a bare `<div>` would
+ * render as stray DOM attributes.
+ */
+const isCompact = computed(() => props.layout === 'compact')
+const Group = computed(() => isCompact.value ? 'div' : resolveComponent('UiFieldGroup'))
+const Row = computed(() => isCompact.value ? 'div' : resolveComponent('UiFieldRow'))
+
+/**
+ * A compact chip takes its natural width and wraps. Without `shrink-0` all five share
+ * the line equally and every one of them truncates — "Bac… / Demo … / Med… / No …" —
+ * which is a row of chips that has stopped naming anything. The cap keeps one very long
+ * status or member name from taking the whole line to itself.
+ */
+const CHIP = computed(() => isCompact.value ? 'shrink-0 max-w-[190px]' : '')
+/** Tags wrap among themselves, so they get their own line rather than a 190px box. */
+const TAG_CHIP = computed(() => isCompact.value ? 'basis-full min-w-0' : '')
+
+function row(label: string, icon: string, align?: 'start') {
+  if (isCompact.value) return {}
+  return align ? { label, icon, align } : { label, icon }
+}
 </script>
 
 <template>
-  <UiFieldGroup>
-    <UiFieldRow
-      label="Status"
-      icon="i-lucide-circle-dot"
+  <component
+    :is="Group"
+    :class="isCompact ? 'flex flex-wrap items-center gap-x-1 gap-y-1' : ''"
+  >
+    <component
+      :is="Row"
+      v-bind="row('Status', 'i-lucide-circle-dot')"
+      :class="CHIP"
     >
       <UDropdownMenu
         :items="statusMenuItems"
@@ -112,11 +160,12 @@ const TRIGGER = 'flex items-center gap-1.5 max-w-full rounded-md px-1.5 py-1 -mx
           />
         </button>
       </UDropdownMenu>
-    </UiFieldRow>
+    </component>
 
-    <UiFieldRow
-      label="Assignee"
-      icon="i-lucide-user"
+    <component
+      :is="Row"
+      v-bind="row('Assignee', 'i-lucide-user')"
+      :class="CHIP"
     >
       <UDropdownMenu
         :items="assigneeMenuItems"
@@ -137,11 +186,12 @@ const TRIGGER = 'flex items-center gap-1.5 max-w-full rounded-md px-1.5 py-1 -mx
           />
         </button>
       </UDropdownMenu>
-    </UiFieldRow>
+    </component>
 
-    <UiFieldRow
-      label="Priority"
-      icon="i-lucide-signal"
+    <component
+      :is="Row"
+      v-bind="row('Priority', 'i-lucide-signal')"
+      :class="CHIP"
     >
       <UDropdownMenu
         :items="priorityMenuItems"
@@ -163,11 +213,12 @@ const TRIGGER = 'flex items-center gap-1.5 max-w-full rounded-md px-1.5 py-1 -mx
           />
         </button>
       </UDropdownMenu>
-    </UiFieldRow>
+    </component>
 
-    <UiFieldRow
-      label="Due"
-      icon="i-lucide-calendar"
+    <component
+      :is="Row"
+      v-bind="row('Due', 'i-lucide-calendar')"
+      :class="CHIP"
     >
       <DueDatePicker
         v-model:open="dueDateOpen"
@@ -191,13 +242,13 @@ const TRIGGER = 'flex items-center gap-1.5 max-w-full rounded-md px-1.5 py-1 -mx
           />
         </button>
       </DueDatePicker>
-    </UiFieldRow>
+    </component>
 
-    <UiFieldRow
+    <component
+      :is="Row"
       v-if="tags?.length"
-      label="Tags"
-      icon="i-lucide-tag"
-      align="start"
+      v-bind="row('Tags', 'i-lucide-tag', 'start')"
+      :class="TAG_CHIP"
     >
       <UPopover :content="{ align: 'start', side: 'bottom', sideOffset: 4 }">
         <button
@@ -210,6 +261,7 @@ const TRIGGER = 'flex items-center gap-1.5 max-w-full rounded-md px-1.5 py-1 -mx
             :key="tag.id"
             :name="tag.name"
             :color="tag.color"
+            variant="quiet"
           />
           <span
             v-if="!selectedTags.length"
@@ -234,6 +286,6 @@ const TRIGGER = 'flex items-center gap-1.5 max-w-full rounded-md px-1.5 py-1 -mx
           />
         </template>
       </UPopover>
-    </UiFieldRow>
-  </UiFieldGroup>
+    </component>
+  </component>
 </template>
