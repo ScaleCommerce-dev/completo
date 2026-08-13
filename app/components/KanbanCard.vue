@@ -16,8 +16,8 @@ import type { BoardCard } from '~/types/card'
  *  - **Title.** Loudest thing on the card, full width, up to two lines.
  *  - **Description,** two lines of stripped markdown, when the board asks for
  *    it. See below.
- *  - **Tags,** at most two plus a count, as a coloured dot and a name rather
- *    than a filled pill. See TagPill's `quiet` variant.
+ *  - **Tags,** as many as fit on one line plus a count of what didn't, each an
+ *    outlined pill rather than a filled one. See TagPill's `quiet` variant.
  *  - **A footer of two zones.** Facts on the left — the ticket ID, an attachment
  *    count, a description glyph — and the card's four fields on the right.
  *
@@ -37,7 +37,8 @@ import type { BoardCard } from '~/types/card'
  * way to acquire one short of opening it; priority used to render always, in its
  * own colour, duplicating the edge bar an inch away.
  *
- * **The description is per-board** (`boards.show_description`, default on), which
+ * **The description and the tag row are per-board** (`boards.show_description`
+ * and `boards.show_tags`, both default on), which
  * is how the list view has always treated it — an opt-in field column. Removing
  * it from the card face outright fixed the wall-of-paragraphs problem and lost
  * the at-a-glance context with it; a switch is the honest answer, because whether
@@ -61,6 +62,7 @@ const kanbanContext = inject<{
   members: ComputedRef<Array<{ id: string, name: string, avatarUrl: string | null }> | undefined>
   tags: ComputedRef<Array<{ id: string, name: string, color: string }> | undefined>
   showDescription: ComputedRef<boolean>
+  showTags: ComputedRef<boolean>
 }>('kanbanContext')!
 
 /**
@@ -85,10 +87,73 @@ const detailUrl = computed(() => {
   return `/projects/${kanbanContext.projectSlug.value}/cards/${formatTicketId(kanbanContext.projectKey.value, props.card.id)}`
 })
 
-const VISIBLE_TAGS = 2
-const visibleTags = computed(() => (props.card.tags || []).slice(0, VISIBLE_TAGS))
-const hiddenTagCount = computed(() => Math.max(0, (props.card.tags?.length || 0) - VISIBLE_TAGS))
+const showTags = computed(() => kanbanContext.showTags.value && !!props.card.tags?.length)
 const allTagNames = computed(() => (props.card.tags || []).map(t => t.name).join(', '))
+
+/**
+ * Tags fill the line, and `+N` counts what didn't fit.
+ *
+ * It used to be `slice(0, 2)` and `length - 2`, which is wrong in both
+ * directions on the same board: three tags named "v1", "is" and "of" showed
+ * "+1" with two thirds of the line empty, while two long ones overflowed it.
+ *
+ * The clipping is CSS and needs no measuring: the row wraps and is one pill tall
+ * (`max-h-4` — `text-2xs` at `leading-none` plus `py-[3px]` is exactly 16px), so
+ * a tag that doesn't fit moves to a second line that isn't rendered. Nothing is
+ * ever half-shown, and nothing is removed from the DOM, which is what keeps the
+ * count honest: it is just how many pills wrapped.
+ *
+ * The badge is positioned rather than in flow — in flow it would wrap onto the
+ * clipped line and disappear exactly when it was needed — and the row reserves
+ * room for it only once something has overflowed. That reserve can push one more
+ * tag over, so the count is re-taken until it stops moving. It always does, and
+ * quickly: reserving space can only ever *raise* the count, never lower it, so
+ * the sequence is monotonic and bounded by the number of tags. Two passes is the
+ * normal case, hence the cap of three.
+ */
+const tagRow = useTemplateRef<HTMLElement>('tagRow')
+const hiddenTagCount = ref(0)
+const badgeLeft = ref(0)
+
+function countWrappedTags() {
+  const pills = tagRow.value ? [...tagRow.value.querySelectorAll<HTMLElement>('[data-tag]')] : []
+  const firstLine = pills[0]?.offsetTop
+  if (firstLine === undefined) {
+    hiddenTagCount.value = 0
+    return
+  }
+  const shown = pills.filter(p => p.offsetTop === firstLine)
+  hiddenTagCount.value = pills.length - shown.length
+  // Sits against the last pill rather than against the far edge of the row — it
+  // counts *those* tags, and a card whose tags end halfway across left it
+  // stranded on the other side of an inch of nothing.
+  const last = shown[shown.length - 1]
+  badgeLeft.value = last ? last.offsetLeft + last.offsetWidth : 0
+}
+
+/**
+ * `requestAnimationFrame`, not `nextTick`. `nextTick` resolves on a microtask
+ * and the second pass measured a row that still had no `pr-6` on it — so the
+ * count came back identical, the loop read that as "settled", and every
+ * overflowing card was short by exactly one. A frame callback runs after the
+ * patch has been applied and styled, which is the state we need to measure.
+ */
+function remeasureTags(passes = 3) {
+  requestAnimationFrame(() => {
+    const before = hiddenTagCount.value
+    countWrappedTags()
+    if (passes > 1 && hiddenTagCount.value !== before) remeasureTags(passes - 1)
+  })
+}
+
+onMounted(() => {
+  remeasureTags()
+  // Metrics change when Plus Jakarta Sans replaces the fallback, and a name that
+  // fitted in one may not fit in the other.
+  document.fonts?.ready.then(() => remeasureTags())
+})
+
+watch(() => props.card.tags, () => remeasureTags(), { deep: true })
 
 const dueStatus = computed(() => getDueDateStatus(props.card.dueDate))
 
@@ -275,25 +340,32 @@ function toggleTag(tagId: string) {
         {{ descriptionExcerpt }}
       </p>
 
-      <!-- Tags, when there are any. A dot carries the colour; the name is text. -->
+      <!-- Tags, when there are any and the board asks for them. -->
       <div
-        v-if="visibleTags.length"
-        class="flex items-center gap-2 mt-1.5 min-w-0"
+        v-if="showTags"
+        ref="tagRow"
+        class="relative flex flex-wrap items-center gap-1 mt-1.5 max-h-4 overflow-hidden"
+        :class="hiddenTagCount ? 'pr-7' : ''"
       >
         <TagPill
-          v-for="tag in visibleTags"
+          v-for="tag in card.tags"
           :key="tag.id"
+          data-tag
           :name="tag.name"
           :color="tag.color"
           variant="quiet"
-          class="shrink-0 min-w-0"
         />
-        <UTooltip
+        <!-- `bg-default` so the badge sits on the card rather than on whatever
+             the clip caught behind it. -->
+        <div
           v-if="hiddenTagCount"
-          :text="allTagNames"
+          class="absolute top-0 h-4 flex items-center pl-1 bg-default"
+          :style="{ left: `${badgeLeft}px` }"
         >
-          <span class="text-2xs font-medium text-dimmed shrink-0">+{{ hiddenTagCount }}</span>
-        </UTooltip>
+          <UTooltip :text="allTagNames">
+            <span class="text-2xs font-medium text-dimmed">+{{ hiddenTagCount }}</span>
+          </UTooltip>
+        </div>
       </div>
 
       <!-- Footer. Identity on the left, decision signals on the right. -->

@@ -55,6 +55,7 @@ export const boards = sqliteTable('boards', {
   // rather than through drizzle's `mode: 'boolean'`. The board GET normalises it
   // to a real boolean on the way out, beside where it parses the filter JSON.
   showDescription: integer('show_description').notNull().default(1),
+  showTags: integer('show_tags').notNull().default(1),
   createdById: text('created_by_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })

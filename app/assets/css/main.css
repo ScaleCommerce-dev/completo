@@ -130,6 +130,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .swatch,
+.swatch-outline,
 .swatch-text,
 .swatch-dot,
 .swatch-bar {
@@ -140,6 +141,7 @@
 }
 
 :is(.dark) .swatch,
+:is(.dark) .swatch-outline,
 :is(.dark) .swatch-text,
 :is(.dark) .swatch-dot,
 :is(.dark) .swatch-bar {
@@ -153,6 +155,20 @@
   color: var(--swatch-fg);
   background-color: var(--swatch-fill);
   box-shadow: inset 0 0 0 1px var(--swatch-ring);
+}
+
+/* Outlined pill — a tag on a card or a table row, where a filled one outshouts
+   the title it is attached to.
+
+   The edge is *not* `--swatch-ring`: that is tuned to sit under a fill of the
+   same hue, and on bare card white a 1px line of it is invisible — the pill read
+   as loose text with no colour at all, which is worse than the dot it replaced.
+   It derives from `--swatch-fg` instead, which is already the theme-corrected
+   readable form of the swatch, so one formula gives a dark edge on white and a
+   light one on near-black without a second rule. */
+.swatch-outline {
+  color: var(--swatch-fg);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--swatch-fg) 40%, transparent);
 }
 
 /* Coloured label with no fill — a status name beside its dot. */

@@ -16,8 +16,16 @@
  *  - `quiet` — the tag is one signal among several on a card or a table row. A
  *    filled pill there outshouts the title it is attached to: six saturated
  *    pills on one board card read as the headline and the actual headline read
- *    as a caption. The colour still identifies the tag, carried by a 5px dot;
- *    the name goes back to being text.
+ *    as a caption. `quiet` drops the fill and keeps the hairline, so the shape
+ *    survives and the ink does not.
+ *
+ * `quiet` was a 5px dot plus grey text, which was quieter still but asked the
+ * reader to bind the two by proximity alone — at `gap-1` inside a tag and
+ * `gap-2` between them, "dot name dot name" is four things a third of a second
+ * apart, and the only cue that says which name owns which colour is 4px of
+ * whitespace. The outline closes the shape, so a tag is one object again, and it
+ * gives the hue a 60px edge to be recognised on instead of 25 square pixels —
+ * which is what separates two blues at a glance.
  *
  * Neither variant transforms the name. `uppercase` is what made these shout,
  * not the letters the user typed — and it lied about the data: a tag authored
@@ -37,17 +45,11 @@ withDefaults(defineProps<{
 <template>
   <span
     v-if="variant === 'quiet'"
-    class="inline-flex items-center gap-1 min-w-0 max-w-full leading-none"
+    class="swatch-outline inline-flex items-center rounded-full font-medium leading-none min-w-0 max-w-full"
+    :class="size === 'sm' ? 'px-1.5 py-[3px] text-2xs' : 'px-2 py-[3px] text-xs'"
     :style="{ '--swatch': color }"
   >
-    <span
-      class="swatch-dot size-[5px] rounded-full shrink-0"
-      aria-hidden="true"
-    />
-    <span
-      class="truncate font-medium text-muted"
-      :class="size === 'sm' ? 'text-2xs' : 'text-xs'"
-    ><slot>{{ name }}</slot></span>
+    <span class="truncate"><slot>{{ name }}</slot></span>
   </span>
 
   <span

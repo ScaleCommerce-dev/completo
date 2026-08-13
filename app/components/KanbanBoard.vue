@@ -8,6 +8,7 @@ const _props = defineProps<{
   projectSlug?: string
   doneStatusId?: string | null
   showDescription?: boolean
+  showTags?: boolean
   canConfigureColumns?: boolean
   canAddColumns?: boolean
   availableColumns?: CardStatus[]
@@ -22,7 +23,8 @@ const kanbanContext = {
   tags: computed(() => _props.tags),
   // Through the context rather than as a prop: KanbanColumn has no use for it
   // and would only be forwarding it to KanbanCard.
-  showDescription: computed(() => _props.showDescription ?? true)
+  showDescription: computed(() => _props.showDescription ?? true),
+  showTags: computed(() => _props.showTags ?? true)
 }
 provide('kanbanContext', kanbanContext)
 

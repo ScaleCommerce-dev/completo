@@ -26,6 +26,7 @@ const props = defineProps<{
   activePriorityFilters?: string[]
   /** Board mode only — whether cards show a description excerpt. */
   showDescription?: boolean
+  showTags?: boolean
   viewName?: string
   viewType?: 'board' | 'list'
 }>()
@@ -39,7 +40,7 @@ const emit = defineEmits<{
   'reorder': [columns: { id: string, position: number }[]]
   'link': [statusId: string]
   'update-filters': [filters: { tagFilters?: string[], statusFilters?: string[], assigneeFilters?: string[], priorityFilters?: string[] }]
-  'update-display': [display: { showDescription?: boolean }]
+  'update-display': [display: { showDescription?: boolean, showTags?: boolean }]
   'rename': [name: string]
   'delete-view': []
 }>()
@@ -99,6 +100,7 @@ const localStatusFilters = ref<string[]>([])
 const localAssigneeFilters = ref<string[]>([])
 const localPriorityFilters = ref<string[]>([])
 const localShowDescription = ref(true)
+const localShowTags = ref(true)
 const editName = ref('')
 
 // Snapshot on open to detect changes
@@ -108,6 +110,7 @@ const snapshotStatusFilters = ref<string[]>([])
 const snapshotAssigneeFilters = ref<string[]>([])
 const snapshotPriorityFilters = ref<string[]>([])
 const snapshotShowDescription = ref(true)
+const snapshotShowTags = ref(true)
 const snapshotName = ref('')
 
 function resetToProps() {
@@ -117,6 +120,7 @@ function resetToProps() {
   localAssigneeFilters.value = [...(props.activeAssigneeFilters || [])]
   localPriorityFilters.value = [...(props.activePriorityFilters || [])]
   localShowDescription.value = props.showDescription ?? true
+  localShowTags.value = props.showTags ?? true
   editName.value = props.viewName || ''
   snapshotColumnOrder.value = props.columns.map(c => c.id)
   snapshotTagFilters.value = [...(props.activeTagFilters || [])]
@@ -124,6 +128,7 @@ function resetToProps() {
   snapshotAssigneeFilters.value = [...(props.activeAssigneeFilters || [])]
   snapshotPriorityFilters.value = [...(props.activePriorityFilters || [])]
   snapshotShowDescription.value = props.showDescription ?? true
+  snapshotShowTags.value = props.showTags ?? true
   snapshotName.value = props.viewName || ''
 }
 
@@ -250,6 +255,7 @@ const isDirty = computed(() => {
   if (filtersChanged(localAssigneeFilters.value, snapshotAssigneeFilters.value)) return true
   if (filtersChanged(localPriorityFilters.value, snapshotPriorityFilters.value)) return true
   if (localShowDescription.value !== snapshotShowDescription.value) return true
+  if (localShowTags.value !== snapshotShowTags.value) return true
   return false
 })
 
@@ -289,8 +295,15 @@ function save() {
     emit('update-filters', filterUpdates)
   }
 
+  const display: { showDescription?: boolean, showTags?: boolean } = {}
   if (localShowDescription.value !== snapshotShowDescription.value) {
-    emit('update-display', { showDescription: localShowDescription.value })
+    display.showDescription = localShowDescription.value
+  }
+  if (localShowTags.value !== snapshotShowTags.value) {
+    display.showTags = localShowTags.value
+  }
+  if (Object.keys(display).length) {
+    emit('update-display', display)
   }
 
   open.value = false
@@ -643,6 +656,12 @@ function handleDeleteView() {
                 v-model="localShowDescription"
                 label="Show description"
                 description="Two lines of the description under each card title. Cards without one are unaffected."
+                :ui="{ wrapper: 'ms-3' }"
+              />
+              <USwitch
+                v-model="localShowTags"
+                label="Show tags"
+                description="The card's tags, as many as fit on one line. Tags can still be changed from the card either way."
                 :ui="{ wrapper: 'ms-3' }"
               />
             </div>

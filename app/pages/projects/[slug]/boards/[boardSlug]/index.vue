@@ -19,6 +19,7 @@ const {
   projectKey,
   doneStatusId,
   showDescription,
+  showTags,
   availableColumns,
   canConfigureColumns,
   canModerateComments,
@@ -181,6 +182,7 @@ async function handleDeleteBoard() {
       :project-slug="(route.params.slug as string)"
       :done-status-id="doneStatusId"
       :show-description="showDescription"
+      :show-tags="showTags"
       :can-configure-columns="canConfigureColumns"
       :can-add-columns="canAddColumns"
       :available-columns="availableColumns"
@@ -225,6 +227,7 @@ async function handleDeleteBoard() {
       :active-assignee-filters="[...assigneeFilters]"
       :active-priority-filters="[...priorityFilters]"
       :show-description="showDescription"
+      :show-tags="showTags"
       :view-name="board?.name || ''"
       :view-type="'board'"
       @add="addColumn"

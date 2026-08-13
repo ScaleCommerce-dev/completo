@@ -116,4 +116,39 @@ describe('board display settings', async () => {
       404
     )
   })
+
+  it('defaults showTags to true', async () => {
+    const board = await freshBoard()
+
+    expect((await getBoard(user, board.id)).showTags).toBe(true)
+  })
+
+  it('persists showTags: false', async () => {
+    const board = await freshBoard()
+
+    const updated = await $fetch(`/api/boards/${board.id}`, {
+      method: 'PUT',
+      body: { showTags: false },
+      headers: user.headers
+    }) as { showTags: boolean }
+
+    expect(updated.showTags).toBe(false)
+    expect((await getBoard(user, board.id)).showTags).toBe(false)
+  })
+
+  it('carries the two display settings independently', async () => {
+    // They travel in one body from the settings dialog, which is exactly how a
+    // shared `updates` object comes to write both when only one changed.
+    const board = await freshBoard()
+
+    await $fetch(`/api/boards/${board.id}`, {
+      method: 'PUT',
+      body: { showTags: false },
+      headers: user.headers
+    })
+    const result = await getBoard(user, board.id)
+
+    expect(result.showTags).toBe(false)
+    expect(result.showDescription).toBe(true)
+  })
 })
