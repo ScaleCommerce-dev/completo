@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // ─── Bulk-fetch tags, attachment counts & creators ───
-  const { tagsByCard, attachCountByCard } = fetchCardMetadata(visibleCards.map(c => c.id))
+  const { tagsByCard, attachCountByCard, commentCountByCard } = fetchCardMetadata(visibleCards.map(c => c.id))
   const creatorsById = fetchCardCreators(visibleCards)
 
   // ─── Fetch projects, statuses ───
@@ -92,6 +92,7 @@ export default defineEventHandler(async (event) => {
       ...card,
       tags: tagsByCard.get(card.id) || [],
       attachmentCount: attachCountByCard.get(card.id) || 0,
+      commentCount: commentCountByCard.get(card.id) || 0,
       creator: card.createdById ? creatorsById.get(card.createdById) || null : null
     }))
 

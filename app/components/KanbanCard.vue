@@ -18,8 +18,9 @@ import type { BoardCard } from '~/types/card'
  *    it. See below.
  *  - **Tags,** as many as fit on one line plus a count of what didn't, each an
  *    outlined pill rather than a filled one. See TagPill's `quiet` variant.
- *  - **A footer of two zones.** Facts on the left — the ticket ID, an attachment
- *    count, a description glyph — and the card's four fields on the right.
+ *  - **A footer of two zones.** Facts on the left — the ticket ID, a description
+ *    glyph, comment and attachment counts — and the card's four fields on the
+ *    right.
  *
  * The card carries three kinds of thing and they used to be mixed: facts, fields
  * (a value when set, a control when not) and actions on the card *as an object*.
@@ -154,6 +155,26 @@ onMounted(() => {
 })
 
 watch(() => props.card.tags, () => remeasureTags(), { deep: true })
+
+/**
+ * What the card holds beyond its own fields: a discussion, and files.
+ *
+ * The comment count is the one worth having of the two — an attachment is
+ * usually a screenshot pasted once, while three comments mean the card is being
+ * argued about, which is what you scan a board to find. Only the attachment
+ * count was here, so the more useful signal was the missing one.
+ *
+ * A list rather than two hand-written spans, because they differ in three
+ * values and nothing else; written out twice they drift, which is how the label
+ * came to read "1 attachments".
+ */
+const contentMarks = computed(() => [
+  { icon: 'i-lucide-message-square', count: props.card.commentCount || 0, noun: 'comment' },
+  { icon: 'i-lucide-paperclip', count: props.card.attachmentCount || 0, noun: 'attachment' }
+].filter(m => m.count > 0).map(m => ({
+  ...m,
+  label: `${m.count} ${m.noun}${m.count === 1 ? '' : 's'}`
+})))
 
 const dueStatus = computed(() => getDueDateStatus(props.card.dueDate))
 
@@ -390,15 +411,16 @@ function toggleTag(tagId: string) {
         </UTooltip>
 
         <span
-          v-if="card.attachmentCount"
+          v-for="mark in contentMarks"
+          :key="mark.icon"
           class="flex items-center gap-0.5 text-2xs text-dimmed whitespace-nowrap shrink-0"
-          :aria-label="`${card.attachmentCount} attachments`"
+          :aria-label="mark.label"
         >
           <UIcon
-            name="i-lucide-paperclip"
+            :name="mark.icon"
             class="text-2xs"
           />
-          <span class="card-id select-none">{{ card.attachmentCount }}</span>
+          <span class="card-id select-none">{{ mark.count }}</span>
         </span>
 
         <!--

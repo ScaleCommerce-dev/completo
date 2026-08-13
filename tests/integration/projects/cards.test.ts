@@ -15,6 +15,7 @@ interface CardResult {
   status: { id: string, name: string, color: string | null } | null
   tags: Array<{ id: string, name: string, color: string }>
   attachmentCount: number
+  commentCount: number
 }
 
 async function fetchCards(user: TestUser, projectIdOrSlug: string, params?: Record<string, string>): Promise<CardResult[]> {
@@ -98,6 +99,12 @@ describe('GET /api/projects/:id/cards', async () => {
 
     // Upload attachment to Card A for enrichment test
     await uploadAttachment(owner, cardA.id)
+
+    // Two comments on Card A, none on the others. Both counts come off the same
+    // bulk-enrichment helper, so a card carrying one must not inherit the other.
+    for (const body of ['First', 'Second']) {
+      await $fetch(`/api/cards/${cardA.id}/comments`, { method: 'POST', body: { body }, headers: owner.headers })
+    }
   })
 
   it('returns all project cards with enrichment', async () => {
@@ -115,6 +122,15 @@ describe('GET /api/projects/:id/cards', async () => {
     expect(a!.tags).toHaveLength(1)
     expect(a!.tags[0].name).toBe('Bug')
     expect(a!.attachmentCount).toBe(1)
+    expect(a!.commentCount).toBe(2)
+  })
+
+  it('reports zero for a card with no comments or attachments', async () => {
+    const cards = await fetchCards(owner, project.id, { includeDone: 'true' })
+    const b = cards.find(c => c.id === cardB.id)!
+
+    expect(b.commentCount).toBe(0)
+    expect(b.attachmentCount).toBe(0)
   })
 
   it('filters by statusId', async () => {

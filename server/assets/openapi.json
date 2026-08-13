@@ -4827,6 +4827,10 @@
             "type": "integer",
             "description": "Number of file attachments on this card"
           },
+          "commentCount": {
+            "type": "integer",
+            "description": "Number of comments on this card"
+          },
           "assignee": {
             "$ref": "#/components/schemas/UserSummary"
           },

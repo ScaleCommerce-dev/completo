@@ -31,6 +31,7 @@ export interface BaseCard {
   creator?: Member | null
   tags?: Tag[]
   attachmentCount?: number
+  commentCount?: number
   createdAt: string
   updatedAt: string
 }
@@ -40,4 +41,4 @@ export interface CardWithStatus extends BaseCard {
 }
 
 /** Lightweight card shape used in board views (no status/timestamps needed) */
-export type BoardCard = Pick<BaseCard, 'id' | 'title' | 'description' | 'priority' | 'assignee' | 'tags' | 'attachmentCount' | 'dueDate'>
+export type BoardCard = Pick<BaseCard, 'id' | 'title' | 'description' | 'priority' | 'assignee' | 'tags' | 'attachmentCount' | 'commentCount' | 'dueDate'>
