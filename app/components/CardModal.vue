@@ -62,7 +62,9 @@ const open = computed({
 
 const emit = defineEmits<{
   create: [data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }]
-  update: [cardId: number, updates: Record<string, unknown>, tagIds: string[]]
+  /** Omit `tagIds` unless tags actually changed — passing them costs a second request. */
+  update: [cardId: number, updates: Record<string, unknown>, tagIds?: string[]]
+  updateTags: [cardId: number, tagIds: string[]]
   delete: [cardId: number]
   deleteDraft: [cardId: number]
 }>()
@@ -133,25 +135,64 @@ async function handleBeforeUpload() {
   ensureCardPromise = null
 }
 
-// Sync from card prop (edit mode)
+function populateFromCard(card: NonNullable<typeof props.card>) {
+  title.value = card.title || ''
+  description.value = card.description || ''
+  priority.value = card.priority || 'medium'
+  selectedStatusId.value = card.statusId || ''
+  selectedAssigneeId.value = card.assigneeId || UNASSIGNED
+  selectedTagIds.value = (card.tags || []).map((t: { id: string }) => t.id)
+  selectedDueDate.value = toDateInput(card.dueDate)
+  editingDescription.value = false
+  showDeleteConfirm.value = false
+}
+
 watch(() => props.card, (card) => {
-  if (card) {
-    title.value = card.title || ''
-    description.value = card.description || ''
-    priority.value = card.priority || 'medium'
-    selectedStatusId.value = card.statusId || ''
-    selectedAssigneeId.value = card.assigneeId || UNASSIGNED
-    selectedTagIds.value = (card.tags || []).map((t: { id: string }) => t.id)
-    selectedDueDate.value = card.dueDate ? new Date(card.dueDate).toISOString().split('T')[0] ?? null : null
-    editingDescription.value = false
-    showDeleteConfirm.value = false
-  }
+  if (card) populateFromCard(card)
 }, { immediate: true })
+
+/**
+ * Editing an existing card saves each property as it changes, matching the board
+ * and the list — the same fields used to sit behind this dialog's Save button, so
+ * the mental model changed depending on which surface you were on.
+ *
+ * Creating is still batched: there is no card to save to until Create runs.
+ */
+const { flushTitle } = useCardFieldSync({
+  card: () => (props.card as CardFieldSyncCard | undefined) ?? null,
+  fields: {
+    title,
+    statusId: selectedStatusId,
+    assigneeId: selectedAssigneeId,
+    priority,
+    dueDate: selectedDueDate,
+    tagIds: selectedTagIds
+  },
+  unassignedValue: UNASSIGNED,
+  enabled: () => isEdit.value,
+  save: updates => emit('update', props.card!.id, updates),
+  saveTags: tagIds => emit('updateTags', props.card!.id, tagIds),
+  onCardChanged: () => {
+    if (props.card) populateFromCard(props.card)
+  }
+})
 
 function startEditingDescription() {
   editingDescription.value = true
   nextTick(() => descriptionEditorRef.value?.startEditing())
 }
+
+/**
+ * What Save still has to do. Creating needs a title; editing needs something
+ * genuinely pending — which, now that properties persist themselves, means the
+ * description differs (or an unflushed title does).
+ */
+const canSubmit = computed(() => {
+  if (!title.value.trim()) return false
+  if (!isEdit.value) return true
+  return description.value.trim() !== (props.card?.description || '').trim()
+    || title.value.trim() !== (props.card?.title || '')
+})
 
 function reset() {
   title.value = ''
@@ -172,14 +213,14 @@ function submit() {
   const assigneeId = selectedAssigneeId.value === UNASSIGNED ? null : selectedAssigneeId.value
 
   if (isEdit.value) {
+    // Properties already saved themselves as they changed, so this commits the
+    // description — the only field on an existing card that is still a draft —
+    // plus any title keystrokes the debounce hasn't flushed yet.
     emit('update', props.card!.id, {
       title: title.value.trim(),
-      description: description.value.trim(),
-      priority: priority.value,
-      statusId: selectedStatusId.value,
-      assigneeId,
-      dueDate: selectedDueDate.value || null
-    }, selectedTagIds.value)
+      description: description.value.trim()
+    })
+    editingDescription.value = false
   } else if (draftCardId.value) {
     // Draft was auto-created for attachments — update it with final form data
     emit('update', draftCardId.value, {
@@ -282,6 +323,9 @@ watch(open, (isOpen) => {
     }
   } else {
     document.removeEventListener('keydown', handleKeydown, true)
+    // The title is debounced, so closing within that window would drop the last
+    // keystrokes. Closing is a commit point, not a discard.
+    flushTitle()
   }
   if (!isOpen) {
     showDeleteConfirm.value = false
@@ -353,12 +397,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
 
         <!-- Title input -->
         <div :class="isEdit ? 'px-5 pb-1' : 'px-5 pt-5 pb-1'">
+          <!-- Blur commits the title immediately rather than waiting out the
+               debounce; leaving the field is an unambiguous "done typing". -->
           <input
             ref="titleInput"
             v-model="title"
             type="text"
+            :aria-label="isEdit ? 'Card title' : 'New card title'"
             placeholder="Card title..."
             class="w-full text-lg font-semibold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
+            @blur="flushTitle"
           >
         </div>
 
@@ -584,7 +632,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             type="submit"
             :label="isEdit ? 'Save' : 'Create'"
             :icon="isEdit ? undefined : 'i-lucide-plus'"
-            :disabled="!title.trim()"
+            :disabled="!canSubmit"
           />
         </div>
       </form>

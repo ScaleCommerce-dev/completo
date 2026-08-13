@@ -218,6 +218,7 @@ async function handleDeleteBoard() {
       :project-slug="(route.params.slug as string)"
       :can-moderate="canModerateComments"
       @update="handleUpdateCard"
+      @update-tags="updateCardTags"
       @delete="handleDeleteCard"
     />
 

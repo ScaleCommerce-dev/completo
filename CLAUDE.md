@@ -75,7 +75,7 @@ Non-zdev installs (prod, CI) use `pnpm install && pnpm setup && pnpm dev` direct
 
 ### Do
 
-- **Fetch:** Pages use `useFetch()`, composables use `$fetch()`. Refresh after mutations.
+- **Fetch:** Pages use `useFetch()`, composables use `$fetch()`. Refresh after mutations — **except card mutations**, which patch the local row instead; see the optimistic-mutation notes under Shared components.
 - **Composables:** `useKanban()`/`useListView()` accept slug-or-ID + optional `{ projectSlug }` to prevent cross-project slug collisions. Both extend `useViewData()` which holds shared logic (CRUD, tags, members, permissions). Use `useMutation()` for try/catch/toast error handling in composables — don't hand-roll `try { ... } catch { toast.add(...) }`.
 - **Shared types:** `app/types/card.ts` defines `BaseCard`, `CardWithStatus`, `Tag`, `Member`, `CardStatus`. Import from `~/types/card` — don't redeclare card interfaces.
 - **Transactions:** `db.transaction()` for multi-step DB operations.
@@ -154,6 +154,12 @@ Reach for these before hand-rolling. Nuxt UI v4 is fully MIT and includes the fo
 - **`useTextDraft`** — persists in-progress description and comment text to `localStorage`. Prose is the only thing on those screens with nowhere else to live; persisting it is what lets the unsaved-changes guard stop being a blocking banner.
 
 **Card mutations are optimistic.** `useViewData`'s `updateCard` / `deleteCard` / `updateCardTags` patch the local row, then reconcile with the response, and restore a snapshot on failure. Don't add `refresh()` back: it meant every one-click edit triggered a full view refetch and re-render. Keep nested `status` and `assignee` in step with their ids — the PUT response resolves `assignee` but never `status`.
+
+**`useViewData` must fetch with `deep: true`, and it is not a preference.** Nuxt's `useFetch` defaults to a `shallowRef`, so `data.value.cards[i]` is a *raw* object and patching it in place mutates something Vue never sees. Nothing looks broken in a network log or a database check — the request fires, the object updates — but the board keeps rendering the previous value until an unrelated re-render happens to flush it, which a closing popover or dialog does. That makes the bug intermittent and easy to "verify" as working. It was survivable while every mutation ended in `refresh()`, because replacing `data.value` wholesale is something a shallowRef does notice. `tests/unit/optimistic-reactivity.test.ts` guards it.
+
+**Instant save is split by what a field is, not by which screen it's on.** Status, assignee, priority, due date and tags persist the moment they change — on the board, in the list, in the card modal and on the card detail page alike. Title saves debounced, and flushes on blur, on close and on route leave. Description and comments stay explicit drafts behind Save, which is the only thing that button still does on an existing card. `useCardFieldSync` owns this for both card surfaces.
+
+Its watchers fire on *divergence* from the card rather than behind a "syncing" flag: populating local state sets local == card, so nothing fires, with no dependency on watcher flush order. That also makes a rejected save self-correcting — a revert changes the *card*, which pulls local back through `syncProperties`, and the resulting local change is then equal to the card so no second save is attempted. Title and description are deliberately excluded from that pull; force-syncing them would overwrite text mid-keystroke.
 
 ## Testing
 

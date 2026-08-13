@@ -206,6 +206,7 @@ async function handleDeleteList() {
       :project-slug="(route.params.slug as string)"
       :can-moderate="canModerateComments"
       @update="handleUpdateCard"
+      @update-tags="updateCardTags"
       @delete="handleDeleteCard"
     />
 

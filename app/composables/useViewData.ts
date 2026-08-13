@@ -59,7 +59,16 @@ export function useViewData<T extends ViewDataResponse>(
   const { mutate, toast } = useMutation()
   const { user } = useUserSession()
   const query = opts?.projectSlug ? { projectSlug: opts.projectSlug } : undefined
-  const { data: rawData, error, refresh, status } = useFetch<T>(`/api/${viewType}/${slugOrId}`, { query })
+  // `deep: true` is load-bearing, not a preference. Nuxt's useFetch defaults to a
+  // shallowRef, so `data.value.cards[i]` would be a raw object and the optimistic
+  // patches below would mutate it without Vue ever noticing — the board would keep
+  // rendering the previous value until something unrelated forced a re-render.
+  // That was survivable while every mutation ended in refresh() (which replaces
+  // `data.value` wholesale); it is not, now that they don't.
+  const { data: rawData, error, refresh, status } = useFetch<T>(`/api/${viewType}/${slugOrId}`, {
+    query,
+    deep: true
+  })
 
   // Cast to avoid Nuxt's complex Pick<T, ...> union type
   const data = rawData as Ref<T | null>

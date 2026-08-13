@@ -63,18 +63,80 @@ const selectedTagNames = computed(() => (projectTagsData.value || []).filter(t =
 
 // Sync from fetched data once loaded
 const synced = ref(false)
+
+function populateFromCard(c: CardDetail) {
+  title.value = c.title || ''
+  description.value = c.description || ''
+  priority.value = c.priority || 'medium'
+  selectedStatusId.value = c.statusId || ''
+  selectedAssigneeId.value = c.assigneeId || UNASSIGNED
+  selectedTagIds.value = (c.tags || []).map(t => t.id)
+  selectedDueDate.value = toDateInput(c.dueDate)
+}
+
 watch(card, (c) => {
   if (c && !synced.value) {
-    title.value = c.title || ''
-    description.value = c.description || ''
-    priority.value = c.priority || 'medium'
-    selectedStatusId.value = c.statusId || ''
-    selectedAssigneeId.value = c.assigneeId || UNASSIGNED
-    selectedTagIds.value = (c.tags || []).map(t => t.id)
-    selectedDueDate.value = c.dueDate ? new Date(c.dueDate).toISOString().split('T')[0] ?? null : null
+    populateFromCard(c)
     synced.value = true
   }
 }, { immediate: true })
+
+/**
+ * Properties save as they change, matching the board, the list and the card
+ * modal. Save is left holding the description, which is the only field here that
+ * is genuinely a draft.
+ *
+ * `cardData` is patched locally from each response so the composable's own
+ * divergence checks stay accurate without a refetch — and so a rejected save
+ * snaps the control back to what the server actually holds.
+ */
+async function persist(updates: Record<string, unknown>) {
+  if (!card.value) return
+  const id = card.value.id
+  try {
+    const updated = await $fetch<Partial<CardDetail>>(`/api/cards/${id}`, { method: 'PUT', body: updates })
+    if (updated) cardData.value = { ...cardData.value, ...updated } as CardDetail
+  } catch (e: unknown) {
+    useToast().add({ title: 'Failed to save', description: getErrorMessage(e, 'Something went wrong'), color: 'error' })
+    // Re-assign so the sync watcher fires and pulls the controls back.
+    cardData.value = { ...cardData.value } as CardDetail
+    syncProperties()
+  }
+}
+
+async function persistTags(tagIds: string[]) {
+  if (!card.value) return
+  const id = card.value.id
+  try {
+    const result = await $fetch<{ tags: CardDetail['tags'] }>(`/api/cards/${id}/tags`, {
+      method: 'PUT',
+      body: { tagIds }
+    })
+    cardData.value = { ...cardData.value, tags: result.tags } as CardDetail
+  } catch (e: unknown) {
+    useToast().add({ title: 'Failed to update tags', description: getErrorMessage(e, 'Something went wrong'), color: 'error' })
+    syncProperties()
+  }
+}
+
+const { flushTitle, syncProperties } = useCardFieldSync({
+  card: () => (card.value as CardFieldSyncCard | undefined) ?? null,
+  fields: {
+    title,
+    statusId: selectedStatusId,
+    assigneeId: selectedAssigneeId,
+    priority,
+    dueDate: selectedDueDate,
+    tagIds: selectedTagIds
+  },
+  unassignedValue: UNASSIGNED,
+  enabled: () => synced.value && !!card.value,
+  save: persist,
+  saveTags: persistTags,
+  onCardChanged: () => {
+    if (card.value) populateFromCard(card.value)
+  }
+})
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -91,20 +153,18 @@ function startEditingDescription() {
   nextTick(() => descriptionEditorRef.value?.startEditing())
 }
 
+/**
+ * What is genuinely unsaved. Properties are no longer in here: they persist as
+ * they change, so listing them meant the leave guard fired over a status the
+ * server had already accepted.
+ *
+ * Title is included because it is debounced — normally settled within a second,
+ * but a navigation inside that window still has something to flush.
+ */
 const isDirty = computed(() => {
   if (!card.value) return false
-  const currentTagIds = (card.value.tags || []).map(t => t.id).sort().join(',')
-  const selectedSorted = [...selectedTagIds.value].sort().join(',')
-  const currentDueDate = card.value.dueDate ? new Date(card.value.dueDate).toISOString().split('T')[0] ?? null : null
-  return (
-    title.value !== (card.value.title || '')
+  return title.value !== (card.value.title || '')
     || description.value !== (card.value.description || '')
-    || priority.value !== (card.value.priority || 'medium')
-    || selectedStatusId.value !== (card.value.statusId || '')
-    || selectedAssigneeId.value !== (card.value.assigneeId || UNASSIGNED)
-    || selectedSorted !== currentTagIds
-    || selectedDueDate.value !== currentDueDate
-  )
 })
 
 // Warn before leaving with unsaved changes
@@ -114,6 +174,9 @@ let allowLeave = false
 
 onBeforeRouteLeave((to) => {
   if (allowLeave) return true
+  // Commit any title keystrokes the debounce hasn't flushed, so the guard only
+  // ever fires over a description that is actually still a draft.
+  flushTitle()
   if (isDirty.value) {
     showLeaveWarning.value = true
     const path = to.fullPath
@@ -161,42 +224,20 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown, true)
 })
 
+/**
+ * Commits the description, and the title if the debounce hasn't already. The
+ * properties this used to send are saved the moment they change, so sending them
+ * again here would be a second write of values the server already holds.
+ */
 async function submit() {
-  if (!title.value.trim() || !selectedStatusId.value || !card.value) return
+  if (!title.value.trim() || !card.value || !isDirty.value) return
   saving.value = true
   try {
-    const assigneeId = selectedAssigneeId.value === UNASSIGNED ? null : selectedAssigneeId.value
-    const updated = await $fetch(`/api/cards/${card.value.id}`, {
-      method: 'PUT',
-      body: {
-        title: title.value.trim(),
-        description: description.value.trim(),
-        priority: priority.value,
-        statusId: selectedStatusId.value,
-        assigneeId,
-        dueDate: selectedDueDate.value || null
-      }
+    await persist({
+      title: title.value.trim(),
+      description: description.value.trim()
     })
-
-    // Update tags if changed
-    const currentTagIds = (card.value.tags || []).map(t => t.id).sort().join(',')
-    const selectedSorted = [...selectedTagIds.value].sort().join(',')
-    if (selectedSorted !== currentTagIds) {
-      const tagResult = await $fetch<{ tags: Array<{ id: string, name: string, color: string }> }>(`/api/cards/${card.value.id}/tags`, {
-        method: 'PUT',
-        body: { tagIds: selectedTagIds.value }
-      })
-      if (updated) {
-        (updated as { tags?: Array<{ id: string, name: string, color: string }> }).tags = tagResult.tags
-      }
-    }
-
-    // Sync local state with response
-    if (updated) {
-      cardData.value = { ...cardData.value, ...updated } as CardDetail
-      synced.value = false
-      editingDescription.value = false
-    }
+    editingDescription.value = false
   } finally {
     saving.value = false
   }
@@ -413,8 +454,10 @@ async function confirmDelete() {
         <input
           v-model="title"
           type="text"
+          aria-label="Card title"
           placeholder="Card title..."
           class="w-full text-xl font-bold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.015em] leading-snug py-2 mb-4 transition-colors"
+          @blur="flushTitle"
         >
 
         <!-- Description header -->
