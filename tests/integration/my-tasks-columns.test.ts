@@ -17,7 +17,7 @@ describe('My Tasks Columns', async () => {
 
     expect(data.columns.length).toBe(7)
     expect(data.columns.map((c: Record<string, unknown>) => c.field)).toEqual([
-      'done', 'ticketId', 'title', 'status', 'priority', 'dueDate', 'tags'
+      'done', 'title', 'status', 'priority', 'dueDate', 'tags', 'ticketId'
     ])
   })
 

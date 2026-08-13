@@ -101,6 +101,26 @@ function colWidth(field: string) {
   return COL_WIDTHS[field] || undefined
 }
 
+/**
+ * The width Title must never drop below.
+ *
+ * `table-fixed` hands every sized column its width and gives Title whatever is left —
+ * and with enough columns showing, what's left is nothing. Nine columns sum to 886px of
+ * fixed width, so at 1157px in a sidebar layout the Title column collapsed to about 9px:
+ * the header text overlapped its neighbour and *every row rendered a blank title*. It
+ * degraded silently with viewport width, which is why it survived — at 1440px there is
+ * enough slack to look merely cramped.
+ *
+ * So the table gets a real minimum instead: `w-full` still lets Title flex out into a
+ * wide screen, and below that the wrapper's `overflow-auto` scrolls horizontally rather
+ * than eating the one column that carries the row's meaning.
+ */
+const TITLE_MIN_WIDTH = 260
+
+const tableMinWidth = computed(() =>
+  props.columns.reduce((sum, col) => sum + (parseInt(COL_WIDTHS[col.field] || '', 10) || TITLE_MIN_WIDTH), 0)
+)
+
 function detailUrl(card: ListCard) {
   if (!props.projectSlug) return null
   return `/projects/${props.projectSlug}/cards/${formatTicketId(props.projectKey, card.id)}`
@@ -195,7 +215,10 @@ const sortedCards = computed(() => {
        the table was full-bleed, and at 1512px the ID header sat under the sidebar
        divider while the assignee column ran off the right. -->
   <div class="flex-1 overflow-auto thin-scroll px-2">
-    <table class="w-full border-collapse text-left table-fixed">
+    <table
+      class="w-full border-collapse text-left table-fixed"
+      :style="{ minWidth: `${tableMinWidth}px` }"
+    >
       <!-- Column sizing -->
       <colgroup>
         <col

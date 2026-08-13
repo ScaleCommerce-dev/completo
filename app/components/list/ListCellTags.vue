@@ -16,23 +16,46 @@ const label = computed(() =>
     ? `Tags: ${props.cardTags.map(t => t.name).join(', ')}. Change tags`
     : 'Add tags'
 )
+
+/**
+ * One, then a count.
+ *
+ * A 160px column cannot hold six filled pills, so it wrapped them onto three lines and
+ * that one card doubled the height of every row around it. It can't hold two names
+ * either — flex splits the space evenly and you get "BU… FEATU… +4", which is less
+ * useful than no tags at all. One readable name plus a count is the honest fit; the
+ * tooltip and the card have the rest. The board card is 304px wide and shows two.
+ *
+ * The tags are also quiet here (dot plus name, see TagPill): in a table the cell is one
+ * signal among seven, not the content.
+ */
+const VISIBLE_TAGS = 1
+const visibleTags = computed(() => props.cardTags.slice(0, VISIBLE_TAGS))
+const hiddenTagCount = computed(() => Math.max(0, props.cardTags.length - VISIBLE_TAGS))
+const allTagNames = computed(() => props.cardTags.map(t => t.name).join(', '))
 </script>
 
 <template>
   <!-- read-only -->
   <div
     v-if="readOnly || !tags?.length"
-    class="flex flex-wrap gap-1 items-center min-h-[22px]"
+    class="flex gap-2 items-center min-h-[22px] min-w-0"
   >
     <TagPill
-      v-for="tag in cardTags"
+      v-for="tag in visibleTags"
       :key="tag.id"
       :name="tag.name"
       :color="tag.color"
+      variant="quiet"
+      class="min-w-0"
     />
     <span
+      v-if="hiddenTagCount"
+      class="text-2xs font-medium text-dimmed shrink-0"
+    >+{{ hiddenTagCount }}</span>
+    <span
       v-if="!cardTags.length"
-      class="text-dimmed text-sm"
+      :class="EMPTY_CELL_CLASS"
     >&mdash;</span>
   </div>
 
@@ -45,21 +68,26 @@ const label = computed(() =>
     <button
       type="button"
       :aria-label="label"
-      class="flex flex-wrap gap-1 items-center rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-[22px] max-w-full text-left"
+      class="flex gap-2 items-center rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-[22px] max-w-full min-w-0 text-left"
       @click.stop
     >
       <TagPill
-        v-for="tag in cardTags"
+        v-for="tag in visibleTags"
         :key="tag.id"
         :name="tag.name"
         :color="tag.color"
+        variant="quiet"
+        class="min-w-0"
       />
-      <!-- An em-dash, not the words "No tags". Ten rows of "No tags" down a
-           column is noise about data that isn't there; the due-date column has
-           always got this right. -->
+      <UTooltip
+        v-if="hiddenTagCount"
+        :text="allTagNames"
+      >
+        <span class="text-2xs font-medium text-dimmed shrink-0">+{{ hiddenTagCount }}</span>
+      </UTooltip>
       <span
         v-if="!cardTags.length"
-        class="text-dimmed text-sm"
+        :class="EMPTY_CELL_CLASS"
       >&mdash;</span>
       <UIcon
         name="i-lucide-chevron-down"

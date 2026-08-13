@@ -19,6 +19,12 @@ withDefaults(defineProps<{
   emptyLabel?: string
   /** Emphasises the name — for headers rather than table cells. */
   strong?: boolean
+  /**
+   * Holds the em-dash back until the row is hovered or focused. For scan columns,
+   * where a full column of dashes is noise about data that isn't there — see
+   * `EMPTY_CELL_CLASS`. Needs an ancestor carrying `group`.
+   */
+  emptyOnHover?: boolean
 }>(), {
   size: '3xs'
 })
@@ -43,6 +49,6 @@ withDefaults(defineProps<{
 
   <span
     v-else
-    class="text-dimmed text-sm"
+    :class="emptyOnHover && !emptyLabel ? EMPTY_CELL_CLASS : 'text-dimmed text-sm'"
   >{{ emptyLabel || '—' }}</span>
 </template>

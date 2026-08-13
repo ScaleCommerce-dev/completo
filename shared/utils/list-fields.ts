@@ -68,12 +68,22 @@ export const LIST_FIELD_WIDTHS: Readonly<Record<string, string>> = Object.fromEn
 /**
  * Columns a newly created list starts with.
  *
+ * **Title leads.** `ticketId` used to, which cost the row twice over: the first thing
+ * read on every line was an identifier nobody was scanning for, and Title — the only
+ * column that flexes — was pushed far enough right that it truncated ("Smoke test card
+ * fr…") while fixed-width columns held their space. The ID is metadata for URLs, the CLI
+ * and reading a ticket number out loud, so it goes last and stays quiet there.
+ *
+ * Existing lists keep their own column order; these two sets only seed new ones. A list
+ * whose columns were arranged by hand is a deliberate choice, and silently rewriting it
+ * would be worse than an unhelpful default.
+ *
  * My Tasks deliberately differs: it only ever shows your own cards, so Assignee would be
  * a column of one repeated name, and a Done checkbox is more use there than on a shared
  * board view.
  */
-export const LIST_DEFAULT_FIELDS: readonly string[] = ['ticketId', 'title', 'status', 'priority', 'assignee', 'dueDate', 'tags']
-export const MY_TASKS_DEFAULT_FIELDS: readonly string[] = ['done', 'ticketId', 'title', 'status', 'priority', 'dueDate', 'tags']
+export const LIST_DEFAULT_FIELDS: readonly string[] = ['title', 'status', 'priority', 'assignee', 'dueDate', 'tags', 'ticketId']
+export const MY_TASKS_DEFAULT_FIELDS: readonly string[] = ['done', 'title', 'status', 'priority', 'dueDate', 'tags', 'ticketId']
 
 export function isListField(value: unknown): value is string {
   return typeof value === 'string' && LIST_FIELD_KEYS.includes(value)

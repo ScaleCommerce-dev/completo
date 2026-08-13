@@ -108,6 +108,21 @@ export function priorityUiColor(priority: string): 'error' | 'warning' | 'neutra
   return 'neutral'
 }
 
+/**
+ * An absent value in a list column.
+ *
+ * These cells are editable popover triggers, so removing the em-dash entirely would
+ * leave an invisible button — there'd be no way to discover that clicking an empty Due
+ * Date cell sets one. But ten rows of em-dash down a column reads as "this field is
+ * unused", which is noise about data that isn't there. So the dash waits for the row:
+ * the column is clean at rest and the hit target announces itself on hover or focus.
+ *
+ * Requires the row to carry `group` (`ListView`'s `tr` does). On touch there is no hover
+ * to wait for, so `max-sm:` shows the dash at 60% rather than hiding an editable cell
+ * behind an interaction the device cannot perform.
+ */
+export const EMPTY_CELL_CLASS = 'text-dimmed text-sm opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 group-focus-within:opacity-100 transition-opacity'
+
 // ─── Due dates ──────────────────────────────────────────────────────────────
 
 export type DueDateStatus = 'overdue' | 'due-soon' | 'future'

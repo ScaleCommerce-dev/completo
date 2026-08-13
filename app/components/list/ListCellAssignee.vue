@@ -21,7 +21,10 @@ const label = computed(() =>
     v-if="readOnly"
     class="flex items-center min-h-[22px]"
   >
-    <UiPerson :person="assignee" />
+    <UiPerson
+      :person="assignee"
+      empty-on-hover
+    />
   </div>
 
   <UPopover
@@ -37,7 +40,10 @@ const label = computed(() =>
       class="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-[22px] max-w-full"
       @click.stop
     >
-      <UiPerson :person="assignee" />
+      <UiPerson
+        :person="assignee"
+        empty-on-hover
+      />
       <UIcon
         v-if="assignee"
         name="i-lucide-chevron-down"

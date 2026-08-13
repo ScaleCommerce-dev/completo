@@ -10,6 +10,19 @@ const emit = defineEmits<{
 }>()
 
 const label = computed(() => priorityLabel(props.priority))
+
+/**
+ * Medium and low wait for the row.
+ *
+ * Every row on the demo board read "= Medium", which is a column of identical marks
+ * saying nothing — and it drowned the two rows that did carry a signal. High and urgent
+ * keep their colour and stay lit; the others are a control without a value, so the
+ * control appears when you reach for it and the column stays quiet until then.
+ */
+const resting = computed(() => isSignalPriority(props.priority)
+  ? ''
+  // `max-sm:` because a touch device never hovers — see EMPTY_CELL_CLASS.
+  : 'opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 focus-visible:opacity-100')
 </script>
 
 <template>
@@ -23,7 +36,7 @@ const label = computed(() => priorityLabel(props.priority))
       type="button"
       :aria-label="`Priority: ${label}. Change priority`"
       class="flex items-center gap-1 text-sm font-medium rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer"
-      :class="[priorityTextClass(priority), priority === 'urgent' ? 'priority-urgent-pulse' : '']"
+      :class="[priorityTextClass(priority), resting, priority === 'urgent' ? 'priority-urgent-pulse' : '']"
       @click.stop
     >
       <UIcon

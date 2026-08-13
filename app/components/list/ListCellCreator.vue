@@ -10,6 +10,9 @@ defineProps<{
 
 <template>
   <div class="flex items-center min-h-[22px]">
-    <UiPerson :person="creator" />
+    <UiPerson
+      :person="creator"
+      empty-on-hover
+    />
   </div>
 </template>

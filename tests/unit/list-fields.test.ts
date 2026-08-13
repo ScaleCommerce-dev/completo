@@ -42,6 +42,22 @@ describe('list field definitions', () => {
     }
   })
 
+  it('leads both default column sets with the title and trails them with the ID', () => {
+    // The row's job is to read as a title. `ticketId` used to lead, which pushed Title —
+    // the only flexing column — far enough right that it truncated while fixed-width
+    // columns kept their space. Both properties matter, so both are asserted: a future
+    // edit that inserts a column before Title, or promotes the ID again, fails here.
+    for (const [name, fields] of [
+      ['LIST_DEFAULT_FIELDS', LIST_DEFAULT_FIELDS],
+      ['MY_TASKS_DEFAULT_FIELDS', MY_TASKS_DEFAULT_FIELDS]
+    ] as const) {
+      // `done` is a 36px checkbox, not something you read, so it may precede the title.
+      const readable = fields.filter(f => f !== 'done')
+      expect(readable[0], `${name} must open on the title`).toBe('title')
+      expect(fields[fields.length - 1], `${name} must close on the ticket ID`).toBe('ticketId')
+    }
+  })
+
   it('labels every field for the table header', () => {
     // `done` renders an icon instead of text, so its label is intentionally empty —
     // present-but-empty is the assertion, not truthy.

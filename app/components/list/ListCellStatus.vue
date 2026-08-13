@@ -61,7 +61,7 @@ const label = computed(() =>
       </template>
       <span
         v-else
-        class="text-dimmed text-sm"
+        :class="EMPTY_CELL_CLASS"
       >&mdash;</span>
     </button>
     <template #content>

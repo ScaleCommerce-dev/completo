@@ -35,7 +35,7 @@ const status = computed(() => getDueDateStatus(props.dueDate))
       </template>
       <span
         v-else
-        class="text-dimmed"
+        :class="EMPTY_CELL_CLASS"
       >&mdash;</span>
       <UIcon
         name="i-lucide-chevron-down"
