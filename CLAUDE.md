@@ -245,6 +245,8 @@ zdev migrate             # apply migrations; also: generate | push | seed | clea
 
   Dev data is **disposable by design**: `zdev down -v -f` destroys the volume and the next `zdev start` rebuilds it from migrations + seed, back to the demo board and the two fixed logins. Nothing else holds a copy, so that command means what it says. Tests are unaffected (they use their own throwaway `test.db`).
 
+  **So change it freely while testing.** Creating cards, moving them between columns, toggling tags, renaming a board — none of it needs undoing afterwards, and carefully restoring the previous state costs more than it is worth. Clicking through a change in the browser is how you verify it; treat the demo board as a scratchpad. (This is dev only. Nothing here licenses touching a real database.)
+
   Historical trap, in case old notes say otherwise: before `DATABASE_URL` was set here, the app fell back to the relative default `'sqlite.db'`, which resolved against `/app` — the bind-mounted project dir — so the container silently shared the *host's* DB. That's why a container could appear to "lose" data when the setting was introduced.
 - Boot applies committed migrations (`node scripts/db-migrate.ts`). For a schema change: `zdev migrate generate`, commit it, restart. There is no `zdev migrate push` — see Schema Changes & Migrations for why.
 - **`.zdev/commands/migrate.just` → `zdev migrate`** is only an alias for those same `node scripts/*.ts` commands, so dev and prod stay verifiably identical. Adding a `.just` file there adds a `zdev <name>` subcommand.
