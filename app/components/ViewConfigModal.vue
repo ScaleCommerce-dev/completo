@@ -61,6 +61,20 @@ const memberItems = computed(() =>
   (props.members || []).map(m => ({ value: m.id, label: m.name }))
 )
 
+/**
+ * Closed sets get chips; open-ended sets get a search field.
+ *
+ * Status and priority are short, fixed lists where a row of toggles is the fastest
+ * control there is. Tags and members grow without limit — thirteen tag chips already
+ * wrapped onto three lines and turned the filter section into its own wall of colour, and
+ * a project with fifty tags would have been unusable. A `UiStatusDot` in the item slot
+ * carries the tag colour, so nothing is lost but the wrapping — USelectMenu's own `chip`
+ * prop only takes the semantic palette names, never a user-chosen hex.
+ */
+const tagItems = computed(() =>
+  (props.tags || []).map(t => ({ value: t.id, label: t.name, color: t.color }))
+)
+
 function toggleStatusFilter(value: string) {
   const idx = localStatusFilters.value.indexOf(value)
   localStatusFilters.value = idx >= 0
@@ -73,13 +87,6 @@ function togglePriorityFilter(value: string) {
   localPriorityFilters.value = idx >= 0
     ? localPriorityFilters.value.filter(v => v !== value)
     : [...localPriorityFilters.value, value]
-}
-
-function toggleTagFilter(value: string) {
-  const idx = localTagFilters.value.indexOf(value)
-  localTagFilters.value = idx >= 0
-    ? localTagFilters.value.filter(v => v !== value)
-    : [...localTagFilters.value, value]
 }
 
 // ─── Local state — buffered until Save ───
@@ -113,6 +120,47 @@ function resetToProps() {
   snapshotName.value = props.viewName || ''
 }
 
+/**
+ * Columns and filters are two jobs, not one scroll.
+ *
+ * This dialog put a name field, a drag-to-reorder column list, an add-column form, a list
+ * of linkable columns, and four filter controls — thirteen tag chips among them — in one
+ * column, so reordering a board meant scrolling past the filter section and configuring a
+ * filter meant scrolling past the columns. Two tabs, with the name above them because it
+ * belongs to the view itself rather than to either job.
+ *
+ * `unmountOnHide: false` keeps both panels mounted. The columns panel holds a
+ * `vuedraggable` instance behind `<ClientOnly>`; tearing that down and rebuilding it on
+ * every tab switch is work with nothing to show for it.
+ */
+const configTab = ref<'columns' | 'filters'>('columns')
+
+/** Shown on the Filters tab, so an active filter is visible without opening the tab. */
+const activeFilterCount = computed(() =>
+  localStatusFilters.value.length
+  + localPriorityFilters.value.length
+  + localTagFilters.value.length
+  + localAssigneeFilters.value.length
+)
+
+const tabItems = computed(() => [
+  {
+    // A board reorders statuses; a list reorders which card fields it shows.
+    label: props.mode === 'board' ? 'Columns' : 'Fields',
+    value: 'columns' as const,
+    slot: 'columns' as const,
+    icon: 'i-lucide-columns-3',
+    count: localColumns.value.length
+  },
+  {
+    label: 'Filters',
+    value: 'filters' as const,
+    slot: 'filters' as const,
+    icon: 'i-lucide-filter',
+    count: activeFilterCount.value
+  }
+])
+
 watch(open, (isOpen) => {
   if (isOpen) {
     resetToProps()
@@ -120,6 +168,8 @@ watch(open, (isOpen) => {
     deleteConfirmName.value = ''
     deletingView.value = false
     showCloseWarning.value = false
+    // Always open on Columns rather than wherever you were last time.
+    configTab.value = 'columns'
   }
 })
 
@@ -253,13 +303,11 @@ function handleDeleteView() {
       <div class="flex flex-col gap-1">
         <!-- Name -->
         <template v-if="viewName !== undefined">
-          <div class="flex items-center gap-1.5 mb-1 pt-5">
-            <UIcon
-              name="i-lucide-type"
-              class="text-sm text-dimmed"
-            />
-            <span class="text-xs font-bold text-muted uppercase tracking-[0.08em]">Name</span>
-          </div>
+          <UiSectionLabel
+            icon="i-lucide-type"
+            label="Name"
+            class="mb-1 pt-5"
+          />
           <UInput
             v-model="editName"
             :placeholder="mode === 'board' ? 'Board name...' : 'List name...'"
@@ -267,300 +315,288 @@ function handleDeleteView() {
             class="mb-1"
             @keydown.enter="($event.target as HTMLInputElement).blur()"
           />
-          <USeparator class="my-2" />
         </template>
 
-        <div
-          class="flex items-center gap-1.5 mb-1"
-          :class="viewName === undefined ? 'pt-5' : ''"
+        <UTabs
+          v-model="configTab"
+          :items="tabItems"
+          variant="link"
+          size="sm"
+          :unmount-on-hide="false"
+          :ui="{
+            root: 'gap-0 items-stretch',
+            list: 'px-0',
+            trigger: 'grow-0',
+            content: 'pt-3 pb-1'
+          }"
+          :class="viewName === undefined ? 'pt-5' : 'pt-2'"
         >
-          <UIcon
-            name="i-lucide-columns-3"
-            class="text-sm text-dimmed"
-          />
-          <span class="text-xs font-bold text-muted uppercase tracking-[0.08em]">
-            {{ mode === 'board' ? 'Columns' : 'Active Columns' }}
-          </span>
-        </div>
-        <ClientOnly>
-          <draggable
-            v-model="localColumns"
-            item-key="id"
-            handle=".drag-handle"
-            ghost-class="sortable-ghost"
-            chosen-class="sortable-chosen"
-            drag-class="sortable-drag"
-            @end="onDragEnd"
-          >
-            <template #item="{ element: col }">
+          <!-- A count beside each tab: how many columns this view shows, and whether
+               anything is being filtered out — the latter was previously invisible
+               until you scrolled to the bottom of the dialog. -->
+          <template #trailing="{ item }">
+            <span
+              v-if="item.count"
+              class="text-2xs font-mono tabular-nums"
+              :class="configTab === item.value ? 'text-primary' : 'text-dimmed'"
+            >{{ item.count }}</span>
+          </template>
+
+          <template #columns>
+            <ClientOnly>
+              <draggable
+                v-model="localColumns"
+                item-key="id"
+                handle=".drag-handle"
+                ghost-class="sortable-ghost"
+                chosen-class="sortable-chosen"
+                drag-class="sortable-drag"
+                @end="onDragEnd"
+              >
+                <template #item="{ element: col }">
+                  <div
+                    class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted transition-colors group"
+                  >
+                    <UIcon
+                      name="i-lucide-grip-vertical"
+                      class="drag-handle text-dimmed hover:text-muted cursor-grab active:cursor-grabbing text-base shrink-0 transition-colors"
+                    />
+                    <!-- Board mode: color dot (editable if canAddColumns) -->
+                    <template v-if="mode === 'board'">
+                      <UPopover
+                        v-if="canAddColumns"
+                        v-model:open="colorPopoverOpen[col.id]"
+                      >
+                        <button
+                          type="button"
+                          class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
+                          :style="{ backgroundColor: col.color || '#a1a1aa' }"
+                        />
+                        <template #content>
+                          <div class="p-2">
+                            <ColorPicker
+                              :model-value="col.color || '#a1a1aa'"
+                              @update:model-value="pickColor(col.id, $event)"
+                            />
+                          </div>
+                        </template>
+                      </UPopover>
+                      <div
+                        v-else
+                        class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10"
+                        :style="{ backgroundColor: col.color || '#a1a1aa' }"
+                      />
+                    </template>
+                    <!-- List mode: field icon -->
+                    <UIcon
+                      v-if="mode === 'list'"
+                      :name="fieldIcon(col.field || '')"
+                      class="text-base text-dimmed shrink-0"
+                    />
+                    <span class="text-base font-medium flex-1">
+                      {{ mode === 'board' ? col.name : fieldLabel(col.field || '') }}
+                    </span>
+                    <div class="flex items-center gap-0.5 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-opacity">
+                      <UTooltip text="Remove column">
+                        <UButton
+                          icon="i-lucide-trash-2"
+                          variant="ghost"
+                          color="error"
+                          size="xs"
+                          @click="emit('delete', col.id)"
+                        />
+                      </UTooltip>
+                    </div>
+                  </div>
+                </template>
+              </draggable>
+            </ClientOnly>
+
+            <!-- Board mode: add new column -->
+            <form
+              v-if="mode === 'board' && canAddColumns"
+              class="flex items-center gap-2"
+              @submit.prevent="addBoardColumn"
+            >
+              <UPopover v-model:open="newColorOpen">
+                <button
+                  type="button"
+                  class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
+                  :style="{ backgroundColor: newColumnColor }"
+                />
+                <template #content>
+                  <div class="p-2">
+                    <ColorPicker v-model="newColumnColor" />
+                  </div>
+                </template>
+              </UPopover>
+              <UInput
+                v-model="newColumnName"
+                placeholder="New column name (project-wide)"
+                class="flex-1"
+                size="sm"
+              />
+              <UButton
+                type="submit"
+                icon="i-lucide-plus"
+                label="Add"
+                size="sm"
+              />
+            </form>
+
+            <!-- Board mode: available columns to link -->
+            <template v-if="mode === 'board' && availableColumns?.length">
+              <UiSectionLabel
+                icon="i-lucide-plus-circle"
+                label="Available columns"
+                class="mt-3 pt-3 border-t border-muted"
+              />
               <div
+                v-for="col in availableColumns"
+                :key="col.id"
+                class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted transition-colors group"
+              >
+                <div
+                  class="w-2 h-2 rounded-full shrink-0"
+                  :style="{ backgroundColor: col.color || '#a1a1aa' }"
+                />
+                <span class="text-base font-medium flex-1 text-dimmed">{{ col.name }}</span>
+                <UButton
+                  icon="i-lucide-plus"
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  @click="emit('link', col.id)"
+                />
+              </div>
+            </template>
+
+            <!-- List mode: available fields -->
+            <template v-if="mode === 'list' && availableFields.length">
+              <UiSectionLabel
+                icon="i-lucide-plus-circle"
+                label="Available fields"
+                class="mt-3 pt-3 mb-1 border-t border-muted"
+              />
+              <div
+                v-for="f in availableFields"
+                :key="f.field"
                 class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted transition-colors group"
               >
                 <UIcon
-                  name="i-lucide-grip-vertical"
-                  class="drag-handle text-dimmed hover:text-muted cursor-grab active:cursor-grabbing text-base shrink-0 transition-colors"
-                />
-                <!-- Board mode: color dot (editable if canAddColumns) -->
-                <template v-if="mode === 'board'">
-                  <UPopover
-                    v-if="canAddColumns"
-                    v-model:open="colorPopoverOpen[col.id]"
-                  >
-                    <button
-                      type="button"
-                      class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
-                      :style="{ backgroundColor: col.color || '#a1a1aa' }"
-                    />
-                    <template #content>
-                      <div class="p-2">
-                        <ColorPicker
-                          :model-value="col.color || '#a1a1aa'"
-                          @update:model-value="pickColor(col.id, $event)"
-                        />
-                      </div>
-                    </template>
-                  </UPopover>
-                  <div
-                    v-else
-                    class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10"
-                    :style="{ backgroundColor: col.color || '#a1a1aa' }"
-                  />
-                </template>
-                <!-- List mode: field icon -->
-                <UIcon
-                  v-if="mode === 'list'"
-                  :name="fieldIcon(col.field || '')"
+                  :name="f.icon"
                   class="text-base text-dimmed shrink-0"
                 />
-                <span class="text-base font-medium flex-1">
-                  {{ mode === 'board' ? col.name : fieldLabel(col.field || '') }}
-                </span>
-                <div class="flex items-center gap-0.5 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-opacity">
-                  <UTooltip text="Remove column">
-                    <UButton
-                      icon="i-lucide-trash-2"
-                      variant="ghost"
-                      color="error"
-                      size="xs"
-                      @click="emit('delete', col.id)"
+                <span class="text-base font-medium flex-1 text-dimmed">{{ f.label }}</span>
+                <UButton
+                  icon="i-lucide-plus"
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  @click="emit('add', f.field)"
+                />
+              </div>
+            </template>
+          </template>
+
+          <template #filters>
+            <div class="flex flex-col gap-2.5">
+              <!-- Status — a short fixed list, so toggles beat a picker -->
+              <div
+                v-if="statuses?.length"
+                class="flex items-start gap-2"
+              >
+                <span class="text-xs font-medium text-dimmed pt-[5px] w-16 shrink-0 text-right">Status</span>
+                <div class="flex flex-wrap gap-1.5">
+                  <button
+                    v-for="s in statuses"
+                    :key="s.id"
+                    type="button"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition duration-150 active:scale-95"
+                    :class="localStatusFilters.includes(s.id)
+                      ? 'swatch'
+                      : 'bg-elevated text-dimmed hover:text-toned'"
+                    :style="localStatusFilters.includes(s.id) ? { '--swatch': s.color || undefined } : {}"
+                    @click="toggleStatusFilter(s.id)"
+                  >
+                    <UIcon
+                      :name="localStatusFilters.includes(s.id) ? 'i-lucide-check' : 'i-lucide-circle'"
+                      class="text-2xs"
+                      :class="localStatusFilters.includes(s.id) ? '' : 'swatch-text'"
+                      :style="localStatusFilters.includes(s.id) ? {} : { '--swatch': s.color || undefined }"
                     />
-                  </UTooltip>
+                    {{ s.name }}
+                  </button>
                 </div>
               </div>
-            </template>
-          </draggable>
-        </ClientOnly>
 
-        <!-- Board mode: add new column -->
-        <form
-          v-if="mode === 'board' && canAddColumns"
-          class="flex items-center gap-2"
-          @submit.prevent="addBoardColumn"
-        >
-          <UPopover v-model:open="newColorOpen">
-            <button
-              type="button"
-              class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
-              :style="{ backgroundColor: newColumnColor }"
-            />
-            <template #content>
-              <div class="p-2">
-                <ColorPicker v-model="newColumnColor" />
+              <!-- Priority — four values, likewise -->
+              <div class="flex items-start gap-2">
+                <span class="text-xs font-medium text-dimmed pt-[5px] w-16 shrink-0 text-right">Priority</span>
+                <div class="flex flex-wrap gap-1.5">
+                  <button
+                    v-for="p in ['urgent', 'high', 'medium', 'low']"
+                    :key="p"
+                    type="button"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-colors"
+                    :class="localPriorityFilters.includes(p)
+                      ? [priorityTextClass(p), 'bg-elevated shadow-[inset_0_0_0_1.5px_currentColor]']
+                      : 'bg-elevated text-dimmed hover:text-toned'"
+                    @click="togglePriorityFilter(p)"
+                  >
+                    <!-- Icon inherits currentColor, so the priority hue comes from
+                         the button's own text class rather than a second source. -->
+                    <UIcon
+                      :name="localPriorityFilters.includes(p) ? 'i-lucide-check' : priorityIcon(p)"
+                      class="text-2xs"
+                    />
+                    {{ priorityLabel(p) }}
+                  </button>
+                </div>
               </div>
-            </template>
-          </UPopover>
-          <UInput
-            v-model="newColumnName"
-            placeholder="New column name (project-wide)"
-            class="flex-1"
-            size="sm"
-          />
-          <UButton
-            type="submit"
-            icon="i-lucide-plus"
-            label="Add"
-            size="sm"
-          />
-        </form>
 
-        <!-- Board mode: available columns to link -->
-        <template v-if="mode === 'board' && availableColumns?.length">
-          <USeparator class="my-2" />
-          <div class="flex items-center gap-1.5 mb-1">
-            <UIcon
-              name="i-lucide-plus-circle"
-              class="text-sm text-dimmed"
-            />
-            <span class="text-xs font-bold text-muted uppercase tracking-[0.08em]">Available Columns</span>
-          </div>
-          <div
-            v-for="col in availableColumns"
-            :key="col.id"
-            class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted transition-colors group"
-          >
-            <div
-              class="w-2 h-2 rounded-full shrink-0"
-              :style="{ backgroundColor: col.color || '#a1a1aa' }"
-            />
-            <span class="text-base font-medium flex-1 text-dimmed">{{ col.name }}</span>
-            <UButton
-              icon="i-lucide-plus"
-              variant="ghost"
-              color="neutral"
-              size="xs"
-              @click="emit('link', col.id)"
-            />
-          </div>
-        </template>
+              <!-- Assignee and Tags grow without limit, so both are searchable -->
+              <div
+                v-if="members?.length"
+                class="flex items-start gap-2"
+              >
+                <span class="text-xs font-medium text-dimmed pt-[7px] w-16 shrink-0 text-right">Assignee</span>
+                <USelectMenu
+                  v-model="localAssigneeFilters"
+                  :items="memberItems"
+                  multiple
+                  value-key="value"
+                  placeholder="Any member"
+                  size="sm"
+                  class="flex-1"
+                />
+              </div>
 
-        <!-- List mode: available fields -->
-        <template v-if="mode === 'list' && availableFields.length">
-          <div class="flex items-center gap-1.5 mb-1">
-            <UIcon
-              name="i-lucide-plus-circle"
-              class="text-sm text-dimmed"
-            />
-            <span class="text-xs font-bold text-muted uppercase tracking-[0.08em]">Available Fields</span>
-          </div>
-          <div
-            v-for="f in availableFields"
-            :key="f.field"
-            class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted transition-colors group"
-          >
-            <UIcon
-              :name="f.icon"
-              class="text-base text-dimmed shrink-0"
-            />
-            <span class="text-base font-medium flex-1 text-dimmed">{{ f.label }}</span>
-            <UButton
-              icon="i-lucide-plus"
-              variant="ghost"
-              color="neutral"
-              size="xs"
-              @click="emit('add', f.field)"
-            />
-          </div>
-        </template>
-
-        <!-- Filters -->
-        <template v-if="statuses?.length || members?.length || tags?.length">
-          <USeparator class="my-2" />
-          <div class="flex items-center gap-1.5 mb-2.5">
-            <UIcon
-              name="i-lucide-filter"
-              class="text-sm text-dimmed"
-            />
-            <span class="text-xs font-bold text-muted uppercase tracking-[0.08em]">Filters</span>
-          </div>
-
-          <div class="flex flex-col gap-2.5">
-            <!-- Status -->
-            <div
-              v-if="statuses?.length"
-              class="flex items-start gap-2"
-            >
-              <span class="text-xs font-medium text-dimmed pt-[5px] w-16 shrink-0 text-right">Status</span>
-              <div class="flex flex-wrap gap-1.5">
-                <button
-                  v-for="s in statuses"
-                  :key="s.id"
-                  type="button"
-                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition duration-150 active:scale-95"
-                  :class="localStatusFilters.includes(s.id)
-                    ? ''
-                    : 'bg-elevated text-dimmed hover:text-toned'"
-                  :style="localStatusFilters.includes(s.id) ? {
-                    color: s.color || '#6366f1',
-                    backgroundColor: (s.color || '#6366f1') + '22',
-                    boxShadow: `inset 0 0 0 1.5px ${s.color || '#6366f1'}`
-                  } : {}"
-                  @click="toggleStatusFilter(s.id)"
+              <div
+                v-if="tags?.length"
+                class="flex items-start gap-2"
+              >
+                <span class="text-xs font-medium text-dimmed pt-[7px] w-16 shrink-0 text-right">Tags</span>
+                <USelectMenu
+                  v-model="localTagFilters"
+                  :items="tagItems"
+                  multiple
+                  value-key="value"
+                  placeholder="Any tag"
+                  size="sm"
+                  class="flex-1"
                 >
-                  <UIcon
-                    :name="localStatusFilters.includes(s.id) ? 'i-lucide-check' : 'i-lucide-circle'"
-                    class="text-2xs"
-                    :style="localStatusFilters.includes(s.id) ? {} : { color: s.color || '#6366f1' }"
-                  />
-                  {{ s.name }}
-                </button>
+                  <template #item-leading="{ item }">
+                    <UiStatusDot
+                      :color="item.color"
+                      size="sm"
+                    />
+                  </template>
+                </USelectMenu>
               </div>
             </div>
-
-            <!-- Priority -->
-            <div class="flex items-start gap-2">
-              <span class="text-xs font-medium text-dimmed pt-[5px] w-16 shrink-0 text-right">Priority</span>
-              <div class="flex flex-wrap gap-1.5">
-                <button
-                  v-for="p in ['urgent', 'high', 'medium', 'low']"
-                  :key="p"
-                  type="button"
-                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-colors"
-                  :class="localPriorityFilters.includes(p)
-                    ? [priorityTextClass(p), 'bg-elevated shadow-[inset_0_0_0_1.5px_currentColor]']
-                    : 'bg-elevated text-dimmed hover:text-toned'"
-                  @click="togglePriorityFilter(p)"
-                >
-                  <!-- Icon inherits currentColor, so the priority hue comes from
-                       the button's own text class rather than a second source. -->
-                  <UIcon
-                    :name="localPriorityFilters.includes(p) ? 'i-lucide-check' : priorityIcon(p)"
-                    class="text-2xs"
-                  />
-                  {{ priorityLabel(p) }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Tags -->
-            <div
-              v-if="tags?.length"
-              class="flex items-start gap-2"
-            >
-              <span class="text-xs font-medium text-dimmed pt-[5px] w-16 shrink-0 text-right">Tags</span>
-              <div class="flex flex-wrap gap-1.5">
-                <button
-                  v-for="tag in tags"
-                  :key="tag.id"
-                  type="button"
-                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition duration-150 active:scale-95"
-                  :class="localTagFilters.includes(tag.id)
-                    ? ''
-                    : 'bg-elevated text-dimmed hover:text-toned'"
-                  :style="localTagFilters.includes(tag.id) ? {
-                    color: tag.color,
-                    backgroundColor: tag.color + '22',
-                    boxShadow: `inset 0 0 0 1.5px ${tag.color}`
-                  } : {}"
-                  @click="toggleTagFilter(tag.id)"
-                >
-                  <UIcon
-                    :name="localTagFilters.includes(tag.id) ? 'i-lucide-check' : 'i-lucide-circle'"
-                    class="text-2xs"
-                    :style="localTagFilters.includes(tag.id) ? {} : { color: tag.color }"
-                  />
-                  {{ tag.name }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Assignee -->
-            <div
-              v-if="members?.length"
-              class="flex items-start gap-2"
-            >
-              <span class="text-xs font-medium text-dimmed pt-[7px] w-16 shrink-0 text-right">Assignee</span>
-              <USelectMenu
-                v-model="localAssigneeFilters"
-                :items="memberItems"
-                multiple
-                value-key="value"
-                placeholder="Any member"
-                size="sm"
-                class="flex-1"
-              />
-            </div>
-          </div>
-        </template>
+          </template>
+        </UTabs>
       </div>
     </template>
 
@@ -568,7 +604,7 @@ function handleDeleteView() {
       <!-- Delete confirmation replaces footer -->
       <div
         v-if="showDeleteConfirm"
-        class="px-5 pt-4 pb-5 border-t border-red-200/40 dark:border-red-800/30 bg-red-50/30 dark:bg-red-950/10"
+        class="w-full px-5 pt-4 pb-5 border-t border-error/30 bg-error/5"
       >
         <p class="text-sm font-medium text-error mb-2">
           This will permanently delete this {{ viewType || 'view' }}. Type <span class="font-bold">{{ viewName }}</span> to confirm.
@@ -578,89 +614,73 @@ function handleDeleteView() {
             v-model="deleteConfirmName"
             type="text"
             :placeholder="viewName"
-            class="flex-1 text-base text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
+            aria-label="Type the view name to confirm deletion"
+            class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-default border border-error/40 rounded-lg px-2.5 py-1.5 outline-none focus:border-error transition-colors"
           >
-          <button
-            type="button"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          <UButton
+            color="error"
+            icon="i-lucide-trash-2"
+            label="Delete"
+            :loading="deletingView"
             :disabled="!deleteConfirmValid || deletingView"
             @click="handleDeleteView"
-          >
-            <UIcon
-              v-if="!deletingView"
-              name="i-lucide-trash-2"
-              class="text-sm"
-            />
-            <UIcon
-              v-else
-              name="i-lucide-loader-2"
-              class="text-sm animate-spin"
-            />
-            Delete
-          </button>
-          <button
-            type="button"
-            class="px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+          />
+          <UButton
+            color="neutral"
+            variant="ghost"
+            label="Cancel"
             @click="showDeleteConfirm = false; deleteConfirmName = ''"
-          >
-            Cancel
-          </button>
+          />
         </div>
       </div>
 
       <!-- Close warning replaces footer -->
       <div
         v-else-if="showCloseWarning"
-        class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-amber-200/40 dark:border-amber-800/30 bg-amber-50/30 dark:bg-amber-950/10"
+        class="w-full flex items-center justify-between px-5 pt-4 pb-5 border-t border-warning/30 bg-warning/5"
       >
         <p class="text-sm font-medium text-warning">
           Discard unsaved changes?
         </p>
         <div class="flex items-center gap-2">
-          <button
-            type="button"
-            class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+          <UButton
+            color="neutral"
+            variant="ghost"
+            label="Keep editing"
             @click="showCloseWarning = false"
-          >
-            Keep editing
-          </button>
-          <button
-            type="button"
-            class="px-3 py-1.5 rounded-lg text-sm font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
+          />
+          <UButton
+            color="warning"
+            variant="ghost"
+            label="Discard"
             @click="discardAndClose"
-          >
-            Discard
-          </button>
+          />
         </div>
       </div>
 
       <!-- Normal footer -->
       <div
         v-else
-        class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-muted"
+        class="w-full flex items-center justify-between px-5 pt-4 pb-5 border-t border-muted"
       >
         <div>
-          <button
+          <UButton
             v-if="viewName !== undefined"
-            type="button"
-            class="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-error hover:bg-error/10 transition-colors"
+            color="error"
+            variant="ghost"
+            icon="i-lucide-trash-2"
+            label="Delete"
+            size="sm"
             @click="showDeleteConfirm = true; deleteConfirmName = ''"
-          >
-            <UIcon
-              name="i-lucide-trash-2"
-              class="text-sm"
-            />
-            Delete
-          </button>
+          />
         </div>
         <div class="flex items-center gap-2">
-          <button
-            type="button"
-            class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+          <UButton
+            color="neutral"
+            variant="ghost"
+            label="Close"
             @click="close"
-          >
-            Close
-          </button>
+          />
           <UButton
             label="Save"
             :disabled="!isDirty"
