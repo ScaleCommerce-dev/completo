@@ -132,6 +132,62 @@ describe('the delete confirmation is not inside the slideover', () => {
 })
 
 /**
+ * Chrome the card surfaces share with the rest of the app, and had each grown
+ * their own version of.
+ */
+describe('one spelling per idiom', () => {
+  it('gives the three card sections one heading style', () => {
+    // Measured off the rendered panel: 0.48px, 0.84px and 0.30px of tracking on
+    // three stacked headings, one of them without the icon its neighbours had —
+    // because two hand-rolled the style UiSectionLabel exists to hold.
+    const sections = [
+      'app/components/CardModal.vue',
+      'app/components/CommentList.vue',
+      'app/components/AttachmentList.vue'
+    ]
+
+    for (const path of sections) {
+      expect(read(path), path).toContain('<UiSectionLabel')
+      expect(read(path), path).not.toMatch(/text-xs font-semibold uppercase tracking-\[/)
+    }
+  })
+
+  it('puts every ⌘↵ hint on the button it triggers', () => {
+    // Three spellings: a floating grey chip beside the button, a raw <kbd>
+    // inside it, and UKbd as a trailing slot. UKbd is the one Nuxt UI ships.
+    const withShortcuts = [
+      'app/components/CardModal.vue',
+      'app/components/CommentList.vue',
+      'app/components/CreateViewModal.vue',
+      'app/components/ProjectForm.vue',
+      'app/pages/projects/[slug]/cards/[cardId].vue'
+    ]
+
+    for (const path of withShortcuts) {
+      expect(read(path), path).not.toMatch(/<kbd/)
+    }
+  })
+
+  it('lets a long title wrap instead of running off the edge', () => {
+    // An <input> showed about 70 characters of a 100-character title, with no
+    // ellipsis and no way to read the rest but arrowing through it.
+    for (const path of ['app/components/CardModal.vue', 'app/pages/projects/[slug]/cards/[cardId].vue']) {
+      const src = read(path)
+      expect(src, path).toMatch(/<textarea[\s\S]{0,200}v-model="title"/)
+      expect(src, path).toMatch(/function resizeTitle/)
+    }
+  })
+
+  it('keeps comment row actions quiet until the row is reached', () => {
+    // They were lit on every comment, so a thread of five carried ten icons —
+    // while the attachment rows beside them were hover-only.
+    const comments = read('app/components/CommentList.vue')
+
+    expect(comments).toMatch(/opacity-0 group-hover:opacity-100 focus-within:opacity-100/)
+  })
+})
+
+/**
  * `UiConfirmDialog` is the one destructive idiom, and this pair were the last two
  * hand-rolled holdouts — an inline banner in the panel's footer and a second one
  * in the page's rail, with its own red hex values.

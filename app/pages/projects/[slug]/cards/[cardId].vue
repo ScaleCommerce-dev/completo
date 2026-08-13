@@ -58,6 +58,17 @@ const editingDescription = ref(false)
 const showDeleteConfirm = ref(false)
 const deletingCard = ref(false)
 const descriptionEditorRef = ref<{ startEditing: () => void }>()
+const titleInput = ref<HTMLTextAreaElement>()
+
+/** See CardModal — the title wraps instead of scrolling out of sight. */
+function resizeTitle() {
+  const el = titleInput.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = `${el.scrollHeight}px`
+}
+
+watch(title, () => nextTick(resizeTitle))
 
 const selectedTagNames = computed(() => (projectTagsData.value || []).filter(t => selectedTagIds.value.includes(t.id)).map(t => t.name))
 
@@ -386,23 +397,26 @@ async function confirmDelete() {
       <!-- ═══ MAIN CONTENT — title + description ═══ -->
       <div class="flex-1 min-w-0 lg:order-1">
         <!-- Title -->
-        <input
+        <!-- A textarea, so a long title wraps rather than running off the edge.
+             See CardModal — Enter still commits. -->
+        <textarea
+          ref="titleInput"
           v-model="title"
-          type="text"
+          rows="1"
           aria-label="Card title"
           placeholder="Card title..."
-          class="w-full text-xl font-bold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.015em] leading-snug py-2 mb-4 transition-colors"
+          class="w-full text-xl font-bold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.015em] leading-snug py-2 mb-4 transition-colors resize-none overflow-hidden"
+          @input="resizeTitle"
           @blur="flushTitle"
           @keydown.enter.prevent="flushTitle"
-        >
+        />
 
         <!-- Description header -->
         <div class="flex items-center gap-1.5 mb-2">
-          <UIcon
-            name="i-lucide-text"
-            class="text-sm text-dimmed"
+          <UiSectionLabel
+            label="Description"
+            icon="i-lucide-text"
           />
-          <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">Description</span>
           <!-- See CardModal: with no description, its placeholder is the button. -->
           <UButton
             v-if="!editingDescription && description"

@@ -465,15 +465,19 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               >
                 Back
               </button>
-              <span class="text-2xs font-mono text-dimmed hidden sm:block">
-                <kbd class="px-1 py-0.5 rounded-md bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
-              </span>
+              <!-- The shortcut belongs on the button it triggers, not floating
+                   beside it. There were three spellings of this hint. -->
               <UButton
                 label="Create"
                 icon="i-lucide-plus"
                 :loading="creatingView"
                 @click="createView"
-              />
+              >
+                <template #trailing>
+                  <UKbd value="meta" />
+                  <UKbd value="enter" />
+                </template>
+              </UButton>
             </div>
           </div>
         </div>

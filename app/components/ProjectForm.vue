@@ -473,16 +473,19 @@ function confirmDelete() {
         >
           Cancel
         </button>
-        <span class="text-2xs font-mono text-dimmed hidden sm:block">
-          <kbd class="px-1 py-0.5 rounded-md bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
-        </span>
+        <!-- See CreateViewModal: the shortcut rides on its own button. -->
         <UButton
           type="submit"
           :label="mode === 'create' ? 'Create' : 'Save'"
           :icon="mode === 'create' ? 'i-lucide-plus' : 'i-lucide-check'"
           :loading="loading"
           :disabled="!canSubmit"
-        />
+        >
+          <template #trailing>
+            <UKbd value="meta" />
+            <UKbd value="enter" />
+          </template>
+        </UButton>
       </div>
     </div>
   </form>

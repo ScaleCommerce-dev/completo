@@ -200,13 +200,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
 
 <template>
   <div class="mt-6">
-    <h3 class="text-xs font-semibold tracking-wide text-dimmed uppercase mb-3">
-      Comments
-      <span
-        v-if="comments.length"
-        class="ml-1 text-dimmed"
-      >{{ comments.length }}</span>
-    </h3>
+    <!-- The three sections of a card sat at three different letter-spacings —
+         0.48px, 0.84px and 0.30px — because two of them hand-rolled the style
+         that UiSectionLabel exists to hold, and this one had no icon while its
+         neighbours did. -->
+    <UiSectionLabel
+      label="Comments"
+      icon="i-lucide-message-square"
+      :count="comments.length || null"
+      class="mb-3"
+    />
 
     <div
       v-if="loading && !comments.length"
@@ -222,7 +225,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
       <li
         v-for="comment in comments"
         :key="comment.id"
-        class="flex gap-2.5"
+        class="group flex gap-2.5"
       >
         <UAvatar
           :src="comment.authorAvatarUrl ?? undefined"
@@ -245,9 +248,17 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
               class="text-xs text-dimmed"
             >· edited</span>
 
+            <!-- Quiet at rest, like the attachment row's. These used to be lit
+                 on every comment, so a thread of five carried ten icons nobody
+                 had asked for. `focus-within` keeps them reachable by keyboard,
+                 and a pending delete confirmation stays visible regardless —
+                 fading out the question you just asked is not a hover state. -->
             <div
               v-if="canDelete(comment) && editingId !== comment.id"
-              class="ml-auto flex items-center gap-0.5"
+              class="ml-auto flex items-center gap-0.5 transition-opacity"
+              :class="confirmDeleteId === comment.id
+                ? 'opacity-100'
+                : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100 max-sm:opacity-60'"
             >
               <template v-if="confirmDeleteId === comment.id">
                 <span class="text-xs font-medium text-error">Delete?</span>
@@ -323,7 +334,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
                 @click="saveEdit(comment.id)"
               >
                 Save
-                <kbd class="ml-1 text-2xs font-mono opacity-75 bg-white/15 px-1 py-0.5 rounded-md">⌘↵</kbd>
+                <UKbd value="meta" />
+                <UKbd value="enter" />
               </UButton>
               <UButton
                 size="xs"

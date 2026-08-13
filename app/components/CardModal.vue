@@ -73,7 +73,25 @@ const selectedAssigneeId = ref(UNASSIGNED)
 const selectedTagIds = ref<string[]>([])
 const selectedDueDate = ref<string | null>(null)
 const editingDescription = ref(false)
-const titleInput = ref<HTMLInputElement>()
+const titleInput = ref<HTMLTextAreaElement>()
+
+/**
+ * The title wraps instead of scrolling out of sight.
+ *
+ * It was an `<input>`, so a long one simply ran off the right edge of the panel
+ * with no ellipsis and no way to read the rest without arrowing through it — a
+ * 100-character title showed about 70 of its characters and nothing said so.
+ * Enter still commits rather than inserting a newline, so it stays a single-line
+ * field that happens to be able to show all of itself.
+ */
+function resizeTitle() {
+  const el = titleInput.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = `${el.scrollHeight}px`
+}
+
+watch(title, () => nextTick(resizeTitle))
 const descriptionEditorRef = ref<{ startEditing: () => void }>()
 const showDeleteConfirm = ref(false)
 const draftCardId = ref<number | null>(null)
@@ -87,6 +105,31 @@ const keepEditingRef = ref<{ $el?: HTMLElement } | null>(null)
  * it came from (see the containment note in CLAUDE.md).
  */
 const focusBeforeConfirm = ref<HTMLElement | null>(null)
+
+const panelTop = ref<HTMLElement | null>(null)
+
+/**
+ * Opening a card must not arm the one control that leaves the board.
+ *
+ * Reka focuses the first tabbable element in the panel, and that is the "open as
+ * a full page" link — so opening a card and pressing Enter navigated away from
+ * the board you opened it from.
+ *
+ * Focus goes to the panel's own header instead, which is `tabindex="-1"`: it is
+ * inside the focus trap, Tab from there reaches everything in order, and Enter
+ * does nothing. Focusing a *button* would have worked too, but it would paint a
+ * ring on every card a mouse user opened — the same failure `useMenuFocusReturn`
+ * exists to prevent, and the reason not to hand focus to something operable.
+ *
+ * Done on `after:enter` rather than by cancelling the auto-focus: USlideover
+ * doesn't forward Reka's `open-auto-focus`, so binding it looks correct and
+ * silently does nothing. Creating is left alone — there the title is the whole
+ * point, and `watch(open)` focuses it.
+ */
+function focusPanel() {
+  if (!isEdit.value) return
+  panelTop.value?.focus()
+}
 
 function restoreFocusAfterConfirm() {
   const el = focusBeforeConfirm.value
@@ -433,12 +476,17 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
       body: 'p-0 sm:p-0',
       footer: 'block'
     }"
+    @after:enter="focusPanel"
   >
     <template #header>
       <!-- Identity: the card's immutable facts — its ID, its author, its permalink.
            The editable properties sit below; keeping authorship up here (rather than as
            a sixth chip among them) avoids dressing a read-only field as a dropdown. -->
-      <div class="flex items-center gap-2.5 min-w-0 h-6">
+      <div
+        ref="panelTop"
+        tabindex="-1"
+        class="flex items-center gap-2.5 min-w-0 h-6 outline-none"
+      >
         <template v-if="isEdit">
           <TicketIdCopy
             :project-key="projectKey"
@@ -511,16 +559,17 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
       <!-- Title. Blur commits immediately rather than waiting out the debounce;
            leaving the field is an unambiguous "done typing". On a new card Enter is
            the whole create flow — type a name, press Enter, keep going. -->
-      <input
+      <textarea
         ref="titleInput"
         v-model="title"
-        type="text"
+        rows="1"
         :aria-label="isEdit ? 'Card title' : 'New card title'"
         placeholder="Card title..."
-        class="w-full mt-1 text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-1.5 transition-colors"
+        class="w-full mt-1 text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-1.5 transition-colors resize-none overflow-hidden"
+        @input="resizeTitle"
         @blur="flushTitle"
         @keydown.enter.prevent="isEdit ? flushTitle() : submit()"
-      >
+      />
 
       <!-- Properties as a run of chips rather than five labelled rows. See
            CardProperties' `compact` layout for why. Pinned with the identity, so
@@ -564,11 +613,10 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         <!-- Edit mode: read-only view with edit toggle -->
         <template v-else>
           <div class="flex items-center gap-1.5 mb-1.5">
-            <UIcon
-              name="i-lucide-text"
-              class="text-sm text-dimmed"
+            <UiSectionLabel
+              label="Description"
+              icon="i-lucide-text"
             />
-            <span class="text-xs font-semibold uppercase tracking-[0.04em] text-dimmed">Description</span>
             <!-- Only when there is something to edit. With the description empty
                  its own placeholder is the affordance, and two invitations to
                  write the same paragraph — a 19px ghost button up here and a
