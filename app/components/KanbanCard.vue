@@ -5,20 +5,27 @@ import type { BoardCard } from '~/types/card'
 /**
  * A card on the board.
  *
- * The previous layout spent about 100px on two lines of content: ticket ID on its
- * own line, an always-present footer separated by a rule, a priority icon that
- * rendered as six dots (`grip-horizontal`) and read unmistakably as a drag
- * handle, and an "N/A" pill on every unassigned card — six of eleven cards on the
- * demo board.
+ * The card is a scanning object, not a detail view: a column of twenty is meant
+ * to read as a list of *titles*. It previously read as a list of identifiers.
+ * `TK-27` sat on line one in tracked monospace beside filled uppercase tag
+ * pills, the title came second, and a stripped-markdown description came third —
+ * so a card carrying a spec (TK-32) rendered as a paragraph and the first thing
+ * the eye hit on every card was a number nobody was looking for.
  *
- * Now:
- *  - Priority is a 2px left edge bar, which is what ListView already does, so the
- *    two views finally describe priority the same way. Only high and urgent draw
- *    one; an unremarkable card carries no marks.
- *  - Ticket ID and tags share one line, tags clamped to two plus a count.
- *  - The meta row renders only when it has something in it, so a two-line card is
- *    genuinely two lines.
- *  - Absent data is absent. No "N/A".
+ * Now, top to bottom:
+ *
+ *  - **Title.** Loudest thing on the card, full width, up to three lines.
+ *  - **Tags,** at most two plus a count, as a coloured dot and a name rather
+ *    than a filled pill. See TagPill's `quiet` variant.
+ *  - **A footer of signals.** The ticket ID whispers at the left — still a copy
+ *    target, still readable across a desk, no longer the headline — with the
+ *    decision signals pushed right.
+ *
+ * The description is gone from the face entirely; a single glyph in the footer
+ * says one exists. Priority, assignee and the full-page link live in that same
+ * footer row instead of a floating hover toolbar, which used to land on top of
+ * the assignee avatar it shared a corner with. Medium and low priority stay
+ * invisible until the card is hovered — the control is there, the ink is not.
  */
 const props = defineProps<{
   card: BoardCard
@@ -47,10 +54,14 @@ const allTagNames = computed(() => (props.card.tags || []).map(t => t.name).join
 
 const dueStatus = computed(() => getDueDateStatus(props.card.dueDate))
 
-/** Whether the meta row has anything to show. Empty rows used to cost 28px. */
-const hasMeta = computed(() =>
-  !!props.card.dueDate || !!props.card.attachmentCount || !!props.card.assignee
-)
+/**
+ * Hover-only controls share this, so they appear and disappear as one group.
+ *
+ * `max-sm:opacity-60` is not decoration: a touch device never fires `:hover`, so without
+ * it priority, assign and the full-page link are invisible *and* unreachable on a phone.
+ * They sit at 60% there instead — quiet, but present.
+ */
+const REVEAL = 'opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 focus-visible:opacity-100 transition-opacity'
 
 function priorityMenuItems() {
   return [[
@@ -111,85 +122,56 @@ const dueDateOpen = ref(false)
     />
 
     <div class="p-2.5 pl-3">
-      <!-- Identity row: ticket ID, tags, and the open-detail affordance -->
-      <div class="flex items-center gap-1.5 min-w-0">
+      <!-- The object. Nothing above it. -->
+      <p class="text-sm font-semibold leading-snug text-highlighted tracking-[-0.01em] line-clamp-3">
+        {{ card.title }}
+      </p>
+
+      <!-- Tags, when there are any. A dot carries the colour; the name is text. -->
+      <div
+        v-if="visibleTags.length"
+        class="flex items-center gap-2 mt-1.5 min-w-0"
+      >
+        <TagPill
+          v-for="tag in visibleTags"
+          :key="tag.id"
+          :name="tag.name"
+          :color="tag.color"
+          variant="quiet"
+          class="shrink-0 min-w-0"
+        />
+        <UTooltip
+          v-if="hiddenTagCount"
+          :text="allTagNames"
+        >
+          <span class="text-2xs font-medium text-dimmed shrink-0">+{{ hiddenTagCount }}</span>
+        </UTooltip>
+      </div>
+
+      <!-- Footer. Identity on the left, decision signals on the right. -->
+      <div class="flex items-center gap-1.5 mt-1.5 min-w-0">
         <TicketIdCopy
           :project-key="kanbanContext.projectKey.value"
           :project-slug="kanbanContext.projectSlug.value"
           :card-id="card.id"
+          size="xs"
         />
 
-        <template v-if="visibleTags.length">
-          <TagPill
-            v-for="tag in visibleTags"
-            :key="tag.id"
-            :name="tag.name"
-            :color="tag.color"
-            class="shrink-0"
-          />
-          <UTooltip
-            v-if="hiddenTagCount"
-            :text="allTagNames"
-          >
-            <span class="text-2xs font-bold text-dimmed shrink-0">+{{ hiddenTagCount }}</span>
-          </UTooltip>
-        </template>
-
-        <NuxtLink
-          v-if="detailUrl"
-          :to="detailUrl"
-          class="ml-auto shrink-0 p-0.5 rounded-md text-dimmed hover:text-primary hover:bg-elevated opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 focus-visible:opacity-100 transition"
-          :aria-label="`Open ${formatTicketId(kanbanContext.projectKey.value, card.id)} in full`"
-          @click.stop
+        <!-- One glyph instead of two lines of stripped markdown. It says a spec
+             exists; reading it is what opening the card is for. -->
+        <UTooltip
+          v-if="card.description"
+          text="Has a description"
         >
           <UIcon
-            name="i-lucide-maximize-2"
-            class="text-xs"
+            name="i-lucide-align-left"
+            class="text-2xs text-dimmed shrink-0"
           />
-        </NuxtLink>
-      </div>
-
-      <!-- Title. Clamped: it used to wrap without limit. -->
-      <p class="text-sm font-semibold leading-snug text-highlighted tracking-[-0.01em] mt-1 line-clamp-3">
-        {{ card.title }}
-      </p>
-
-      <p
-        v-if="card.description"
-        class="text-xs leading-relaxed text-muted mt-1 line-clamp-2"
-      >
-        {{ stripMarkdown(card.description) }}
-      </p>
-
-      <!-- Meta row — rendered only when it carries something -->
-      <div
-        v-if="hasMeta"
-        class="flex items-center gap-2 mt-2 min-w-0"
-      >
-        <DueDatePicker
-          v-if="card.dueDate"
-          v-model:open="dueDateOpen"
-          :model-value="card.dueDate"
-          @update:model-value="val => emit('update', card.id, { dueDate: val })"
-        >
-          <button
-            type="button"
-            class="flex items-center gap-1 whitespace-nowrap text-2xs font-semibold cursor-pointer rounded-md px-1 -mx-1 py-0.5 hover:bg-elevated transition-colors"
-            :class="dueDateTextClass(dueStatus)"
-            :aria-label="`Due ${formatDueDate(card.dueDate)}. Change due date`"
-            @click.stop
-          >
-            <UIcon
-              :name="dueDateIcon(dueStatus)"
-              class="text-2xs"
-            />
-            <span class="select-none">{{ formatDueDate(card.dueDate) }}</span>
-          </button>
-        </DueDatePicker>
+        </UTooltip>
 
         <span
           v-if="card.attachmentCount"
-          class="flex items-center gap-0.5 text-2xs text-dimmed whitespace-nowrap"
+          class="flex items-center gap-0.5 text-2xs text-dimmed whitespace-nowrap shrink-0"
           :aria-label="`${card.attachmentCount} attachments`"
         >
           <UIcon
@@ -199,63 +181,95 @@ const dueDateOpen = ref(false)
           <span class="card-id select-none">{{ card.attachmentCount }}</span>
         </span>
 
-        <!-- Assignee: a real avatar, and absent when unassigned. It used to be an
-             initials pill reading "N/A" on every unassigned card, and UAvatar was
-             never given :src, so uploaded images never appeared. -->
-        <UDropdownMenu
-          v-if="card.assignee"
-          :items="assigneeMenuItems()"
-          :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
-          class="ml-auto shrink-0"
-        >
-          <button
-            type="button"
-            class="flex rounded-full transition-shadow hover:ring-2 hover:ring-primary/30"
-            :aria-label="`Assigned to ${card.assignee.name}. Change assignee`"
+        <div class="ml-auto flex items-center gap-0.5 shrink-0">
+          <!-- Priority. High and urgent are always lit; medium and low are a
+               control without a colour, so they wait for hover. -->
+          <UDropdownMenu
+            :items="priorityMenuItems()"
+            :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
+          >
+            <button
+              type="button"
+              class="flex items-center rounded-md p-0.5 hover:bg-elevated transition-colors"
+              :class="[
+                priorityTextClass(card.priority),
+                isSignalPriority(card.priority)
+                  ? (card.priority === 'urgent' ? 'priority-urgent-pulse' : '')
+                  : REVEAL
+              ]"
+              :aria-label="`Priority: ${priorityLabel(card.priority)}. Change priority`"
+              @click.stop
+            >
+              <UIcon
+                :name="priorityIcon(card.priority)"
+                class="text-xs"
+              />
+            </button>
+          </UDropdownMenu>
+
+          <DueDatePicker
+            v-if="card.dueDate"
+            v-model:open="dueDateOpen"
+            :model-value="card.dueDate"
+            @update:model-value="val => emit('update', card.id, { dueDate: val })"
+          >
+            <button
+              type="button"
+              class="flex items-center gap-1 whitespace-nowrap text-2xs font-semibold cursor-pointer rounded-md px-1 py-0.5 hover:bg-elevated transition-colors"
+              :class="dueDateTextClass(dueStatus)"
+              :aria-label="`Due ${formatDueDate(card.dueDate)}. Change due date`"
+              @click.stop
+            >
+              <UIcon
+                :name="dueDateIcon(dueStatus)"
+                class="text-2xs"
+              />
+              <span class="select-none">{{ formatDueDate(card.dueDate) }}</span>
+            </button>
+          </DueDatePicker>
+
+          <!-- Assignee: a real avatar, and absent when unassigned — the assign
+               control takes its place on hover rather than an "N/A" pill. -->
+          <UDropdownMenu
+            :items="assigneeMenuItems()"
+            :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
+          >
+            <button
+              type="button"
+              class="flex items-center rounded-full transition-shadow hover:ring-2 hover:ring-primary/30"
+              :class="card.assignee ? '' : `rounded-md p-0.5 hover:ring-0 hover:bg-elevated text-dimmed ${REVEAL}`"
+              :aria-label="card.assignee ? `Assigned to ${card.assignee.name}. Change assignee` : 'Assign someone'"
+              @click.stop
+            >
+              <UAvatar
+                v-if="card.assignee"
+                :src="card.assignee.avatarUrl || undefined"
+                :alt="card.assignee.name"
+                size="2xs"
+              />
+              <UIcon
+                v-else
+                name="i-lucide-user-plus"
+                class="text-xs"
+              />
+            </button>
+          </UDropdownMenu>
+
+          <NuxtLink
+            v-if="detailUrl"
+            :to="detailUrl"
+            class="flex items-center rounded-md p-0.5 text-dimmed hover:text-primary hover:bg-elevated"
+            :class="REVEAL"
+            :aria-label="`Open ${formatTicketId(kanbanContext.projectKey.value, card.id)} in full`"
             @click.stop
           >
-            <UAvatar
-              :src="card.assignee.avatarUrl || undefined"
-              :alt="card.assignee.name"
-              size="2xs"
+            <UIcon
+              name="i-lucide-maximize-2"
+              class="text-xs"
             />
-          </button>
-        </UDropdownMenu>
+          </NuxtLink>
+        </div>
       </div>
-    </div>
-
-    <!-- Hover-only controls. Priority and assignee are always reachable from the
-         card modal; surfacing them here keeps the resting card quiet. -->
-    <div class="absolute right-2 bottom-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-      <UDropdownMenu
-        :items="priorityMenuItems()"
-        :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
-      >
-        <UButton
-          :icon="priorityIcon(card.priority)"
-          variant="ghost"
-          color="neutral"
-          size="xs"
-          :class="priorityTextClass(card.priority)"
-          :aria-label="`Priority: ${priorityLabel(card.priority)}. Change priority`"
-          @click.stop
-        />
-      </UDropdownMenu>
-
-      <UDropdownMenu
-        v-if="!card.assignee"
-        :items="assigneeMenuItems()"
-        :content="{ align: 'end', side: 'bottom', sideOffset: 4, collisionPadding: 8 }"
-      >
-        <UButton
-          icon="i-lucide-user-plus"
-          variant="ghost"
-          color="neutral"
-          size="xs"
-          aria-label="Assign someone"
-          @click.stop
-        />
-      </UDropdownMenu>
     </div>
   </div>
 </template>

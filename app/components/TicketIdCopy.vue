@@ -4,9 +4,18 @@ const props = defineProps<{
   projectSlug?: string
   cardId: number
   variant?: 'plain' | 'pill'
+  /**
+   * `xs` is the board card's whisper: the ID is metadata for the CLI, URLs and
+   * reading a ticket number out loud, not the card's headline. It stays legible
+   * and stays a copy target — it just stops competing with the title.
+   */
+  size?: 'xs' | 'sm'
 }>()
 
 const variant = computed(() => props.variant || 'plain')
+const plainClass = computed(() => props.size === 'xs'
+  ? 'card-id text-2xs text-dimmed hover:text-toned'
+  : 'card-id text-muted hover:text-toned')
 
 const { copiedState, copyUrl, copyId } = useCopyTicketId(
   () => props.projectSlug,
@@ -23,7 +32,7 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
     class="group/copy relative inline-flex items-center select-none cursor-pointer transition-colors"
     :class="variant === 'pill'
       ? 'card-id font-mono text-xs font-semibold text-dimmed bg-elevated px-1.5 py-0.5 rounded-md hover:text-toned'
-      : 'card-id text-muted hover:text-toned'"
+      : plainClass"
     :title="copiedState === 'url' ? 'Link copied!' : 'Copy link'"
     @click.stop="copyUrl"
   >

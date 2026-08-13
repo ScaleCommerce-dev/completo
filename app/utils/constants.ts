@@ -71,6 +71,19 @@ export function priorityBarClass(priority: string): string {
   return PRIORITY_BAR[priority] ?? ''
 }
 
+/**
+ * Whether this priority has earned ink on a resting scan surface.
+ *
+ * Only high and urgent have. On a board where most cards are medium, a medium
+ * marker on every card carries no information — it just costs a row of "= Medium"
+ * down the list and an icon on every card. The control stays reachable: board
+ * cards and list cells reveal it on hover, and it is always present wherever a
+ * card is actually being edited.
+ */
+export function isSignalPriority(priority: string): boolean {
+  return !!priorityBarClass(priority)
+}
+
 /** Distinguishable fill for charts. */
 export function priorityChartClass(priority: string): string {
   return PRIORITY_CHART[priority] || 'bg-accented'
