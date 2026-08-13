@@ -51,6 +51,10 @@ export const boards = sqliteTable('boards', {
   statusFilters: text('status_filters'),
   assigneeFilters: text('assignee_filters'),
   priorityFilters: text('priority_filters'),
+  // 0/1, following `users.is_admin` — this schema stores booleans as integers
+  // rather than through drizzle's `mode: 'boolean'`. The board GET normalises it
+  // to a real boolean on the way out, beside where it parses the filter JSON.
+  showDescription: integer('show_description').notNull().default(1),
   createdById: text('created_by_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })

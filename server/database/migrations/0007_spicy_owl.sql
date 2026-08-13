@@ -1,0 +1,1 @@
+ALTER TABLE `boards` ADD `show_description` integer DEFAULT 1 NOT NULL;

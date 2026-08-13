@@ -116,6 +116,8 @@ export default defineEventHandler(async (event) => {
     statusFilters: safeParseJson(board.statusFilters, []),
     assigneeFilters: safeParseJson(board.assigneeFilters, []),
     priorityFilters: safeParseJson(board.priorityFilters, []),
+    // Column is 0/1; the board renders it as a boolean.
+    showDescription: !!board.showDescription,
     createdBy,
     role: membership.role,
     project: project ? { id: project.id, name: project.name, slug: project.slug, key: project.key, doneStatusId: project.doneStatusId, doneRetentionDays: project.doneRetentionDays } : null,

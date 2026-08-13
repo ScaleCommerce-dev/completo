@@ -1544,6 +1544,10 @@
                   },
                   "slug": {
                     "type": "string"
+                  },
+                  "showDescription": {
+                    "type": "boolean",
+                    "description": "Show a two-line description excerpt on this board's cards."
                   }
                 }
               }
@@ -4704,6 +4708,11 @@
           },
           "position": {
             "type": "integer"
+          },
+          "showDescription": {
+            "type": "boolean",
+            "description": "Whether cards on this board show a description excerpt.",
+            "default": true
           },
           "createdById": {
             "type": "string",

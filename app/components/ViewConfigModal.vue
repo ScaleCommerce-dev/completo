@@ -24,6 +24,8 @@ const props = defineProps<{
   activeStatusFilters?: string[]
   activeAssigneeFilters?: string[]
   activePriorityFilters?: string[]
+  /** Board mode only — whether cards show a description excerpt. */
+  showDescription?: boolean
   viewName?: string
   viewType?: 'board' | 'list'
 }>()
@@ -37,6 +39,7 @@ const emit = defineEmits<{
   'reorder': [columns: { id: string, position: number }[]]
   'link': [statusId: string]
   'update-filters': [filters: { tagFilters?: string[], statusFilters?: string[], assigneeFilters?: string[], priorityFilters?: string[] }]
+  'update-display': [display: { showDescription?: boolean }]
   'rename': [name: string]
   'delete-view': []
 }>()
@@ -95,6 +98,7 @@ const localTagFilters = ref<string[]>([])
 const localStatusFilters = ref<string[]>([])
 const localAssigneeFilters = ref<string[]>([])
 const localPriorityFilters = ref<string[]>([])
+const localShowDescription = ref(true)
 const editName = ref('')
 
 // Snapshot on open to detect changes
@@ -103,6 +107,7 @@ const snapshotTagFilters = ref<string[]>([])
 const snapshotStatusFilters = ref<string[]>([])
 const snapshotAssigneeFilters = ref<string[]>([])
 const snapshotPriorityFilters = ref<string[]>([])
+const snapshotShowDescription = ref(true)
 const snapshotName = ref('')
 
 function resetToProps() {
@@ -111,12 +116,14 @@ function resetToProps() {
   localStatusFilters.value = [...(props.activeStatusFilters || [])]
   localAssigneeFilters.value = [...(props.activeAssigneeFilters || [])]
   localPriorityFilters.value = [...(props.activePriorityFilters || [])]
+  localShowDescription.value = props.showDescription ?? true
   editName.value = props.viewName || ''
   snapshotColumnOrder.value = props.columns.map(c => c.id)
   snapshotTagFilters.value = [...(props.activeTagFilters || [])]
   snapshotStatusFilters.value = [...(props.activeStatusFilters || [])]
   snapshotAssigneeFilters.value = [...(props.activeAssigneeFilters || [])]
   snapshotPriorityFilters.value = [...(props.activePriorityFilters || [])]
+  snapshotShowDescription.value = props.showDescription ?? true
   snapshotName.value = props.viewName || ''
 }
 
@@ -133,7 +140,7 @@ function resetToProps() {
  * `vuedraggable` instance behind `<ClientOnly>`; tearing that down and rebuilding it on
  * every tab switch is work with nothing to show for it.
  */
-const configTab = ref<'columns' | 'filters'>('columns')
+const configTab = ref<'columns' | 'filters' | 'display'>('columns')
 
 /** Shown on the Filters tab, so an active filter is visible without opening the tab. */
 const activeFilterCount = computed(() =>
@@ -143,6 +150,16 @@ const activeFilterCount = computed(() =>
   + localAssigneeFilters.value.length
 )
 
+/**
+ * "Display", not "Settings" or "View" — the dialog is already the view's
+ * settings, so either of those would name the dialog a second time. It isn't
+ * "Cards" either: what belongs here next is WIP limits and swimlanes, which are
+ * properties of the board rather than of a card.
+ *
+ * Board-only for now. A list controls its description through the Description
+ * field column, so there is nothing to put here for one, and an empty tab is
+ * worse than an absent one.
+ */
 const tabItems = computed(() => [
   {
     // A board reorders statuses; a list reorders which card fields it shows.
@@ -158,7 +175,18 @@ const tabItems = computed(() => [
     slot: 'filters' as const,
     icon: 'i-lucide-filter',
     count: activeFilterCount.value
-  }
+  },
+  ...(props.mode === 'board'
+    ? [{
+        label: 'Display',
+        value: 'display' as const,
+        slot: 'display' as const,
+        icon: 'i-lucide-sliders-horizontal',
+        // No count: unlike columns and filters there is no quantity here, and a
+        // badge reading "1" for "one option is switched off" reads as a warning.
+        count: 0
+      }]
+    : [])
 ])
 
 watch(open, (isOpen) => {
@@ -221,6 +249,7 @@ const isDirty = computed(() => {
   if (filtersChanged(localStatusFilters.value, snapshotStatusFilters.value)) return true
   if (filtersChanged(localAssigneeFilters.value, snapshotAssigneeFilters.value)) return true
   if (filtersChanged(localPriorityFilters.value, snapshotPriorityFilters.value)) return true
+  if (localShowDescription.value !== snapshotShowDescription.value) return true
   return false
 })
 
@@ -258,6 +287,10 @@ function save() {
   }
   if (Object.keys(filterUpdates).length) {
     emit('update-filters', filterUpdates)
+  }
+
+  if (localShowDescription.value !== snapshotShowDescription.value) {
+    emit('update-display', { showDescription: localShowDescription.value })
   }
 
   open.value = false
@@ -594,6 +627,24 @@ function handleDeleteView() {
                   </template>
                 </USelectMenu>
               </div>
+            </div>
+          </template>
+
+          <template #display>
+            <div class="flex flex-col gap-2.5">
+              <UiSectionLabel
+                icon="i-lucide-square-menu"
+                label="Cards"
+              />
+              <!-- First switch in the app. USwitch rather than a hand-rolled
+                   toggle: the app has been through four competing idioms for
+                   confirmation dialogs already. -->
+              <USwitch
+                v-model="localShowDescription"
+                label="Show description"
+                description="Two lines of the description under each card title. Cards without one are unaffected."
+                :ui="{ wrapper: 'ms-3' }"
+              />
             </div>
           </template>
         </UTabs>

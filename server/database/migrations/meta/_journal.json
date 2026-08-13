@@ -50,6 +50,13 @@
       "when": 1786550727601,
       "tag": "0006_email_token_purpose",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1786634448283,
+      "tag": "0007_spicy_owl",
+      "breakpoints": true
     }
   ]
 }

@@ -19,6 +19,7 @@ interface Board {
   statusFilters: string[]
   assigneeFilters: string[]
   priorityFilters: string[]
+  showDescription: boolean
   createdBy: { id: string, name: string, avatarUrl: string | null } | null
   role: string
   project: { id: string, name: string, slug: string, key: string, doneStatusId: string | null, doneRetentionDays: number | null } | null
@@ -148,6 +149,21 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
 
   const availableColumns = computed(() => board.value?.availableColumns || [])
 
+  /**
+   * Per-board display options. Defaults to on for a board that predates the
+   * column, so `undefined` must not read as "off" while the first fetch is in
+   * flight — the cards would render, then visibly lose a line.
+   */
+  const showDescription = computed(() => board.value?.showDescription ?? true)
+
+  async function updateDisplay(display: { showDescription?: boolean }) {
+    await mutate(
+      () => $fetch(`/api/boards/${boardId.value}` as string, { method: 'PUT' as const, body: display }),
+      'Failed to update display settings'
+    )
+    await refresh()
+  }
+
   // Creating new columns is a project-level op — requires project owner or admin
   const canAddColumns = computed(() => {
     if (!board.value) return false
@@ -194,6 +210,7 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
     priorityFilters,
     projectKey,
     doneStatusId,
+    showDescription,
     availableColumns,
     canConfigureColumns,
     canModerateComments,
@@ -211,6 +228,7 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
     reorderColumns,
     updateCardTags,
     updateFilters,
+    updateDisplay,
     renameBoard
   }
 }

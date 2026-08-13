@@ -14,18 +14,33 @@ import type { BoardCard } from '~/types/card'
  *
  * Now, top to bottom:
  *
- *  - **Title.** Loudest thing on the card, full width, up to three lines.
+ *  - **Title.** Loudest thing on the card, full width, up to two lines.
+ *  - **Description,** two lines of stripped markdown, when the board asks for
+ *    it. See below.
  *  - **Tags,** at most two plus a count, as a coloured dot and a name rather
  *    than a filled pill. See TagPill's `quiet` variant.
  *  - **A footer of signals.** The ticket ID whispers at the left — still a copy
  *    target, still readable across a desk, no longer the headline — with the
  *    decision signals pushed right.
  *
- * The description is gone from the face entirely; a single glyph in the footer
- * says one exists. Priority, assignee and the full-page link live in that same
- * footer row instead of a floating hover toolbar, which used to land on top of
- * the assignee avatar it shared a corner with. Medium and low priority stay
- * invisible until the card is hovered — the control is there, the ink is not.
+ * Priority, assignee and the full-page link live in that footer row instead of a
+ * floating hover toolbar, which used to land on top of the assignee avatar it
+ * shared a corner with. Medium and low priority stay invisible until the card is
+ * hovered — the control is there, the ink is not.
+ *
+ * **The description is per-board** (`boards.show_description`, default on), which
+ * is how the list view has always treated it — an opt-in field column. Removing
+ * it from the card face outright fixed the wall-of-paragraphs problem and lost
+ * the at-a-glance context with it; a switch is the honest answer, because whether
+ * an excerpt helps depends entirely on how that team writes descriptions. Two
+ * lines, `text-xs` and `text-muted`, so it reads as subordinate to the title
+ * rather than competing with it the way the pre-overhaul card did.
+ *
+ * The title is clamped at two rather than one. A line holds about 38 characters
+ * at this width, so one line truncates roughly a card in ten on a board of short
+ * titles and nearly all of them once a team prefixes with "[Bug]" or a component
+ * name. Two lines cost a line only on the cards that need it; one line costs
+ * information on those same cards, silently.
  */
 const props = defineProps<{
   card: BoardCard
@@ -35,7 +50,18 @@ const kanbanContext = inject<{
   projectKey: ComputedRef<string | undefined>
   projectSlug: ComputedRef<string | undefined>
   members: ComputedRef<Array<{ id: string, name: string, avatarUrl: string | null }> | undefined>
+  showDescription: ComputedRef<boolean>
 }>('kanbanContext')!
+
+/**
+ * Stripped, because the raw source puts `## Kontext` and `- [ ]` on the card
+ * face. `stripMarkdown` is the same helper `ListCellDescription` uses, so the
+ * two views excerpt a description identically.
+ */
+const descriptionExcerpt = computed(() => {
+  if (!kanbanContext.showDescription.value || !props.card.description) return ''
+  return stripMarkdown(props.card.description)
+})
 
 const emit = defineEmits<{
   click: []
@@ -123,8 +149,15 @@ const dueDateOpen = ref(false)
 
     <div class="p-2.5 pl-3">
       <!-- The object. Nothing above it. -->
-      <p class="text-sm font-semibold leading-snug text-highlighted tracking-[-0.01em] line-clamp-3">
+      <p class="text-sm font-semibold leading-snug text-highlighted tracking-[-0.01em] line-clamp-2">
         {{ card.title }}
+      </p>
+
+      <p
+        v-if="descriptionExcerpt"
+        class="text-xs leading-relaxed text-muted mt-1 line-clamp-2"
+      >
+        {{ descriptionExcerpt }}
       </p>
 
       <!-- Tags, when there are any. A dot carries the colour; the name is text. -->
@@ -157,10 +190,10 @@ const dueDateOpen = ref(false)
           size="xs"
         />
 
-        <!-- One glyph instead of two lines of stripped markdown. It says a spec
-             exists; reading it is what opening the card is for. -->
+        <!-- Says a spec exists, for boards that don't show the excerpt. When the
+             excerpt is right there, the glyph is restating what you can read. -->
         <UTooltip
-          v-if="card.description"
+          v-if="card.description && !descriptionExcerpt"
           text="Has a description"
         >
           <UIcon

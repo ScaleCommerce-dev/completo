@@ -18,6 +18,7 @@ const {
   priorityFilters,
   projectKey,
   doneStatusId,
+  showDescription,
   availableColumns,
   canConfigureColumns,
   canModerateComments,
@@ -35,6 +36,7 @@ const {
   reorderColumns,
   updateCardTags,
   updateFilters,
+  updateDisplay,
   renameBoard
 } = useKanban(boardSlug, { projectSlug })
 watch(boardError, (err) => {
@@ -194,6 +196,7 @@ async function handleDeleteBoard() {
       :project-key="projectKey"
       :project-slug="(route.params.slug as string)"
       :done-status-id="doneStatusId"
+      :show-description="showDescription"
       :can-configure-columns="canConfigureColumns"
       :can-add-columns="canAddColumns"
       :available-columns="availableColumns"
@@ -235,6 +238,7 @@ async function handleDeleteBoard() {
       :active-status-filters="[...statusFilters]"
       :active-assignee-filters="[...assigneeFilters]"
       :active-priority-filters="[...priorityFilters]"
+      :show-description="showDescription"
       :view-name="board?.name || ''"
       :view-type="'board'"
       @add="addColumn"
@@ -243,6 +247,7 @@ async function handleDeleteBoard() {
       @reorder="reorderColumns"
       @link="linkColumn"
       @update-filters="(filters) => { if (filters.tagFilters) activeTagFilters = new Set(filters.tagFilters); updateFilters(filters) }"
+      @update-display="updateDisplay"
       @rename="handleRenameBoard"
       @delete-view="handleDeleteBoard"
     />
