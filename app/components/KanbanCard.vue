@@ -351,12 +351,18 @@ function toggleTag(tagId: string) {
       The title reserves the space with `pr-6` rather than letting this overlay
       it. Costs about three characters on line one; an overlay landing on content
       is what got the pre-overhaul hover toolbar removed.
+
+      `top-1 right-1`, not `top-2 right-2`: the glyph is 12px centred in a 24px
+      hit box, so the box's inset is 6px more than the glyph's. At `2` the mark
+      sat 15px from each edge — 5px inboard of the card's own 10px padding, which
+      read as floating rather than as being in the corner. At `1` it lands on the
+      padding line, and the hit box stays 24px.
     -->
     <UTooltip text="Open full page">
       <NuxtLink
         v-if="detailUrl"
         :to="detailUrl"
-        class="absolute top-2 right-2 z-10 text-dimmed hover:text-primary"
+        class="absolute top-1 right-1 z-10 text-dimmed hover:text-primary"
         :class="[SLOT, reveal, 'rounded-md']"
         :aria-label="`Open ${formatTicketId(kanbanContext.projectKey.value, card.id)} in full`"
         @click.stop
