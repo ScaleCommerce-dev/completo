@@ -212,15 +212,20 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
                 <h3 class="font-bold text-base tracking-[-0.01em] group-hover:text-primary transition-colors truncate">
                   {{ project.name }}
                 </h3>
-                <span
-                  class="font-mono text-2xs font-bold px-1 py-0.5 rounded-md tracking-wide shrink-0"
-                  :style="{ backgroundColor: accentFor(project) + '14', color: accentFor(project) }"
-                >
+                <!-- The key is for the CLI, ticket IDs and URLs — the same judgment as
+                     TK-27 on a board card. As a filled chip in the project's own accent
+                     it competed with the name it sits beside. -->
+                <span class="font-mono text-2xs font-medium text-dimmed tracking-wide shrink-0">
                   {{ project.key }}
                 </span>
               </div>
-              <p class="text-sm text-muted mt-0.5 line-clamp-2 leading-relaxed">
-                {{ project.description || 'No description' }}
+              <!-- No "No description". A vacant sentence in the slot where a real one
+                   would go is worse than the gap it fills. -->
+              <p
+                v-if="project.description"
+                class="text-sm text-muted mt-0.5 line-clamp-2 leading-relaxed"
+              >
+                {{ project.description }}
               </p>
             </div>
             <button
@@ -236,40 +241,24 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
           </div>
 
           <!-- Stats row -->
-          <div class="flex items-center gap-3 mt-3 pt-3 border-t border-muted text-xs font-medium text-dimmed">
-            <span class="flex items-center gap-1">
-              <UIcon
-                name="i-lucide-layers"
-                class="text-xs"
-              />
-              {{ project.openCards || 0 }}
+          <!-- Counted things say what they are. This row read "12  1  6  34m ago" behind
+               four icons: four numbers, and nothing to tell you which was cards and which
+               was people. Two counts fit in words where four did not, and the board count
+               is the one nobody was reading — the hub lists the boards themselves. The
+               whole run truncates rather than wrapping: at three cards across it would
+               otherwise break into a ragged block of single words. -->
+          <div class="flex items-center gap-2 mt-3 pt-3 border-t border-muted text-xs font-medium text-dimmed">
+            <span class="truncate">
+              {{ pluralize(project.openCards || 0, 'card') }}
+              &middot;
+              {{ pluralize(project.memberCount || 0, 'person', 'people') }}
+              <template v-if="project.lastActivity">
+                &middot; {{ relativeTime(project.lastActivity) }}
+              </template>
             </span>
-            <span class="flex items-center gap-1">
-              <UIcon
-                name="i-lucide-layout-dashboard"
-                class="text-xs"
-              />
-              {{ project.boardCount || 0 }}
-            </span>
-            <span class="flex items-center gap-1">
-              <UIcon
-                name="i-lucide-users"
-                class="text-xs"
-              />
-              {{ project.memberCount || 0 }}
-            </span>
-            <template v-if="project.lastActivity">
-              <span class="flex items-center gap-1">
-                <UIcon
-                  name="i-lucide-clock"
-                  class="text-xs"
-                />
-                {{ relativeTime(project.lastActivity) }}
-              </span>
-            </template>
 
             <!-- Spacer + role badge + avatar stack -->
-            <div class="ml-auto flex items-center gap-2">
+            <div class="ml-auto flex items-center gap-2 shrink-0">
               <span
                 v-if="project.role !== 'admin'"
                 class="text-2xs font-bold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded-full"

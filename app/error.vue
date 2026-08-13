@@ -8,10 +8,38 @@ const props = defineProps<{
 
 const is404 = computed(() => props.error.statusCode === 404)
 
-const title = computed(() => is404.value ? 'Card not found' : 'Something broke')
-const subtitle = computed(() => is404.value
-  ? 'This page fell off the board. It might have been moved, renamed, or never existed.'
-  : (props.error.message || 'An unexpected error occurred. Please try again.'))
+const route = useRoute()
+
+/**
+ * Name the thing that wasn't found.
+ *
+ * Every 404 in the app used to say "Card not found" — including `/does-not-exist`,
+ * a mistyped project slug, and a board or list that had been deleted. Three of the
+ * four `showError` call sites aren't cards at all, and a wrong noun sends people
+ * looking for the wrong problem: "card not found" on a project URL reads as a data
+ * bug rather than a bad link.
+ *
+ * The route is the only thing that knows, so it decides. `/projects/{slug}` with no
+ * further segment is the project itself.
+ */
+const MISSING = [
+  [/^\/projects\/[^/]+\/cards\//, 'Card', 'This card has been deleted, or the ticket ID is wrong.'],
+  [/^\/projects\/[^/]+\/boards\//, 'Board', 'This board has been deleted or renamed.'],
+  [/^\/projects\/[^/]+\/lists\//, 'List', 'This list has been deleted or renamed.'],
+  [/^\/projects\/[^/]+$/, 'Project', 'This project has been deleted, or you are not a member of it.']
+] as const
+
+const missing = computed(() => MISSING.find(([pattern]) => pattern.test(route.path)))
+
+const title = computed(() => {
+  if (!is404.value) return 'Something broke'
+  return `${missing.value?.[1] ?? 'Page'} not found`
+})
+
+const subtitle = computed(() => {
+  if (!is404.value) return props.error.message || 'An unexpected error occurred. Please try again.'
+  return missing.value?.[2] ?? 'This URL is not a page, a project, or a card. It may have been moved, renamed, or never existed.'
+})
 
 function goHome() {
   clearError({ redirect: '/' })

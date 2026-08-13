@@ -39,3 +39,15 @@ export function formatDueDate(dueDate: string | Date): string {
   if (d.getFullYear() !== now.getFullYear()) opts.year = 'numeric'
   return d.toLocaleDateString('en-US', opts)
 }
+
+/**
+ * A count with its noun, pluralised. `pluralize(1, 'board')` → "1 board".
+ *
+ * For stat rows that used to be a bare number behind an icon — "12  1  6" on a project
+ * card, "12" on a view card. A reader who doesn't already know the icon vocabulary can't
+ * recover which number is which, and there is nothing to hover. Irregular plurals take
+ * the second argument: `pluralize(n, 'person', 'people')`.
+ */
+export function pluralize(count: number, singular: string, plural?: string): string {
+  return `${count} ${count === 1 ? singular : (plural ?? `${singular}s`)}`
+}

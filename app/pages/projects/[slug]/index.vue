@@ -341,7 +341,8 @@ function cancelDeleteTag() {
                 <input
                   v-model="editingTagName"
                   type="text"
-                  class="w-24 text-xs font-bold text-highlighted bg-transparent border-0 outline-none! ring-0! py-0 uppercase tracking-wide"
+                  aria-label="Tag name"
+                  class="w-24 text-xs font-semibold text-highlighted bg-transparent border-0 outline-none! ring-0! py-0"
                   @keydown.enter="saveEditTag"
                   @keydown.escape="cancelEditTag"
                 >
@@ -368,15 +369,15 @@ function cancelDeleteTag() {
               >
                 <button
                   type="button"
-                  class="tag-pill group/chip flex items-center gap-1 px-2.5 py-1 rounded-full shrink-0 text-xs font-bold uppercase tracking-wide transition duration-150 hover:shadow-md active:scale-95"
-                  :style="{
-                    color: tag.color,
-                    backgroundColor: tag.color + '25',
-                    boxShadow: `inset 0 0 0 1px ${tag.color}40`
-                  }"
+                  class="group/chip flex shrink-0 rounded-full transition duration-150 hover:shadow-md active:scale-95"
+                  :aria-label="`Tag ${tag.name}. Change its colour, or double-click to rename`"
                   @dblclick="startEditTag(tag)"
                 >
-                  {{ tag.name }}
+                  <TagPill
+                    :name="tag.name"
+                    :color="tag.color"
+                    size="lg"
+                  />
                 </button>
                 <template #content>
                   <div class="p-2.5 w-44">
@@ -438,17 +439,13 @@ function cancelDeleteTag() {
               </UPopover>
 
               <!-- Tag chip — read-only (members) -->
-              <div
+              <TagPill
                 v-else
-                class="tag-pill flex items-center px-2.5 py-1 rounded-full shrink-0 text-xs font-bold uppercase tracking-wide"
-                :style="{
-                  color: tag.color,
-                  backgroundColor: tag.color + '25',
-                  boxShadow: `inset 0 0 0 1px ${tag.color}40`
-                }"
-              >
-                {{ tag.name }}
-              </div>
+                :name="tag.name"
+                :color="tag.color"
+                size="lg"
+                class="shrink-0"
+              />
             </template>
 
             <!-- Add tag (owner/admin) -->
@@ -580,22 +577,12 @@ function cancelDeleteTag() {
                       {{ view.name }}
                     </span>
                   </div>
-                  <div class="flex items-center justify-end gap-3 text-xs text-dimmed">
-                    <span class="flex items-center gap-1">
-                      <UIcon
-                        name="i-lucide-layers"
-                        class="text-xs"
-                      />
-                      {{ view.cardCount ?? 0 }}
-                    </span>
+                  <!-- "12 cards · 34m ago", not "12" behind a stack-of-layers icon. -->
+                  <div class="flex items-center justify-end gap-2 text-xs text-dimmed">
+                    <span class="whitespace-nowrap">{{ pluralize(view.cardCount ?? 0, 'card') }}</span>
                     <template v-if="view.lastActivity">
-                      <span class="flex items-center gap-1">
-                        <UIcon
-                          name="i-lucide-clock"
-                          class="text-xs"
-                        />
-                        {{ relativeTime(view.lastActivity) }}
-                      </span>
+                      <span aria-hidden="true">&middot;</span>
+                      <span class="whitespace-nowrap">{{ relativeTime(view.lastActivity) }}</span>
                     </template>
                     <span
                       v-if="view.createdBy"

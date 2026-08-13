@@ -88,12 +88,16 @@ async function handleInlineUpdate(cardId: number, updates: Record<string, unknow
         </div>
       </div>
 
+      <!-- The membership sentence is the point: My Tasks is deliberately not
+           admin-elevated, so an instance admin who can see every project still lands on
+           an empty page here, and the old copy ("across every project") said the
+           opposite of what had happened. -->
       <UEmpty
         v-if="!groups.length"
         class="py-16"
         icon="i-lucide-circle-check"
         title="Nothing assigned to you"
-        description="Cards assigned to you across every project show up here."
+        description="Cards assigned to you show up here — from projects you belong to. Join a project, or ask someone to assign you a card."
         :actions="[{ label: 'Browse projects', icon: 'i-lucide-layout-grid', variant: 'subtle', to: '/projects' }]"
       />
     </div>
