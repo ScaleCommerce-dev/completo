@@ -154,8 +154,20 @@ const cardNav = computed(() => {
     currentCardId: current.id,
     direction
   })
-  return { hasPrev: probe('up'), hasNext: probe('down') }
+  return {
+    hasPrev: probe('up'),
+    hasNext: probe('down'),
+    hasPrevColumn: probe('left'),
+    hasNextColumn: probe('right')
+  }
 })
+
+const NAV_DIRECTIONS: Record<string, NavDirection> = {
+  prev: 'up',
+  next: 'down',
+  prevColumn: 'left',
+  nextColumn: 'right'
+}
 
 const ARROWS: Record<string, NavDirection> = {
   ArrowUp: 'up',
@@ -279,7 +291,7 @@ async function handleDeleteBoard() {
       @update="handleUpdateCard"
       @update-tags="updateCardTags"
       @delete="handleDeleteCard"
-      @navigate="(d) => navigateCards(d === 'prev' ? 'up' : 'down')"
+      @navigate="(d) => navigateCards(NAV_DIRECTIONS[d]!)"
     />
 
     <ViewConfigModal

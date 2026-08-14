@@ -12,11 +12,17 @@ const props = defineProps<{
   /** Viewer may delete others' comments (project owner or instance admin). */
   canModerate?: boolean
   /**
-   * Set by a host that can walk a set of cards — the board, where a column is
-   * the set. Absent on a list view, which opens this same panel with nothing to
-   * step through, and that absence is what hides the controls there.
+   * Set by a host that can walk a set of cards — the board, where the set is a
+   * column and the columns are themselves a set. Absent on a list view, which
+   * opens this same panel with nothing to step through, and that absence is what
+   * hides the controls there.
    */
-  nav?: { hasPrev: boolean, hasNext: boolean }
+  nav?: {
+    hasPrev: boolean
+    hasNext: boolean
+    hasPrevColumn: boolean
+    hasNextColumn: boolean
+  }
   onEnsureCard?: (data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) => Promise<number>
 }>()
 
@@ -66,7 +72,7 @@ const emit = defineEmits<{
   updateTags: [cardId: number, tagIds: string[]]
   delete: [cardId: number]
   deleteDraft: [cardId: number]
-  navigate: [direction: 'prev' | 'next']
+  navigate: [direction: 'prev' | 'next' | 'prevColumn' | 'nextColumn']
 }>()
 
 const isEdit = computed(() => !!props.card)
@@ -593,18 +599,47 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         >New card</span>
 
         <div class="ml-auto flex items-center gap-0.5 shrink-0">
-          <!-- Walking the column, for the hand that is already on the mouse.
+          <!-- Walking the board, for the hand that is already on the mouse.
                The arrow keys do this, but this app is pointer-first by decision,
                so a keyboard-only affordance would hand the feature to the
-               minority and hide it from everyone else. Two chevrons beside the
-               close button is the shape every other "browse a set from a detail
-               view" uses — Gmail, Quick Look, a photo viewer — and the tooltips
-               are what teach the keys, so the visible control and the invisible
-               one arrive together.
+               minority and hide it from everyone else. Beside the close button
+               is the shape every other "browse a set from a detail view" uses —
+               Gmail, Quick Look, a photo viewer — and the tooltips are what
+               teach the keys, so the visible control and the invisible one
+               arrive together.
+
+               All four directions, laid out as they are on screen, because the
+               board is two-dimensional and showing only the vertical half left
+               the horizontal one undiscoverable — there is nothing in a card
+               panel to suggest columns can be stepped through, and arrow keys in
+               list-shaped apps are usually vertical only, so no analogy carries
+               it.
+
+               **Chevrons rather than arrows**, and not merely by convention: on
+               a kanban board an up-arrow beside a card reads as *move this card
+               up the column*, and a right-arrow as *move it to the next column*.
+               Both are real operations here, so real arrows would name the wrong
+               one. A chevron says "there is more this way" without claiming to
+               move anything. The literal keys still appear — as `UKbd` inside
+               the tooltips, where they mean the keyboard rather than the action.
 
                Only when a host offers navigation: a list view opens this same
                panel and has no column to walk. -->
           <template v-if="nav">
+            <UTooltip
+              text="Previous column"
+              :kbds="['arrowleft']"
+            >
+              <UButton
+                icon="i-lucide-chevron-left"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                aria-label="First card of the previous column"
+                :disabled="!nav.hasPrevColumn"
+                @click="emit('navigate', 'prevColumn')"
+              />
+            </UTooltip>
             <UTooltip
               text="Previous card"
               :kbds="['arrowup']"
@@ -631,6 +666,20 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 aria-label="Next card in this column"
                 :disabled="!nav.hasNext"
                 @click="emit('navigate', 'next')"
+              />
+            </UTooltip>
+            <UTooltip
+              text="Next column"
+              :kbds="['arrowright']"
+            >
+              <UButton
+                icon="i-lucide-chevron-right"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                aria-label="First card of the next column"
+                :disabled="!nav.hasNextColumn"
+                @click="emit('navigate', 'nextColumn')"
               />
             </UTooltip>
             <!-- Moving between cards is not an action on this card. -->

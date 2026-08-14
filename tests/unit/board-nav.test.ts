@@ -136,21 +136,40 @@ describe('yielding the arrow keys', () => {
 describe('the panel offers the same walk to the mouse', () => {
   const modal = read('app/components/CardModal.vue')
 
-  it('shows a control for each direction, named for screen readers', () => {
+  it('shows a control for all four directions, named for screen readers', () => {
+    // All four, not just the vertical pair: a card panel gives no hint that
+    // columns can be stepped through, and arrow keys in list-shaped apps are
+    // usually vertical only, so there is no analogy to carry the horizontal.
     expect(modal).toContain('aria-label="Previous card in this column"')
     expect(modal).toContain('aria-label="Next card in this column"')
+    expect(modal).toContain('aria-label="First card of the previous column"')
+    expect(modal).toContain('aria-label="First card of the next column"')
   })
 
-  it('teaches the shortcut from the tooltip', () => {
+  it('teaches every shortcut from its tooltip', () => {
     // Drop the kbds and the feature goes back to being a secret, which is the
     // state this change exists to end.
-    expect(modal).toMatch(/:kbds="\['arrowup'\]"/)
-    expect(modal).toMatch(/:kbds="\['arrowdown'\]"/)
+    for (const key of ['arrowup', 'arrowdown', 'arrowleft', 'arrowright']) {
+      expect(modal, key).toMatch(new RegExp(`:kbds="\\['${key}'\\]"`))
+    }
   })
 
-  it('greys out the direction that goes nowhere', () => {
-    expect(modal).toMatch(/:disabled="!nav\.hasPrev"/)
-    expect(modal).toMatch(/:disabled="!nav\.hasNext"/)
+  it('uses chevrons, never arrows', () => {
+    // On a kanban board an up-arrow beside a card reads as *move this card up*
+    // and a right-arrow as *move it to the next column* — both real operations
+    // here, so an arrow would name the wrong one. A chevron says "there is more
+    // this way" without claiming to move anything. The literal keys still show,
+    // as UKbd inside the tooltips, where they mean the keyboard not the action.
+    for (const side of ['up', 'down', 'left', 'right']) {
+      expect(modal, side).toContain(`i-lucide-chevron-${side}`)
+      expect(modal, side).not.toContain(`i-lucide-arrow-${side}`)
+    }
+  })
+
+  it('greys out any direction that goes nowhere', () => {
+    for (const flag of ['hasPrev', 'hasNext', 'hasPrevColumn', 'hasNextColumn']) {
+      expect(modal, flag).toMatch(new RegExp(`:disabled="!nav\\.${flag}"`))
+    }
   })
 
   it('shows them only where there is a set to walk', () => {
