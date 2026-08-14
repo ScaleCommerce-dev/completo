@@ -523,9 +523,15 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
       // without a board — a list, My Tasks — and any window too narrow for the
       // reveal get.
       content: 'sm:max-w-[var(--card-panel-w,620px)]',
-      header: 'block',
+      // 40px in from the edges, which is the gap the board keeps between the
+      // sidebar and its first column — so the panel is inset by the same amount
+      // that separates the two surfaces beside it. The 24px it inherited was set
+      // when the panel was a fixed 620 and never grew with it, so as the panel
+      // widened the content drifted toward the edge. Mobile keeps 16: at 390 the
+      // panel *is* the screen, and 40 a side would take a fifth of it.
+      header: 'block sm:px-10',
       body: 'p-0 sm:p-0 panel-scroll',
-      footer: 'block'
+      footer: 'block sm:px-10'
     }"
     @after:enter="onPanelOpen"
     @after:leave="unwatchBodyScroll"
@@ -653,7 +659,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
            `watchBodyScroll`; USlideover owns that element, not us. -->
       <div
         ref="bodyStart"
-        class="px-4 sm:px-6 pt-4"
+        class="px-4 sm:px-10 pt-4"
       >
         <!-- Create mode: always show editor -->
         <template v-if="!isEdit">
@@ -772,7 +778,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
       </div>
 
       <!-- Attachments -->
-      <div class="mx-4 sm:mx-6 mt-3">
+      <div class="mx-4 sm:mx-10 mt-3">
         <AttachmentList
           :card-id="attachmentCardId"
           :on-before-upload="!isEdit ? handleBeforeUpload : undefined"
@@ -783,7 +789,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
            while creating, and attachments' draft-card trick doesn't apply here. -->
       <div
         v-if="isEdit"
-        class="mx-4 sm:mx-6 pb-5"
+        class="mx-4 sm:mx-10 pb-5"
       >
         <CommentList
           :card-id="props.card?.id"

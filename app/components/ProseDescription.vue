@@ -105,8 +105,10 @@ const rendered = computed(() => {
  * 75 the eye starts losing its place on the return sweep, so "more room to read"
  * would have made reading worse.
  *
- * 36rem is what the 620px panel already gave, so nothing changes at the old
- * width — the cap only stops the extra width reaching the prose.
+ * 36rem sits just above what the panel gives at its narrowest — 540px inside a
+ * 620px panel — so the cap does nothing until the panel is wider than about
+ * 656px. It only ever stops the *extra* width reaching the prose; it never makes
+ * a narrow surface narrower.
  */
 .prose-description :deep(> *) {
   max-width: var(--prose-measure, 36rem);

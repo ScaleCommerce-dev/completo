@@ -22,6 +22,13 @@ const BOARD = { boardLeft: 269, gutter: 16, columnWidth: 304 }
 const COLUMN_AT = { backlog: 16, todo: 332, inProgress: 648, review: 964, done: 1280 }
 const SCROLL = { scrollWidth: 1916, clientWidth: 1147 } // maxScrollLeft = 769
 
+/**
+ * The panel's inset above `sm`, matching the 40px the board keeps between the
+ * sidebar and its first column — the same gap that separates the two surfaces
+ * either side of it.
+ */
+const PANEL_INSET = 40
+
 describe('cardPanelWidth', () => {
   it('takes everything the focused column does not need', () => {
     // 1440 − (269 sidebar + 16 gutter + 304 column + 16 gap)
@@ -133,11 +140,23 @@ describe('prose keeps its measure however wide the surface gets', () => {
     expect(prose).toMatch(/> pre[\s\S]{0,120}max-width: none/)
   })
 
-  it('caps at what the old fixed-width panel already gave', () => {
-    // 36rem = 576px, against 572px of text in the 620px panel — so nothing
-    // changes at the old width and the cap only stops the *extra* width
-    // reaching the prose.
-    expect(36 * 16).toBeGreaterThanOrEqual(572)
-    expect(36 * 16).toBeLessThan(CARD_PANEL_MIN_WIDTH)
+  it('is inset by the same gap the board keeps beside it', () => {
+    // Not the 24px it inherited when the panel was a fixed 620 and never grew
+    // with it. Mobile keeps 16 — at 390 the panel is the screen.
+    const modal = readFileSync(join(ROOT, 'app/components/CardModal.vue'), 'utf8')
+    const tailwindInset = PANEL_INSET / 4
+
+    expect(modal).toMatch(new RegExp(`header: 'block sm:px-${tailwindInset}'`))
+    expect(modal).toMatch(new RegExp(`px-4 sm:px-${tailwindInset}`))
+    expect(modal).not.toMatch(/sm:px-6|sm:mx-6/)
+  })
+
+  it('never makes a narrow surface narrower', () => {
+    // 36rem = 576px. The panel at its narrowest gives 540px of text — 620 less
+    // 40 of inset each side — so the cap is inert there and only bites once the
+    // panel is wider than about 656.
+    const narrowestText = CARD_PANEL_MIN_WIDTH - 2 * PANEL_INSET
+
+    expect(36 * 16).toBeGreaterThan(narrowestText)
   })
 })
