@@ -193,7 +193,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         :style="{ animationDelay: `${index * 40}ms` }"
       >
         <div
-          class="rounded-xl border border-default p-4 h-full hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 transition-colors"
+          class="rounded-xl border border-default p-4 h-full hover:border-primary/60 hover:shadow-float transition-colors"
           :style="{ borderLeftWidth: '3px', borderLeftColor: accentFor(project) }"
         >
           <!-- Top row: icon + name + key + settings -->
@@ -209,7 +209,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
             </div>
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5">
-                <h3 class="font-bold text-base tracking-[-0.01em] group-hover:text-primary transition-colors truncate">
+                <h3 class="font-bold text-base tracking-name group-hover:text-primary transition-colors truncate">
                   {{ project.name }}
                 </h3>
                 <!-- The key is for the CLI, ticket IDs and URLs — the same judgment as
@@ -261,7 +261,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
             <div class="ml-auto flex items-center gap-2 shrink-0">
               <span
                 v-if="project.role !== 'admin'"
-                class="text-2xs font-bold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded-full"
+                class="text-2xs font-bold uppercase tracking-label px-1.5 py-0.5 rounded-full"
                 :class="project.role === 'owner'
                   ? 'bg-primary/10 text-primary'
                   : 'bg-elevated text-muted'"
@@ -272,17 +272,17 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
                 v-if="project.memberAvatars?.length"
                 class="flex items-center -space-x-1.5"
               >
-                <UAvatar
+                <UiAvatar
                   v-for="(m, mIdx) in project.memberAvatars"
                   :key="mIdx"
                   :src="m.avatarUrl || undefined"
                   :alt="m.name"
                   size="3xs"
-                  class="ring-2 ring-[var(--ui-bg)]"
+                  class="ring-2 ring-bg"
                 />
                 <span
                   v-if="project.memberCount > 3"
-                  class="flex items-center justify-center w-4 h-4 rounded-full bg-elevated text-2xs font-bold text-muted ring-2 ring-[var(--ui-bg)]"
+                  class="flex items-center justify-center w-4 h-4 rounded-full bg-elevated text-2xs font-bold text-muted ring-2 ring-bg"
                 >
                   +{{ project.memberCount - 3 }}
                 </span>

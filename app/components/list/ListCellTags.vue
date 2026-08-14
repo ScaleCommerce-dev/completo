@@ -33,7 +33,7 @@ const allTagNames = computed(() => props.cardTags.map(t => t.name).join(', '))
   <!-- read-only -->
   <div
     v-if="readOnly || !tags?.length"
-    class="flex gap-2 items-center min-h-[22px] min-w-0"
+    class="flex gap-2 items-center min-h-cell min-w-0"
   >
     <TagPill
       v-for="tag in visibleTags"
@@ -66,7 +66,7 @@ const allTagNames = computed(() => props.cardTags.map(t => t.name).join(', '))
       <button
         type="button"
         :aria-label="label"
-        class="flex gap-2 items-center rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-[22px] max-w-full min-w-0 text-left"
+        class="flex gap-2 items-center rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-cell max-w-full min-w-0 text-left"
         @click.stop
       >
         <TagPill

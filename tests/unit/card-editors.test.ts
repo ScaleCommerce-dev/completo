@@ -7,6 +7,108 @@ const read = (p: string) => readFileSync(join(ROOT, p), 'utf8')
 
 const CARD_MODAL = read('app/components/CardModal.vue')
 const CARD_PAGE = read('app/pages/projects/[slug]/cards/[cardId].vue')
+const MAIN_CSS = read('app/assets/css/main.css')
+
+/**
+ * The trap this file has fallen into four times: every rule here is explained in
+ * prose *in the file it guards*, so a `not.toMatch` for the utility that went
+ * matches the sentence saying it went, and the test passes for exactly the wrong
+ * reason. Negative assertions therefore run on stripped source, or on the class
+ * attributes extracted from it, never on the raw text.
+ */
+const strip = (src: string) => src
+  .replace(/<!--[\s\S]*?-->/g, '')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/(^|[^:\w])\/\/[^\n]*/g, '$1')
+
+const tokens = (classAttr: string) => classAttr.split(/\s+/).filter(Boolean)
+
+/**
+ * The class list of the element `needle` sits inside: from the nearest opening
+ * `tag` before it, whose own `class` is the first one in that slice. Elements are
+ * located by what they *do* — the handler they bind, the text they render — rather
+ * than by the classes they carry, which is what several of the assertions below
+ * used to pin.
+ */
+const classesAt = (src: string, needle: string, tag = '<div') => {
+  const at = src.indexOf(needle)
+  return at < 0 ? [] : tokens(src.slice(src.lastIndexOf(tag, at), at).match(/class="([^"]*)"/)?.[1] ?? '')
+}
+
+/**
+ * The app's closed type ramp, smallest first — the six steps main.css declares.
+ * It redefines 2xs/sm/base/lg and deliberately leaves `xs` on Tailwind's 12px
+ * ("so component internals that rely on it are untouched"); `xl` is likewise
+ * Tailwind's.
+ */
+const TYPE_SCALE = ['2xs', 'xs', 'sm', 'base', 'lg', 'xl']
+const TAILWIND_PX: Record<string, number> = { xs: 12, xl: 20 }
+const stepPx = (step: string) =>
+  Number(MAIN_CSS.match(new RegExp(`--text-${step}: ([\\d.]+)rem`))?.[1]) * 16 || TAILWIND_PX[step]!
+
+/** The ramp step a class list sets, if it sets one. */
+const textStep = (list: string[]) =>
+  list.map(t => TYPE_SCALE.find(s => t === `text-${s}`)).find(Boolean)
+
+/**
+ * The ramp step a CSS rule's `font-size` lands on, named or measured. Matched on
+ * the declaration rather than on the first px value in the block, which is a
+ * `border-radius` as often as not.
+ */
+const fontSizeStep = (decl: string) =>
+  decl.match(/font-size:\s*var\(--text-([\w]+)\)/)?.[1]
+  ?? TYPE_SCALE.find(s => stepPx(s) === Number(decl.match(/font-size:\s*([\d.]+)px/)?.[1]))
+
+/** One CSS rule's body, anchored: `[^{}]` cannot run past the closing brace. */
+const cssBlock = (src: string, selector: string) =>
+  src.match(new RegExp(`${selector}\\s*\\{([^{}]*)\\}`))?.[1] ?? ''
+
+/**
+ * The call that begins at `at`, up to the parenthesis that closes it — so what a
+ * call contains can be asserted without pinning the order it contains it in.
+ */
+const callArgs = (src: string, at: number) => {
+  let depth = 0
+  for (let i = src.indexOf('(', at); i < src.length; i++) {
+    if (src[i] === '(') depth++
+    else if (src[i] === ')' && !--depth) return src.slice(at, i + 1)
+  }
+  return ''
+}
+
+/**
+ * The `>` that closes the opening tag beginning at `at`, quoted attribute values
+ * skipped — so a component *inside* the element cannot be mistaken for the end of
+ * its opening tag, which is how the previous slice of the slideover's default slot
+ * came out empty when something was put in it.
+ */
+const tagEnd = (src: string, at: number) => {
+  let quote = ''
+  for (let i = at; i < src.length; i++) {
+    const c = src[i]!
+    if (quote) {
+      if (c === quote) quote = ''
+    } else if (c === '"' || c === '\'' || c === '`') {
+      quote = c
+    } else if (c === '>') {
+      return i
+    }
+  }
+  return -1
+}
+
+/**
+ * The description in read mode, on either card surface: down to the placeholder
+ * button that replaces it when there is no prose, whose own `hover:bg-muted` is
+ * the correct answer for a button and not part of this region.
+ */
+const proseRegion = (src: string) => {
+  const clean = strip(src)
+  return clean.slice(
+    clean.indexOf('v-else-if="description"'),
+    clean.lastIndexOf('<button', clean.indexOf('Add a description…'))
+  )
+}
 
 /**
  * A card has exactly one field left that is saved rather than saving itself: the
@@ -27,14 +129,22 @@ describe('the card surfaces have no surface-level save', () => {
   ]
 
   it.each(surfaces)('%s has exactly one Save, and it carries the shortcut', (_name, src) => {
-    // The surviving Save is the description editor's: its label is followed
-    // immediately by the ⌘↵ keys, which is what distinguishes it from a bar
-    // button. A second Save anywhere would be a surface-level one returning.
-    const editorSaves = [...src.matchAll(/>\s*Save\s*<UiKey value="meta"/g)]
+    // Counted as rendered text nodes, comments stripped. The previous version
+    // required `<UiKey value="meta"` to follow the label immediately, so it could
+    // not see `<UButton>Save</UButton>` — the most natural spelling, and exactly
+    // what the footer button it exists to keep out was.
+    const source = strip(src)
+    const template = source.slice(source.indexOf('<template>'))
+    const saves = [...template.matchAll(/>\s*Save\s*</g)]
 
-    expect(editorSaves).toHaveLength(1)
-    expect(src).not.toMatch(/label="Save"/)
-    expect(src).not.toMatch(/'Save'/)
+    expect(saves).toHaveLength(1)
+    // The surviving one is the description editor's: its label is followed
+    // immediately by the ⌘↵ keys, which is what distinguishes it from a bar
+    // button.
+    expect(template.slice(saves[0]!.index)).toMatch(/^>\s*Save\s*<UiKey value="meta"[^>]*\/>\s*<UiKey value="enter"/)
+    // And none arrives as a prop rather than as text.
+    expect(source).not.toMatch(/label="Save"/)
+    expect(source).not.toMatch(/'Save'/)
   })
 
   it.each(surfaces)('%s guards the description save on the description changing', (_name, src) => {
@@ -99,12 +209,28 @@ describe('empty sections are their own invitation', () => {
     expect(src).not.toMatch(/'Edit' : 'Add'/)
   })
 
-  it.each(surfaces)('%s puts the three empty rows in one vocabulary', (_name, src) => {
+  it.each(surfaces)('%s makes the empty description one row rather than a heading', (_name, src) => {
     // An empty section is one row — icon, verb, border — and no heading above it.
-    // The description's placeholder is the same object as the collapsed comment
-    // composer, down to the classes.
-    expect(src).toMatch(/rounded-lg border border-default bg-default px-3 py-2[\s\S]{0,400}Add a description…/)
     expect(src).toContain('i-lucide-text')
+    expect(classesAt(src, 'Add a description…', '<button')).not.toEqual([])
+  })
+
+  it('spells that row and the collapsed comment composer identically', () => {
+    // They are the same object, so the assertion is that they carry the same
+    // classes. The previous version claimed exactly this — "down to the classes" —
+    // while pinning one literal on the two card surfaces and never reading
+    // CommentList at all, which left the composer free to drift away from the
+    // thing it is supposed to be identical to. Compared as sorted token sets: the
+    // values are not the point, the three of them agreeing is.
+    const rows = [
+      classesAt(CARD_MODAL, 'Add a description…', '<button'),
+      classesAt(CARD_PAGE, 'Add a description…', '<button'),
+      classesAt(read('app/components/CommentList.vue'), '@click="openComposer"', '<button')
+    ].map(list => [...list].sort())
+
+    expect(rows[0]!.length).toBeGreaterThan(0)
+    expect(rows[1]).toEqual(rows[0])
+    expect(rows[2]).toEqual(rows[0])
   })
 
   it('spends the dashed border on the drag state, not on resting', () => {
@@ -160,9 +286,13 @@ describe('empty sections are their own invitation', () => {
  */
 describe('the card panel fades its scroll edges', () => {
   it('defines the mask next to the board’s, on the other axis', () => {
-    const css = read('app/assets/css/main.css')
+    // Anchored on the rule: `[^{}]` cannot leave it, where the `[\s\S]*?` this
+    // replaces let both properties be declared anywhere at all after the
+    // selector — including in the next block.
+    const block = cssBlock(MAIN_CSS, '\\.panel-scroll')
 
-    expect(css).toMatch(/\.panel-scroll\s*\{[\s\S]*?--panel-fade-top[\s\S]*?--panel-fade-bottom[\s\S]*?\}/)
+    expect(block).toMatch(/--panel-fade-top\b/)
+    expect(block).toMatch(/--panel-fade-bottom\b/)
   })
 
   it('applies it to the body USlideover owns', () => {
@@ -195,11 +325,17 @@ describe('the card panel fades its scroll edges', () => {
  * one back inside those tags and the panel breaks the same way it did before.
  */
 describe('no dialog is nested inside the slideover', () => {
-  it('keeps the panel body free of UiConfirmDialog', () => {
-    const panelEnd = CARD_MODAL.indexOf('</USlideover>')
+  it('keeps the slideover’s default slot free of components', () => {
+    // Scoped to that slot — from the opening tag's `>` to the first named one —
+    // rather than to everything above `</USlideover>`, which took in the script
+    // block and `#header`, `#body` and `#footer` with it. A dialog inside a named
+    // slot portals correctly and is legal; one in the default slot is the bug.
+    const open = CARD_MODAL.indexOf('<USlideover')
+    const firstSlot = CARD_MODAL.indexOf('<template #', open)
 
-    expect(panelEnd).toBeGreaterThan(-1)
-    expect(CARD_MODAL.slice(0, panelEnd)).not.toContain('<UiConfirmDialog')
+    expect(open).toBeGreaterThan(-1)
+    expect(firstSlot).toBeGreaterThan(open)
+    expect(CARD_MODAL.slice(tagEnd(CARD_MODAL, open) + 1, firstSlot)).not.toMatch(/<[A-Z]/)
   })
 })
 
@@ -235,9 +371,17 @@ describe('one spelling per idiom', () => {
     // selection, both start collapsed and so were indistinguishable from "edit
     // this". The hover fill has to go with it — a surface that lights up under the
     // pointer and then does nothing is worse than one that never offered.
+    // The fill is checked on the read-mode region's own class attributes: the
+    // version that named `hover:bg-muted/60` forbade one opacity step and passed
+    // on `/50`, and the placeholder button below this region carries a
+    // `hover:bg-muted` that is the correct answer for a button.
     for (const [name, src] of [['CardModal', CARD_MODAL], ['the card page', CARD_PAGE]] as const) {
-      expect(src, name).not.toContain('onProseClick')
-      expect(src, name).not.toMatch(/hover:bg-muted\/60/)
+      const fills = [...proseRegion(src).matchAll(/class="([^"]*)"/g)]
+        .flatMap(m => tokens(m[1]!))
+        .filter(t => t.startsWith('hover:bg-'))
+
+      expect(strip(src), name).not.toContain('onProseClick')
+      expect(fills, name).toEqual([])
     }
   })
 })
@@ -264,20 +408,31 @@ describe('the whole card is the drop target', () => {
 
   it('swallows the browser default wherever the file lands', () => {
     const drop = read('app/composables/useFileDrop.ts')
-
     // Unconditional and ahead of the containment check: this is the call that
-    // stops a stray drop leaving the app.
-    expect(drop).toMatch(/e\.preventDefault\(\)\n\s*if \(opts\.enabled/)
+    // stops a stray drop leaving the app. Asserted as an ordering rather than as
+    // the newline that happened to sit between the two lines.
+    const over = drop.slice(drop.indexOf('function onDragOver'), drop.indexOf('function onDragLeave'))
+
+    expect(over).toContain('e.preventDefault()')
+    expect(over).toContain('opts.enabled')
+    expect(over.indexOf('preventDefault')).toBeLessThan(over.indexOf('opts.enabled'))
   })
 
   it('does not unset the highlight faster than a drag reports itself', () => {
-    // The drag-and-drop model re-runs every 350ms, so a stationary pointer over
-    // the panel is the slowest legitimate event stream there is and a shorter
-    // timeout blinks the highlight off between two normal `dragover`s. Leaving is
-    // detected by containment instead; this is only the backstop.
+    // The drag-and-drop model re-runs `dragover` on a fixed cadence, so a
+    // stationary pointer over the panel is the slowest legitimate event stream
+    // there is and a backstop shorter than that cadence blinks the highlight off
+    // between two perfectly normal events. Both numbers are read out of the
+    // composable — the cadence from the paragraph that justifies the choice, the
+    // backstop from the timer — so neither can move without the other answering
+    // for it. Leaving is detected by containment; this is only the backstop.
     const drop = read('app/composables/useFileDrop.ts')
+    const cadence = Number(drop.match(/every (\d+)ms/)?.[1])
+    const keepDragging = drop.slice(drop.indexOf('function keepDragging'), drop.indexOf('function onDragOver'))
+    const backstop = Number(keepDragging.match(/setTimeout\([\s\S]*\},\s*(\d+)\)/)?.[1])
 
-    expect(drop).toMatch(/dragging\.value = false\n\s*\}, 500\)/)
+    expect(cadence).toBeGreaterThan(0)
+    expect(backstop).toBeGreaterThan(cadence)
     expect(drop).toMatch(/if \(inRoot\(e\.relatedTarget\)\) return/)
   })
 
@@ -382,7 +537,14 @@ describe('rendered prose', () => {
   })
 
   it('re-decorates after an edit, because v-html discards the wrappers', () => {
-    expect(PROSE).toMatch(/watch\(rendered, \(\) => nextTick\(decorateCodeBlocks\)\)/)
+    // That `decorateCodeBlocks` runs when `rendered` changes, rather than the one
+    // expression that currently arranges it: `nextTick` inside the callback and
+    // `flush: 'post'` beside it are the same guarantee written differently, and
+    // the pinned literal called one of them a regression.
+    const at = PROSE.indexOf('watch(rendered')
+
+    expect(at).toBeGreaterThan(-1)
+    expect(callArgs(PROSE, at)).toContain('decorateCodeBlocks')
   })
 
   it('takes its palette from the semantic tokens, in one theme-aware copy', () => {
@@ -433,6 +595,17 @@ describe('tag overflow is measured in one place', () => {
  * beneath them sat at 16 and visibly failed to line up.
  */
 describe('the card page rail is one stack', () => {
+  /**
+   * `UiFieldRow`'s padding and minimum height, off its root element. This is the
+   * grid the rail's rows are cut to, and the delete row below has to match it —
+   * one relationship, which used to be two independent literals in two
+   * assertions that could drift apart without either failing.
+   */
+  const FIELD_ROW = read('app/components/ui/FieldRow.vue')
+  const ROW_GEOMETRY = tokens(
+    FIELD_ROW.slice(FIELD_ROW.indexOf('<template>')).match(/class="([^"]*)"/)?.[1] ?? ''
+  ).filter(t => /^(px|py|min-h)-/.test(t))
+
   it('lets the host own the border, so every row shares one inset', () => {
     // CardProperties' rows layout draws the hairlines and nothing else. There is
     // no UiFieldGroup any more: one consumer, and its only host already had a
@@ -443,7 +616,8 @@ describe('the card page rail is one stack', () => {
     expect(props).not.toContain('UiFieldGroup')
     expect(existsSync(join(ROOT, 'app/components/ui/FieldGroup.vue'))).toBe(false)
     // One inset for the rail's rows, matching the sections around them.
-    expect(read('app/components/ui/FieldRow.vue')).toMatch(/px-4/)
+    expect(ROW_GEOMETRY).not.toEqual([])
+    expect(ROW_GEOMETRY.some(t => t.startsWith('px-'))).toBe(true)
   })
 
   it('states the ticket ID once, where the eye already reads it', () => {
@@ -456,9 +630,15 @@ describe('the card page rail is one stack', () => {
 
   it('keeps the delete row on the row grid, quiet until reached', () => {
     // A UButton's own padding puts its glyph 6px inside the column of icons above
-    // it, hence a plain button matching UiFieldRow's geometry. Grey at rest so the
-    // one destructive control is not red for the whole time you read the card.
-    expect(CARD_PAGE).toMatch(/px-4 py-2\.5 min-h-\[42px\][^"]*text-muted hover:text-error/)
+    // it, hence a plain button cut to `UiFieldRow`'s geometry — read off FieldRow
+    // above rather than restated here. Grey at rest so the one destructive control
+    // is not red for the whole time you read the card.
+    const deleteRow = classesAt(CARD_PAGE, '@click="showDeleteConfirm = true"', '<button')
+
+    expect(ROW_GEOMETRY).not.toEqual([])
+    for (const token of ROW_GEOMETRY) expect(deleteRow, token).toContain(token)
+    expect(deleteRow).toContain('text-muted')
+    expect(deleteRow).toContain('hover:text-error')
     expect(CARD_PAGE).toMatch(/group-hover:text-error/)
   })
 
@@ -476,48 +656,161 @@ describe('the card page rail is one stack', () => {
 })
 
 /**
- * A comment thread is a stack of records, and it was rendered as neither a stack
- * nor records: `space-y-4` put 16px between comments and 2px between a name and
- * its own body, so four comments read as eight loose lines with nothing marking
- * where one ended.
+ * A comment thread is a stack of records, and for two attempts it was rendered as
+ * neither a stack nor records.
+
+ * First `space-y-4` and nothing else, where the diagnosis was that a 13px semibold
+ * name and the 14px sentence under it *looked alike*. Then "the avatars are the
+ * structure" — no rules, no boxes, no connector — which does not survive being read
+ * on a real card: nine comments put nine 24px discs across ~500px of text, so the
+ * column is 95% empty and the eye gets one ragged block of text with occasional
+ * bold lines in it. Tinting the discs fixed identity and did nothing for
+ * separation.
+ *
+ * What settles it is not taste: a comment can contain a **code block**, a slab with
+ * its own border, surface and radius. With no boundary on the comment, the most
+ * sharply defined thing on the thread was the inside of a comment rather than the
+ * comment — a hierarchy that inverts is one the reader has to fight. Hence a rule
+ * with a job *and a ceiling*: present, and weaker than the code block's border.
  */
 describe('the comment thread', () => {
   const COMMENTS = read('app/components/CommentList.vue')
 
-  it('draws no lines at all — the avatars are the structure', () => {
-    // Two wrong answers came first. **Horizontal hairlines between comments:** this
-    // app uses a divided stack for a *table of uniform fields* — the rail, the
-    // attachments list — and banding prose reads as a spreadsheet; worse, a
-    // full-width rule cuts across the avatar gutter and slices the column the
-    // avatars are supposed to own. **Then a vertical connector down that gutter:**
-    // its length is whatever the comment above happens to be tall, so between two
-    // one-liners it is a 20px tick and below a code block a 115px rail — a fragment
-    // rather than structure. A connector earns its keep when the nodes it joins are
-    // cards (GitHub) or uniform rows (an activity log).
-    const classes = [...COMMENTS.matchAll(/class="([^"]*)"/g)].map(m => m[1]!).join(' ')
+  /**
+   * The byline row, located from the name it renders rather than from the classes
+   * it carries. It ends where the comment's own body begins, so the row actions
+   * positioned inside it belong to this slice and the prose below it does not.
+   */
+  const CLEAN = strip(COMMENTS)
+  const BYLINE = CLEAN.slice(
+    CLEAN.lastIndexOf('<div', CLEAN.indexOf('comment.authorName ??')),
+    CLEAN.indexOf('v-if="editingId === comment.id"')
+  )
 
-    expect(classes).not.toMatch(/divide-y/)
-    expect(classes).not.toMatch(/border-y/)
-    expect(classes).not.toMatch(/border-l border-accented/)
-    // Whitespace does the separating: 24px between comments against roughly 7px
-    // between a byline and its own body.
-    expect(classes).toMatch(/space-y-6/)
+  it('separates records with a rule that is inset past the avatar gutter', () => {
+    // The distinction that makes this different from the full-width hairlines
+    // rejected earlier: the rule lives on the *content column*, whose left edge is
+    // where the prose starts, so it defines that column instead of slicing it. A
+    // `divide-y` on the list — or any border on the `<li>` — spans the gutter too
+    // and takes the faces' column away from them, which is what was wrong before.
+    expect(COMMENTS).toMatch(/min-w-0 flex-1[^"]*border-t border-default/)
+    expect(COMMENTS).toMatch(/group-first:border-t-0/)
+
+    const listClasses = COMMENTS.match(/<ul\b[\s\S]{0,80}?class="([^"]*)"/)?.[1] ?? ''
+    const rowClasses = COMMENTS.match(/:key="comment\.id"\s*\n\s*class="([^"]*)"/)?.[1] ?? ''
+
+    expect(listClasses).not.toMatch(/divide-y/)
+    expect(rowClasses).not.toMatch(/border/)
+  })
+
+  it('centres the rule in its band rather than hugging one comment', () => {
+    // The gap above the rule is the list's `space-y-*` and the gap below it is the
+    // content column's `pt-*`. Equal, or the hairline reads as belonging to the
+    // comment it is nearer to instead of as the join between two.
+    const between = COMMENTS.match(/<ul\b[\s\S]{0,80}?class="space-y-(\d+)"/)?.[1]
+    const below = COMMENTS.match(/border-t border-default pt-(\d+)/)?.[1]
+
+    expect(between).toBeDefined()
+    expect(below).toBe(between)
+  })
+
+  it('puts no hover background on a row that is not clickable', () => {
+    // It was `hover:bg-muted/50` — over white, `oklab(0.985 0 0 / 0.5)`, a 0.75%
+    // lightness delta that nobody could see in light mode. The contrast is the
+    // lesser problem: nothing in a comment row is clickable, and a surface that
+    // lights up under the pointer and then does nothing is worse than one that
+    // never suggested it could. Its real job — tying the far-right action buttons
+    // to their comment — belongs to the rule, which bounds the record all the way
+    // to the edge those buttons sit on.
+    //
+    // Scoped to the `<li>`'s own class attribute. Nothing in a comment *row* is
+    // clickable — but the Edit and Delete buttons inside it are, and a hover fill
+    // on a button is this app's idiom, which the composer 120 lines below uses.
+    // The previous version banned every hover background anywhere in the thread on
+    // the strength of one invisible fill on the row, so it forbade the correct
+    // answer for a button along with the wrong one for a row.
+    const row = tokens(COMMENTS.match(/:key="comment\.id"\s*\n\s*class="([^"]*)"/)?.[1] ?? '')
+
+    expect(row).not.toEqual([])
+    expect(row.filter(t => t.startsWith('hover:bg-'))).toEqual([])
+    // The `group` stays: the buttons still need a hover target, just not a fill.
+    expect(row).toContain('group')
+    expect(BYLINE).toMatch(/group-hover:opacity-100/)
+  })
+
+  it('gives the column enough colour to be the structure', () => {
+    expect(COMMENTS).toContain('<UiAvatar')
+    expect(COMMENTS).not.toContain('<UAvatar')
+    // A deleted author leaves an empty identity slot, and absent data should look
+    // absent — a confident colour on a name nobody owns reads as a person.
+    expect(COMMENTS).toMatch(/:tint="!!comment\.authorName"/)
+  })
+
+  it('sets the composer apart by more space than separates two comments', () => {
+    // Against the *whole* interval, `space-y` + `pt`, not just the list gap. This
+    // has now collided twice for the same reason at two different numbers: 24
+    // against 24 before the separators, then 32 against 32 the moment they arrived,
+    // because adding `pt-4` moved the interval the composer had to beat and nothing
+    // recomputed it. A one-sided assertion would have passed both times.
+    const listGap = Number(COMMENTS.match(/<ul\b[\s\S]{0,80}?class="space-y-(\d+)"/)?.[1])
+    const belowRule = Number(COMMENTS.match(/border-t border-default pt-(\d+)/)?.[1])
+    const beforeComposer = Number(COMMENTS.match(/comments\.length \? 'mt-(\d+)'/)?.[1])
+
+    expect(listGap).toBeGreaterThan(0)
+    expect(beforeComposer).toBeGreaterThan(listGap + belowRule)
   })
 
   it('keeps the byline subordinate to the body it introduces', () => {
     // 13px semibold over 14px prose is barely a step, which is why a name and the
     // sentence under it were indistinguishable and four comments read as eight
-    // loose lines. That — not the gap ratio — was the original defect.
-    expect(COMMENTS).toMatch(/text-xs font-semibold text-default truncate/)
-    expect(COMMENTS).not.toMatch(/text-sm font-medium text-default truncate/)
+    // loose lines. That — not the gap ratio — was the original defect, so the
+    // assertion is the relationship rather than the classes that currently express
+    // it: the byline sits lower on the app's ramp than the prose it introduces,
+    // and by more than the 1px that was the rejected design.
+    const bodyStep = fontSizeStep(cssBlock(read('app/components/ProseDescription.vue'), '\\.prose-description'))
+    const nameStep = textStep(classesAt(BYLINE, 'comment.authorName ??', '<span'))
+
+    expect(TYPE_SCALE).toContain(nameStep)
+    expect(TYPE_SCALE).toContain(bodyStep)
+    expect(TYPE_SCALE.indexOf(nameStep!)).toBeLessThan(TYPE_SCALE.indexOf(bodyStep!))
+    expect(stepPx(bodyStep!) - stepPx(nameStep!)).toBeGreaterThanOrEqual(2)
   })
 
-  it('takes the row actions out of the byline’s flow', () => {
-    // In the flex row these 20px buttons set the byline's height, so it was 20px
-    // tall whether or not anything was in it and the body sat 24px under its own
-    // author's name — the coupling the design depends on, undone by a control that
-    // only appears on hover.
-    expect(COMMENTS).toMatch(/absolute right-0 top-0 flex items-center gap-0\.5 transition-opacity/)
+  it('puts the name and the time on one step, so the byline is one line', () => {
+    // They were 12px and 10px, which put two baselines inside one 16px line and
+    // made the byline read as a fragment rather than as a line. One size, two
+    // weights is what UiSectionLabel and the rail's rows already do.
+    //
+    // That measurement is the whole finding, and the previous version generalised
+    // it into a ban on `text-2xs` across all of CommentList — a declared 10px step
+    // that a badge or a key hint elsewhere in the file is entitled to. Scoped to
+    // the byline, and stated as the equality that was actually broken.
+    const nameStep = textStep(classesAt(BYLINE, 'comment.authorName ??', '<span'))
+    const timeStep = textStep(classesAt(BYLINE, 'relativeTime(comment.createdAt)', '<span'))
+
+    expect(TYPE_SCALE).toContain(nameStep)
+    expect(timeStep).toBe(nameStep)
+  })
+
+  it('anchors the row actions to the byline, out of its flow', () => {
+    // Out of flow because in the byline's flex row these 20px buttons set its
+    // height, so it was 20px tall whether or not anything was in it and the body
+    // sat 24px under its own author's name — the coupling the design depends on,
+    // undone by a control that only appears on hover. Out of flow is what buys the
+    // byline its natural height back, so that is what is asserted: `absolute` on
+    // the actions and no explicit `h-*` on the byline. Which edge they are pinned
+    // to, and the gap between them, are free.
+    //
+    // Anchored to the *byline* and not the `<li>` — hence `relative` here — because
+    // the li's top edge is where the separator now is: measured from there the
+    // buttons floated in the 16px band above the rule, straddling it and belonging
+    // to neither record.
+    const actions = tokens(BYLINE.match(/v-if="canDelete\(comment\)[^>]*?class="([^"]*)"/)?.[1] ?? '')
+    const byline = tokens(BYLINE.match(/^<div[^>]*class="([^"]*)"/)?.[1] ?? '')
+
+    expect(actions).toContain('absolute')
+    expect(byline).toContain('relative')
+    expect(byline.filter(t => /^h-/.test(t))).toEqual([])
   })
 
   it('keeps every relative time honest about the moment behind it', () => {
@@ -535,6 +828,46 @@ describe('the comment thread', () => {
     expect(read('app/utils/formatting.ts')).toMatch(/export function formatTimestamp/)
     expect(CARD_PAGE).not.toMatch(/function formatDate/)
     expect(CARD_PAGE).toMatch(/formatTimestamp\(card\.createdAt\)/)
+  })
+
+  it('does not let inline decorations invent their own type sizes', () => {
+    // Measured across one thread there were **seven** type sizes, five of them
+    // inside a 2.4px range: 11.57px (code in a block), 11.9px (inline code), 12px
+    // (the byline), 12.6px (a mention) and 14px (the prose). No two of those
+    // differences read as hierarchy — they read as a page that cannot settle, which
+    // is what a reader reports as "restless" without being able to name a cause.
+    //
+    // A mention is therefore exactly the size of the sentence it sits in; the pill,
+    // the weight and the brand colour already say "this is a person". Inline code
+    // keeps a step down because mono runs large at the same size, but it takes the
+    // one that lands on 12px at body size — the app's scale, and the byline's step.
+    const prose = read('app/components/ProseDescription.vue')
+    const rule = (selector: string) => cssBlock(prose, `:deep\\(${selector}\\)`)
+    const bodyPx = stepPx(fontSizeStep(cssBlock(prose, '\\.prose-description'))!)
+    const inlineCodeEm = Number(rule('code:not\\(pre code\\)').match(/font-size: ([\d.]+)em/)?.[1])
+
+    expect(rule('\\.mention')).toMatch(/font-size: inherit/)
+    // The measurement, not the multiplier: whatever `em` value inline code takes,
+    // the pixel size it computes to at body size has to *be* a declared step.
+    // 0.857em × 14px is 11.998px, which is the 12px step; 0.9em is 12.6px, which is
+    // on no step at all and is one of the half-pixel nudges the ramp exists to
+    // remove — hence a tenth of a pixel of slack and no more.
+    const inlineCodePx = inlineCodeEm * bodyPx
+
+    expect(inlineCodeEm).toBeGreaterThan(0)
+    expect(
+      TYPE_SCALE.map(stepPx).find(px => Math.abs(px - inlineCodePx) < 0.1),
+      `${inlineCodePx}px is on no declared step`
+    ).toBeDefined()
+    // `pre` declared 13.5px and rendered 11.57px: typography's own `code` rule sets
+    // 0.857em and wins inside the block, so without this reset the declaration on
+    // `pre` is decoration and every code block in the app draws a size nobody chose.
+    expect(rule('pre code')).toMatch(/font-size: inherit/)
+    // 13px *is* `--text-sm`, so the token spelling is the one this should be — see
+    // design-tokens.test.ts, which exists to eliminate arbitrary px sizes. Accepted
+    // either way, resolved to the step, so migrating the declaration is not a test
+    // change.
+    expect(fontSizeStep(rule('pre'))).toBe('sm')
   })
 })
 

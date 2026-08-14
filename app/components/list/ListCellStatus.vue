@@ -45,7 +45,7 @@ const emit = defineEmits<{
       <button
         type="button"
         :aria-label="label"
-        class="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer max-w-full min-h-[22px]"
+        class="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer max-w-full min-h-cell"
         @click.stop
       >
         <template v-if="status">

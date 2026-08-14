@@ -63,7 +63,7 @@ const hasChanges = computed(() => {
             name="i-lucide-shield"
             class="text-base text-primary"
           />
-          <h2 class="text-base font-bold tracking-[-0.01em] text-highlighted">
+          <h2 class="text-base font-bold tracking-name text-highlighted">
             Allowed email domains
           </h2>
         </div>

@@ -65,7 +65,7 @@ function applyFilterAsIcon() {
         v-model="iconFilter"
         type="text"
         placeholder="Search or type any icon name..."
-        class="w-full text-sm text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-muted border border-default rounded-md px-2.5 py-1.5 outline-none focus:border-primary transition-colors"
+        class="w-full text-sm text-toned placeholder:text-dimmed bg-muted border border-default rounded-md px-2.5 py-1.5 outline-none focus:border-primary transition-colors"
         @keydown.enter.prevent="applyFilterAsIcon"
       >
       <!-- Bounded and scrollable: an unfiltered list is 50 icons (~7 rows), but typing in

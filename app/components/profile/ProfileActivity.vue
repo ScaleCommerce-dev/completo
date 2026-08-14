@@ -29,15 +29,15 @@ function accentFor(project: ProfileProject): string {
 </script>
 
 <template>
-  <div class="mt-6 rounded-xl border border-default bg-default shadow-sm overflow-hidden">
+  <div class="mt-6 rounded-xl border border-default bg-default shadow-raise overflow-hidden">
     <div class="px-5 pt-4 pb-2">
-      <span class="text-xs font-semibold uppercase tracking-[0.08em] text-dimmed">Activity</span>
+      <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Activity</span>
     </div>
 
     <!-- Priority breakdown -->
     <div class="px-5 pt-2 pb-4">
       <div class="flex items-baseline gap-2 mb-3">
-        <span class="text-2xl font-extrabold tracking-[-0.03em] text-highlighted leading-none">{{ profileData.totalOpen }}</span>
+        <span class="text-4xl font-display font-bold tabular-nums tracking-display text-highlighted">{{ profileData.totalOpen }}</span>
         <span class="text-sm font-medium text-dimmed">open {{ profileData.totalOpen === 1 ? 'card' : 'cards' }} assigned</span>
       </div>
 
@@ -87,7 +87,7 @@ function accentFor(project: ProfileProject): string {
       class="border-t border-muted"
     >
       <div class="px-5 pt-3 pb-1">
-        <span class="text-xs font-semibold uppercase tracking-[0.08em] text-dimmed">Projects</span>
+        <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Projects</span>
       </div>
       <div class="px-5 pb-4 pt-1 space-y-1">
         <NuxtLink
@@ -116,7 +116,7 @@ function accentFor(project: ProfileProject): string {
             <span class="text-xs text-dimmed">{{ project.openCards }} open {{ project.openCards === 1 ? 'card' : 'cards' }}</span>
           </div>
           <span
-            class="text-2xs font-bold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded-full shrink-0"
+            class="text-2xs font-bold uppercase tracking-label px-1.5 py-0.5 rounded-full shrink-0"
             :class="project.role === 'owner'
               ? 'bg-primary/10 text-primary'
               : 'bg-elevated text-muted'"

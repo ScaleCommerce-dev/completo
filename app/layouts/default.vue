@@ -109,6 +109,8 @@ const searchGroups = computed(() => [
             v-if="!collapsed"
             class="flex flex-col min-w-0"
           >
+            <!-- 0.16em is the sidebar wordmark's own letterspacing — one file,
+                 one use, deliberately not a token. -->
             <span class="text-2xs font-semibold text-dimmed tracking-[0.16em] uppercase leading-none">Drag. Drop.</span>
             <span class="sidebar-brand font-extrabold text-base leading-none text-highlighted mt-1">Completo</span>
           </span>
@@ -198,7 +200,7 @@ const searchGroups = computed(() => [
             :ui="{ label: 'truncate' }"
           >
             <template #leading>
-              <UAvatar
+              <UiAvatar
                 :src="user?.avatarUrl || undefined"
                 :alt="user?.name || 'Account'"
                 size="2xs"

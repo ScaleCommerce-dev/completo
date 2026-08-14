@@ -45,7 +45,7 @@ function handleCustomPrompt() {
     >
       <button
         type="button"
-        class="ai-btn-cancel flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide uppercase text-warning bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-200 dark:ring-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-colors"
+        class="ai-btn-cancel flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide uppercase text-warning bg-warning/10 ring-1 ring-warning/30 hover:bg-warning/20 transition-colors"
         @mousedown.prevent
         @click="emit('cancel')"
       >
@@ -67,7 +67,7 @@ function handleCustomPrompt() {
           type="button"
           class="ai-pill group flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide uppercase transition-colors"
           :class="error
-            ? 'text-error bg-error/10 ring-1 ring-red-200 dark:ring-red-800/50 hover:bg-red-100 dark:hover:bg-red-950/50'
+            ? 'text-error bg-error/10 ring-1 ring-error/30 hover:bg-error/20'
             : 'text-white dark:text-white ring-0'"
           @mousedown.prevent
         >
@@ -114,7 +114,7 @@ function handleCustomPrompt() {
                 v-model="customPrompt"
                 type="text"
                 placeholder="Custom prompt..."
-                class="flex-1 min-w-0 px-2.5 py-1.5 text-sm text-default placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted bg-accented border border-default border-accented rounded-lg outline-none focus:border-primary transition-colors"
+                class="flex-1 min-w-0 px-2.5 py-1.5 text-sm text-default placeholder:text-dimmed bg-muted bg-accented border border-default border-accented rounded-lg outline-none focus:border-primary transition-colors"
                 @keydown.enter.prevent="handleCustomPrompt"
                 @keydown.stop
               >

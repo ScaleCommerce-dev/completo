@@ -15,7 +15,7 @@ const emit = defineEmits<{
 <template>
   <div
     v-if="readOnly"
-    class="flex items-center min-h-[22px]"
+    class="flex items-center min-h-cell"
   >
     <UiPerson
       :person="assignee"
@@ -37,7 +37,7 @@ const emit = defineEmits<{
       <button
         type="button"
         :aria-label="label"
-        class="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-[22px] max-w-full"
+        class="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-cell max-w-full"
         @click.stop
       >
         <UiPerson

@@ -36,7 +36,7 @@ const resting = computed(() => isSignalPriority(props.priority)
       <button
         type="button"
         :aria-label="label"
-        class="flex items-center gap-1 text-sm font-medium rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-[22px]"
+        class="flex items-center gap-1 text-sm font-medium rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-cell"
         :class="[priorityTextClass(priority), resting, priority === 'urgent' ? 'priority-urgent-pulse' : '']"
         @click.stop
       >

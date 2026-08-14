@@ -22,7 +22,7 @@ withDefaults(defineProps<{
 
 <template>
   <div class="flex items-center gap-2 min-w-0">
-    <span class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.07em] text-dimmed shrink-0">
+    <span class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-label text-dimmed shrink-0">
       <UIcon
         v-if="icon"
         :name="icon"

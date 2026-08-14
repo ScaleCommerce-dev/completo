@@ -78,13 +78,13 @@ function goHome() {
     <div class="relative z-10 w-full max-w-[380px] flex flex-col items-center text-center">
       <!-- Fallen card illustration -->
       <div class="error-fallen-card mb-6">
-        <div class="w-[180px] rounded-xl bg-default border border-default shadow-xl shadow-zinc-900/[0.06] dark:shadow-black/30 p-3.5">
+        <div class="w-[180px] rounded-xl bg-default border border-default shadow-raise p-3.5">
           <!-- Card header -->
           <div class="flex items-center justify-between mb-2.5">
             <span class="font-mono text-2xs font-bold text-primary/80 text-primary/70 bg-primary/10 bg-primary/15 px-1.5 py-0.5 rounded-md">
               ERR-{{ error.statusCode }}
             </span>
-            <span class="w-2 h-2 rounded-full bg-red-400/60" />
+            <span class="w-2 h-2 rounded-full bg-error/60" />
           </div>
           <!-- Shimmer lines -->
           <div class="flex flex-col gap-1.5 mb-2.5">
@@ -101,7 +101,7 @@ function goHome() {
       </div>
 
       <!-- Text + actions -->
-      <h2 class="text-xl font-extrabold text-highlighted tracking-[-0.02em] leading-tight mb-1.5">
+      <h2 class="text-2xl font-display font-bold text-highlighted tracking-display mb-1.5">
         {{ title }}
       </h2>
       <p class="text-sm text-muted leading-relaxed mb-8">

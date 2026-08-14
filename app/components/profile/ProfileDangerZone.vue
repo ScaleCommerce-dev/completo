@@ -33,10 +33,10 @@ async function deleteAccount() {
 <template>
   <div
     v-if="!user?.isAdmin"
-    class="mt-6 mb-8 rounded-xl border border-error/30 bg-default shadow-sm overflow-hidden"
+    class="mt-6 mb-8 rounded-xl border border-error/30 bg-default shadow-raise overflow-hidden"
   >
     <div class="px-5 pt-4 pb-2">
-      <span class="text-xs font-semibold uppercase tracking-[0.08em] text-error">Danger Zone</span>
+      <span class="text-xs font-semibold uppercase tracking-label text-error">Danger Zone</span>
     </div>
 
     <div class="px-5 pb-4">
@@ -64,7 +64,7 @@ async function deleteAccount() {
       <!-- Inline confirmation panel -->
       <div
         v-else
-        class="mt-3 rounded-lg border border-error/30 bg-red-50/50 dark:bg-red-950/20 p-3 space-y-3"
+        class="mt-3 rounded-lg border border-error/30 bg-error/5 p-3 space-y-3"
       >
         <p class="text-sm font-medium text-error">
           Type your email <span class="font-bold">{{ user?.email }}</span> and enter your password to confirm.
@@ -75,14 +75,14 @@ async function deleteAccount() {
             v-model="deleteEmail"
             type="email"
             placeholder="Your email address"
-            class="w-full text-base text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
+            class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-2.5 py-1.5 outline-none focus:border-error/60 transition-colors"
           >
           <input
             v-model="deletePassword"
             type="password"
             placeholder="Your password"
             autocomplete="current-password"
-            class="w-full text-base text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-red-200 dark:border-red-800/50 rounded-lg px-2.5 py-1.5 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
+            class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-2.5 py-1.5 outline-none focus:border-error/60 transition-colors"
           >
         </div>
 
@@ -96,24 +96,14 @@ async function deleteAccount() {
         />
 
         <div class="flex items-center gap-2">
-          <button
-            type="button"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          <UButton
+            color="error"
+            icon="i-lucide-trash-2"
+            label="Delete My Account"
+            :loading="deleteLoading"
             :disabled="!deleteEmailValid || !deletePassword || deleteLoading"
             @click="deleteAccount"
-          >
-            <UIcon
-              v-if="!deleteLoading"
-              name="i-lucide-trash-2"
-              class="text-sm"
-            />
-            <UIcon
-              v-else
-              name="i-lucide-loader-2"
-              class="text-sm animate-spin"
-            />
-            Delete My Account
-          </button>
+          />
           <button
             type="button"
             class="px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"

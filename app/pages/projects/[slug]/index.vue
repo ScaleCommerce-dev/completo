@@ -310,7 +310,7 @@ function cancelDeleteTag() {
           </div>
         </div>
 
-        <!-- Tab content panels — grid overlay prevents layout shift between tabs -->
+        <!-- Tab content panels — grid overlay prevents layout shift between tabs. The 44px floor is this strip's own measurement, used in no other file, so it stays a literal. -->
         <div class="grid min-h-[44px]">
           <div :class="configTab === 'statuses' ? '[grid-area:1/1]' : '[grid-area:1/1] invisible pointer-events-none'">
             <StatusManager
@@ -372,7 +372,7 @@ function cancelDeleteTag() {
               >
                 <button
                   type="button"
-                  class="group/chip flex shrink-0 rounded-full transition duration-150 hover:shadow-md active:scale-95"
+                  class="group/chip flex shrink-0 rounded-full transition duration-150 hover:shadow-raise active:scale-95"
                   :aria-label="`Tag ${tag.name}. Change its colour, or double-click to rename`"
                   @dblclick="startEditTag(tag)"
                 >
@@ -495,7 +495,7 @@ function cancelDeleteTag() {
                       v-model="newTagName"
                       type="text"
                       placeholder="Tag name..."
-                      class="flex-1 text-sm font-medium text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border border-accented rounded-md px-2 py-1 outline-none! ring-0! focus:border-primary transition-colors"
+                      class="flex-1 text-sm font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-accented rounded-md px-2 py-1 outline-none! ring-0! focus:border-primary transition-colors"
                       @keydown.enter.prevent="addProjectTag"
                     >
                   </div>
@@ -527,7 +527,7 @@ function cancelDeleteTag() {
       <div class="lg:grid lg:grid-cols-[2fr_1fr] lg:gap-8">
         <!-- Views (Boards + Lists) -->
         <div>
-          <h2 class="flex items-center gap-1.5 text-sm font-bold text-muted uppercase tracking-[0.08em] mb-2">
+          <h2 class="flex items-center gap-1.5 text-sm font-bold text-muted uppercase tracking-label mb-2">
             <UIcon
               name="i-lucide-layout-grid"
               class="text-base"
@@ -548,7 +548,7 @@ function cancelDeleteTag() {
               class="group block"
             >
               <div
-                class="relative rounded-xl border border-default bg-default p-4 hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 transition-colors"
+                class="relative rounded-xl border border-default bg-default p-4 hover:border-primary/60 hover:shadow-float transition-colors"
                 :style="{ borderLeftWidth: '3px', borderLeftColor: ACCENT_COLORS[hashCode(view.id) % ACCENT_COLORS.length] }"
               >
                 <UTooltip
@@ -576,7 +576,7 @@ function cancelDeleteTag() {
                         class="text-base"
                       />
                     </div>
-                    <span class="font-semibold text-base tracking-[-0.01em] group-hover:text-primary transition-colors flex-1 min-w-0 truncate">
+                    <span class="font-semibold text-base tracking-name group-hover:text-primary transition-colors flex-1 min-w-0 truncate">
                       {{ view.name }}
                     </span>
                   </div>
@@ -625,7 +625,7 @@ function cancelDeleteTag() {
 
         <!-- Members -->
         <div class="max-lg:mt-8">
-          <h2 class="flex items-center gap-1.5 text-sm font-bold text-muted uppercase tracking-[0.08em] mb-2">
+          <h2 class="flex items-center gap-1.5 text-sm font-bold text-muted uppercase tracking-label mb-2">
             <UIcon
               name="i-lucide-users"
               class="text-base"
@@ -671,7 +671,7 @@ function cancelDeleteTag() {
               v-model="deleteViewConfirmName"
               type="text"
               :placeholder="deleteViewTarget?.name"
-              class="w-full text-base text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-red-200 dark:border-red-800/50 rounded-lg px-3 py-2 outline-none focus:border-red-400 dark:focus:border-red-600 transition-colors"
+              class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-3 py-2 outline-none focus:border-error/60 transition-colors"
             >
             <div class="flex items-center justify-end gap-2 pt-1">
               <button
@@ -681,24 +681,14 @@ function cancelDeleteTag() {
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              <UButton
+                color="error"
+                icon="i-lucide-trash-2"
+                :label="`Delete ${deleteViewType === 'board' ? 'Board' : 'List'}`"
+                :loading="deletingView"
                 :disabled="!deleteViewConfirmValid || deletingView"
                 @click="deleteView"
-              >
-                <UIcon
-                  v-if="!deletingView"
-                  name="i-lucide-trash-2"
-                  class="text-sm"
-                />
-                <UIcon
-                  v-else
-                  name="i-lucide-loader-2"
-                  class="text-sm animate-spin"
-                />
-                Delete {{ deleteViewType === 'board' ? 'Board' : 'List' }}
-              </button>
+              />
             </div>
           </div>
         </template>

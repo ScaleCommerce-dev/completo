@@ -3,6 +3,70 @@
 // in main.css, which derive a readable foreground and fill for the active theme.
 export const ACCENT_COLORS = ['#6366f1', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#ec4899', '#06b6d4']
 
+// ─── Identity ───────────────────────────────────────────────────────────────
+//
+// A person's avatar colour, derived from their name rather than stored. It is
+// rendered through `.swatch-avatar`, so a tinted disc with saturated initials
+// works on white and on near-black without a second rule and without any
+// colour-mode logic in JS.
+//
+// It exists because a screen with several people on it showed several identical
+// grey `bg-elevated` discs: on TK-21 nine comments drew nine of them, four
+// reading "DA". That is about *identity* and nothing else — the thread's
+// structure is the inset rule between records (see `CommentList`), not this.
+// Repetition is information here: four discs of one colour say "the same person,
+// four times" at a glance.
+//
+// Not `ACCENT_COLORS`: those are *offered* to a user for a project tint, so the
+// set is small and its ordering is a picker's, while these are *derived* and want
+// hues spaced far enough apart to survive being reduced to a 24px disc.
+//
+// **No hue within 15° of `--ui-error`,** which is `oklch(70.4% 0.191 22.216)` —
+// stated as a measured band rather than as "no red", because the vaguer version
+// was both unenforceable and false. It shipped alongside a test asserting
+// `not.toContain('#ef4444')`, a hex that had never been in this list, while
+// `#f43f5e` sat in it at hue 16° — **6.2° from the error colour**. A confident
+// claim with a guard that could not fail is worse than no claim, so the guard now
+// computes hue angles and would have caught it. Amber survives the band at 47.8°
+// from error and 21.9° from `--ui-warning`; a filled disc of initials does not
+// resemble a status dot, so the band only has to cover the one collision that is
+// actually close.
+//
+// Thirteen, and the count is a consequence rather than a target: excluding the
+// error band costs a hue and the remaining gap between amber and green is not
+// wide enough for two more without them reading alike. Collisions are the cost
+// and the count is the only lever on them, but it was never going to be enough to
+// make the colour an *identifier* — five people in one thread collide about half
+// the time at any palette size worth looking at, which is why the disc still
+// carries initials. What it does buy is the case with no other signal at all:
+// `Lola3`/`Lola4`/`Lola6` all render as one letter, so the hue is the only thing
+// separating three commenters, and FNV-1a's avalanche keeps one-character
+// neighbours apart.
+export const IDENTITY_COLORS = [
+  '#6366f1', '#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6', '#10b981', '#22c55e',
+  '#f59e0b', '#f97316', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6'
+]
+
+/**
+ * Stable colour for a person. FNV-1a over the display name — one pass, no
+ * allocation, and the same answer in every view, which is what makes the colour
+ * readable as identity rather than as decoration.
+ *
+ * Keyed on the name and not the id on purpose: the id is absent at half the
+ * call sites (mention lists, member avatars, the session user), and the name is
+ * what the reader is matching the disc against anyway.
+ */
+export function identityColor(name: string | null | undefined): string {
+  if (!name) return IDENTITY_COLORS[0]!
+
+  let h = 0x811c9dc5
+  for (let i = 0; i < name.length; i++) {
+    h ^= name.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return IDENTITY_COLORS[(h >>> 0) % IDENTITY_COLORS.length]!
+}
+
 // Offered to users when picking a status or tag colour.
 export const COLOR_PALETTE = [
   '#ef4444', '#f97316', '#eab308', '#22c55e',

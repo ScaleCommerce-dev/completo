@@ -14,7 +14,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="flex items-center gap-1 min-h-[22px] text-sm text-muted font-mono tabular-nums">
+  <div class="flex items-center gap-1 min-h-cell text-sm text-muted font-mono tabular-nums">
     <template v-if="count">
       <UIcon
         :name="icon"

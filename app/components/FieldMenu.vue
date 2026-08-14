@@ -105,7 +105,7 @@ const opt = (item: unknown) => (item as { option?: FieldMenuOption }).option
           :done="opt(item)!.done"
           size="sm"
         />
-        <UAvatar
+        <UiAvatar
           v-else-if="opt(item)!.avatar"
           :src="opt(item)!.avatar!.src"
           :alt="opt(item)!.avatar!.alt"

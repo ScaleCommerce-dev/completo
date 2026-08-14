@@ -276,7 +276,7 @@ function onCardClick(columnId: string, card: BoardCard) {
       <!-- Pick / Create panel -->
       <div
         v-else
-        class="rounded-xl border border-default bg-default p-3 flex flex-col gap-2 shadow-sm"
+        class="rounded-xl border border-default bg-default p-3 flex flex-col gap-2 shadow-raise"
       >
         <!-- Pick from available columns -->
         <template v-if="mode === 'pick'">
@@ -284,7 +284,7 @@ function onCardClick(columnId: string, card: BoardCard) {
             v-if="availableColumns?.length"
             class="flex flex-col gap-1"
           >
-            <span class="text-xs font-bold text-muted uppercase tracking-[0.06em] mb-0.5">Available columns</span>
+            <span class="text-xs font-bold text-muted uppercase tracking-label mb-0.5">Available columns</span>
             <button
               v-for="col in availableColumns"
               :key="col.id"
@@ -357,7 +357,7 @@ function onCardClick(columnId: string, card: BoardCard) {
               v-model="newColumnName"
               type="text"
               placeholder="Column name"
-              class="w-full text-base font-medium text-highlighted placeholder-zinc-400 dark:placeholder-zinc-500 bg-transparent border border-accented rounded-lg px-2.5 py-1.5 outline-none focus:border-primary transition-colors"
+              class="w-full text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-accented rounded-lg px-2.5 py-1.5 outline-none focus:border-primary transition-colors"
               @keydown.escape="cancelAddColumn"
             >
             <div class="flex items-center gap-2">

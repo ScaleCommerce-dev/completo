@@ -32,17 +32,17 @@ function formatDate(iso: string): string {
     @submit.prevent="saveProfile"
     @keydown="handleProfileKeydown"
   >
-    <div class="rounded-xl border border-default bg-default shadow-sm overflow-hidden">
+    <div class="rounded-xl border border-default bg-default shadow-raise overflow-hidden">
       <!-- Identity header: Avatar + Name + Email -->
       <div class="flex items-center gap-4 px-5 pt-5 pb-4">
         <!-- The initials fallback was a hand-rolled gradient circle; UAvatar
              already resolves src-or-initials, and the brand gradient belongs to
              the logo and the drag, not to every avatar. -->
-        <UAvatar
+        <UiAvatar
           :src="(hasGravatar && !gravatarOverride) ? gravatarUrl : undefined"
           :alt="profileName || 'You'"
           size="3xl"
-          class="shrink-0 ring-[3px] ring-[var(--ui-bg)] shadow-raise"
+          class="shrink-0 ring-[3px] ring-bg shadow-raise"
         />
         <!-- Name + Email -->
         <div class="flex-1 min-w-0">
@@ -50,7 +50,7 @@ function formatDate(iso: string): string {
             v-model="profileName"
             type="text"
             placeholder="Your name..."
-            class="w-full text-lg font-bold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b-2 border-transparent hover:border-default hover:border-accented focus:border-primary/40 focus:border-primary/30 rounded-none outline-none! ring-0! tracking-[-0.02em] leading-tight py-0.5 transition-colors"
+            class="w-full text-lg font-bold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b-2 border-transparent hover:border-default hover:border-accented focus:border-primary/40 focus:border-primary/30 rounded-none outline-none! ring-0! tracking-heading leading-tight py-0.5 transition-colors"
           >
           <div class="flex items-center gap-1.5 mt-1">
             <UIcon
@@ -92,7 +92,7 @@ function formatDate(iso: string): string {
 
       <!-- Settings rows -->
       <div class="px-5 pt-3 pb-1">
-        <span class="text-xs font-semibold uppercase tracking-[0.08em] text-dimmed">Preferences</span>
+        <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Preferences</span>
       </div>
 
       <div class="mx-5 mt-2 rounded-lg border border-default divide-y divide-default overflow-hidden">
@@ -136,7 +136,7 @@ function formatDate(iso: string): string {
               v-model="profileAvatarUrl"
               type="text"
               placeholder="https://..."
-              class="flex-1 text-base text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
+              class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0!"
             >
             <button
               v-if="gravatarOverride"

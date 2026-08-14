@@ -326,7 +326,7 @@ function toggleTag(tagId: string) {
 
     <div class="p-2.5 pl-3">
       <!-- The object. Nothing above it. -->
-      <p class="text-sm font-semibold leading-snug text-highlighted tracking-[-0.01em] line-clamp-2 pr-6">
+      <p class="text-sm font-semibold leading-snug text-highlighted tracking-name line-clamp-2 pr-6">
         {{ card.title }}
       </p>
 
@@ -546,7 +546,7 @@ function toggleTag(tagId: string) {
                   @pointerleave="releaseTip('assignee')"
                   @click.stop
                 >
-                  <UAvatar
+                  <UiAvatar
                     v-if="paintAssignee"
                     :src="card.assignee!.avatarUrl || undefined"
                     :alt="card.assignee!.name"

@@ -35,8 +35,8 @@ withDefaults(defineProps<{
     v-if="person"
     class="inline-flex items-center gap-1.5 min-w-0"
   >
-    <UAvatar
-      :src="person.avatarUrl || undefined"
+    <UiAvatar
+      :src="person.avatarUrl"
       :alt="person.name"
       :size="size"
       class="shrink-0"

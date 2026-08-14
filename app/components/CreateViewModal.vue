@@ -211,7 +211,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             />
           </div>
           <div>
-            <h2 class="text-base font-bold tracking-[-0.02em] text-highlighted">
+            <h2 class="text-base font-bold tracking-heading text-highlighted">
               {{ viewStep === 1 ? 'New View' : viewStep === 2 ? `New ${viewType === 'board' ? 'Board' : 'List'}` : 'Configure Columns' }}
             </h2>
             <p class="text-xs text-dimmed">
@@ -228,7 +228,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <div class="grid grid-cols-2 gap-3">
             <button
               type="button"
-              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 border-default border-accented"
+              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary/60 hover:shadow-float border-default border-accented"
               @click="selectViewType('board')"
             >
               <div class="flex items-center gap-3 mb-2">
@@ -246,7 +246,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             </button>
             <button
               type="button"
-              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 border-default border-accented"
+              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary/60 hover:shadow-float border-default border-accented"
               @click="selectViewType('list')"
             >
               <div class="flex items-center gap-3 mb-2">
@@ -276,7 +276,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               type="text"
               :placeholder="`${viewType === 'board' ? 'Board' : 'List'} name...`"
               autofocus
-              class="w-full text-lg font-semibold text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-2 transition-colors"
+              class="w-full text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-name leading-snug py-2 transition-colors"
             >
           </div>
 
@@ -294,7 +294,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                   :value="viewSlug"
                   type="text"
                   placeholder="my-view"
-                  class="flex-1 text-base font-medium text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0! tracking-wide"
+                  class="flex-1 text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0! tracking-wide"
                   @input="onSlugInput"
                 >
                 <UIcon
@@ -324,7 +324,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               >Slug already taken</span>
               <span
                 v-else-if="viewSlug && slugValid && slugAvailable === true"
-                class="flex items-center gap-1 text-xs font-medium text-success dark:text-emerald-400"
+                class="flex items-center gap-1 text-xs font-medium text-success"
               >
                 <UIcon
                   name="i-lucide-check"
@@ -409,7 +409,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             <!-- Tag filters (both board and list) -->
             <template v-if="tags.length">
               <div class="mt-3 pt-3 border-t border-muted">
-                <div class="text-xs font-bold text-muted uppercase tracking-[0.08em] mb-2">
+                <div class="text-xs font-bold text-muted uppercase tracking-label mb-2">
                   Tag Filters
                 </div>
                 <p class="text-xs text-dimmed mb-2">

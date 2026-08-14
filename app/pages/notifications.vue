@@ -120,7 +120,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
       >
         <!-- Group label -->
         <div class="flex items-center gap-2 mb-2 px-1">
-          <span class="text-xs font-semibold uppercase tracking-[0.08em] text-dimmed">
+          <span class="text-xs font-semibold uppercase tracking-label text-dimmed">
             {{ group.label }}
           </span>
           <div class="flex-1 h-px bg-elevated" />
@@ -156,12 +156,12 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
                  already resolves src-or-initials, and the brand gradient is
                  reserved for the logo and the drag. -->
             <div class="relative shrink-0 mt-0.5">
-              <UAvatar
+              <UiAvatar
                 v-if="n.actorName"
                 :src="n.actorAvatarUrl || undefined"
                 :alt="n.actorName"
                 size="sm"
-                class="ring-2 ring-[var(--ui-bg)]"
+                class="ring-2 ring-bg"
               />
               <span
                 v-else
@@ -177,7 +177,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
 
               <span
                 v-if="n.actorName"
-                class="absolute -bottom-0.5 -right-0.5 flex items-center justify-center size-4 rounded-full ring-2 ring-[var(--ui-bg)]"
+                class="absolute -bottom-0.5 -right-0.5 flex items-center justify-center size-4 rounded-full ring-2 ring-bg"
                 :class="notificationIconBg[n.type] || 'bg-elevated'"
               >
                 <UIcon

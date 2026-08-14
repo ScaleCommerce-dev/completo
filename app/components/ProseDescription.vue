@@ -206,7 +206,7 @@ onUnmounted(() => {
   --tw-prose-th-borders: var(--ui-border-accented);
   --tw-prose-td-borders: var(--ui-border-muted);
   max-width: none;
-  font-size: 14px;
+  font-size: var(--text-base);
   line-height: 1.7;
 }
 
@@ -245,10 +245,26 @@ onUnmounted(() => {
   max-width: none;
 }
 
-:deep(p:first-child) {
+/* A comment's prose must start and end flush with its own box, or the rhythm the
+   thread is built on stops being a rhythm.
+
+   These reset every block, not just `p` — which is what they used to do, and it
+   only ever looked right because most comments are paragraphs. Measured on
+   TK-21: the one comment ending in a fenced code block kept typography's 16px
+   bottom margin *inside* its `<li>`, so it sat 40px from the comment below it
+   where every other pair sat at 24. A single 40px gap in a stack of 24s reads as
+   a missing record, and it takes a devtools measurement to see why — exactly the
+   sort of thing that gets diagnosed as "the spacing is off" and fixed by
+   changing `space-y-6`, which would then be wrong four times to be right once.
+
+   `:deep(> :first-child)` rather than a list of element types: a leading `<ul>`,
+   heading or blockquote has the same problem at the top, and any renderer change
+   that emits a new wrapper (the code-block decoration already does) would need
+   adding to a list nobody would remember. */
+.prose-description :deep(> :first-child) {
   margin-top: 0;
 }
-:deep(p:last-child) {
+.prose-description :deep(> :last-child) {
   margin-bottom: 0;
 }
 :deep(a) {
@@ -259,8 +275,22 @@ onUnmounted(() => {
 :deep(a:hover) {
   color: color-mix(in oklab, var(--ui-primary) 80%, var(--ui-text-highlighted));
 }
+/*
+ * Inline code and mentions used to be the two loudest sources of *size* noise on
+ * a comment thread, which is a strange thing for decorations to be. Measured
+ * across one thread there were seven type sizes, five of them inside a 2.4px
+ * range — 11.57px (code in a block), 11.9px (inline code), 12px (the byline),
+ * 12.6px (a mention) and 14px (the prose) — and no two of those differences read
+ * as hierarchy. They read as a page that couldn't settle, which is exactly what
+ * a reader reports as "restless" without being able to point at a cause.
+ *
+ * So: 0.857em, which lands inline code on 12px at the 14px body size, i.e. on the
+ * app's closed scale and on the same step as the byline beside it. `em` rather
+ * than `12px` because a description may put code inside a heading, where it has
+ * to scale with its host.
+ */
 :deep(code:not(pre code)) {
-  font-size: 0.85em;
+  font-size: 0.857em;
   padding: 0.15em 0.35em;
   border-radius: 4px;
   background: var(--ui-bg-elevated);
@@ -280,14 +310,32 @@ onUnmounted(() => {
    * the dark override below stay a single rule.
    */
   border: 1px solid var(--ui-border-accented);
-  font-size: 13.5px;
+  /*
+   * `--text-sm` is the app's workhorse step, spelled as the token rather than as
+   * the 13px behind it. It was a literal 13.5px, which is on no scale at all —
+   * and it never rendered anyway: typography's own `code` rule sets 0.857em and
+   * wins against `pre`, so every code block in the app was drawing at
+   * 13.5 × 0.857 = 11.57px while this line claimed otherwise. Hence the `pre code`
+   * reset below; without it the declaration here is decoration.
+   */
+  font-size: var(--text-sm);
   /* The wrapper carries the block's spacing, so the two can't double up. */
   margin: 0;
+}
+:deep(pre code) {
+  font-size: inherit;
 }
 :deep(.mention) {
   display: inline-flex;
   align-items: center;
-  font-size: 0.9em;
+  /*
+   * A mention is the same size as the sentence it sits in. At 0.9em it was 12.6px
+   * inside 14px prose — a step too small to mean anything and big enough to make
+   * the line ripple, and three of TK-21's comments open with one. The pill, the
+   * weight and the brand colour already say "this is a person"; size was the one
+   * signal doing no work and costing the most.
+   */
+  font-size: inherit;
   font-weight: 600;
   color: var(--ui-primary);
   background: color-mix(in oklab, var(--ui-primary) 8%, transparent);
@@ -337,7 +385,7 @@ onUnmounted(() => {
 }
 :deep(.code-lang) {
   font-family: var(--font-mono, ui-monospace);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;

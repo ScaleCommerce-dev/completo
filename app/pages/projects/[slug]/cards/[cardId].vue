@@ -306,7 +306,7 @@ async function confirmDelete() {
         <USkeleton class="h-9 w-3/4" />
         <USkeleton class="h-64 w-full" />
       </div>
-      <USkeleton class="hidden lg:block h-48 w-[304px] shrink-0" />
+      <USkeleton class="hidden lg:block h-48 w-column shrink-0" />
     </div>
 
     <UEmpty
@@ -353,8 +353,8 @@ async function confirmDelete() {
            being set at `lg` — so below that breakpoint the DOM order stood and a
            phone was shown the properties card and a Delete button *above* the
            card's own title. The title leads at every width. -->
-      <aside class="w-full lg:w-[304px] shrink-0 order-2 lg:sticky lg:top-4">
-        <div class="rounded-xl border border-default bg-default shadow-sm overflow-hidden divide-y divide-default">
+      <aside class="w-full lg:w-column shrink-0 order-2 lg:sticky lg:top-4">
+        <div class="rounded-xl border border-default bg-default shadow-raise overflow-hidden divide-y divide-default">
           <!-- Properties. Shared with CardModal, so the same fields no longer
                get two different control vocabularies. Draws its own hairlines
                and no border — see CardProperties. -->
@@ -438,7 +438,7 @@ async function confirmDelete() {
           -->
           <button
             type="button"
-            class="group w-full flex items-center gap-1.5 px-4 py-2.5 min-h-[42px] text-sm font-medium text-muted hover:text-error hover:bg-error/5 transition-colors cursor-pointer"
+            class="group w-full flex items-center gap-1.5 px-4 py-2.5 min-h-row text-sm font-medium text-muted hover:text-error hover:bg-error/5 transition-colors cursor-pointer"
             @click="showDeleteConfirm = true"
           >
             <!-- `gap-1.5` and a dimmed glyph, both copied off UiFieldRow's label
@@ -466,7 +466,9 @@ async function confirmDelete() {
       >
         <!-- Title -->
         <!-- A textarea, so a long title wraps rather than running off the edge.
-             See CardModal — Enter still commits. -->
+             See CardModal — Enter still commits. The -0.015em is this input's
+             own: it is `text-xl`, a step above every `tracking-name` site and a
+             step below `tracking-display`, and no other file uses it. -->
         <textarea
           ref="titleInput"
           v-model="title"

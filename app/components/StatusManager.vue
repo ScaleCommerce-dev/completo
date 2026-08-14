@@ -151,30 +151,39 @@ async function setDoneStatus(statusId: string | null) {
           type="button"
           class="group/chip flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 transition-colors"
           :class="col.id === doneStatusId
-            ? 'bg-emerald-50 dark:bg-emerald-950/25 ring-1 ring-success/30 dark:ring-emerald-800/40'
+            ? 'bg-success/10 ring-1 ring-success/30'
             : 'hover:bg-white hover:bg-elevated'"
           @dblclick="startEditStatus(col)"
         >
           <UIcon
             v-if="col.id === doneStatusId"
             name="i-lucide-circle-check-big"
-            class="text-xs text-success dark:text-emerald-400"
+            class="text-xs text-success"
           />
           <span
             v-else
             class="block w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10"
             :style="{ backgroundColor: col.color || '#a1a1aa' }"
           />
+          <!--
+            The one place the flat `text-success` is not enough: `--ui-success`
+            is the family's 500 step in light mode, which is ~2.5:1 on white —
+            fine for the icon and the count beside it, not for the status name.
+            The `-700`/`-300` steps are still the app.config family (Nuxt UI
+            emits `--color-success-*` from it), so this follows a rebrand; it
+            just spells the two ends itself because the token layer offers no
+            readable-foreground step.
+          -->
           <span
             class="text-xs font-medium"
             :class="col.id === doneStatusId
-              ? 'text-emerald-700 dark:text-emerald-300'
+              ? 'text-success-700 dark:text-success-300'
               : 'text-toned'"
           >{{ col.name }}</span>
           <span
             class="text-xs font-semibold tabular-nums"
             :class="col.id === doneStatusId
-              ? 'text-emerald-500/70 dark:text-emerald-400/70'
+              ? 'text-success/70'
               : 'text-dimmed'"
           >{{ col.cardCount ?? 0 }}</span>
         </button>
@@ -203,7 +212,7 @@ async function setDoneStatus(statusId: string | null) {
               <button
                 v-if="col.id !== doneStatusId"
                 type="button"
-                class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs font-medium text-muted hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs font-medium text-muted hover:text-success hover:bg-success/10 transition-colors"
                 @click="setDoneStatus(col.id); colColorPopoverOpen[col.id] = false"
               >
                 <UIcon
@@ -253,13 +262,13 @@ async function setDoneStatus(statusId: string | null) {
         v-else
         class="flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 transition-colors"
         :class="col.id === doneStatusId
-          ? 'bg-emerald-50 dark:bg-emerald-950/25 ring-1 ring-success/30 dark:ring-emerald-800/40'
+          ? 'bg-success/10 ring-1 ring-success/30'
           : ''"
       >
         <UIcon
           v-if="col.id === doneStatusId"
           name="i-lucide-circle-check-big"
-          class="text-xs text-success dark:text-emerald-400"
+          class="text-xs text-success"
         />
         <span
           v-else
@@ -269,13 +278,13 @@ async function setDoneStatus(statusId: string | null) {
         <span
           class="text-xs font-medium"
           :class="col.id === doneStatusId
-            ? 'text-emerald-700 dark:text-emerald-300'
+            ? 'text-success-700 dark:text-success-300'
             : 'text-toned'"
         >{{ col.name }}</span>
         <span
           class="text-xs font-semibold tabular-nums"
           :class="col.id === doneStatusId
-            ? 'text-emerald-500/70 dark:text-emerald-400/70'
+            ? 'text-success/70'
             : 'text-dimmed'"
         >{{ col.cardCount ?? 0 }}</span>
       </div>
@@ -322,7 +331,7 @@ async function setDoneStatus(statusId: string | null) {
               v-model="newColName"
               type="text"
               placeholder="Status name..."
-              class="flex-1 text-sm font-medium text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border border-accented rounded-md px-2 py-1 outline-none! ring-0! focus:border-primary transition-colors"
+              class="flex-1 text-sm font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-accented rounded-md px-2 py-1 outline-none! ring-0! focus:border-primary transition-colors"
               @keydown.enter.prevent="addProjectStatus(); showAddColPopover = false"
             >
           </div>

@@ -216,7 +216,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
       label="Comments"
       icon="i-lucide-message-square"
       :count="comments.length"
-      class="mb-2"
+      class="mb-4"
     />
 
     <div
@@ -227,39 +227,44 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
     </div>
 
     <!--
-      A timeline: one vertical hairline down the avatar gutter, and nothing else.
+      A ruled document, and the rules are *inset* — they begin where the prose
+      begins and the faces hang outside them, in the margin.
 
-      Two wrong answers came first and both are worth recording, because the second
-      is the more tempting one.
+      That distinction is the whole design, and it is what makes this the fourth
+      answer rather than a return to the first. Recording all four, because three
+      of them are tempting and one of them was shipped and looked at:
 
       **`space-y-4` and nothing else.** 16px between comments and 2px between a name
-      and the body under it. The gap ratio was not really the problem — 8:1 is
-      plenty — it was that *the two lines looked alike*: a 13px semibold name over
-      14px body text, both starting at the same x. Four comments therefore read as
-      eight interchangeable lines. That diagnosis is what the header change below
-      fixes, and it is the half that was missing the first time round.
+      and the body under it. The gap ratio was not the problem — 8:1 is plenty — it
+      was that a 13px semibold name and the 14px sentence under it *looked alike*,
+      so four comments read as eight interchangeable lines.
 
-      **Then horizontal hairlines between comments.** Consistent with the app, and
-      wrong: this app uses a divided stack for a *table of uniform fields* — the
-      card page's rail, the attachments list — where every row is a label and a
-      value. Comments are prose of wildly varying length, and banding prose reads as
-      a spreadsheet. Worse, a full-width rule cuts straight across the avatar
-      gutter, so the column the avatars are supposed to own gets sliced four times
-      and stops meaning anything.
+      **Full-width hairlines between comments.** Rejected then and still rejected: a
+      rule spanning the whole row cuts straight across the avatar gutter, so the
+      column the faces are supposed to own gets sliced at every comment and stops
+      being a column. An inset rule does the opposite — it *defines* that column by
+      starting at its edge, which is the move this had missed.
 
-      **Then a vertical connector down the gutter**, GitHub's stub generalised. Also
-      wrong, and for a reason worth writing down: its length is whatever the comment
-      above it happens to be tall, so between two one-line comments it is a 20px
-      tick and below one carrying a code block it is a 115px rail. It reads as a
-      fragment rather than as structure. A connector earns its keep when the nodes
-      it joins are cards of their own (GitHub) or uniform rows (an activity log);
-      here it was decoration justifying a gutter that needs no justifying.
+      **A vertical connector down the gutter**, GitHub's stub generalised. Its length
+      is whatever the comment above happens to be tall, so between two one-liners it
+      is a 20px tick and below one carrying a code block a 115px rail: a fragment
+      rather than structure.
 
-      What is left is what Linear does, and what should have been the answer first:
-      **the avatars are the structure.** A column of them down the left edge marks
-      where each comment starts, no line required — and 24px between comments
-      against roughly 7px between a byline and its own body is the ratio that makes
-      each pair read as one thing.
+      **Avatars alone, no rules at all** — Linear's answer, and what shipped. It
+      does not survive being looked at on a real card, and the reason is arithmetic:
+      nine comments put nine 24px discs across ~500px of text, so the "column" is
+      95% empty space, and everything else on the thread is left-aligned to one x.
+      The eye gets a single ragged block of text with occasional bold 12px lines in
+      it. Tinting the discs fixed *identity* and did nothing for *separation*, which
+      is the thing that was actually missing.
+
+      What settles it is not taste, though, it is that **a comment can contain a
+      code block** — a slab with its own border, its own surface and its own corner
+      radius. With no boundary on the comment, the most sharply defined thing on the
+      thread was the inside of a comment rather than the comment, and a hierarchy
+      that inverts is a hierarchy a reader has to fight. So the rule has a job and
+      also a ceiling: it must be *weaker* than the code block's border, which is why
+      it is one hairline of `border-default` and not a card.
 
       **Author grouping was considered and rejected**, though it is what Slack and
       iMessage do and it would collapse the three consecutive "Demo Admin" headers
@@ -272,30 +277,56 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
     -->
     <ul
       v-else-if="comments.length"
-      class="space-y-6"
+      class="space-y-4"
     >
+      <!--
+        No hover background. There was one — `hover:bg-muted/50`, which over white
+        computes to `oklab(0.985 0 0 / 0.5)`: a 0.75% lightness delta, invisible in
+        light mode and barely there in dark, so it read as a rendering fault to
+        anyone who noticed it at all. It was also a lie about the row, which is the
+        better reason to drop it than the contrast: nothing here is clickable, and a
+        surface that lights up under the pointer and then does nothing is worse than
+        one that never suggested it could — the rule the description's own prose
+        follows. Its actual job was to tie the far-right action buttons to the
+        comment they belong to, and the inset rule now does that by bounding the
+        record all the way to the edge those buttons sit on.
+      -->
       <li
         v-for="comment in comments"
         :key="comment.id"
-        class="group relative flex gap-3"
+        class="group flex gap-3"
       >
-        <UAvatar
-          :src="comment.authorAvatarUrl ?? undefined"
-          :alt="comment.authorName ?? 'Unknown'"
+        <UiAvatar
+          :src="comment.authorAvatarUrl"
+          :alt="comment.authorName"
+          :tint="!!comment.authorName"
           size="xs"
-          class="shrink-0"
+          class="shrink-0 mt-4 group-first:mt-0"
         />
 
-        <div class="min-w-0 flex-1">
+        <!-- The rule lives on the *content* column, which is what makes it inset:
+             the avatar is a sibling to the left of this box, so a `border-t` here
+             starts at the prose's own left edge and never crosses the gutter. The
+             16px above it comes from the list's `space-y-4` and the 16px below from
+             this `pt-4`, so the hairline sits centred in a 32px band rather than
+             hugging whichever comment happens to be adjacent. -->
+        <div class="min-w-0 flex-1 border-t border-default pt-4 group-first:border-t-0 group-first:pt-0">
           <!-- The byline is deliberately *smaller* than what it introduces.
                13px semibold over 14px prose is barely a step, which is why a name
                and the sentence under it were indistinguishable and four comments
                read as eight loose lines. At 12px against 14px body text the eye
                takes the byline as a label and the comment as the content — which
                is the true hierarchy on a task card, where the avatar has already
-               said who is speaking and what they said is the point. -->
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-default truncate">
+               said who is speaking and what they said is the point.
+
+               Name and time are then the *same* 12px, separated by weight and by
+               `text-highlighted` against `text-dimmed`. They were 12 and 10, and
+               two type sizes inside one 16px line put two baselines in it that
+               never quite settled — the byline read as a fragment rather than as
+               a line. One size, two weights is what `UiSectionLabel` and the
+               rail's rows already do. -->
+          <div class="relative flex items-center gap-2">
+            <span class="text-xs font-semibold text-highlighted truncate">
               <!-- authorId is nulled when a user is deleted, so the name can be missing -->
               {{ comment.authorName ?? 'Deleted user' }}
             </span>
@@ -306,7 +337,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
                  ago". Rejecting author-grouping (see the list comment) is only
                  honest if the real times are reachable. -->
             <UTooltip :text="formatTimestamp(comment.createdAt)">
-              <span class="text-2xs text-dimmed shrink-0">
+              <span class="text-xs text-dimmed shrink-0">
                 {{ relativeTime(comment.createdAt) }}
               </span>
             </UTooltip>
@@ -314,7 +345,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
               v-if="wasEdited(comment)"
               :text="`Edited ${formatTimestamp(comment.updatedAt)}`"
             >
-              <span class="text-2xs text-dimmed shrink-0">· edited</span>
+              <span class="text-xs text-dimmed shrink-0">· edited</span>
             </UTooltip>
 
             <!-- Quiet at rest, like the attachment row's. These used to be lit
@@ -328,10 +359,17 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
                  whether or not anything was in it and the comment's own text sat
                  24px below its author's name — the coupling this design depends on,
                  undone by a control that only appears on hover. Out of flow, the
-                 byline is its natural 16px and the body sits 2px under it. -->
+                 byline is its natural 16px and the body sits 2px under it.
+
+                 Positioned against the *byline*, not the `<li>`. Against the li they
+                 measured from its top edge, which is where the separator now is — so
+                 on every comment but the first they floated in the 16px band above
+                 the rule, straddling it and reading as belonging to neither record.
+                 Centring on the byline row makes them immune to the padding that
+                 band is made of. -->
             <div
               v-if="canDelete(comment) && editingId !== comment.id"
-              class="absolute right-0 top-0 flex items-center gap-0.5 transition-opacity"
+              class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-opacity"
               :class="confirmDeleteId === comment.id
                 ? 'opacity-100'
                 : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100 max-sm:opacity-60'"
@@ -439,10 +477,18 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
     </ul>
 
     <!-- Set apart from the records above it by space rather than by one more
-         hairline: it is the one row here that isn't a comment. -->
+         hairline: it is the one row here that isn't a comment.
+
+         40px, where two comments are 32 apart (16 + rule + 16). It was 24 against
+         24 before the rules arrived and 32 against 32 immediately after them —
+         adding the separator re-created the exact collision the 32 had been chosen
+         to fix, because the interval it had to beat moved at the same time. The
+         thing that must differ is the *gap*; the composer's own border can't do it,
+         since a border is also what an empty section leads with and there this is
+         the only row on screen. -->
     <div
       v-if="!readonly && cardId"
-      :class="comments.length ? 'mt-6' : ''"
+      :class="comments.length ? 'mt-10' : ''"
       data-comment-editor="new"
     >
       <!-- Collapsed: one row that reads as an input and doubles as the empty
@@ -453,8 +499,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
         class="w-full flex items-center gap-2.5 rounded-lg border border-default bg-default px-3 py-2 text-left hover:bg-muted transition-colors"
         @click="openComposer"
       >
-        <UAvatar
-          :src="currentUser?.avatarUrl ?? undefined"
+        <UiAvatar
+          :src="currentUser?.avatarUrl"
           :alt="currentUser?.name ?? 'You'"
           size="xs"
           class="shrink-0"
@@ -462,47 +508,63 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
         <span class="text-sm text-dimmed">Leave a comment…</span>
       </button>
 
-      <template v-else>
-        <UiDraftNotice
-          v-if="commentDraft.restored.value"
-          label="comment"
-          class="mb-1.5"
-          @discard="discardCommentDraft"
+      <!-- Expanded, the composer joins the same avatar-column rhythm as the
+           thread above it — it is, after all, the comment about to exist.
+           Collapsed it can be a plain labelled row (there is nothing yet to
+           attribute), but losing the avatar the moment you start typing was
+           the one place the "avatars are the structure" rule broke down. -->
+      <div
+        v-else
+        class="flex gap-3"
+      >
+        <UiAvatar
+          :src="currentUser?.avatarUrl"
+          :alt="currentUser?.name ?? 'You'"
+          size="xs"
+          class="shrink-0 mt-0.5"
         />
-
-        <DescriptionEditor
-          ref="newCommentEditor"
-          v-model="draft"
-          :members="members"
-          :project-slug="projectSlug"
-          :project-key="projectKey"
-          :card-id="cardId"
-          :min-height="120"
-          :max-height="300"
-          placeholder="Leave a comment…"
-          ai-scope="comment"
-          @escape="escapeComposer"
-        />
-        <div class="flex items-center gap-2 mt-2">
-          <UButton
-            size="xs"
-            :loading="saving"
-            :disabled="!draft.trim()"
-            @click="submit"
-          >
-            Comment
-            <UiKey value="meta" />
-            <UiKey value="enter" />
-          </UButton>
-          <UButton
-            size="xs"
-            variant="ghost"
-            color="neutral"
-            label="Cancel"
-            @click="closeComposer"
+        <div class="min-w-0 flex-1">
+          <UiDraftNotice
+            v-if="commentDraft.restored.value"
+            label="comment"
+            class="mb-1.5"
+            @discard="discardCommentDraft"
           />
+
+          <DescriptionEditor
+            ref="newCommentEditor"
+            v-model="draft"
+            :members="members"
+            :project-slug="projectSlug"
+            :project-key="projectKey"
+            :card-id="cardId"
+            :min-height="120"
+            :max-height="300"
+            placeholder="Leave a comment…"
+            ai-scope="comment"
+            @escape="escapeComposer"
+          />
+          <div class="flex items-center gap-2 mt-2">
+            <UButton
+              size="xs"
+              :loading="saving"
+              :disabled="!draft.trim()"
+              @click="submit"
+            >
+              Comment
+              <UiKey value="meta" />
+              <UiKey value="enter" />
+            </UButton>
+            <UButton
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              label="Cancel"
+              @click="closeComposer"
+            />
+          </div>
         </div>
-      </template>
+      </div>
     </div>
   </div>
 </template>

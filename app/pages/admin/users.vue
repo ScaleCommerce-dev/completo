@@ -300,7 +300,7 @@ const invitationColumns: TableColumn<PendingInvitation>[] = [
 const TABLE_UI = {
   base: 'min-w-full',
   thead: 'bg-muted',
-  th: 'px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-dimmed whitespace-nowrap',
+  th: 'px-3 py-2 text-xs font-bold uppercase tracking-label text-dimmed whitespace-nowrap',
   td: 'px-3 py-2 text-sm text-default align-middle',
   tr: 'transition-colors hover:bg-muted/60'
 }

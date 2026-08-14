@@ -21,18 +21,34 @@
 @theme static {
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Display is a role, not a face. Call sites say `font-display`, so the face
+     can be replaced without touching one of them; today it resolves to the mono
+     stack the app already loads.
+
+     Mono, and not a display serif, for four reasons. Three of the four surfaces
+     that want display type render a number or a technical string — an error
+     code, a stat readout, a wordmark — and mono is the correct type for all
+     three. It adds no network request and no FOUT risk. It extends an axis the
+     app already has, since `card-id`, `tabular-nums` counts and `.code-lang`
+     are all mono, so display type joins an existing role rather than inventing
+     a fourth. And the app is an instrument panel: a tight heavy mono at 26–38px
+     reads as a readout, where Instrument Serif or Fraunces would read as
+     editorial — a second font load and a fourth type role to say something this
+     app does not say. */
+  --font-display: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 @theme {
-  /* ─── Type scale ───────────────────────────────────────────────────────────
+  /* ─── Type scale: the working ladder ───────────────────────────────────────
      Completo is a dense daily-driver tool, so its ramp sits a step below
      Tailwind's defaults. It had 726 inline `text-[Npx]` values spanning
      8/9/10/10.5/11/11.5/12/12.5/13/13.5/14/14.5/15/16/18/20/24/28/32px — nine of
      those are half-pixel nudges that existed only to align one specific element.
 
-     Six steps, and no more. 9px folds into 10 and 11px into 12: both were used
-     for uppercase tracked labels, where the extra pixel is legibility we were
-     giving away for nothing.
+     Six working steps, and no more. 9px folds into 10 and 11px into 12: both
+     were used for uppercase tracked labels, where the extra pixel is legibility
+     we were giving away for nothing.
 
        2xs  10px  badges, kbd, overlines
        xs   12px  labels, metadata, secondary text
@@ -52,6 +68,75 @@
   --text-base--line-height: 1.5;
   --text-lg: 1rem;                    /* 16px */
   --text-lg--line-height: 1.4;
+
+  /* ─── Type scale: the display tier ─────────────────────────────────────────
+     The working ladder stops at `xl`, 20px. That is a 2× total range whose
+     largest adjacent step is 1.25× (16→20), so no surface in this app could
+     have a display moment: the ramp only ever got slightly bigger. Two sites
+     reached past it anyway — the open-card numeral on the profile page and the
+     auth wordmark — and, because nothing above 20px was declared, both landed
+     on Tailwind's untuned `text-2xl`: 24px on 1.5 leading with no tracking.
+     That is why they read as accidental rather than intentional.
+
+     Three declared steps, 6px apart, topping out at 2.7× the 14px body — the
+     jump a display step needs to read as display rather than as a big heading.
+
+       2xl  26px  a display heading with a line of copy under it
+       3xl  32px  a wordmark, or a heading that is the surface
+       4xl  38px  one number — a readout with nothing beside it
+
+     26 is deliberately the largest jump in the ladder (1.3× off `xl`), so the
+     tier opens as a change of register rather than two more rungs. It stops at
+     38 because the surfaces that earn display type are 380px wide, and the next
+     step up stops fitting a word on one line. Leading is 1.05–1.2, not the
+     inherited 1.5: 1.5 leading on a 38px headline is precisely what makes large
+     type look like scaled-up body text.
+
+     A display step is allowed only on a surface with no work to compete with —
+     a full stop, not a place where someone is doing something. That is the
+     whole rule, and it is a mechanism rather than a list: the moment a surface
+     grows a second thing to look at, its display step is wrong. */
+  --text-2xl: 1.625rem;               /* 26px */
+  --text-2xl--line-height: 1.2;
+  --text-3xl: 2rem;                   /* 32px */
+  --text-3xl--line-height: 1.1;
+  --text-4xl: 2.375rem;               /* 38px */
+  --text-4xl--line-height: 1.05;
+
+  /* Display type has to have its tracking pulled in; at 26px and up the default
+     spacing opens into a gap. Named because the app retyped every optical nudge
+     it owns as an inline literal, and this is the tightest step of them. */
+  --tracking-display: -0.03em;
+
+  /* ─── Tracking: the two ramps ──────────────────────────────────────────────
+     60 inline `tracking-[…]` sites across nine values lived here, which is the
+     defect `--spacing-column` was named to end.
+
+     **Uppercase labels are one role, and now one token.** They were written four
+     ways — 0.08em (15 uses / 13 files), 0.06em (9 / 6), 0.07em (1), 0.04em (4 / 2)
+     — and nothing correlated the value with size or weight: `text-xs font-semibold
+     uppercase text-dimmed` appeared at all four. That is drift, not intent, so it
+     collapsed to the plurality spelling. It is a retune rather than a rename and
+     the numbers are worth having on the record: the largest move is 0.04em → 0.08em,
+     **+0.48px at 12px**, on uppercase labels, and 15 of the 29 sites did not move at
+     all.
+
+     Naming all four first and collapsing second was the right order, though, and
+     not a detour: as four literals spread over 29 call sites the duplication was
+     invisible and the retune was 29 edits, and it is only once they are four names
+     in one block that "these are the same thing" is a claim anyone can check. This
+     is the same shape as `UiSectionLabel`, which consolidated five spellings of a
+     heading and then landed on one. */
+  --tracking-label: 0.08em;           /* every small uppercase label */
+
+  /* The tightening ramp does split by role, which is why both steps survive:
+     `heading` is chrome — page, panel and modal titles, all `text-base` bold —
+     and `name` is the name of a record: a card, column, project or view, and
+     the inputs that edit them. One crossover, ProfileSettings' name input, is
+     `text-lg font-bold` and takes the chrome value; left alone because moving
+     it is a retune. */
+  --tracking-heading: -0.02em;        /* page / panel / modal titles */
+  --tracking-name: -0.01em;           /* a record's own name, and its edit field */
 
   /* ─── Radius ───────────────────────────────────────────────────────────────
      Three steps, and only three. `--ui-radius` alone was not enough: UButton
@@ -78,6 +163,13 @@
      between KanbanColumn and KanbanBoard's add-column placeholder. */
   --spacing-column: 19rem;            /* 304px */
 
+  /* Row geometry, same story as the column: the list-view cell height was
+     copied into all seven `ListCell*` components, and the field-row height into
+     UiFieldRow plus the card page's delete row, which was written by copying
+     UiFieldRow's label. */
+  --spacing-cell: 1.375rem;           /* 22px */
+  --spacing-row: 2.625rem;            /* 42px */
+
   --ui-radius: 0.625rem;
 }
 
@@ -98,6 +190,50 @@
 }
 
 .dark {
+  /* ─── Dark surface ramp ────────────────────────────────────────────────────
+     Nuxt UI's dark defaults collapse six semantic tokens onto three values:
+     `--ui-bg-muted`, `--ui-bg-elevated` and `--ui-border` are all
+     `oklch(27.4% 0.006 286.033)` (zinc-800), and `--ui-bg-accented` and
+     `--ui-border-accented` are both `oklch(37% …)` (zinc-700). Light mode has five
+     distinct steps; dark had three, so the app's whole surface vocabulary —
+     recessed, raised, emphasis, hairline, emphasis-hairline — lost the ability to
+     express itself on half the screens it runs on.
+
+     Two things this actually broke, both measured rather than theorised:
+
+     - **Every board column's border was invisible.** `KanbanColumn` is
+       `bg-muted border border-default`; in dark mode `getComputedStyle` returned
+       `oklch(0.274 0.006 286.033)` for *both*, so the hairline round the app's
+       flagship surface drew itself in the surface's own colour.
+     - **`hover:bg-elevated` on a `bg-muted` surface did nothing at all** — a
+       0-delta hover, the same class of defect as the invisible comment-row
+       highlight, in 27 files.
+
+     CLAUDE.md documented the collision and prescribed remembering it
+     ("use `--ui-border-accented` where a border must survive on a recessed
+     surface"), which is a per-call-site tax that nothing enforces and that spends
+     the *emphasis* border on being merely visible. Repairing the ramp once here
+     retires the workaround and gives the emphasis step back.
+
+     Steps are chosen to mirror light mode's ordering and its restraint: light's
+     recessed surface is 1.5% off the page, so dark's is 3.4% rather than the 6.4%
+     it was — a recess in dark mode reads *lighter*, and 6.4% made it shout. The
+     hairline then sits above both surfaces it has to survive on (7.6% over muted,
+     11% over the page). `--ui-border` landing 2% under `--ui-bg-accented` mirrors
+     light mode, where the two are the same value.
+     `--ui-bg` is restated at the value Nuxt UI already computes for it, so the
+     ramp reads as a ramp in one place rather than five sixths of one. It also
+     gives the swatch contrast assertion a page colour to derive from: without it
+     the test would have to restate the near-black itself, which is the
+     guard-mirrors-the-value defect this file's own standard warns about.
+     ────────────────────────────────────────────────────────────────────────── */
+  --ui-bg: oklch(21% 0.006 285.885);
+  --ui-bg-muted: oklch(24.4% 0.005 286);
+  --ui-bg-elevated: oklch(28.5% 0.006 286);
+  --ui-bg-accented: oklch(34% 0.009 286);
+  --ui-border: oklch(32% 0.008 286);
+  --ui-border-accented: oklch(41% 0.012 286);
+
   --elevation-raise:
     0 1px 2px -1px oklch(0 0 0 / 0.4),
     0 2px 6px -2px oklch(0 0 0 / 0.3);
@@ -113,7 +249,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   SWATCHES — user-chosen colours, made readable in both themes
+   SWATCHES — user-chosen colours, theme-corrected in CSS
 
    Tag, status and project-accent colours are user data: a single stored hex
    that has to work on white and on near-black. Applying it raw was the app's
@@ -124,10 +260,63 @@
 
    `color-mix()` moves the correction into CSS, which means it needs no
    colour-mode reactivity in JS: set `--swatch` inline and the browser derives a
-   readable foreground, fill and ring for the active theme.
+   foreground, fill and ring for the active theme.
+
+   **Corrected, not readable — and the difference is measured.** This header used
+   to say "made readable in both themes" and "derives a readable foreground",
+   which certified something nobody had computed. At 88%-toward-black on a
+   13%-toward-white fill the filled pill measures **2.75:1** for `#f59e0b` and
+   **2.50:1** for `#eab308`, and 7 of the 16 hexes `COLOR_PALETTE` offers are
+   under 4.5:1 in light mode. Dark mode (68%/26%) clears 4.5:1 for all 16. So the
+   recipe fixed a real and worse bug and left a smaller one, and calling it solved
+   is what kept it unfixed: `.swatch-avatar` below is the only member of this
+   family with a contrast assertion behind it, and it is the only one tuned from a
+   number rather than by eye. Retuning these three percentages moves every tag,
+   status dot, priority bar and filter chip at once, which is why it is a decision
+   and not a patch — see CLAUDE.md's `.swatch` paragraph. Fixing it should extend
+   the `.swatch-avatar` WCAG assertion in `tests/unit/design-tokens.test.ts` to
+   cover `.swatch`, not add a second recipe.
 
      <span class="swatch" :style="{ '--swatch': tag.color }">
    ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── The recipe ───────────────────────────────────────────────────────────────
+   Lightness is *set*, not mixed. Hue and chroma come from the stored colour; the
+   lightness of every derived value is a constant this file chooses, via CSS
+   relative colour syntax.
+
+   That is the whole fix, and it is a different kind of fix from tuning the old
+   percentages. `color-mix(… var(--swatch) 88%, black)` produces a foreground whose
+   lightness depends on the input's, so the recipe was only ever as readable as the
+   colour a user happened to pick — and `COLOR_PALETTE` deliberately offers eight
+   dark hexes (`#334155`, `#78716c`, the whole -700/-800 second half) precisely so
+   people can pick dark ones. Measured across those 16 offered colours on the old
+   recipe:
+
+       light 88/13   text on fill 2.50:1 (#eab308)   on page 2.70:1   dot 1.92:1
+       dark  68/26   text on fill 3.61:1 (#334155)   on page 4.02:1   dot 1.71:1
+
+   All four text figures are under AA's 4.5:1 and both dot figures are under the
+   3:1 that a graphical object needs — and no percentage pair fixes it, because
+   mixing a *dark* hex toward black keeps it dark. Forcing lightness does, for any
+   hex including ones already stored in someone's database:
+
+       light  fg L .46 / fill L .965  →  on fill 5.68:1   on page 6.18:1   dot 3.30:1
+       dark   fg L .84 / fill L .28   →  on fill 6.66:1   on page 7.80:1   dot 5.74:1
+
+   Chroma is scaled rather than set, so a grey stays grey — a fixed chroma would
+   invent colour for `--swatch: var(--ui-text-dimmed)`, the fallback.
+
+   A side effect worth having: every label now sits at one lightness, so a row of
+   tags reads as one family differentiated by hue alone. Under the old recipe a
+   yellow tag looked washed out and a navy one looked heavy, which is lightness
+   carrying noise in a UI whose rule is that only data carries colour.
+
+   `tests/unit/design-tokens.test.ts` recomputes all of the above from the L values
+   in *this file* across every hex in `COLOR_PALETTE`, in both modes, for text and
+   for the dot at their separate thresholds. Retune a number here and the test
+   re-derives rather than needing an edit.
+   ────────────────────────────────────────────────────────────────────────────── */
 
 .swatch,
 .swatch-outline,
@@ -135,9 +324,10 @@
 .swatch-dot,
 .swatch-bar {
   --swatch: var(--ui-text-dimmed);
-  --swatch-fg: color-mix(in oklab, var(--swatch) 88%, black);
-  --swatch-fill: color-mix(in oklab, var(--swatch) 13%, white);
-  --swatch-ring: color-mix(in oklab, var(--swatch) 30%, white);
+  --swatch-fg: oklch(from var(--swatch) 0.46 c h);
+  --swatch-fill: oklch(from var(--swatch) 0.965 calc(c * 0.28) h);
+  --swatch-ring: oklch(from var(--swatch) 0.87 calc(c * 0.55) h);
+  --swatch-mark: oklch(from var(--swatch) 0.62 c h);
 }
 
 :is(.dark) .swatch,
@@ -145,9 +335,10 @@
 :is(.dark) .swatch-text,
 :is(.dark) .swatch-dot,
 :is(.dark) .swatch-bar {
-  --swatch-fg: color-mix(in oklab, var(--swatch) 68%, white);
-  --swatch-fill: color-mix(in oklab, var(--swatch) 26%, black);
-  --swatch-ring: color-mix(in oklab, var(--swatch) 42%, black);
+  --swatch-fg: oklch(from var(--swatch) 0.84 c h);
+  --swatch-fill: oklch(from var(--swatch) 0.28 calc(c * 0.45) h);
+  --swatch-ring: oklch(from var(--swatch) 0.42 calc(c * 0.6) h);
+  --swatch-mark: oklch(from var(--swatch) 0.7 c h);
 }
 
 /* Filled pill — tags, filter chips. */
@@ -163,9 +354,9 @@
    The edge is *not* `--swatch-ring`: that is tuned to sit under a fill of the
    same hue, and on bare card white a 1px line of it is invisible — the pill read
    as loose text with no colour at all, which is worse than the dot it replaced.
-   It derives from `--swatch-fg` instead, which is already the theme-corrected
-   readable form of the swatch, so one formula gives a dark edge on white and a
-   light one on near-black without a second rule. */
+   It derives from `--swatch-fg` instead, which is the readable form, so one
+   formula gives a dark edge on white and a light one on near-black without a
+   second rule. */
 .swatch-outline {
   color: var(--swatch-fg);
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--swatch-fg) 40%, transparent);
@@ -176,15 +367,64 @@
   color: var(--swatch-fg);
 }
 
-/* Status / priority dot. The ring keeps a pale swatch visible on white. */
+/* Status / priority dot, and the priority edge bar.
+
+   `--swatch-mark`, not the raw `--swatch`: these are the two members of the family
+   that are pure colour with no text in them, so they answer to the 3:1 threshold
+   for a graphical object rather than 4.5:1 — but they were drawn from the stored
+   hex untouched, which put a slate-700 dot at 1.71:1 on a dark page and a
+   yellow-500 one at 1.92:1 on a white one. A status dot that cannot be seen is the
+   whole control. `--swatch-mark` is a lightness between the fill and the
+   foreground: enough to clear 3:1 on both pages, still obviously the raw colour
+   rather than the label's darker form. The dot's ring stays, since a pale dot on
+   white wants an edge even at a corrected lightness. */
 .swatch-dot {
-  background-color: var(--swatch);
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--swatch) 55%, transparent);
+  background-color: var(--swatch-mark);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--swatch-mark) 55%, transparent);
 }
 
-/* Priority / accent edge bar. */
 .swatch-bar {
-  background-color: var(--swatch);
+  background-color: var(--swatch-mark);
+}
+
+/* Identity disc — a person's initials, tinted by `UiAvatar` so a screen with
+   several people on it does not show several identical grey discs.
+
+   Same recipe as the rest of the family — lightness set, hue and chroma inherited
+   — with its own two L values, because a 24px disc and a wide pill are not the
+   same object: the pill is mostly fill, the disc is mostly rim and glyph, so the
+   disc takes a stronger fill (L .94 at 40% chroma against the pill's .965 at 28%)
+   to read as coloured at all. Under the old percentage recipe that same difference
+   had to be spelled as a *second set of mix percentages*, which is how
+   `.swatch-avatar` briefly became the name of two rules and how the contrast test
+   came to measure the tag pill's numbers and pass.
+
+   Measured across the 13 identity hues at these values: 5.32:1 worst in light
+   (`#22c55e`), 6.16:1 in dark (`#ec4899`). The predecessor stepped the foreground
+   in proportion with the fill (82%/20%) and put amber initials at 3.13:1 — under
+   AA, and "fine" only next to the pill's own 2.50:1, which was never a standard to
+   meet. Both are now held to 4.5:1 by the same assertion.
+
+   It still cannot simply *be* `.swatch`: that sets `color` on the element it is
+   applied to, and UAvatar's initials live in a *child* carrying its own
+   `text-muted`. A directly-declared colour beats an inherited one whatever the
+   layers, so reusing `.swatch` would tint the disc and leave the letters grey. */
+.swatch-avatar {
+  --swatch: var(--ui-text-dimmed);
+  --swatch-fg: oklch(from var(--swatch) 0.46 c h);
+  --swatch-fill: oklch(from var(--swatch) 0.94 calc(c * 0.4) h);
+  --swatch-ring: oklch(from var(--swatch) 0.84 calc(c * 0.6) h);
+
+  background-color: var(--swatch-fill);
+  box-shadow: inset 0 0 0 1px var(--swatch-ring);
+}
+:is(.dark) .swatch-avatar {
+  --swatch-fg: oklch(from var(--swatch) 0.84 c h);
+  --swatch-fill: oklch(from var(--swatch) 0.32 calc(c * 0.55) h);
+  --swatch-ring: oklch(from var(--swatch) 0.44 calc(c * 0.65) h);
+}
+.swatch-avatar > * {
+  color: var(--swatch-fg);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -256,8 +496,14 @@
    DRAG & DROP — the signature interaction
 
    "Drag. Drop. Completo." is the tagline, so moving a card is the one place
-   this UI is allowed to be theatrical. The lifted card is the only element in
-   the app that carries the brand gradient besides the logo.
+   this UI is allowed to be theatrical.
+
+   It does **not** carry the brand gradient, and this comment claimed it did —
+   the same claim CLAUDE.md made, corrected there and left standing here, which
+   is precisely the one-place-out-of-three defect that section now warns about.
+   What `.sortable-drag` actually spends is rotation, scale and `--elevation-drag`,
+   whose second shadow layer is a 1px indigo ring. Theatre by geometry and depth,
+   not by paint — which is why it reads as *lifted* rather than as decorated.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .sortable-ghost {

@@ -48,7 +48,7 @@ const WIDTHS = {
     <template #header>
       <UDashboardNavbar
         :title="title"
-        :ui="{ title: 'text-base font-extrabold tracking-[-0.02em] text-highlighted' }"
+        :ui="{ title: 'text-base font-extrabold tracking-heading text-highlighted' }"
       >
         <!-- No UDashboardSidebarToggle here: UDashboardNavbar renders its own via
              the `toggle` prop, and adding one produced two hamburgers on mobile. -->
@@ -67,7 +67,7 @@ const WIDTHS = {
         >
           <slot name="title">
             <span class="flex items-baseline gap-2.5 min-w-0">
-              <span class="text-base font-extrabold tracking-[-0.02em] text-highlighted shrink-0">{{ title }}</span>
+              <span class="text-base font-extrabold tracking-heading text-highlighted shrink-0">{{ title }}</span>
               <span
                 v-if="description"
                 class="text-sm text-muted truncate max-lg:hidden"

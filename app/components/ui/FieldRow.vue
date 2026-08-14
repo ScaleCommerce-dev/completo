@@ -37,9 +37,12 @@ withDefaults(defineProps<{
 
 <template>
   <div
-    class="flex gap-3 px-4 py-2.5 min-h-[42px]"
+    class="flex gap-3 px-4 py-2.5 min-h-row"
     :class="align === 'start' ? 'items-start' : 'items-center'"
   >
+    <!-- The 26px label floor only exists for `align: start`, where the label has
+         to hold the first line's box while the value grows past it. One file, so
+         it stays a literal; the row height beside it is `min-h-row`. -->
     <component
       :is="inputId ? 'label' : 'span'"
       :for="inputId"

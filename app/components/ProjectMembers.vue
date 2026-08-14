@@ -314,7 +314,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           mIdx === (sortedMembers).length - 1 && !isOwnerOrAdmin ? 'rounded-b-xl' : ''
         ]"
       >
-        <UAvatar
+        <UiAvatar
           :src="m.avatarUrl ?? undefined"
           :alt="m.name"
           size="xs"
@@ -373,13 +373,13 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           >
             <UIcon
               name="i-lucide-mail"
-              class="text-base text-amber-400 shrink-0"
+              class="text-base text-warning shrink-0"
             />
             <span class="text-sm font-mono text-muted flex-1 truncate">{{ inv.email }}</span>
             <UDropdownMenu :items="invitationMenuItems(inv)">
               <button
                 type="button"
-                class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition hover:ring-2 hover:ring-amber-500/20 flex items-center gap-1 bg-warning/10 text-warning"
+                class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition hover:ring-2 hover:ring-warning/20 flex items-center gap-1 bg-warning/10 text-warning"
                 :disabled="resendingInvitation === inv.id || cancellingInvitation === inv.id"
               >
                 <UIcon
@@ -408,13 +408,13 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
               name="i-lucide-user-plus"
               class="text-sm text-dimmed"
             />
-            <span class="text-2xs font-bold text-dimmed uppercase tracking-[0.08em]">Add Member</span>
+            <span class="text-2xs font-bold text-dimmed uppercase tracking-label">Add Member</span>
           </div>
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Search by name or enter email to invite..."
-            class="w-full text-base text-highlighted placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted border border-default rounded-lg px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-colors"
+            class="w-full text-base text-highlighted placeholder:text-dimmed bg-muted border border-default rounded-lg px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-colors"
             @focus="searchQuery.trim().length >= 2 && (showResults = true)"
             @blur="onInputBlur"
             @keydown="onInputKeydown"
@@ -428,7 +428,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           <!-- Search results dropdown -->
           <div
             v-if="showResults && searchQuery.trim().length >= 2"
-            class="absolute z-50 left-3 right-3 mt-1 rounded-lg border border-accented bg-default shadow-lg overflow-hidden"
+            class="absolute z-50 left-3 right-3 mt-1 rounded-lg border border-accented bg-default shadow-float overflow-hidden"
           >
             <button
               v-for="(u, i) in searchResults"
@@ -442,7 +442,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
               @mousedown.prevent="addMember(u)"
               @mouseenter="highlightIndex = i"
             >
-              <UAvatar
+              <UiAvatar
                 :src="u.avatarUrl ?? undefined"
                 :alt="u.name"
                 size="xs"
@@ -531,7 +531,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
                 />
               </div>
               <div>
-                <h2 class="text-base font-bold tracking-[-0.02em] text-highlighted">
+                <h2 class="text-base font-bold tracking-heading text-highlighted">
                   Remove Member
                 </h2>
                 <p class="text-sm text-muted">
@@ -554,24 +554,14 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
             >
               Cancel
             </button>
-            <button
-              type="button"
-              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 shadow-sm shadow-red-500/20 hover:shadow-md hover:shadow-red-500/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            <UButton
+              color="error"
+              icon="i-lucide-user-minus"
+              label="Remove"
+              :loading="removing === pendingRemove?.id"
               :disabled="removing === pendingRemove?.id"
               @click="confirmRemoveMember"
-            >
-              <UIcon
-                v-if="removing !== pendingRemove?.id"
-                name="i-lucide-user-minus"
-                class="text-base"
-              />
-              <UIcon
-                v-else
-                name="i-lucide-loader-2"
-                class="text-base animate-spin"
-              />
-              Remove
-            </button>
+            />
           </div>
         </div>
       </template>

@@ -101,7 +101,7 @@ async function confirmDelete() {
 
 const scopeColors: Record<string, { text: string, bg: string }> = {
   card: { text: 'text-primary', bg: 'bg-primary/10' },
-  board: { text: 'text-success dark:text-emerald-400', bg: 'bg-success/10' }
+  board: { text: 'text-success', bg: 'bg-success/10' }
 }
 </script>
 
@@ -135,7 +135,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
       <div
         v-for="skill in skills"
         :key="skill.id"
-        class="group rounded-xl border border-default hover:border-primary/60 hover:shadow-md hover:shadow-indigo-500/5 p-4 transition-colors"
+        class="group rounded-xl border border-default hover:border-primary/60 hover:shadow-float p-4 transition-colors"
       >
         <div class="flex items-start justify-between gap-2 mb-2">
           <div class="flex items-center gap-2 min-w-0">
@@ -143,7 +143,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
               name="i-lucide-wand-sparkles"
               class="text-base text-secondary shrink-0"
             />
-            <h3 class="font-bold text-base tracking-[-0.01em] text-highlighted truncate">
+            <h3 class="font-bold text-base tracking-name text-highlighted truncate">
               {{ skill.name }}
             </h3>
           </div>
@@ -196,27 +196,27 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
       <template #content>
         <div class="rounded-xl bg-default overflow-hidden">
           <div class="px-5 pt-5 pb-4">
-            <h2 class="text-base font-bold tracking-[-0.02em] text-highlighted mb-4">
+            <h2 class="text-base font-bold tracking-heading text-highlighted mb-4">
               {{ isEdit ? 'Edit Skill' : 'New Skill' }}
             </h2>
 
             <div class="flex flex-col gap-3.5">
               <!-- Name -->
               <div>
-                <label class="block text-xs font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
+                <label class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5">
                   Name
                 </label>
                 <input
                   v-model="modalName"
                   type="text"
                   placeholder="e.g. Generate Description"
-                  class="w-full px-3 py-2 text-base text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-accented rounded-lg outline-none focus:border-primary transition-colors"
+                  class="w-full px-3 py-2 text-base text-default placeholder:text-dimmed bg-default border border-accented rounded-lg outline-none focus:border-primary transition-colors"
                 >
               </div>
 
               <!-- Scope -->
               <div>
-                <label class="block text-xs font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
+                <label class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5">
                   Scope
                 </label>
                 <div class="flex gap-2">
@@ -237,14 +237,14 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
 
               <!-- Prompt -->
               <div>
-                <label class="block text-xs font-semibold uppercase tracking-[0.04em] text-dimmed mb-1.5">
+                <label class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5">
                   Prompt Template
                 </label>
                 <textarea
                   v-model="modalPrompt"
                   rows="6"
                   placeholder="Write a prompt template..."
-                  class="w-full px-3 py-2 text-sm font-mono text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border border-accented rounded-lg outline-none focus:border-primary transition-colors resize-y leading-relaxed"
+                  class="w-full px-3 py-2 text-sm font-mono text-default placeholder:text-dimmed bg-default border border-accented rounded-lg outline-none focus:border-primary transition-colors resize-y leading-relaxed"
                 />
                 <p class="text-xs text-dimmed mt-1">
                   Variables: <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{title}</code>
@@ -299,7 +299,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
                 />
               </div>
               <div>
-                <h2 class="text-base font-bold tracking-[-0.02em] text-highlighted">
+                <h2 class="text-base font-bold tracking-heading text-highlighted">
                   Delete Skill
                 </h2>
                 <p class="text-sm text-muted">
@@ -322,24 +322,14 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
             >
               Cancel
             </button>
-            <button
-              type="button"
-              class="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 active:bg-red-700 shadow-sm shadow-red-500/20 hover:shadow-md hover:shadow-red-500/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            <UButton
+              color="error"
+              icon="i-lucide-trash-2"
+              label="Delete"
+              :loading="deleting"
               :disabled="deleting"
               @click="confirmDelete"
-            >
-              <UIcon
-                v-if="!deleting"
-                name="i-lucide-trash-2"
-                class="text-base"
-              />
-              <UIcon
-                v-else
-                name="i-lucide-loader-2"
-                class="text-base animate-spin"
-              />
-              Delete
-            </button>
+            />
           </div>
         </div>
       </template>

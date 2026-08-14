@@ -132,7 +132,7 @@ const countLabel = computed(() =>
         :done="isDone"
       />
       <h3
-        class="font-bold text-sm tracking-[-0.01em] truncate"
+        class="font-bold text-sm tracking-name truncate"
         :class="isDone ? 'text-success' : 'text-toned'"
       >
         {{ column.name }}

@@ -35,7 +35,7 @@ async function setupAccount() {
 <template>
   <div class="auth-glass">
     <div class="px-7 pt-7 pb-2">
-      <h2 class="text-base font-bold text-center tracking-[-0.02em]">
+      <h2 class="text-base font-bold text-center tracking-heading">
         Set up your account
       </h2>
       <p class="text-sm text-center text-muted mt-1">

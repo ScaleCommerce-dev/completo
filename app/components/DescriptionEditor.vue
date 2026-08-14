@@ -393,7 +393,7 @@ defineExpose({
           <div class="p-2">
             <!-- Card Attachments -->
             <template v-if="imageAttachments.length > 0">
-              <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-[0.06em] text-dimmed">
+              <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-label text-dimmed">
                 Card Attachments
               </div>
               <div class="grid grid-cols-3 gap-1.5 mb-2">
@@ -416,7 +416,7 @@ defineExpose({
             </template>
 
             <!-- External URL -->
-            <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-[0.06em] text-dimmed">
+            <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-label text-dimmed">
               External URL
             </div>
             <div class="flex items-center gap-1.5">
@@ -424,7 +424,7 @@ defineExpose({
                 v-model="imageUrlInput"
                 type="text"
                 placeholder="https://..."
-                class="flex-1 text-sm text-default placeholder-zinc-400 dark:placeholder-zinc-500 bg-muted border border-accented rounded-md px-2 py-1.5 outline-none focus:border-primary transition-colors"
+                class="flex-1 text-sm text-default placeholder:text-dimmed bg-muted border border-accented rounded-md px-2 py-1.5 outline-none focus:border-primary transition-colors"
                 @keydown.enter.prevent="insertUrlImage"
                 @keydown.escape.prevent="closeImagePicker"
               >
@@ -474,7 +474,7 @@ defineExpose({
         <button
           ref="aiKeepBtn"
           type="button"
-          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-emerald-600 bg-success/10 ring-1 ring-emerald-200 dark:ring-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 transition-colors"
+          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-success bg-success/10 ring-1 ring-success/30 hover:bg-success/20 transition-colors"
           @mousedown.prevent
           @click="aiAccept"
         >
@@ -519,7 +519,7 @@ defineExpose({
     <template #after-textarea>
       <div
         v-if="mentionActive"
-        class="absolute top-1 left-2 right-2 z-20 rounded-lg border border-default bg-default shadow-lg overflow-hidden"
+        class="absolute top-1 left-2 right-2 z-20 rounded-lg border border-default bg-default shadow-float overflow-hidden"
       >
         <div class="relative border-b border-default">
           <UIcon
@@ -530,13 +530,13 @@ defineExpose({
             ref="mentionSearchInput"
             v-model="mentionSearchQuery"
             placeholder="Search members or cards..."
-            class="w-full pl-8 pr-3 py-2.5 text-sm text-default placeholder-zinc-400 dark:placeholder-zinc-500 bg-transparent border-0 outline-none"
+            class="w-full pl-8 pr-3 py-2.5 text-sm text-default placeholder:text-dimmed bg-transparent border-0 outline-none"
             @keydown="onMentionKeydown"
           >
         </div>
         <div class="max-h-[240px] overflow-y-auto">
           <div v-if="mentionUserResults.length > 0">
-            <div class="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-[0.06em] text-dimmed">
+            <div class="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-label text-dimmed">
               Members
             </div>
             <button
@@ -550,7 +550,7 @@ defineExpose({
               @mousedown.prevent
               @click="selectMention({ ...user, _type: 'user' })"
             >
-              <UAvatar
+              <UiAvatar
                 :alt="user.name"
                 size="2xs"
               />
@@ -559,7 +559,7 @@ defineExpose({
             </button>
           </div>
           <div v-if="mentionCardResults.length > 0">
-            <div class="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-[0.06em] text-dimmed">
+            <div class="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-label text-dimmed">
               Cards
             </div>
             <button

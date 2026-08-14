@@ -52,7 +52,7 @@ function onHexBlur() {
         class="rounded-full ring-1 ring-black/10 dark:ring-white/10 hover:scale-125 transition-transform"
         :class="[
           size === 'md' ? 'w-6 h-6' : 'w-5 h-5',
-          modelValue === c ? (size === 'md' ? 'ring-2 ring-offset-1 ring-offset-white dark:ring-offset-zinc-800 ring-primary' : 'ring-2 ring-primary') : ''
+          modelValue === c ? (size === 'md' ? 'ring-2 ring-offset-1 ring-offset-bg ring-primary' : 'ring-2 ring-primary') : ''
         ]"
         :style="{ backgroundColor: c }"
         @click="pickColor(c)"
@@ -68,7 +68,7 @@ function onHexBlur() {
         type="text"
         placeholder="#000000"
         maxlength="7"
-        class="flex-1 min-w-0 text-xs font-mono text-default placeholder-zinc-300 dark:placeholder-zinc-600 bg-muted border border-default rounded-md px-2 py-1 outline-none focus:border-primary transition-colors"
+        class="flex-1 min-w-0 text-xs font-mono text-default placeholder:text-dimmed bg-muted border border-default rounded-md px-2 py-1 outline-none focus:border-primary transition-colors"
         @input="onHexInput"
         @blur="onHexBlur"
         @keydown.enter.prevent="onHexBlur"

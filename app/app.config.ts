@@ -20,7 +20,27 @@ export default defineAppConfig({
       // AI review bar). It was already being used for exactly that, hardcoded in
       // four files; naming it means those surfaces stay in step with each other.
       secondary: 'violet',
-      neutral: 'zinc'
+      neutral: 'zinc',
+      // All six roles are named, not just the ones whose default was wrong.
+      // Nuxt UI defaults `success` to green and `warning` to yellow, while every
+      // success surface in the app was hand-written emerald and every warning
+      // surface amber — the indigo-vs-blue seam one family out, and it was
+      // already visible inside single class strings: `StatusManager` drew a
+      // `bg-emerald-50` fill inside a `ring-success/30` ring, two greens 13 hue
+      // degrees apart in the same rounded rectangle. There is no `green-*` or
+      // `yellow-*` utility anywhere in `app/`, so the markup's own choice names
+      // those two unambiguously.
+      //
+      // `error` and `info` restate their defaults on purpose. A role the
+      // templates paint with but this file does not name is a role whose family
+      // lives in Nuxt UI's defaults rather than here, which is precisely how the
+      // green/yellow mismatch stayed invisible; `design-tokens.test.ts` reads the
+      // roles out of the templates and requires every one of them to appear
+      // below, so the brand is legible in one place.
+      success: 'emerald',
+      warning: 'amber',
+      error: 'red',
+      info: 'blue'
     },
 
     // Buttons carry the app's shape language: 10px corners, semibold labels.
@@ -61,7 +81,7 @@ export default defineAppConfig({
       slots: {
         content: 'rounded-xl',
         header: 'px-5 py-4 min-h-0 gap-3',
-        title: 'text-base font-bold tracking-[-0.02em] text-highlighted',
+        title: 'text-base font-bold tracking-heading text-highlighted',
         description: 'text-sm text-muted mt-0.5',
         body: 'px-5 py-4',
         footer: 'px-5 py-4 justify-end gap-2'
@@ -97,7 +117,7 @@ export default defineAppConfig({
 
     formField: {
       slots: {
-        label: 'text-xs font-semibold uppercase tracking-[0.06em] text-dimmed',
+        label: 'text-xs font-semibold uppercase tracking-label text-dimmed',
         error: 'text-xs mt-1',
         help: 'text-xs mt-1'
       }

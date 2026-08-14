@@ -25,7 +25,7 @@ onUnmounted(() => {
         />
         <span
           v-if="unreadCount > 0"
-          class="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-primary text-white text-2xs font-bold leading-none px-0.5 shadow-sm shadow-indigo-500/30 ring-1.5 ring-[var(--ui-bg)]"
+          class="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-primary text-white text-2xs font-bold leading-none px-0.5 shadow-raise ring-1.5 ring-bg"
         >
           {{ unreadCount > 99 ? '99+' : unreadCount }}
         </span>

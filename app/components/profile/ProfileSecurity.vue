@@ -26,12 +26,12 @@ async function signOut() {
 
 <template>
   <form
-    class="mt-6 rounded-xl border border-default bg-default shadow-sm overflow-hidden"
+    class="mt-6 rounded-xl border border-default bg-default shadow-raise overflow-hidden"
     @submit.prevent="changePassword"
     @keydown="handlePasswordKeydown"
   >
     <div class="px-5 pt-4 pb-2">
-      <span class="text-xs font-semibold uppercase tracking-[0.08em] text-dimmed">Security</span>
+      <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Security</span>
     </div>
 
     <div class="mx-5 mt-2 rounded-lg border border-default divide-y divide-default overflow-hidden">
@@ -49,7 +49,7 @@ async function signOut() {
           type="password"
           placeholder="Current password"
           autocomplete="current-password"
-          class="flex-1 text-base text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
+          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0!"
         >
       </div>
 
@@ -67,7 +67,7 @@ async function signOut() {
           type="password"
           placeholder="New password (min 6 chars)"
           autocomplete="new-password"
-          class="flex-1 text-base text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
+          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0!"
         >
       </div>
 
@@ -85,7 +85,7 @@ async function signOut() {
           type="password"
           placeholder="Confirm new password"
           autocomplete="new-password"
-          class="flex-1 text-base text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
+          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0!"
         >
       </div>
     </div>
@@ -117,19 +117,19 @@ async function signOut() {
       <div class="flex items-center gap-1.5">
         <span
           v-if="newPassword && newPassword.length < 6"
-          class="text-xs font-medium text-warning dark:text-amber-400"
+          class="text-xs font-medium text-warning"
         >
           Min 6 characters
         </span>
         <span
           v-else-if="newPassword && confirmPassword && newPassword !== confirmPassword"
-          class="text-xs font-medium text-warning dark:text-amber-400"
+          class="text-xs font-medium text-warning"
         >
           Passwords don't match
         </span>
         <span
           v-else-if="newPassword && confirmPassword && newPassword === confirmPassword && newPassword.length >= 6"
-          class="flex items-center gap-1 text-xs font-medium text-success dark:text-emerald-400"
+          class="flex items-center gap-1 text-xs font-medium text-success"
         >
           <UIcon
             name="i-lucide-check"

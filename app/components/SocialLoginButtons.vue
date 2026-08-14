@@ -110,9 +110,9 @@ const hasProviders = computed(() => enabledProviders.value.length > 0)
       class="auth-field flex items-center gap-3 my-1"
       :style="{ animationDelay: `${enabledProviders.length * 0.05}s` }"
     >
-      <div class="flex-1 h-px bg-accented/60 dark:bg-gradient-to-r dark:from-transparent dark:via-zinc-600/40 dark:to-transparent" />
-      <span class="text-xs font-medium uppercase tracking-[0.08em] text-dimmed">or</span>
-      <div class="flex-1 h-px bg-accented/60 dark:bg-gradient-to-r dark:from-transparent dark:via-zinc-600/40 dark:to-transparent" />
+      <div class="flex-1 h-px bg-accented/60 dark:bg-gradient-to-r dark:from-transparent dark:via-border dark:to-transparent" />
+      <span class="text-xs font-medium uppercase tracking-label text-dimmed">or</span>
+      <div class="flex-1 h-px bg-accented/60 dark:bg-gradient-to-r dark:from-transparent dark:via-border dark:to-transparent" />
     </div>
   </div>
 </template>

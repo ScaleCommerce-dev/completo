@@ -106,7 +106,7 @@ const viewOptions = computed<FieldMenuOption[]>(() => [
           <UTooltip text="Switch view">
             <button
               type="button"
-              class="group/name flex items-center gap-1.5 font-bold tracking-[-0.01em] text-highlighted cursor-pointer hover:text-primary transition-colors min-w-0"
+              class="group/name flex items-center gap-1.5 font-bold tracking-name text-highlighted cursor-pointer hover:text-primary transition-colors min-w-0"
               :aria-label="`Switch view — currently ${viewName}`"
             >
               <UIcon

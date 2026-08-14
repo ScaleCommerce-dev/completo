@@ -145,7 +145,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
 
 <template>
   <div
-    class="rounded-lg border border-default"
+    class="rounded-lg border border-default transition-colors focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/30"
     :class="overlayOpen ? 'overflow-visible' : 'overflow-hidden'"
   >
     <!-- Tabs -->
@@ -296,7 +296,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
         ref="textareaEl"
         v-model="modelValue"
         :placeholder="placeholder"
-        class="w-full text-base text-toned placeholder-zinc-300 dark:placeholder-zinc-600 bg-default border-0 px-4 py-3 outline-none transition-colors resize-y leading-[1.7]"
+        class="w-full text-base text-toned placeholder:text-dimmed bg-default border-0 px-4 py-3 outline-none transition-colors resize-y leading-[1.7]"
         :style="{ minHeight: `${minHeight}px`, ...(maxHeight != null ? { maxHeight: `${maxHeight}px` } : {}) }"
         @keydown="onKeydown"
         @input="emit('textarea-input', $event)"

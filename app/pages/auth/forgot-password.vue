@@ -30,13 +30,13 @@ async function requestReset() {
     class="auth-glass"
   >
     <div class="px-7 py-7 flex flex-col items-center gap-4 text-center">
-      <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+      <div class="w-12 h-12 rounded-full bg-success/15 flex items-center justify-center">
         <UIcon
           name="i-lucide-mail-check"
           class="text-success text-xl"
         />
       </div>
-      <h2 class="text-base font-bold tracking-[-0.02em]">
+      <h2 class="text-base font-bold tracking-heading">
         Check your email
       </h2>
       <p class="text-sm text-muted">
@@ -61,7 +61,7 @@ async function requestReset() {
     class="auth-glass"
   >
     <div class="px-7 pt-7 pb-2">
-      <h2 class="text-base font-bold text-center tracking-[-0.02em]">
+      <h2 class="text-base font-bold text-center tracking-heading">
         Reset your password
       </h2>
       <p class="text-sm text-center text-muted mt-1">

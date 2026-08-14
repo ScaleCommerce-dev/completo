@@ -66,7 +66,7 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
               class="text-2xs text-dimmed"
             />
           </div>
-          <span class="text-base font-bold tracking-[-0.01em] text-default">
+          <span class="text-base font-bold tracking-name text-default">
             {{ group.project.name }}
           </span>
           <span class="text-xs font-mono text-dimmed tabular-nums">

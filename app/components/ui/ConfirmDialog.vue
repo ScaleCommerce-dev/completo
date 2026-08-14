@@ -74,7 +74,7 @@ function confirm() {
     >
       <UFormField :label="`Type the ${confirmLabel || 'name'} to confirm`">
         <template #label>
-          <span class="text-xs font-semibold uppercase tracking-[0.06em] text-dimmed">
+          <span class="text-xs font-semibold uppercase tracking-label text-dimmed">
             Type <span class="text-default normal-case tracking-normal font-bold">{{ confirmText }}</span> to confirm
           </span>
         </template>

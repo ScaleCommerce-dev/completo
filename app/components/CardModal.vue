@@ -656,7 +656,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         </div>
         <span
           v-else
-          class="text-2xs font-semibold uppercase tracking-[0.08em] text-dimmed"
+          class="text-2xs font-semibold uppercase tracking-label text-dimmed"
         >New card</span>
 
         <div class="ml-auto flex items-center gap-0.5 shrink-0">
@@ -770,7 +770,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         rows="1"
         :aria-label="isEdit ? 'Card title' : 'New card title'"
         placeholder="Card title..."
-        class="w-full mt-1.5 text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-1.5 transition-colors resize-none overflow-hidden"
+        class="w-full mt-1.5 text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-name leading-snug py-1.5 transition-colors resize-none overflow-hidden"
         @input="resizeTitle"
         @blur="flushTitle"
         @keydown.enter.prevent="isEdit ? flushTitle() : submit()"

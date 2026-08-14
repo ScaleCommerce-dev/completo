@@ -297,7 +297,7 @@ watch(() => props.columns.length, () => nextTick(updateFade))
             <component
               :is="SORTABLE_FIELDS.has(col.field) ? 'button' : 'span'"
               :type="SORTABLE_FIELDS.has(col.field) ? 'button' : undefined"
-              class="inline-flex items-center gap-1 rounded-md text-xs font-bold uppercase tracking-[0.08em]"
+              class="inline-flex items-center gap-1 rounded-md text-xs font-bold uppercase tracking-label"
               :class="[
                 col.field === 'done' ? 'flex justify-center w-full min-h-[1lh] translate-y-px' : '',
                 SORTABLE_FIELDS.has(col.field)

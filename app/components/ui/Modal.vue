@@ -89,7 +89,7 @@ const ui = computed(() => ({
           />
         </div>
         <div class="min-w-0 flex-1">
-          <h2 class="text-base font-bold tracking-[-0.02em] text-highlighted">
+          <h2 class="text-base font-bold tracking-heading text-highlighted">
             {{ title }}
           </h2>
           <p

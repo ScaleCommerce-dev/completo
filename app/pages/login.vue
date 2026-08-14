@@ -72,7 +72,7 @@ async function resendVerification() {
 <template>
   <div class="auth-glass">
     <div class="px-7 pt-7 pb-2">
-      <h2 class="text-base font-bold text-center tracking-[-0.02em]">
+      <h2 class="text-base font-bold text-center tracking-heading">
         Sign in to your account
       </h2>
     </div>

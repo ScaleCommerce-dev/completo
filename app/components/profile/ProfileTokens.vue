@@ -18,13 +18,13 @@ const {
 </script>
 
 <template>
-  <div class="mt-6 rounded-xl border border-default bg-default shadow-sm overflow-hidden">
+  <div class="mt-6 rounded-xl border border-default bg-default shadow-raise overflow-hidden">
     <div class="px-5 pt-4 pb-2 flex items-center gap-2">
       <UIcon
         name="i-lucide-key-round"
         class="text-base text-dimmed"
       />
-      <span class="text-xs font-semibold uppercase tracking-[0.08em] text-dimmed">API Tokens</span>
+      <span class="text-xs font-semibold uppercase tracking-label text-dimmed">API Tokens</span>
     </div>
 
     <div class="px-5 pb-3">
@@ -41,7 +41,7 @@ const {
           type="text"
           placeholder="Token name (e.g. CI Pipeline)"
           maxlength="100"
-          class="flex-1 text-base text-highlighted placeholder-zinc-300 dark:placeholder-zinc-600 bg-transparent border-0 outline-none! ring-0!"
+          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0!"
           @keydown.enter.prevent="createToken"
         >
         <select
@@ -78,7 +78,7 @@ const {
     <!-- Created token banner (one-time display) -->
     <div
       v-if="createdToken"
-      class="mx-5 mt-3 rounded-lg border border-success/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-3"
+      class="mx-5 mt-3 rounded-lg border border-success/30 bg-success/5 p-3"
     >
       <div class="flex items-center gap-2 mb-2">
         <UIcon
