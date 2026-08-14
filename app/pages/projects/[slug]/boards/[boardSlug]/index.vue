@@ -158,7 +158,8 @@ const cardNav = computed(() => {
     hasPrev: probe('up'),
     hasNext: probe('down'),
     hasPrevColumn: probe('left'),
-    hasNextColumn: probe('right')
+    hasNextColumn: probe('right'),
+    position: columnPosition(filteredCardsByColumn.value, current.statusId, current.id)
   }
 })
 

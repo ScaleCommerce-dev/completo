@@ -60,6 +60,24 @@ export function nextCard(opts: {
 }
 
 /**
+ * Where the open card sits in its column — the "2/7" on the panel's walker.
+ *
+ * Counted over the same filtered ordering the chevrons walk, so the readout
+ * agrees with what stepping actually does. Null when the card isn't in the
+ * visible set — a filter can hide the open card — which hides the readout
+ * rather than naming a position in a list the user can't see.
+ */
+export function columnPosition(
+  cardsByColumn: Readonly<Record<string, ReadonlyArray<{ id: number }>>>,
+  columnId: string,
+  cardId: number
+): { index: number, count: number } | null {
+  const cards = cardsByColumn[columnId] ?? []
+  const at = cards.findIndex(c => c.id === cardId)
+  return at === -1 ? null : { index: at + 1, count: cards.length }
+}
+
+/**
  * Whether the arrow keys belong to something else on screen.
  *
  * They almost always do: a caret in the title, description or comment box moves

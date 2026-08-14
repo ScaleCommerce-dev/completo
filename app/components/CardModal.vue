@@ -22,6 +22,8 @@ const props = defineProps<{
     hasNext: boolean
     hasPrevColumn: boolean
     hasNextColumn: boolean
+    /** Where this card sits in its (filtered) column — the walker's "2/7". */
+    position?: { index: number, count: number } | null
   }
   onEnsureCard?: (data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) => Promise<number>
 }>()
@@ -421,12 +423,16 @@ function submit() {
  * column* — both real operations here, so a real arrow would name the wrong one.
  * A chevron says "there is more this way" without claiming to move anything. The
  * literal keys still appear in the tooltips, where they mean the keyboard.
+ *
+ * `before` is what the tray draws ahead of each control: a hairline rule between
+ * the two axes, and the position readout inside the vertical pair — so the
+ * number sits between the chevrons that change it, the way a pager reads.
  */
 const NAV_CONTROLS = [
-  { dir: 'prevColumn', flag: 'hasPrevColumn', icon: 'i-lucide-chevron-left', tip: 'Previous column', kbd: 'arrowleft', aria: 'First card of the previous column' },
-  { dir: 'prev', flag: 'hasPrev', icon: 'i-lucide-chevron-up', tip: 'Previous card', kbd: 'arrowup', aria: 'Previous card in this column' },
-  { dir: 'next', flag: 'hasNext', icon: 'i-lucide-chevron-down', tip: 'Next card', kbd: 'arrowdown', aria: 'Next card in this column' },
-  { dir: 'nextColumn', flag: 'hasNextColumn', icon: 'i-lucide-chevron-right', tip: 'Next column', kbd: 'arrowright', aria: 'First card of the next column' }
+  { dir: 'prevColumn', flag: 'hasPrevColumn', icon: 'i-lucide-chevron-left', tip: 'Previous column', kbd: 'arrowleft', aria: 'First card of the previous column', before: null },
+  { dir: 'prev', flag: 'hasPrev', icon: 'i-lucide-chevron-up', tip: 'Previous card', kbd: 'arrowup', aria: 'Previous card in this column', before: 'rule' },
+  { dir: 'next', flag: 'hasNext', icon: 'i-lucide-chevron-down', tip: 'Next card', kbd: 'arrowdown', aria: 'Next card in this column', before: 'count' },
+  { dir: 'nextColumn', flag: 'hasNextColumn', icon: 'i-lucide-chevron-right', tip: 'Next column', kbd: 'arrowright', aria: 'First card of the next column', before: 'rule' }
 ] as const
 
 const cardMenuItems = computed(() => [[{
@@ -571,12 +577,15 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
   >
     <template #header>
       <!--
-        Two rows, because they are two different things and sharing one made both
-        worse. The top row is *panel* chrome — move through the board, open this
-        card as a page, act on it, leave. The row under it is the card's own
-        identity. They used to run together as one line of icon buttons, which is
-        why close read as a fourth item in a row of four rather than as the way
-        out, and why six controls plus an author name fought for 358px on a phone.
+        One line: whose card this is on the left, everything you can do to the
+        panel on the right. It was briefly two rows — a chrome row of controls
+        floating over the identity row — which balanced nothing: the walker hung
+        top-left where "back" lives, the identity sat cramped beneath a bordered
+        control, and the middle of the row was dead space. Identity-left /
+        controls-right is the composition the rest of the app already uses for a
+        header, and what makes it fit where six loose buttons once fought an
+        author name for 358px is containment: the walker is one bordered tray,
+        not four buttons, and the author's name truncates rather than competing.
 
         `outline-none!` with the bang, which is why the title fields below carry
         one too: the app's focus ring is an *unlayered* `:focus-visible` rule in
@@ -587,58 +596,117 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
       <div
         ref="panelTop"
         tabindex="-1"
-        class="flex items-center gap-0.5 min-w-0 h-7 -mx-1.5 outline-none!"
+        class="flex items-center gap-2.5 min-w-0 h-7 -mr-1.5 outline-none!"
       >
-        <!-- Walking the board, for the hand already on the mouse. The arrow keys
-             do this too, but the app is pointer-first by decision, so a
-             keyboard-only affordance would hand the feature to the minority and
-             hide it from everyone else. The tooltips carry the keys, so the
-             visible control and the invisible one arrive together.
+        <!-- Identity: the card's immutable facts. The editable properties sit
+             below; keeping authorship here rather than as a sixth chip among
+             them avoids dressing a read-only field as a dropdown.
 
-             All four directions: a card panel gives no hint that columns can be
-             stepped through, and arrow keys in list-shaped apps are usually
-             vertical only, so nothing would have carried the horizontal half.
-
-             Only where a host offers navigation — a list view opens this same
-             panel with no column to walk. -->
-        <template v-if="nav">
-          <!-- Custom content rather than `:kbds`, because that prop takes only
-               UKbd *props* and these keys have to be drawn as icons — see
-               UiKey. The slot hands back Nuxt UI's own `ui`, so the text and
-               key styling stay the component's rather than a copy of it. -->
-          <UTooltip
-            v-for="control in NAV_CONTROLS"
-            :key="control.dir"
-            :text="control.tip"
+             `items-baseline`, not the row's centring: the pill is JetBrains
+             Mono and the byline is Jakarta Sans, and the two fonts carry
+             different vertical metrics — centring their *boxes* leaves the
+             ticket number sitting a pixel above the words beside it. Sharing a
+             baseline is what makes them read as one line of text. -->
+        <div
+          v-if="isEdit"
+          class="flex items-baseline gap-2.5 min-w-0"
+        >
+          <TicketIdCopy
+            :project-key="projectKey"
+            :project-slug="projectSlug"
+            :card-id="card!.id"
+            variant="pill"
+          />
+          <!-- "by" earns its place: a bare name beside the ticket ID reads as
+               the assignee, which this panel also has a field for. -->
+          <span
+            v-if="card!.creator"
+            class="flex items-baseline gap-1 min-w-0 text-xs font-medium"
           >
-            <template #content="{ ui }">
-              <span :class="ui.text()">{{ control.tip }}</span>
-              <span :class="ui.kbds()">
-                <UiKey
-                  :value="control.kbd"
-                />
-              </span>
-            </template>
-            <UButton
-              :icon="control.icon"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              :aria-label="control.aria"
-              :disabled="!nav[control.flag]"
-              @click="emit('navigate', control.dir)"
-            />
-          </UTooltip>
-        </template>
+            <span class="text-dimmed shrink-0">by</span>
+            <span class="text-muted truncate">{{ card!.creator.name }}</span>
+          </span>
+        </div>
+        <span
+          v-else
+          class="text-2xs font-semibold uppercase tracking-[0.08em] text-dimmed"
+        >New card</span>
 
         <div class="ml-auto flex items-center gap-0.5 shrink-0">
+          <!-- Walking the board, for the hand already on the mouse. The arrow
+               keys do this too, but the app is pointer-first by decision, so a
+               keyboard-only affordance would hand the feature to the minority
+               and hide it from everyone else. The tooltips carry the keys, so
+               the visible control and the invisible one arrive together.
+
+               All four directions: a card panel gives no hint that columns can
+               be stepped through, and arrow keys in list-shaped apps are
+               usually vertical only, so nothing would have carried the
+               horizontal half.
+
+               One recessed tray rather than four loose buttons: the walker is a
+               single instrument, and rendered as separate ghost icons its
+               leading chevron read as a "back" control. The hairline rules
+               split its two axes, and the readout between ˄ and ˅ is where you
+               are in the column — counted over the filtered ordering the
+               chevrons walk.
+
+               Only where a host offers navigation — a list view opens this same
+               panel with no column to walk. -->
+          <div
+            v-if="nav"
+            class="flex items-center rounded-md border border-default bg-muted/50 mr-1.5"
+          >
+            <!-- Custom content rather than `:kbds`, because that prop takes only
+                 UKbd *props* and these keys have to be drawn as icons — see
+                 UiKey. The slot hands back Nuxt UI's own `ui`, so the text and
+                 key styling stay the component's rather than a copy of it. -->
+            <template
+              v-for="control in NAV_CONTROLS"
+              :key="control.dir"
+            >
+              <div
+                v-if="control.before === 'rule'"
+                class="w-px h-3.5 bg-accented"
+                aria-hidden="true"
+              />
+              <span
+                v-else-if="control.before === 'count' && nav.position"
+                class="px-1 font-mono tabular-nums text-2xs text-muted select-none"
+                :aria-label="`Card ${nav.position.index} of ${nav.position.count} in this column`"
+              >{{ nav.position.index }}/{{ nav.position.count }}</span>
+              <UTooltip :text="control.tip">
+                <template #content="{ ui }">
+                  <span :class="ui.text()">{{ control.tip }}</span>
+                  <span :class="ui.kbds()">
+                    <UiKey
+                      :value="control.kbd"
+                    />
+                  </span>
+                </template>
+                <UButton
+                  :icon="control.icon"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  :aria-label="control.aria"
+                  :disabled="!nav[control.flag]"
+                  @click="emit('navigate', control.dir)"
+                />
+              </UTooltip>
+            </template>
+          </div>
+
+          <!-- Same glyph and words as the corner of every board card and list
+               row — it is the same action, and two glyphs for one action makes
+               a reader wonder what the difference is. -->
           <UTooltip
             v-if="isEdit && projectSlug"
-            text="Open as a full page"
+            text="Open full page"
           >
             <UButton
               :to="`/projects/${projectSlug}/cards/${formatTicketId(projectKey, card!.id)}`"
-              icon="i-lucide-expand"
+              icon="i-lucide-maximize-2"
               color="neutral"
               variant="ghost"
               size="sm"
@@ -684,33 +752,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         </div>
       </div>
 
-      <!-- Identity: the card's immutable facts. The editable properties sit
-           below; keeping authorship here rather than as a sixth chip among them
-           avoids dressing a read-only field as a dropdown. -->
-      <div class="flex items-center gap-2.5 min-w-0 mt-0.5">
-        <template v-if="isEdit">
-          <TicketIdCopy
-            :project-key="projectKey"
-            :project-slug="projectSlug"
-            :card-id="card!.id"
-            variant="pill"
-          />
-          <!-- "by" earns its place: a bare name beside the ticket ID reads as
-               the assignee, which this panel also has a field for. -->
-          <span
-            v-if="card!.creator"
-            class="flex items-baseline gap-1 min-w-0 text-xs font-medium"
-          >
-            <span class="text-dimmed shrink-0">by</span>
-            <span class="text-muted truncate">{{ card!.creator.name }}</span>
-          </span>
-        </template>
-        <span
-          v-else
-          class="text-2xs font-semibold uppercase tracking-[0.08em] text-dimmed"
-        >New card</span>
-      </div>
-
       <!-- Title. Blur commits immediately rather than waiting out the debounce;
            leaving the field is an unambiguous "done typing". On a new card Enter is
            the whole create flow — type a name, press Enter, keep going. -->
@@ -720,7 +761,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         rows="1"
         :aria-label="isEdit ? 'Card title' : 'New card title'"
         placeholder="Card title..."
-        class="w-full mt-1 text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-1.5 transition-colors resize-none overflow-hidden"
+        class="w-full mt-1.5 text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-[-0.01em] leading-snug py-1.5 transition-colors resize-none overflow-hidden"
         @input="resizeTitle"
         @blur="flushTitle"
         @keydown.enter.prevent="isEdit ? flushTitle() : submit()"

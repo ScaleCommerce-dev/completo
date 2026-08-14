@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { nextCard, arrowKeysAreClaimed } from '../../app/utils/board-nav'
+import { nextCard, arrowKeysAreClaimed, columnPosition } from '../../app/utils/board-nav'
 
 const ROOT = join(import.meta.dirname, '../..')
 const read = (p: string) => readFileSync(join(ROOT, p), 'utf8')
@@ -80,6 +80,24 @@ describe('crossing to another column', () => {
 
     expect(back).toEqual({ cardId: 1, columnId: 'backlog' })
     expect(back!.cardId).not.toBe(3)
+  })
+})
+
+/**
+ * The walker's readout. It counts the same filtered ordering the chevrons walk,
+ * so what it says agrees with what stepping does.
+ */
+describe('the position readout', () => {
+  it('is one-based, over the visible column', () => {
+    expect(columnPosition(CARDS, 'backlog', 2)).toEqual({ index: 2, count: 3 })
+    expect(columnPosition(CARDS, 'review', 20)).toEqual({ index: 1, count: 1 })
+  })
+
+  it('is null when the open card is not in the visible set', () => {
+    // A filter can hide the card the panel is showing; a readout would then
+    // name a position in a list the user cannot see.
+    expect(columnPosition(CARDS, 'backlog', 999)).toBeNull()
+    expect(columnPosition(CARDS, 'missing-column', 1)).toBeNull()
   })
 })
 
