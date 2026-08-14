@@ -22,12 +22,29 @@ const BOARD = { boardLeft: 269, gutter: 16, columnWidth: 304 }
 const COLUMN_AT = { backlog: 16, todo: 332, inProgress: 648, review: 964, done: 1280 }
 const SCROLL = { scrollWidth: 1916, clientWidth: 1147 } // maxScrollLeft = 769
 
+const MODAL = readFileSync(join(ROOT, 'app/components/CardModal.vue'), 'utf8')
+const PROSE = readFileSync(join(ROOT, 'app/components/ProseDescription.vue'), 'utf8')
+
+const tokens = (classList: string) => classList.split(/\s+/).filter(Boolean)
+
 /**
- * The panel's inset above `sm`, matching the 40px the board keeps between the
- * sidebar and its first column — the same gap that separates the two surfaces
- * either side of it.
+ * Every class list the panel declares: real `class` attributes, plus the strings
+ * it hands `USlideover`'s `ui` slots, which are class lists that do not look like
+ * one.
  */
-const PANEL_INSET = 40
+const PANEL_CLASS_LISTS = [
+  ...[...MODAL.matchAll(/class="([^"]*)"/g)].map(m => m[1]!),
+  ...[...MODAL.matchAll(/^\s*(?:content|header|body|footer): [`'](.*)$/gm)].map(m => m[1]!)
+]
+
+/**
+ * The panel's inset above `sm`, in Tailwind steps and in px — read off the class
+ * the header actually carries rather than restated here. It matches the 40px the
+ * board keeps between the sidebar and its first column, so the panel is inset by
+ * the same gap that separates the two surfaces either side of it.
+ */
+const PANEL_INSET_STEP = Number(MODAL.match(/header: '[^']*\bsm:px-(\d+)\b/)?.[1])
+const PANEL_INSET = PANEL_INSET_STEP * 4
 
 describe('cardPanelWidth', () => {
   it('takes everything the focused column does not need', () => {
@@ -113,14 +130,12 @@ describe('revealSpacer', () => {
  * the same number this module calls the minimum.
  */
 describe('the width the board publishes is the width the panel reads', () => {
-  const modal = readFileSync(join(ROOT, 'app/components/CardModal.vue'), 'utf8')
-
   it('reads the custom property', () => {
-    expect(modal).toContain('sm:max-w-[var(--card-panel-w,')
+    expect(MODAL).toContain('sm:max-w-[var(--card-panel-w,')
   })
 
   it('falls back to the minimum, for a list or My Tasks', () => {
-    expect(modal).toContain(`sm:max-w-[var(--card-panel-w,${CARD_PANEL_MIN_WIDTH}px)]`)
+    expect(MODAL).toContain(`sm:max-w-[var(--card-panel-w,${CARD_PANEL_MIN_WIDTH}px)]`)
   })
 })
 
@@ -134,33 +149,47 @@ describe('the width the board publishes is the width the panel reads', () => {
  * and the screen studies disagree with it.
  */
 describe('prose has a screen-reading ceiling', () => {
-  const prose = readFileSync(join(ROOT, 'app/components/ProseDescription.vue'), 'utf8')
+  /** The cap itself, so nothing below has to restate it. */
+  const MEASURE_REM = Number(PROSE.match(/max-width: var\(--prose-measure, ([\d.]+)rem\)/)?.[1])
 
   it('caps the text blocks', () => {
-    expect(prose).toMatch(/max-width: var\(--prose-measure, 52rem\)/)
+    expect(MEASURE_REM).toBeGreaterThan(0)
   })
 
   it('lets the things that have no measure use the full width', () => {
-    expect(prose).toMatch(/> pre[\s\S]{0,120}max-width: none/)
+    expect(PROSE).toMatch(/> pre[\s\S]{0,120}max-width: none/)
   })
 
   it('is inset by the same gap the board keeps beside it', () => {
     // Not the 24px it inherited when the panel was a fixed 620 and never grew
     // with it. Mobile keeps 16 — at 390 the panel is the screen.
-    const modal = readFileSync(join(ROOT, 'app/components/CardModal.vue'), 'utf8')
-    const tailwindInset = PANEL_INSET / 4
+    //
+    // Stated as one value shared by every region rather than as the header's whole
+    // class string plus a blocklist: the version this replaces pinned
+    // `header: 'block sm:px-10'` exactly, so adding a utility to the header broke
+    // it, and forbade two dead values (`sm:px-6`, `sm:mx-6`) while passing on
+    // `sm:px-8`.
+    const insets = PANEL_CLASS_LISTS.flatMap(list => tokens(list).filter(t => /^sm:[pm]x-\d+$/.test(t)))
 
-    expect(modal).toMatch(new RegExp(`header: 'block sm:px-${tailwindInset}'`))
-    expect(modal).toMatch(new RegExp(`px-4 sm:px-${tailwindInset}`))
-    expect(modal).not.toMatch(/sm:px-6|sm:mx-6/)
+    expect(PANEL_INSET_STEP).toBeGreaterThan(0)
+    // More than one region carries it — the header and the body's own sections —
+    // and every one of them carries the same step.
+    expect(insets.length).toBeGreaterThan(1)
+    expect(new Set(insets.map(t => t.replace(/^sm:[pm]x-/, '')))).toEqual(new Set([String(PANEL_INSET_STEP)]))
+    // And 16 below `sm`, on the section that holds the card's own body.
+    expect(PANEL_CLASS_LISTS.some(list => tokens(list).includes('px-4') && tokens(list).includes(`sm:px-${PANEL_INSET_STEP}`))).toBe(true)
   })
 
   it('never binds inside the card panel, at any width the panel takes', () => {
-    // 52rem = 832px, against 820px of text in the widest panel the cap allows.
-    // So prose fills the panel — the cap is there for the card *page*, whose
-    // main column runs past 1100px and would otherwise reach ~150 characters.
+    // The cap exists for the card *page*, whose main column runs past 1100px and
+    // would otherwise reach ~150 characters; inside the panel prose fills the width
+    // at every width the panel can take. Both sides come from source — the cap out
+    // of the stylesheet, the inset off the header — where this used to write the
+    // same 52rem twice, the second time as `52 * 16`, so neither copy could notice
+    // the CSS moving.
     const widestPanelText = CARD_PANEL_MAX_WIDTH - 2 * PANEL_INSET
 
-    expect(52 * 16).toBeGreaterThanOrEqual(widestPanelText)
+    // 16px to the rem, at the root size the app never changes.
+    expect(MEASURE_REM * 16).toBeGreaterThanOrEqual(widestPanelText)
   })
 })

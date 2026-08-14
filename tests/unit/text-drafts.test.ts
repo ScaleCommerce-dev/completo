@@ -31,17 +31,27 @@ describe('every editor persists its text', () => {
     ['CommentList', COMMENT_LIST, 2]
   ]
 
+  /**
+   * The names bound from `useTextDraft(...)`, so the calls below can be tied to the
+   * drafts themselves. `.load()` and `.clear()` on their own match any object at
+   * all — a `route.query`, a form ref — which is what these two assertions used to
+   * do.
+   */
+  const handles = (src: string) => [...src.matchAll(/const (\w+) = useTextDraft\(/g)].map(m => m[1]!)
+
   it.each(surfaces)('%s calls useTextDraft', (_name, src, count) => {
     expect(src.match(/useTextDraft\(/g) ?? []).toHaveLength(count)
+    // Every call is bound to a name, or nothing below can be attributed to it.
+    expect(handles(src)).toHaveLength(count)
   })
 
   it.each(surfaces)('%s restores its draft rather than only writing one', (_name, src) => {
     // A draft that is written and never read is a leak, not a safety net.
-    expect(src).toMatch(/\.load\(\)/)
+    for (const handle of handles(src)) expect(src, handle).toMatch(new RegExp(`\\b${handle}\\.load\\(\\)`))
   })
 
   it.each(surfaces)('%s clears the draft once the text has a home', (_name, src) => {
-    expect(src).toMatch(/\.clear\(\)/)
+    for (const handle of handles(src)) expect(src, handle).toMatch(new RegExp(`\\b${handle}\\.clear\\(\\)`))
   })
 })
 
@@ -79,7 +89,14 @@ describe('draft scopes', () => {
   it('treats text equal to the stored value as no draft at all', () => {
     // Without this the composable stores the description of every card merely
     // opened, and would then "restore" text nobody typed.
-    expect(DRAFT).toMatch(/baseline/)
+    //
+    // Comments stripped, and the comparison itself required: the JSDoc on the
+    // parameter carries the word, so `toMatch(/baseline/)` stayed green with the
+    // parameter and the comparison both deleted.
+    const code = DRAFT.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\w])\/\/[^\n]*/g, '$1')
+
+    expect(code).toMatch(/baseline/)
+    expect(code).toMatch(/toValue\(baseline\)/)
   })
 })
 

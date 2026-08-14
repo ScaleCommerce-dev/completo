@@ -157,14 +157,27 @@ describe('the panel offers the same walk to the mouse', () => {
   /** The `NAV_CONTROLS` declaration the four buttons are rendered from. */
   const controls = modal.slice(modal.indexOf('const NAV_CONTROLS'), modal.indexOf('] as const'))
 
+  /** The declaration parsed back into entries, so each can answer for itself. */
+  const entries = [...controls.matchAll(/\{([^}]*)\}/g)]
+    .map(m => Object.fromEntries([...m[1]!.matchAll(/(\w+): '([^']*)'/g)].map(f => [f[1]!, f[2]!])))
+
   it('declares a control for all four directions, named for screen readers', () => {
     // All four, not just the vertical pair: a card panel gives no hint that
     // columns can be stepped through, and arrow keys in list-shaped apps are
     // usually vertical only, so there is no analogy to carry the horizontal.
-    expect(controls).toContain('aria: \'Previous card in this column\'')
-    expect(controls).toContain('aria: \'Next card in this column\'')
-    expect(controls).toContain('aria: \'First card of the previous column\'')
-    expect(controls).toContain('aria: \'First card of the next column\'')
+    //
+    // The labels are checked for saying which way they go and for being distinct;
+    // the four sentences themselves are copy, and pinning them verbatim — which is
+    // what this did — made rewording one of them a test failure.
+    expect(entries.map(e => e.dir).sort()).toEqual(['next', 'nextColumn', 'prev', 'prevColumn'])
+
+    for (const control of entries) {
+      expect(control.aria, control.dir).toBeTruthy()
+      expect(control.aria!.toLowerCase(), control.dir).toContain(control.dir!.startsWith('prev') ? 'previous' : 'next')
+      if (control.dir!.endsWith('Column')) expect(control.aria!.toLowerCase(), control.dir).toContain('column')
+    }
+
+    expect(new Set(entries.map(e => e.aria)).size).toBe(entries.length)
   })
 
   it('teaches every shortcut from its tooltip', () => {
@@ -193,9 +206,14 @@ describe('the panel offers the same walk to the mouse', () => {
     // here, so an arrow would name the wrong one. A chevron says "there is more
     // this way" without claiming to move anything. The literal keys still show,
     // as UKbd inside the tooltips, where they mean the keyboard not the action.
-    for (const side of ['up', 'down', 'left', 'right']) {
-      expect(controls, side).toContain(`i-lucide-chevron-${side}`)
-      expect(modal, side).not.toContain(`i-lucide-arrow-${side}`)
+    //
+    // Asserted on each control's own icon, paired with the key it teaches. The ban
+    // this replaces ran over all of CardModal as a substring check, so it also
+    // forbade `i-lucide-arrow-up-right` — a glyph that means neither of the two
+    // operations the rule is about.
+    for (const control of entries) {
+      expect(control.icon, control.dir).toMatch(/^i-lucide-chevron-/)
+      expect(control.icon, control.dir).toBe(`i-lucide-chevron-${control.kbd!.replace('arrow', '')}`)
     }
   })
 

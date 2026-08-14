@@ -34,11 +34,19 @@ const SURFACES = [...vueFiles('app/components'), ...vueFiles('app/pages'), ...vu
  * fonts lack and leaves letters as letters.
  */
 describe('every keyboard key is drawn rather than typed', () => {
+  /**
+   * Prose explains *why* these glyphs are avoided, and it names them to do it, so
+   * every comment style has to go before the source is searched — including `//`
+   * line comments, which is where the rule ends up being written when it is written
+   * inside `<script setup>`. `[^:\w]` before the slashes keeps `https://` intact.
+   */
+  const code = (path: string) => readFileSync(join(ROOT, path), 'utf8')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:\w])\/\/[^\n]*/g, '$1')
+
   it.each(SURFACES)('%s does not render a raw key glyph', (path) => {
-    const src = readFileSync(join(ROOT, path), 'utf8')
-      // Prose in comments explains *why* these glyphs are avoided.
-      .replace(/<!--[\s\S]*?-->/g, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '')
+    const src = code(path)
 
     expect(src).not.toMatch(/[⌘↵⏎⌥⇧⎋]/)
     expect(src).not.toMatch(/&#(8984|8629|9166);|&#x(2318|21B5|23CE);/i)
@@ -46,9 +54,7 @@ describe('every keyboard key is drawn rather than typed', () => {
   })
 
   it.each(SURFACES)('%s uses UiKey rather than UKbd directly', (path) => {
-    const src = readFileSync(join(ROOT, path), 'utf8').replace(/<!--[\s\S]*?-->/g, '')
-
-    expect(src).not.toMatch(/<UKbd[\s/>]/)
+    expect(code(path)).not.toMatch(/<UKbd[\s/>]/)
   })
 
   it('substitutes an icon for exactly the keys the fonts lack', () => {
@@ -64,8 +70,14 @@ describe('every keyboard key is drawn rather than typed', () => {
     // to a letter's cap height: ⌘ is four interlocking loops and turns to mush
     // below the font size, where a letter survives.
     const key = readFileSync(join(ROOT, KEY_COMPONENT), 'utf8')
+    // Split into tokens: `not.toMatch(/class="size-\d/)` only fired when a fixed
+    // size was the *first* utility in the attribute, so `class="shrink-0 size-3"`
+    // — the likelier spelling of the mistake — passed.
+    const sizes = [...key.matchAll(/class="([^"]*)"/g)]
+      .flatMap(m => m[1]!.split(/\s+/))
+      .filter(t => /^size-\d/.test(t))
 
     expect(key).toContain('size-[1em]')
-    expect(key).not.toMatch(/class="size-\d/)
+    expect(sizes).toEqual([])
   })
 })

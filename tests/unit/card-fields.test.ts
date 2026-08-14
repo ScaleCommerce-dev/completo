@@ -104,8 +104,36 @@ describe('isCardField', () => {
  */
 describe('every declared field is honoured by the card', () => {
   const card = readFileSync(join(ROOT, 'app/components/KanbanCard.vue'), 'utf8')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:\w])\/\/[^\n]*/g, '$1')
 
-  it.each(CARD_FIELDS.map(f => f.key))('%s is read somewhere in KanbanCard', (key) => {
-    expect(card).toContain(`'${key}'`)
+  /** Fields the card asks about directly. */
+  const consulted = [...card.matchAll(/\bshows\('([^']+)'\)/g)].map(m => m[1]!)
+
+  /**
+   * And fields asked about through a list: the two content marks are declared as
+   * `key:` entries in an array that `shows` then filters, so the key never appears
+   * as a literal argument. The array is taken back to its own opening bracket
+   * rather than guessed at by a character window.
+   */
+  const filtered = [...card.matchAll(/\]\.filter\(/g)].flatMap((match) => {
+    const close = match.index
+    if (!/\bshows\(/.test(card.slice(close, close + 200))) return []
+    let depth = 0
+    for (let i = close; i >= 0; i--) {
+      if (card[i] === ']') depth++
+      else if (card[i] === '[' && !--depth) {
+        return [...card.slice(i, close).matchAll(/\bkey: '([^']+)'/g)].map(m => m[1]!)
+      }
+    }
+    return []
+  })
+
+  it.each(CARD_FIELDS.map(f => f.key))('%s is consulted somewhere in KanbanCard', (key) => {
+    // Not merely *mentioned*: `toContain("'tags'")` passed on the key appearing in
+    // a comment, in a docstring or in a bare declaration, so a field the card had
+    // stopped reading would still look honoured.
+    expect([...consulted, ...filtered], key).toContain(key)
   })
 })
