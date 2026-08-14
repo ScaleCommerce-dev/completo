@@ -116,6 +116,39 @@ describe('empty sections are their own invitation', () => {
 })
 
 /**
+ * The panel's body scrolls under its pinned header, which stays put by design so
+ * status and assignee remain readable while you read the comments. Against an
+ * opaque edge that sliced text horizontally mid-line — half-glyphs, a shape text
+ * never makes on its own, so it reads as a rendering fault rather than as "there
+ * is more above".
+ */
+describe('the card panel fades its scroll edges', () => {
+  it('defines the mask next to the board’s, on the other axis', () => {
+    const css = read('app/assets/css/main.css')
+
+    expect(css).toMatch(/\.panel-scroll\s*\{[\s\S]*?--panel-fade-top[\s\S]*?--panel-fade-bottom[\s\S]*?\}/)
+  })
+
+  it('applies it to the body USlideover owns', () => {
+    expect(CARD_MODAL).toMatch(/body: '[^']*panel-scroll/)
+  })
+
+  it('computes each edge separately, so an edge with nothing beyond it stays hard', () => {
+    // The board's rule: a surface that fits shows no fade at all, and the bottom
+    // only earns one while creating, where there is still a footer bar.
+    expect(CARD_MODAL).toMatch(/--panel-fade-top[\s\S]{0,80}scrollTop > 4/)
+    expect(CARD_MODAL).toMatch(/--panel-fade-bottom[\s\S]{0,80}scrollTop < max - 4/)
+  })
+
+  it('watches the sections, not just the container', () => {
+    // Height changes without the panel resizing — comments arrive, the editor
+    // opens, a file is attached — and observing only the container would leave
+    // the bottom fade lying about whether there is more to read.
+    expect(CARD_MODAL).toMatch(/for \(const section of bodyScroller\.children\)/)
+  })
+})
+
+/**
  * The trap that cost a debugging round: `USlideover`'s default slot is its
  * *trigger*. A dialog placed there renders into the page behind the panel —
  * centred, with its buttons under the panel's left edge and unreachable — and it

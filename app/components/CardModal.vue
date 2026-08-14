@@ -108,6 +108,51 @@ const focusBeforeConfirm = ref<HTMLElement | null>(null)
 
 const panelTop = ref<HTMLElement | null>(null)
 
+// ─── Fade the body's edges ──────────────────────────────────────────────────
+/**
+ * See `.panel-scroll` in main.css for why. The mechanics are the board's, with
+ * one difference: the scroll container belongs to USlideover, not to us, so it is
+ * reached through the first section we render into `#body` rather than by a ref.
+ *
+ * The observer watches the sections as well as the container, because the height
+ * that matters here changes without the panel resizing — comments arrive, the
+ * description editor opens, a file is attached. Observing only the container
+ * would leave the bottom fade claiming there is more to read after the last
+ * comment loaded, or hiding that there is.
+ */
+const bodyStart = ref<HTMLElement | null>(null)
+let bodyScroller: HTMLElement | null = null
+let bodyObserver: ResizeObserver | null = null
+
+function updateBodyFade() {
+  const el = bodyScroller
+  if (!el) return
+  const max = el.scrollHeight - el.clientHeight
+  el.style.setProperty('--panel-fade-top', el.scrollTop > 4 ? '28px' : '0px')
+  el.style.setProperty('--panel-fade-bottom', el.scrollTop < max - 4 ? '28px' : '0px')
+}
+
+function watchBodyScroll() {
+  bodyScroller = bodyStart.value?.parentElement ?? null
+  if (!bodyScroller) return
+  bodyScroller.addEventListener('scroll', updateBodyFade, { passive: true })
+  if (typeof ResizeObserver !== 'undefined') {
+    bodyObserver = new ResizeObserver(updateBodyFade)
+    bodyObserver.observe(bodyScroller)
+    for (const section of bodyScroller.children) bodyObserver.observe(section)
+  }
+  updateBodyFade()
+}
+
+function unwatchBodyScroll() {
+  bodyScroller?.removeEventListener('scroll', updateBodyFade)
+  bodyObserver?.disconnect()
+  bodyObserver = null
+  bodyScroller = null
+}
+
+onUnmounted(unwatchBodyScroll)
+
 /**
  * Opening a card must not arm the one control that leaves the board.
  *
@@ -126,7 +171,8 @@ const panelTop = ref<HTMLElement | null>(null)
  * silently does nothing. Creating is left alone — there the title is the whole
  * point, and `watch(open)` focuses it.
  */
-function focusPanel() {
+function onPanelOpen() {
+  watchBodyScroll()
   if (!isEdit.value) return
   panelTop.value?.focus()
 }
@@ -473,10 +519,11 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
     :ui="{
       content: 'sm:max-w-[620px]',
       header: 'block',
-      body: 'p-0 sm:p-0',
+      body: 'p-0 sm:p-0 panel-scroll',
       footer: 'block'
     }"
-    @after:enter="focusPanel"
+    @after:enter="onPanelOpen"
+    @after:leave="unwatchBodyScroll"
   >
     <template #header>
       <!-- Identity: the card's immutable facts — its ID, its author, its permalink.
@@ -597,8 +644,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
     </template>
 
     <template #body>
-      <!-- Description -->
-      <div class="px-4 sm:px-6 pt-4">
+      <!-- Description. Carries the ref that reaches the scroll container — see
+           `watchBodyScroll`; USlideover owns that element, not us. -->
+      <div
+        ref="bodyStart"
+        class="px-4 sm:px-6 pt-4"
+      >
         <!-- Create mode: always show editor -->
         <template v-if="!isEdit">
           <DescriptionEditor

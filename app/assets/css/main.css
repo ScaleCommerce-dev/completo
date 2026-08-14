@@ -232,6 +232,26 @@
   );
 }
 
+/* The card panel's body, same treatment on the other axis.
+
+   Its content scrolls under the pinned header — the ticket ID, title and
+   property chips, which stay put by design so status and assignee stay readable
+   while you read the comments. Against an opaque edge that sliced text
+   horizontally through the middle of a line: half-glyphs, which is a shape text
+   never makes on its own and so reads as a rendering fault rather than as "there
+   is more above". The bottom edge only earns a fade while creating, where there
+   is still a footer bar; on an existing card the body ends at the viewport,
+   which needs no explaining. Hence both, each computed. */
+.panel-scroll {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black var(--panel-fade-top, 0px),
+    black calc(100% - var(--panel-fade-bottom, 0px)),
+    transparent 100%
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    DRAG & DROP — the signature interaction
 
