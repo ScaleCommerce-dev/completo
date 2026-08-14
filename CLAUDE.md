@@ -97,7 +97,7 @@ Non-zdev installs (prod, CI) use `pnpm install && pnpm setup && pnpm dev` direct
   - **Adding a *new* file under `shared/utils/` needs a dev-server restart** (`zdev exec app zpctl restart app`). The running server's auto-import registry doesn't pick the file up, so server code that is perfectly correct throws a 500 `X is not defined` at runtime. `pnpm test` builds fresh and therefore passes, so the suite is green while the dev server is broken — don't read that as the code being wrong.
   - **Icon names in a `.ts` module aren't found by Nuxt Icon.** `icon.clientBundle.scan` globs templates only, so icons referenced from `shared/utils/*.ts` were dropped from the bundle and rendered as blanks — no error, just missing glyphs. `nuxt.config.ts` extends `globInclude` to cover it; watch the "client bundle consist of N icons" line if you move icon names into plain TS.
 - **View components:** `ViewConfigModal` uses a `mode: 'board' | 'list'` prop — don't create separate config modals. `ViewHeader` is the shared header for board/list pages with a `#actions` slot for view-specific buttons.
-- **Write tests** for new features. Run `zdev exec app pnpm test` and `zdev exec app pnpm lint` after changes.
+- **Write tests** for new features. While iterating, run `zdev exec app pnpm lint` + `zdev exec app pnpm vitest run --project unit` (~6s); run the full `zdev exec app pnpm test` before you commit. See the table under Testing for why the difference matters.
 
 ### Don't
 
@@ -231,10 +231,24 @@ Its watchers fire on *divergence* from the card rather than behind a "syncing" f
 
 ## Testing
 
-**When to run which tests:**
-- **App changes** (anything under `app/`, `server/`, `shared/`): `zdev exec app pnpm test` — runs vitest unit + integration tests **in the container**.
-- **CLI changes** (anything under `cli/`): `cd cli && go test ./...` — runs Go unit tests. This one runs **on the host**: the dev image has no Go toolchain.
-- **Before releasing:** run both.
+**When to run which tests. Measured, because the spread is 19×:**
+
+| | cost | what it is for |
+|---|---|---|
+| `pnpm lint` | **5s** | the only thing that catches a broken `.vue` template, with a line number |
+| `pnpm vitest run --project unit` | **1.4s** | every test under `tests/unit/` |
+| `pnpm typecheck` | 7s | types and props. Does **not** parse templates |
+| `pnpm test` | **27s** | the above plus a full build and the HTTP suite |
+
+- **Frontend-only change** (`app/**`, `tests/unit/**`): `pnpm lint` + `pnpm vitest run --project unit`. That is ~6s and it is the whole safety net — the integration suite talks HTTP to a built server and cannot observe a Vue change except by failing to build.
+- **`server/`, `shared/`, or a schema change:** full `pnpm test`. The integration suite is the only thing that exercises an endpoint.
+- **Before you commit, and before a release:** full `pnpm test`, once. This is the gate; the loop above is not a substitute for it.
+- **A unit test failed?** Re-run *that file* (`pnpm vitest run --project unit tests/unit/foo.test.ts`), not the suite. Add `--reporter=verbose` to get the failing test names rather than `tail`-ing a truncated summary.
+- **CLI changes** (`cli/`): `cd cli && go test ./...`, **on the host** — the dev image has no Go toolchain.
+
+**The full suite is the *worst* of the four at reporting frontend breakage, so don't reach for it as a safety net.** Verified on a stray `</UTooltip>`: `lint` names it (`319:13 error Parsing error: x-invalid-end-tag`) in 5s, `typecheck` passes it silently, and `pnpm test` spends 27s and then fails inside `global-setup` with `Serialized Error: { status: 1, signal: null … }` — no file, no line, nothing pointing at a template. **If the full suite dies in global-setup with an opaque error, run `pnpm lint` to find out why.**
+
+This table exists because the previous instruction was "run `pnpm test` and `pnpm lint` after changes", and following it literally through one UI session meant eight full-suite runs — 218 seconds — where nothing outside `app/` had been touched and 1.4s would have given the same answer every time.
 
 **App tests:** Two vitest projects: `unit` (fast) + `integration` (sequential, 30s timeout). Test DB on `:43210`. Tests use their own throwaway `test.db` inside the container, so they never touch the dev database.
 
