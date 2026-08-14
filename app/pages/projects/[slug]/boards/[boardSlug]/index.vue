@@ -186,6 +186,7 @@ async function handleDeleteBoard() {
       :available-columns="availableColumns"
       :members="membersData"
       :tags="tagsData"
+      :card-panel-open="showCardDetail"
       @card-click="openCardDetail"
       @card-moved="handleCardMoved"
       @card-update="handleUpdateCard"

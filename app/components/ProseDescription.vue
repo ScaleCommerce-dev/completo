@@ -95,6 +95,30 @@ const rendered = computed(() => {
   line-height: 1.7;
 }
 
+/*
+ * Text keeps its measure however wide the surface gets.
+ *
+ * The card panel is no longer a fixed 620px — it takes whatever the board can
+ * spare once the focused column has its gutter, and the card page's main column
+ * is wider still. Letting paragraphs fill that would work against the reason the
+ * panel grew: at 835px this renders 113 characters to the line, and past roughly
+ * 75 the eye starts losing its place on the return sweep, so "more room to read"
+ * would have made reading worse.
+ *
+ * 36rem is what the 620px panel already gave, so nothing changes at the old
+ * width — the cap only stops the extra width reaching the prose.
+ */
+.prose-description :deep(> *) {
+  max-width: var(--prose-measure, 36rem);
+}
+
+/* What the extra width is actually for. These have no measure to blow. */
+.prose-description :deep(> pre),
+.prose-description :deep(> table),
+.prose-description :deep(> img) {
+  max-width: none;
+}
+
 :deep(p:first-child) {
   margin-top: 0;
 }

@@ -517,7 +517,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
   <USlideover
     v-model:open="open"
     :ui="{
-      content: 'sm:max-w-[620px]',
+      // The board publishes `--card-panel-w` from its own geometry when it
+      // reveals a column; Tailwind needs the class as a build-time literal, so
+      // the value arrives as a custom property. The fallback is what surfaces
+      // without a board — a list, My Tasks — and any window too narrow for the
+      // reveal get.
+      content: 'sm:max-w-[var(--card-panel-w,620px)]',
       header: 'block',
       body: 'p-0 sm:p-0 panel-scroll',
       footer: 'block'

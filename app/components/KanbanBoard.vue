@@ -15,6 +15,8 @@ const _props = defineProps<{
   availableColumns?: CardStatus[]
   members?: Member[]
   tags?: Array<{ id: string, name: string, color: string }>
+  /** Whether the card panel is showing, so the board can put itself back when it isn't. */
+  cardPanelOpen?: boolean
 }>()
 
 const kanbanContext = {
@@ -119,30 +121,99 @@ watch(() => _props.columns.length, () => nextTick(updateFade))
 
 // ─── Get out of the panel's way ─────────────────────────────────────────────
 /**
- * Opening a card slides a panel over the right of the viewport, and the column
- * you clicked in is the one most likely to end up underneath it — you scroll to
- * the column you are working in, which puts it on the right. So the board scrolls
- * just far enough to bring that column clear before the panel arrives.
+ * Opening a card brings its column to the gutter the first column occupies on a
+ * fresh board, and hands the panel everything to its right. See
+ * `app/utils/card-panel.ts` for why that rather than a minimal nudge.
  *
- * The arithmetic is in `scrollToClearPanel`, which decides when the move would
- * make things worse and declines. See that file for why the panel stays on the
- * right.
+ * The panel's width is published as a custom property because Tailwind needs
+ * `max-w-[…]` as a literal at build time; `CardModal` reads it with a fallback,
+ * so surfaces without a board — a list, My Tasks — keep the default width.
  */
+const revealSpacerWidth = ref(0)
+let scrollBeforeReveal: number | null = null
+
+const prefersReducedMotion = () =>
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+
+/**
+ * A node's distance from the scroller's content origin.
+ *
+ * Not `offsetLeft`: the scroller isn't positioned, so `offsetParent` is some
+ * ancestor further up and `offsetLeft` carries that ancestor's inset too — 24px
+ * of it here. The scroll arithmetic stayed self-consistent because both operands
+ * shared the error, but the *width* calculation didn't, and the panel opened
+ * with a 40px gap where 16 was specified. Measuring against the scroller's own
+ * rect, with the current scroll added back, is the basis both actually want.
+ */
+function contentOffset(el: HTMLElement, node: HTMLElement): number {
+  return node.getBoundingClientRect().left - el.getBoundingClientRect().left + el.scrollLeft
+}
+
 function revealColumn(columnId: string) {
   const el = scroller.value
   const column = el?.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(columnId)}"]`)
-  if (!el || !column) return
+  const first = el?.querySelector<HTMLElement>('[data-column-id]')
+  if (!el || !column || !first) return
 
-  const left = scrollToClearPanel({
-    column: column.getBoundingClientRect(),
-    board: el.getBoundingClientRect(),
-    viewportWidth: window.innerWidth
+  const gutter = contentOffset(el, first)
+  const columnStart = contentOffset(el, column)
+  const width = cardPanelWidth({
+    viewportWidth: window.innerWidth,
+    boardLeft: el.getBoundingClientRect().left,
+    gutter,
+    columnWidth: column.offsetWidth
   })
-  if (!left) return
+  // Too narrow for the layout: leave the board where it is and let the panel
+  // open at its default width over the top, as it always did.
+  if (width === null) return
 
-  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-  el.scrollBy({ left, behavior: reduced ? 'auto' : 'smooth' })
+  document.documentElement.style.setProperty('--card-panel-w', `${width}px`)
+
+  scrollBeforeReveal = el.scrollLeft
+  revealSpacerWidth.value = revealSpacer({
+    columnOffset: columnStart,
+    gutter,
+    scrollWidth: el.scrollWidth,
+    clientWidth: el.clientWidth
+  })
+
+  // After the spacer is in the DOM, or the scroll clamps to the old maximum and
+  // the last columns stop short of the gutter.
+  nextTick(() => {
+    el.scrollTo({
+      left: revealScrollLeft(columnStart, gutter),
+      behavior: prefersReducedMotion() ? 'auto' : 'smooth'
+    })
+  })
 }
+
+/**
+ * Put the board back exactly where it was.
+ *
+ * Instantly, and that is deliberate: the restore runs behind a panel that is
+ * still sliding out, so a smooth scroll would be both invisible and a problem —
+ * dropping the spacer mid-flight clamps `scrollLeft` and the board would jump.
+ * The saved position was reachable without the spacer by definition, so setting
+ * it and removing the spacer in the same tick is always safe.
+ *
+ * Unconditional, because the board cannot have moved: while the panel is open
+ * Reka makes the rest of the page inert (`body { pointer-events: none }`), so
+ * there is no scrolling it behind the panel's back.
+ */
+function restoreScroll() {
+  document.documentElement.style.removeProperty('--card-panel-w')
+  const el = scroller.value
+  const to = scrollBeforeReveal
+  scrollBeforeReveal = null
+  revealSpacerWidth.value = 0
+  if (el && to !== null) el.scrollTo({ left: to, behavior: 'auto' })
+}
+
+watch(() => _props.cardPanelOpen, (open) => {
+  if (!open) restoreScroll()
+})
+
+onBeforeUnmount(() => document.documentElement.style.removeProperty('--card-panel-w'))
 
 /**
  * The column id comes from the template rather than the card: `BoardCard` has no
@@ -317,5 +388,16 @@ function onCardClick(columnId: string, card: BoardCard) {
         </form>
       </div>
     </div>
+
+    <!-- Scroll room so a column near the end of the board can still reach the
+         left gutter — a board only scrolls until its last column hits the right
+         edge, which is exactly the columns the panel covers worst. Sized to the
+         shortfall alone, so it stays under the panel and is never seen. -->
+    <div
+      v-if="revealSpacerWidth"
+      aria-hidden="true"
+      class="shrink-0"
+      :style="{ width: `${revealSpacerWidth}px` }"
+    />
   </div>
 </template>

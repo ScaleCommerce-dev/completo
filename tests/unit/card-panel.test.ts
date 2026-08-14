@@ -2,99 +2,142 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  CARD_PANEL_WIDTH,
-  CARD_PANEL_MIN_VIEWPORT,
-  scrollToClearPanel
+  CARD_PANEL_MIN_WIDTH,
+  CARD_PANEL_MAX_WIDTH,
+  cardPanelWidth,
+  revealScrollLeft,
+  revealSpacer
 } from '../../app/utils/card-panel'
 
 const ROOT = join(import.meta.dirname, '../..')
 
 /**
- * Numbers taken from the running app at 1440px: the sidebar ends at 245, the
- * board scroller starts there, columns are 304px wide with a 12px gap, and the
- * panel's left edge lands at 820 — inside the second column.
+ * Measured off the running board at 1440px: the sidebar ends at 269, the
+ * scroller's content starts 16px in, columns are 304px wide on a 12px gap. The
+ * five columns therefore sit at these offsets from the scroller's content
+ * origin, and the board can scroll 769px before its last column hits the right
+ * edge.
  */
-const BOARD = { left: 245 }
-const VIEWPORT = 1440
-const COLUMN_W = 304
+const BOARD = { boardLeft: 269, gutter: 16, columnWidth: 304 }
+const COLUMN_AT = { backlog: 16, todo: 332, inProgress: 648, review: 964, done: 1280 }
+const SCROLL = { scrollWidth: 1916, clientWidth: 1147 } // maxScrollLeft = 769
 
-/** Column n's rect, laid out the way the board lays them out. */
-function column(n: number, scrollLeft = 0) {
-  const left = BOARD.left + 16 + n * (COLUMN_W + 12) - scrollLeft
-  return { left, right: left + COLUMN_W }
-}
-
-describe('scrollToClearPanel', () => {
-  it('leaves a column that is already clear alone', () => {
-    // Backlog, at 261–565, is nowhere near the panel at 820.
-    expect(scrollToClearPanel({ column: column(0), board: BOARD, viewportWidth: VIEWPORT })).toBe(0)
+describe('cardPanelWidth', () => {
+  it('takes everything the focused column does not need', () => {
+    // 1440 − (269 sidebar + 16 gutter + 304 column + 16 gap)
+    expect(cardPanelWidth({ ...BOARD, viewportWidth: 1440 })).toBe(835)
   })
 
-  it('moves a column the panel would cover', () => {
-    // "In Progress" sits at 893–1197, wholly behind the panel.
-    const scroll = scrollToClearPanel({ column: column(2), board: BOARD, viewportWidth: VIEWPORT })
-
-    expect(scroll).toBeGreaterThan(0)
-    // Far enough that the column's right edge clears 820, with a gutter.
-    expect(column(2).right - scroll).toBeLessThanOrEqual(VIEWPORT - CARD_PANEL_WIDTH)
+  it('stops growing where reading stops benefiting', () => {
+    // A 27" monitor would otherwise hand over a ~1300px panel holding a 576px
+    // text column, which is slack rather than room.
+    expect(cardPanelWidth({ ...BOARD, viewportWidth: 1920 })).toBe(CARD_PANEL_MAX_WIDTH)
   })
 
-  it('moves a partly covered column exactly clear, and no further', () => {
-    // Straddling the panel edge is the common case — the reason the loop this
-    // panel exists for half worked.
-    const straddling = { left: 700, right: 1004 }
-    const scroll = scrollToClearPanel({ column: straddling, board: BOARD, viewportWidth: VIEWPORT })
-
-    expect(straddling.right - scroll).toBe(VIEWPORT - CARD_PANEL_WIDTH - 12)
+  it('declines when the panel would have to overlap the column it just revealed', () => {
+    // Below roughly 1250px there is no room for both, and a panel sitting on top
+    // of the column it went to the trouble of revealing is worse than no reveal.
+    expect(cardPanelWidth({ ...BOARD, viewportWidth: 1152 })).toBeNull()
   })
 
-  it('scrolls further for a column further right', () => {
-    const near = scrollToClearPanel({ column: column(2), board: BOARD, viewportWidth: VIEWPORT })
-    const far = scrollToClearPanel({ column: column(4), board: BOARD, viewportWidth: VIEWPORT })
-
-    expect(far).toBeGreaterThan(near)
-  })
-
-  it('does nothing below the breakpoint where the panel is full-width', () => {
-    // There is no board left to reveal, so moving it would be motion for its
-    // own sake.
-    const narrow = CARD_PANEL_MIN_VIEWPORT - 1
-    expect(scrollToClearPanel({
-      column: { left: 20, right: 324 },
-      board: { left: 0 },
-      viewportWidth: narrow
-    })).toBe(0)
-  })
-
-  it('declines when the strip left of the panel is narrower than a column', () => {
-    // Otherwise it trades a hidden right edge for a hidden left one. At 1024 the
-    // panel starts at 404 and the board at 245, leaving 159px — half a column.
-    expect(scrollToClearPanel({
-      column: { left: 500, right: 804 },
-      board: BOARD,
-      viewportWidth: 1024
-    })).toBe(0)
-  })
-
-  it('never returns a negative scroll', () => {
-    // Scrolling backwards would drag a column the user had scrolled past back
-    // into view, which is not what opening a card asked for.
-    for (let n = 0; n < 8; n++) {
-      expect(scrollToClearPanel({ column: column(n), board: BOARD, viewportWidth: VIEWPORT }))
-        .toBeGreaterThanOrEqual(0)
+  it('is never narrower than the panel has always been', () => {
+    for (let w = 640; w <= 2560; w += 7) {
+      const width = cardPanelWidth({ ...BOARD, viewportWidth: w })
+      if (width !== null) expect(width).toBeGreaterThanOrEqual(CARD_PANEL_MIN_WIDTH)
     }
+  })
+
+  it('accepts the exact width where the layout starts fitting', () => {
+    const exact = BOARD.boardLeft + BOARD.gutter + BOARD.columnWidth + 16 + CARD_PANEL_MIN_WIDTH
+
+    expect(cardPanelWidth({ ...BOARD, viewportWidth: exact })).toBe(CARD_PANEL_MIN_WIDTH)
+    expect(cardPanelWidth({ ...BOARD, viewportWidth: exact - 1 })).toBeNull()
+  })
+})
+
+describe('revealScrollLeft', () => {
+  it('leaves the first column where it already is', () => {
+    expect(revealScrollLeft(COLUMN_AT.backlog, BOARD.gutter)).toBe(0)
+  })
+
+  it('puts any column in the gutter the first one occupies', () => {
+    // The point of the whole exercise: the clicked column always lands at the
+    // same x, so there is nothing to re-find once the panel arrives.
+    for (const offset of Object.values(COLUMN_AT)) {
+      const scrolled = offset - revealScrollLeft(offset, BOARD.gutter)
+      expect(scrolled).toBe(BOARD.gutter)
+    }
+  })
+
+  it('never scrolls backwards', () => {
+    expect(revealScrollLeft(0, BOARD.gutter)).toBe(0)
+  })
+})
+
+describe('revealSpacer', () => {
+  it('adds nothing for a column the board can already reach', () => {
+    for (const offset of [COLUMN_AT.backlog, COLUMN_AT.todo, COLUMN_AT.inProgress]) {
+      expect(revealSpacer({ columnOffset: offset, gutter: BOARD.gutter, ...SCROLL })).toBe(0)
+    }
+  })
+
+  it('adds exactly the shortfall for a column it cannot', () => {
+    // Review needs scrollLeft 948; the board stops at 769. Without the 179px
+    // this returns, it lands 179px short of the gutter — and the columns nearest
+    // the end are precisely the ones the panel covers worst.
+    expect(revealSpacer({ columnOffset: COLUMN_AT.review, gutter: BOARD.gutter, ...SCROLL })).toBe(179)
+    expect(revealSpacer({ columnOffset: COLUMN_AT.done, gutter: BOARD.gutter, ...SCROLL })).toBe(495)
+  })
+
+  it('adds no more than the shortfall, so it stays hidden behind the panel', () => {
+    // A spacer sized to the panel instead would show as blank board past the
+    // last column on a wide window.
+    const spacer = revealSpacer({ columnOffset: COLUMN_AT.done, gutter: BOARD.gutter, ...SCROLL })
+    const reachableAfter = SCROLL.scrollWidth + spacer - SCROLL.clientWidth
+
+    expect(reachableAfter).toBe(revealScrollLeft(COLUMN_AT.done, BOARD.gutter))
   })
 })
 
 /**
- * Tailwind needs the panel's width as a literal at build time, so the constant
- * cannot drive the class. Same trick as `menu-placement`: assert they agree,
- * rather than hoping.
+ * Tailwind needs the panel's width as a build-time literal, so the board hands
+ * the computed value over as a custom property instead. The fallback in that
+ * class is what every surface without a board falls back to, and it has to be
+ * the same number this module calls the minimum.
  */
-describe('the panel width the board reads is the width the panel has', () => {
-  it('matches CardModal', () => {
-    const modal = readFileSync(join(ROOT, 'app/components/CardModal.vue'), 'utf8')
+describe('the width the board publishes is the width the panel reads', () => {
+  const modal = readFileSync(join(ROOT, 'app/components/CardModal.vue'), 'utf8')
 
-    expect(modal).toContain(`sm:max-w-[${CARD_PANEL_WIDTH}px]`)
+  it('reads the custom property', () => {
+    expect(modal).toContain('sm:max-w-[var(--card-panel-w,')
+  })
+
+  it('falls back to the minimum, for a list or My Tasks', () => {
+    expect(modal).toContain(`sm:max-w-[var(--card-panel-w,${CARD_PANEL_MIN_WIDTH}px)]`)
+  })
+})
+
+/**
+ * The panel grew so content-heavy cards are easier to read, which only works if
+ * the prose does *not* grow with it — at 835px a paragraph runs to 113
+ * characters, and past roughly 75 the eye loses its place on the return sweep.
+ */
+describe('prose keeps its measure however wide the surface gets', () => {
+  const prose = readFileSync(join(ROOT, 'app/components/ProseDescription.vue'), 'utf8')
+
+  it('caps the text blocks', () => {
+    expect(prose).toMatch(/max-width: var\(--prose-measure, 36rem\)/)
+  })
+
+  it('lets the things that have no measure use the full width', () => {
+    expect(prose).toMatch(/> pre[\s\S]{0,120}max-width: none/)
+  })
+
+  it('caps at what the old fixed-width panel already gave', () => {
+    // 36rem = 576px, against 572px of text in the 620px panel — so nothing
+    // changes at the old width and the cap only stops the *extra* width
+    // reaching the prose.
+    expect(36 * 16).toBeGreaterThanOrEqual(572)
+    expect(36 * 16).toBeLessThan(CARD_PANEL_MIN_WIDTH)
   })
 })
