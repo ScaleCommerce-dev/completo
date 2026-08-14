@@ -35,6 +35,11 @@ data/
 # Claude Code
 .claude
 CODE_REVIEW*.md
+# Working notes and the screenshots they cite: local-only, like the reviews
+# above. A `git add -A` swept these in once, so they are named here rather than
+# left to be remembered.
+UI_IMPROVEMENTS.md
+docs/ui-audit/
 
 # Playwright
 .playwright
