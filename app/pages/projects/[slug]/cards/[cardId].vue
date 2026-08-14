@@ -277,13 +277,34 @@ async function confirmDelete() {
 
 <template>
   <UiPage width="wide">
+    <!--
+      The breadcrumb's last crumb *is* the ticket ID control.
+
+      The rail used to carry a copyable `TK-27` pill in a bordered section of its
+      own, 60px below a breadcrumb already ending in `TK-27` — the page stated the
+      same identifier twice, and only the further-away one could be clicked. The
+      pill earns its place on the card *panel*, which has no breadcrumb; here the
+      breadcrumb is where the eye already reads the number, so the copy goes there
+      and the section goes away.
+    -->
     <template #title>
       <UBreadcrumb
         :items="[
           { label: cardData?.project?.name || '', to: `/projects/${projectSlug}`, icon: 'i-lucide-folder' },
           { label: card ? formatTicketId(projectKey, card.id) : '', icon: 'i-lucide-square-check-big' }
         ]"
-      />
+      >
+        <template #item-label="{ item, index }">
+          <TicketIdCopy
+            v-if="index === 1 && card"
+            :project-key="projectKey"
+            :project-slug="projectSlug"
+            :card-id="card.id"
+            :copy-buttons="false"
+          />
+          <span v-else>{{ item.label }}</span>
+        </template>
+      </UBreadcrumb>
     </template>
 
     <div
@@ -320,94 +341,126 @@ async function confirmDelete() {
       class="flex flex-col lg:flex-row gap-6 lg:items-start"
     >
       <!-- ═══ SIDEBAR — properties, priority, actions (sticky on desktop) ═══ -->
-      <aside class="w-full lg:w-[304px] shrink-0 lg:order-2 lg:sticky lg:top-4">
-        <div class="rounded-xl border border-default bg-default shadow-sm overflow-hidden">
-          <!-- Card ID header -->
-          <div class="px-4 pt-3.5 pb-3 border-b border-muted">
-            <TicketIdCopy
-              :project-key="projectKey"
-              :project-slug="projectSlug"
-              :card-id="card.id"
-              variant="pill"
-            />
-          </div>
+      <!--
+        One card, one stack of rows, one inset.
 
+        It was four sections at three different insets, two label idioms and two
+        kinds of box. The properties were a *bordered group inside the bordered
+        card*, so their labels sat 25px from the card's edge while the provenance
+        rows beneath them sat at 16 and visibly failed to line up; the provenance
+        rows carried a 56px label column and no icons where the properties had
+        icons and a 74px one; and the ticket ID had a whole bordered section to
+        itself for one chip, 60px below the breadcrumb that already says `TK-27`.
+
+        Now every row in the rail is the same row: an icon, a label in the same
+        column, a value. What separates the card's *fields* from *facts about the
+        card* is that a fact has no chevron — the same trick the empty rows in the
+        main column use, where one vocabulary is differentiated by content rather
+        than by chrome.
+      -->
+      <!-- `order-2`, not `lg:order-2`. The aside comes first in the DOM so that it
+           can be the right-hand column on a wide screen, and the order was only
+           being set at `lg` — so below that breakpoint the DOM order stood and a
+           phone was shown the properties card and a Delete button *above* the
+           card's own title. The title leads at every width. -->
+      <aside class="w-full lg:w-[304px] shrink-0 order-2 lg:sticky lg:top-4">
+        <div class="rounded-xl border border-default bg-default shadow-sm overflow-hidden divide-y divide-default">
           <!-- Properties. Shared with CardModal, so the same fields no longer
-               get two different control vocabularies. -->
-          <div class="p-3">
-            <CardProperties
-              v-model:status-id="selectedStatusId"
-              v-model:assignee-id="selectedAssigneeId"
-              v-model:priority="priority"
-              v-model:due-date="selectedDueDate"
-              v-model:tag-ids="selectedTagIds"
-              :statuses="statusesData"
-              :members="membersData"
-              :tags="projectTagsData"
-              :unassigned-value="UNASSIGNED"
-            />
-          </div>
+               get two different control vocabularies. Draws its own hairlines
+               and no border — see CardProperties. -->
+          <CardProperties
+            v-model:status-id="selectedStatusId"
+            v-model:assignee-id="selectedAssigneeId"
+            v-model:priority="priority"
+            v-model:due-date="selectedDueDate"
+            v-model:tag-ids="selectedTagIds"
+            :statuses="statusesData"
+            :members="membersData"
+            :tags="projectTagsData"
+            :unassigned-value="UNASSIGNED"
+          />
 
-          <!-- Provenance. The two timestamps were previously unlabelled raw
-               dates stacked on each other, so you could not tell which was
-               created and which was updated. -->
-          <dl class="px-4 py-3 border-t border-muted flex flex-col gap-1.5 text-xs">
-            <div
-              v-if="card.creator"
-              class="flex items-center gap-2 min-w-0"
+          <!--
+            Provenance, as two facts rather than three rows.
+
+            It was Created / On / Updated, where "Created" held a *person* and "On"
+            held a date — one fact split across two rows, the second of which
+            needed a filler label because the first had taken the real one. Who
+            made the card and when is one thing and reads as one line.
+
+            The times are no longer monospace either. Mono is for values you
+            compare character by character — a ticket ID, a file size, a count —
+            and "5mo ago" is prose; the comment timestamps six inches to the left
+            were already setting it in the body face.
+          -->
+          <div class="divide-y divide-default">
+            <UiFieldRow
+              label="Created"
+              icon="i-lucide-user-plus"
             >
-              <dt class="text-dimmed w-14 shrink-0">
-                Created
-              </dt>
-              <dd class="min-w-0 truncate text-muted">
+              <!-- A gap and a step down in colour, no middot: that is already how
+                   a comment header sets a name against its timestamp six inches to
+                   the left, and one separator idiom on a page is enough. -->
+              <span class="flex items-center gap-2 min-w-0">
                 <UiPerson
+                  v-if="card.creator"
                   :person="card.creator"
                   size="3xs"
                 />
-              </dd>
-            </div>
-            <div
-              v-if="card.createdAt"
-              class="flex items-center gap-2"
-            >
-              <dt class="text-dimmed w-14 shrink-0">
-                On
-              </dt>
-              <dd class="font-mono text-muted">
                 <UTooltip :text="formatDate(card.createdAt)">
-                  <span>{{ relativeTime(card.createdAt) }}</span>
+                  <span
+                    class="text-sm shrink-0"
+                    :class="card.creator ? 'text-dimmed' : 'text-muted'"
+                  >{{ relativeTime(card.createdAt) }}</span>
                 </UTooltip>
-              </dd>
-            </div>
-            <div
-              v-if="card.updatedAt && card.updatedAt !== card.createdAt"
-              class="flex items-center gap-2"
-            >
-              <dt class="text-dimmed w-14 shrink-0">
-                Updated
-              </dt>
-              <dd class="font-mono text-muted">
-                <UTooltip :text="formatDate(card.updatedAt)">
-                  <span>{{ relativeTime(card.updatedAt) }}</span>
-                </UTooltip>
-              </dd>
-            </div>
-          </dl>
+              </span>
+            </UiFieldRow>
 
-          <!-- Actions. No Save: every field here commits itself, and the
-               description commits from the button under its own editor. What is
-               left is the one action that isn't a field. -->
-          <div class="px-4 py-3 border-t border-muted">
-            <UButton
-              label="Delete card"
-              icon="i-lucide-trash-2"
-              color="error"
-              variant="ghost"
-              size="sm"
-              block
-              @click="showDeleteConfirm = true"
-            />
+            <UiFieldRow
+              v-if="card.updatedAt && card.updatedAt !== card.createdAt"
+              label="Updated"
+              icon="i-lucide-history"
+            >
+              <UTooltip :text="formatDate(card.updatedAt)">
+                <span class="text-sm text-muted">{{ relativeTime(card.updatedAt) }}</span>
+              </UTooltip>
+            </UiFieldRow>
           </div>
+
+          <!--
+            The last row of the stack, not a button floating under the card.
+
+            It was a bare ghost-error button below the card, and it had both
+            problems at once: unanchored — belonging to nothing, its icon 6px off
+            the column of seven icons directly above it — and red text on a bare
+            page reads as an error *message* rather than as a control.
+
+            As a row it inherits the grid: same height, same 16px inset, icon on
+            the same line. And it is **grey at rest and red on hover**, so the one
+            destructive thing on the page announces itself at the moment you reach
+            for it rather than the whole time you are reading the card. This is the
+            app's only way to delete a card, so it stays plainly visible and
+            labelled — not folded back into a menu.
+
+            A `<button>` rather than a `UButton`: this needs to be a full-bleed row
+            matching `UiFieldRow`'s geometry, which means no button padding of its
+            own and a hover that fills the row edge to edge.
+          -->
+          <button
+            type="button"
+            class="group w-full flex items-center gap-1.5 px-4 py-2.5 min-h-[42px] text-sm font-medium text-muted hover:text-error hover:bg-error/5 transition-colors cursor-pointer"
+            @click="showDeleteConfirm = true"
+          >
+            <!-- `gap-1.5` and a dimmed glyph, both copied off UiFieldRow's label
+                 rather than guessed: the words land in the same column as "Status"
+                 and "Created", and the icon sits one step quieter than them the way
+                 every icon in this rail does. -->
+            <UIcon
+              name="i-lucide-trash-2"
+              class="text-sm shrink-0 text-dimmed group-hover:text-error transition-colors"
+            />
+            Delete card
+          </button>
         </div>
       </aside>
 
@@ -418,7 +471,7 @@ async function confirmDelete() {
            sight. -->
       <div
         ref="dropRoot"
-        class="flex-1 min-w-0 lg:order-1 rounded-xl transition-shadow"
+        class="flex-1 min-w-0 order-1 rounded-xl transition-shadow"
         :class="dragging ? 'ring-2 ring-primary ring-offset-4 ring-offset-default' : ''"
       >
         <!-- Title -->

@@ -74,9 +74,15 @@ const TRIGGER = computed(() => [
  * controls become flex children of one wrapping line. Props are handed over per
  * layout rather than unconditionally: `label` and `icon` on a bare `<div>` would
  * render as stray DOM attributes.
+ *
+ * `rows` draws the hairlines between its rows and nothing else — **no border of
+ * its own.** Its only host is the card page's rail, which is already a bordered
+ * card, so drawing one here put a bordered box 12px inside a bordered box: the
+ * property labels sat 25px from the card's edge while the provenance rows beneath
+ * them sat at 16, and the two groups visibly failed to line up. The host owns the
+ * border; this owns the rows.
  */
 const isCompact = computed(() => props.layout === 'compact')
-const Group = computed(() => isCompact.value ? 'div' : resolveComponent('UiFieldGroup'))
 const Row = computed(() => isCompact.value ? 'div' : resolveComponent('UiFieldRow'))
 
 /**
@@ -132,10 +138,7 @@ function row(label: string, icon: string, align?: 'start') {
 </script>
 
 <template>
-  <component
-    :is="Group"
-    :class="isCompact ? 'flex flex-wrap items-center gap-x-1 gap-y-1' : ''"
-  >
+  <div :class="isCompact ? 'flex flex-wrap items-center gap-x-1 gap-y-1' : 'divide-y divide-default'">
     <component
       :is="Row"
       v-bind="row('Status', 'i-lucide-circle-dot')"
@@ -332,5 +335,5 @@ function row(label: string, icon: string, align?: 'start') {
         </template>
       </TagMenu>
     </component>
-  </component>
+  </div>
 </template>

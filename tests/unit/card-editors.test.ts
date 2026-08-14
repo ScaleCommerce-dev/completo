@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ROOT = join(import.meta.dirname, '../..')
@@ -423,5 +423,54 @@ describe('tag overflow is measured in one place', () => {
     // Measuring an unclipped row counts the tags on lines two and three as hidden
     // and prints a `+N` beside tags that are plainly visible.
     expect(read('app/components/CardProperties.vue')).toMatch(/enabled: \(\) => isCompact\.value/)
+  })
+})
+
+/**
+ * The card page's rail was four sections at three different insets, two label
+ * idioms and two kinds of box — a bordered properties group *inside* the bordered
+ * card, so its labels sat 25px from the card's edge while the provenance rows
+ * beneath them sat at 16 and visibly failed to line up.
+ */
+describe('the card page rail is one stack', () => {
+  it('lets the host own the border, so every row shares one inset', () => {
+    // CardProperties' rows layout draws the hairlines and nothing else. There is
+    // no UiFieldGroup any more: one consumer, and its only host already had a
+    // border.
+    const props = read('app/components/CardProperties.vue')
+
+    expect(props).toMatch(/'divide-y divide-default'/)
+    expect(props).not.toContain('UiFieldGroup')
+    expect(existsSync(join(ROOT, 'app/components/ui/FieldGroup.vue'))).toBe(false)
+    // One inset for the rail's rows, matching the sections around them.
+    expect(read('app/components/ui/FieldRow.vue')).toMatch(/px-4/)
+  })
+
+  it('states the ticket ID once, where the eye already reads it', () => {
+    // The rail carried a copyable pill in a bordered section of its own, 60px
+    // below a breadcrumb already ending in TK-27 — and only the further-away one
+    // could be clicked.
+    expect(CARD_PAGE).toMatch(/#item-label/)
+    expect(CARD_PAGE.match(/<TicketIdCopy/g) || []).toHaveLength(1)
+  })
+
+  it('keeps the delete row on the row grid, quiet until reached', () => {
+    // A UButton's own padding puts its glyph 6px inside the column of icons above
+    // it, hence a plain button matching UiFieldRow's geometry. Grey at rest so the
+    // one destructive control is not red for the whole time you read the card.
+    expect(CARD_PAGE).toMatch(/px-4 py-2\.5 min-h-\[42px\][^"]*text-muted hover:text-error/)
+    expect(CARD_PAGE).toMatch(/group-hover:text-error/)
+  })
+
+  it('orders the columns at every width, not just where they become columns', () => {
+    // `lg:order-2` alone left the DOM order standing below that breakpoint, so a
+    // phone got the properties and a Delete button above the card's title.
+    // Scoped to class attributes: the template comment explaining this names
+    // `lg:order-2` in prose, and matching that would pass for the wrong reason.
+    const classes = [...CARD_PAGE.matchAll(/class="([^"]*)"/g)].map(m => m[1]!).join(' ')
+
+    expect(classes).not.toMatch(/lg:order-/)
+    expect(classes).toMatch(/\border-1\b/)
+    expect(classes).toMatch(/\border-2\b/)
   })
 })

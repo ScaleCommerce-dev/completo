@@ -1,6 +1,18 @@
 <script setup lang="ts">
 /**
- * One label/control row inside a UiFieldGroup.
+ * One label/control row in a divided stack.
+ *
+ * There used to be a `UiFieldGroup` wrapper supplying the border and the
+ * hairlines. It had exactly one consumer — `CardProperties`' `rows` layout — whose
+ * only host is a card that already has a border, so the wrapper's contribution was
+ * a bordered box 12px inside a bordered box. The dividers moved into
+ * `CardProperties` and the border belongs to the host.
+ *
+ * Its docstring claimed it had replaced a duplicated class string in five files.
+ * It hadn't: `ProjectForm`, `CreateViewModal`, `ProfileSecurity`, `ProfileSettings`
+ * and `ProfileTokens` still hand-roll `rounded-lg border … divide-y divide-default
+ * overflow-hidden`. That migration is still owed; it just isn't served by a
+ * component with no callers.
  *
  * `label` renders a real `<label>` bound to the control via `for`/`id` when an
  * `input-id` is given — the previous rows used a `<span>`, so clicking the label
@@ -25,7 +37,7 @@ withDefaults(defineProps<{
 
 <template>
   <div
-    class="flex gap-3 px-3 py-2.5 min-h-[42px]"
+    class="flex gap-3 px-4 py-2.5 min-h-[42px]"
     :class="align === 'start' ? 'items-start' : 'items-center'"
   >
     <component
