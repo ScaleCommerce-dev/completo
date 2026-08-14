@@ -29,6 +29,26 @@ const ICON_DATA_URI = 'data:image/svg+xml;base64,' + Buffer.from(
 const FONT = '\'Plus Jakarta Sans\',-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif'
 const MONO = '\'JetBrains Mono\',\'SF Mono\',\'Fira Code\',\'Cascadia Code\',Menlo,Consolas,monospace'
 
+/**
+ * The one HTML shell every email shares.
+ *
+ * Mail clients are not browsers, and three constraints here are not stylistic —
+ * each one is a client that renders the alternative wrongly:
+ *
+ * - **Table-based layout only.** No flexbox, no grid. Hence the nested
+ *   `role="presentation"` tables below rather than the divs this would obviously
+ *   otherwise be.
+ * - **Solid hex colours only.** `rgba()` is unsupported in roughly a fifth of
+ *   installed clients, and it fails by dropping the colour rather than by
+ *   degrading, so a translucent panel arrives transparent.
+ * - **No `border-radius` on a button.** Outlook ignores it, so a rounded CTA
+ *   arrives square while every other client rounds it; a VML `v:roundrect` is the
+ *   only portable rounded button.
+ *
+ * Also why the fonts above are declared as stacks with real fallbacks: a webfont
+ * cannot be loaded, so `Plus Jakarta Sans` here is only ever a hint for the
+ * clients that happen to have it.
+ */
 function buildEmailHtml(options: {
   preheader: string
   heading: string

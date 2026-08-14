@@ -1,430 +1,143 @@
-# Completo - All the Toppings. None of the Mess.
+# Completo — All the Toppings. None of the Mess.
 
-> **About this file:** CLAUDE.md is for agent guidance - architectural decisions, rules, conventions, and gotchas that can't be inferred from reading code. Don't bloat it with code-level details (file listings, prop docs, full API specs) that agents can discover by reading the source. Focus on the "why", not the "what".
+Kanban board app. Nuxt 4 (SPA, `ssr: false`) + Nuxt UI 4 + Tailwind 4 + Drizzle + SQLite. Go CLI in `cli/`.
 
-Kanban board app. Nuxt 4 + Nuxt UI 4 + Tailwind 4 + Drizzle ORM + SQLite. Plus Jakarta Sans + JetBrains Mono. Lucide icons (`i-lucide-*`). pnpm.
+## About this file
 
-## ⚠️ Run everything in the zdev container
+Agent guidance: the decisions, invariants and traps that are *not* recoverable by reading the code, plus where to find the ones that are. It is not a design document — the reasoning behind a component lives in that component, and the measurement behind a rule lives in its test.
 
-**This is a zdev-managed project. Every `pnpm`/`node`/`npx` command runs inside the container, never on the host.**
+A rule here has to meet four conditions. **Name the mechanism, not the conclusion:** "a full-width rule crosses the avatar gutter" is checkable and bans one device; "no lines" is a conclusion that generalises past its evidence and bans devices nobody tested. **Be enforced by something that recomputes the property, not something that restates the value** — a guard that mirrors the number you set gives false confidence, which is worse than no guard. **Carry a measurement, a file reference or a test** — a claim with none gets deleted, not softened. **Be applied everywhere it is recorded:** updating one place in three is the same defect as a refactor that migrates one caller in three.
 
-```bash
-zdev start                    # boots the env: install → migrate → seed → dev server
-zdev exec app <command>       # ← the way you run ANYTHING
-```
+Before adding a line, ask whether it would stop a mistake that reading the relevant file would not. If not, cut it — every line here competes for attention on every task.
 
-```bash
-zdev exec app pnpm test       # not: pnpm test
-zdev exec app pnpm lint
-zdev exec app pnpm typecheck
-zdev exec app pnpm audit
-zdev exec app pnpm install    # after changing package.json
-```
+## Run everything in the container
 
-Why it matters — these are not stylistic preferences:
+`zdev start`, then **prefix every command with `zdev exec app`**. Not a preference:
 
-- **`node_modules` is in `mutagen.ignore`.** The container has its own dependency tree; the host's is a *separate* copy. A host `pnpm install` does not change what the app runs, and host-only checks (audits, tests, dependency scans) inspect the wrong tree and report misleading results.
-- **There is no `.env`.** Dev secrets come from a 1Password Environment injected at container creation, so host-side `pnpm dev` / `pnpm setup` start without `NUXT_SESSION_PASSWORD`, OAuth creds, or AI keys. See the 1Password notes under Local Dev Environment.
-- **The database only exists in the container** (`/app/data/sqlite.db`, `data` named volume). Host `pnpm db:*` targets a database the app never reads.
-- **Node/pnpm versions are pinned in the image** (Node 24, pnpm 11.17.0). The host may have anything.
+- `node_modules` is in `mutagen.ignore` — the host has a *separate* dependency tree, so host installs, audits and tests inspect the wrong one.
+- **There is no `.env`.** Dev secrets come from a 1Password Environment injected at container creation, so host-side `pnpm dev` starts without `NUXT_SESSION_PASSWORD`, OAuth or AI keys. After rotating them: `zdev update --refresh-secrets` — a plain restart will not pick them up.
+- The database exists only at `/app/data/sqlite.db` in a named volume. Host `pnpm db:*` targets a database the app never reads.
 
-**The only things that legitimately run on the host:** `zdev` itself, `git`, and the Go CLI in `cli/` (`go build` / `go test` — the dev image has no Go toolchain). If you genuinely need a host-side `pnpm` command, prefix it with `op run --env-file=...` to get the secrets, and know it operates on the host's separate `node_modules`.
+**Dev data is disposable, so change it freely while testing.** `zdev down -v -f && zdev start` rebuilds from migrations + seed. Creating cards, moving them, renaming a board — none of it needs undoing, and carefully restoring state costs more than it is worth. Logins are printed by `zdev info`.
 
-## ⚠️ Checking the app in a browser
+Host-only exceptions: `zdev`, `git`, and `cd cli && go test ./...` (the dev image has no Go toolchain).
 
-**When a change needs looking at in a real browser, drive it with `/cmux-browser`. Only if that isn't available, fall back to `/chrome-devtools`.** Both reach the dev server at `https://completo.0ploy.dev` (`zdev start` first). Before opening a new browser instance, check whether one is already running against that same base URL (cmux's page list, or `mcp__chrome-devtools__list_pages`) and reuse it instead of starting a fresh one. Don't reach for a third browser tool, and don't close the browser mid-session — screenshots go in `.playwright/`, cleaned up after.
+Two traps in this setup have no code-level signal. **`.zdev/config.yaml` must not set `command:`** — zdev turns that into the container CMD, which flips zpinit out of supervise mode. And **editing `.zdev/entrypoint.d/` needs a rebuild**, because `.zdev` is excluded from the file sync and `zdev update` only rebuilds on Dockerfile *content* changes: touch `.zdev/Dockerfile` after editing an entrypoint script.
 
-Non-zdev installs (prod, CI) use `pnpm install && pnpm setup && pnpm dev` directly. `pnpm setup` chains migrate → init-admin → seed and reads `ADMIN_USER_EMAIL` / `ADMIN_USER_PASSWORD` (+ optional `ADMIN_USER_NAME`) to create the first admin; skip them and you get an empty install (no users, no demo project). Add an admin later with `pnpm user:create you@example.com password "You" admin`, then `pnpm db:seed` to populate.
+**Scripts run as `node scripts/foo.ts` — no tsx, no package manager,** because the prod runtime image has neither npm nor pnpm and the same command has to work in dev, in prod and on the host. Node strips types natively, which is erasable-syntax-only: **no `enum`, `namespace`, parameter properties or decorators in `scripts/*.ts`**, and relative imports would need explicit `.ts` extensions.
 
-## Architecture
+## Checking it in a browser
 
-### The Core Model
+`/cmux-browser` first, `/chrome-devtools` only if unavailable. Reuse an open instance on `https://completo.0ploy.dev` rather than starting another.
 
-**Statuses and cards belong to projects, not views.** Boards and lists are *views* — they don't own data. Cards have a `projectId` + `statusId`; boards see cards through `boardColumns` (junction table). Removing a column from a board just unlinks it — cards survive. Deleting a status cascades everywhere.
+**A wedged browser session serves the pre-mount SPA shell** — `#__nuxt` empty, `document.title` empty — which is indistinguishable from a client crash. Clean `pnpm lint` + clean `zdev logs app` + empty `#__nuxt` means open a fresh tab; it is not your code. (The real client-crash mode is a split Vue tree, and `dependency-singletons.test.ts` is the check for it.)
 
-**Don't confuse the two kinds of "column":**
+## Which tests to run
 
-| Concept | What it is | DB table |
-|---------|-----------|----------|
-| **Board column** | How a status appears on a board (position) | `boardColumns` |
-| **Field column** | Which card field shows in a list table | `listColumns` |
+Measured, because the spread is 19×:
 
-### Key Design Decisions
-
-- **Done status & retention:** `doneStatusId` + `doneRetentionDays` on projects. Views **filter out** (not delete) old done cards. Card counts exclude done status. `null` retention = keep forever.
-- **Primary keys:** UUIDs everywhere. **Exception:** cards use INTEGER AUTOINCREMENT (for `TK-42` style IDs). Always parse card IDs with `Number()`.
-- **Positions:** Integer `position` field. New items = `max(existing) + 1` (not `.length`).
-- **Password sentinels:** `'!oauth'` = OAuth-only user, `'!invited'` = admin-created pending setup. Both are unhashable.
-- **Synthetic admin role:** API returns `role: 'admin'` for non-member admins viewing projects — don't display it as a real project role.
-
-### Auth & Permissions
-
-- `isAdmin=1` bypasses membership checks via synthetic `{ role: 'owner' }`. My Tasks is NOT admin-elevated.
-- **404 not 403** for non-member access (don't leak resource existence).
-- **IDOR prevention:** Every card/tag/board endpoint validates resources belong to the correct project.
-- **No email in search results** — user search returns name only.
-- Domain allowlist restricts self-registration only — invitations and admin-created users bypass it.
-- Login requires verified email. `isEmailEnabled()` checks `SMTP_HOST`.
-- **One token table, three flows — always scope by `purpose`.** `email_verification_tokens` is shared by email verification, password reset and account setup, so a row is only meaningful together with its `purpose` (`verify` / `reset` / `setup`). `lookupVerificationToken()` takes it as a required argument for that reason; the two consumers that read the table directly (`verify-email.get.ts`, `resend-verification.post.ts`) filter on it inline. Without that filter every consumer accepted any live row, and because reset and verify both *sign the caller in*, an emailed "confirm your address" link could be POSTed to `/auth/reset-password` to take the account over — a forwarded message or a shared team inbox was enough. A new flow writing here owes a new purpose value (plain text, no migration needed) and a consumer that names it. `setup-account` also checks `isPendingSetup()`: a correctly-scoped setup token must still not rewrite a live account's password and display name.
-- **Never serve `attachments.mimeType`.** It's whatever the uploading client declared. `server/api/attachments/[id]/download.get.ts` derives the type from the filename via `serveContentType()`, sends `nosniff`, and only uses `Content-Disposition: inline` for `isInlineSafe()` types — images, PDF, plain text. Echoing the stored value inline made every upload stored XSS on the app origin, which an attacker turns into a non-expiring API token via `POST /api/user/tokens`; `HttpOnly` doesn't help, since the attack runs same-origin requests rather than reading the cookie. `isAllowedMimeType()` is *not* the defence and can't be: its `.md`/`.csv`/… patterns match the filename and ignore the declared type entirely.
-- **`app/pages/auth/*` pages need an entry in `PUBLIC_ROUTES`** (`shared/utils/auth-routes.ts`). With `ssr: false` the global middleware runs on every navigation and there's no way to opt out from the page, so a missing entry redirects anonymous visitors to `/login` *and* drops any token in the query string — how password recovery came to be unreachable while every server-side test of the same flow passed. `tests/unit/auth-routes.test.ts` enforces the directory↔list correspondence. Keep one-shot emailed links out of `SIGNED_IN_REDIRECT_ROUTES`: bouncing a signed-in visitor discards the token, and `/auth/forgot-password` is the only route back for someone who is still signed in but has forgotten the password `PUT /api/user/password` demands.
-
-### Email Templates (Gotchas)
-
-- Table-based layout only (no flexbox/grid)
-- Solid hex colors only (no `rgba()` — breaks in 21% of clients)
-- No `border-radius` on buttons (use VML `v:roundrect` for Outlook)
-
-## Conventions
-
-**What a rule in this file has to do.** Name the *mechanism*, not the conclusion: "a full-width rule crosses the avatar gutter" bans the thing the evidence tested, while "no lines" generalises past it and takes devices nobody ever looked at. A rule whose guard restates the value it set gives false confidence rather than cover — the model is the contrast assertion in `tests/unit/design-tokens.test.ts`, which parses the mix percentages out of `main.css` and *recomputes* WCAG contrast from them, so retuning has to stay legible instead of merely staying spelled the same way. A claim with no measurement, file reference or test behind it gets deleted rather than softened; this file has certified numbers that no file in the repo produces. And a reversal has to be applied everywhere the old rationale is written down — the prose, the CSS comments and the tests — because one place out of three is the same defect as a refactor that migrates one caller out of three.
-
-### Do
-
-- **Fetch:** Pages use `useFetch()`, composables use `$fetch()`. Refresh after mutations — **except card mutations**, which patch the local row instead; see the optimistic-mutation notes under Shared components.
-- **Composables:** `useKanban()`/`useListView()` accept slug-or-ID + optional `{ projectSlug }` to prevent cross-project slug collisions. Both extend `useViewData()` which holds shared logic (CRUD, tags, members, permissions). Use `useMutation()` for try/catch/toast error handling in composables — don't hand-roll `try { ... } catch { toast.add(...) }`.
-- **Shared types:** `app/types/card.ts` defines `BaseCard`, `CardWithStatus`, `Tag`, `Member`, `CardStatus`. Import from `~/types/card` — don't redeclare card interfaces.
-- **Transactions:** `db.transaction()` for multi-step DB operations.
-- **SSR:** `ssr: false` globally (SPA mode). vuedraggable via `defineAsyncComponent` + `<ClientOnly>`.
-- **DB access:** `db` + `schema` auto-imported. `server/utils/` is auto-imported — don't use `~/server/utils/...` (Nuxt 4: `~` = `app/`).
-- **Database schema:** `server/database/schema.ts` — all tables, columns, relations. Migrations in `server/database/migrations/`.
-- **OpenAPI spec** (`server/assets/openapi.json`, served by `server/api/openapi.get.ts`) must stay in sync with endpoints. Only covers headless API usage — frontend-internal endpoints (slug/key validation, UI column config, notifications, OAuth redirects, registration flows) are intentionally omitted.
-- **Server utils:** `enrichCardsWithMetadata()` and `fetchCardMetadata()` in `server/utils/card-metadata.ts` handle bulk tag + attachment count enrichment. Use these instead of inline tag/attachment queries in endpoints.
-- **List columns:** every field a list view can show is declared once in `shared/utils/list-fields.ts` — key, label, header label, icon, sortability, width — and the two server allowlists, both sortable-field sets, both column pickers, and the default-column lists all derive from it. It replaced nine hand-maintained arrays that had already drifted twice: `dueDate` was sortable in `ListView` but not on the server (so the header sorted, then failed to save), and `done` was offered in `ViewConfigModal` but not `CreateViewModal`. Adding a field is one entry; `tests/unit/list-fields.test.ts` guards the invariants, and the sortable-fields integration test iterates the set rather than restating it.
-- **Card fields:** what a *board card* can display is declared once in `shared/utils/card-fields.ts`, the same shape `list-fields.ts` uses, and reaches the card as `boards.hidden_card_fields`. Two things about it are load-bearing and easy to undo:
-  - **It stores the fields that are *off*.** A field added to the registry later is absent from every board's hidden set, so it appears everywhere by default. Store the enabled set instead and each new field is silently hidden from every board that predates it.
-  - **Hiding a field never hides its editor.** The card's footer row always exists because the four controls live there; a switch only decides whether the value is *painted at rest*, and a hidden field's slot behaves exactly as an empty one with its tooltip still naming the current value. That is the invariant that makes these settings safe to ship on by default — nothing on this list can leave a board harder to use, only quieter. The corollary bit once already: a glyph marking "this card has a description" for boards with the excerpt off made *off* mean *smaller*, and was deleted.
-  - The alternative was a boolean column per field, which is what the first two shipped as. That means a migration for every new card element, and `tests/unit/card-fields.test.ts` fails if a declared field is never consulted by `KanbanCard` — a switch that does nothing is worse than no switch.
-  - **`shared/utils/` is auto-imported for Nitro but *not* for app components.** Server code uses these bare (as `server/utils/` does); a `.vue` file must `import { ... } from '#shared/utils/...'` or the identifier is silently undefined and setup dies with a confusing downstream error (`$setup.colWidth is not a function`).
-  - **Adding a *new* file under `shared/utils/` needs a dev-server restart** (`zdev exec app zpctl restart app`). The running server's auto-import registry doesn't pick the file up, so server code that is perfectly correct throws a 500 `X is not defined` at runtime. `pnpm test` builds fresh and therefore passes, so the suite is green while the dev server is broken — don't read that as the code being wrong.
-  - **Icon names in a `.ts` module aren't found by Nuxt Icon.** `icon.clientBundle.scan` globs templates only, so icons referenced from `shared/utils/*.ts` were dropped from the bundle and rendered as blanks — no error, just missing glyphs. `nuxt.config.ts` extends `globInclude` to cover it; watch the "client bundle consist of N icons" line if you move icon names into plain TS.
-- **View components:** `ViewConfigModal` uses a `mode: 'board' | 'list'` prop — don't create separate config modals. `ViewHeader` is the shared header for board/list pages with a `#actions` slot for view-specific buttons.
-- **Write tests** for new features. While iterating, run `zdev exec app pnpm lint` + `zdev exec app pnpm vitest run --project unit` (~6s); run the full `zdev exec app pnpm test` before you commit. See the table under Testing for why the difference matters.
-
-### Don't
-
-- **Don't use `theme()` in scoped CSS** — Tailwind v4 uses `var(--color-*)`.
-- **To suppress the focus ring you need the bang: `outline-none!`.** The ring is a bare `:focus-visible` rule in `main.css` and it is **unlayered**, while Tailwind utilities live in `@layer utilities` — and unlayered CSS beats layered CSS whatever the specificity. `outline-none` loses, and so does `focus-visible:outline-none` despite being more specific; only `!important` gets past. That's why the card titles carry `outline-none! ring-0!`. Only ever do this on something that shouldn't be a keyboard destination at all, such as a `tabindex="-1"` container.
-- **Don't put content in `USlideover`'s default slot** — that slot is the *trigger*. `CardModal` fills `#header` / `#body` / `#footer`, so anything else belongs after `</USlideover>` as a sibling. A `UiConfirmDialog` placed inside rendered into the page *behind* the panel, centred, with its buttons under the panel's left edge and unclickable — which reads as a z-index bug and isn't one. The panel has no dialog of its own any more (delete left with the `⋯` menu), so `tests/unit/card-editors.test.ts` now guards the rule rather than an instance of it: put one back between those tags and it breaks the same way.
-- **Don't reach for `:ui`'s class strings to paint a state without checking what already paints it.** The panel's drag highlight is `ring-2 ring-primary ring-inset` on `content` and not a `bg-primary/5`, because that and the theme's own `bg-default` are both `bg-*` utilities at equal specificity — which one won would come down to stylesheet order, not to which one you wrote last.
-- **Don't set `order` only at the breakpoint where the layout becomes columns.** The card page's rail is first in the DOM so that it can be the *right*-hand column on a wide screen, and it carried `lg:order-2` — so below `lg` the DOM order stood and a phone was shown the status dropdown and a Delete button *above* the card's own title. Order the flex children at every width (`order-1` / `order-2`) and let `flex-direction` do the responsive part.
-- **Don't use CSS `ring-*` for tag pills** — the `.swatch` family draws its edge as `box-shadow: inset 0 0 0 1px` (`--swatch-ring` filled, a 40% `--swatch-fg` mix outlined), and Tailwind's `ring-*` paints *outside* the box unless you add `ring-inset`, as the panel's `ring-2 ring-primary ring-inset` above has to. The board card's tag row is clipped to one pill's height (`max-h-4 overflow-hidden` in `KanbanCard`, which a `py-[3px] text-2xs` pill fills exactly — see `useTagOverflow`), so an edge painted outside the box is clipped away and arrives as a second colour beside the inset one.
-- **Don't use native `<input type="date">`** — use `UPopover` + `UCalendar` + `CalendarDate`.
-- **Don't use `document.createElement('input')` for file pickers** — use a persistent hidden `<input>` ref.
-- **Don't use `@keydown` on forms for Cmd+Enter** — portals break it. Use global `document` listener with `capture: true`. Because those listeners are global, a nested editor must be able to claim the shortcut: mark its wrapper `data-comment-editor="new|<id>"` (see `CommentList.vue`) and have the outer handler return early when `e.target.closest('[data-comment-editor]')` matches. Both sides test containment rather than relying on listener order, so neither depends on which component mounted first. Add a new nested editor and it needs the same opt-in, or Cmd+Enter will save the card instead.
-
-- **Don't let a nested editor's `Escape` reach the dialog.** Reka's `DismissableLayer` listens for Esc via VueUse `onKeyStroke` on `window` (bubble phase) and dismisses unless the event was `defaultPrevented` — so an editor that merely emits its own `escape` and lets the event travel on gets the whole card modal closed underneath it, taking an unposted comment or an unsaved description with it. `DescriptionEditor` did exactly that: its `@escape` listeners fired *and* the modal closed. Both Esc branches there now `preventDefault()` + `stopPropagation()` before acting. `preventDefault` alone is what actually stops the dismissal today; the extra `stopPropagation` is insurance against that check changing. Any new nested editor owes the same, and note the corollary — Esc inside a text editor should be a no-op when there's nothing local to dismiss, never a shortcut that discards a draft.
-
-  **A confirmation that renders below the fold reads as a broken app.** `CardModal`'s discard banner used to sit above the actions, which on a card with comments is far off-screen: the modal simply refused to close with no visible reason. Only the create-mode one survives — it deletes a real draft row — and it lives in the pinned footer, which is visible by construction and needs no `scrollIntoView`. It focuses the safe option, the only way a keyboard user reaches it without tabbing the whole form, and dismissing it restores focus to wherever the guard fired (see the focus-containment note below). **The edit-mode one is gone, and don't add it back:** every editor on the panel persists its draft, so closing cannot destroy anything, and a dialog asking permission to do something harmless was charged on every close.
-
-  **Containment means focus must stay inside the wrapper**, which is easy to break by accident: any control that takes focus and then unmounts — or a popover that restores focus to a trigger which has since been swapped out — drops focus to `<body>`, and the keystroke silently routes to the card again. The AI review buttons in `DescriptionEditor.vue` did exactly that and cost a written comment. They now carry `@mousedown.prevent` and hand focus back explicitly (to the Keep button while reviewing, since the textarea is hidden behind the preview tab, then to the textarea). Anything new that pulls focus out of a comment editor owes the same treatment.
-- **Don't pick your own browser tool** — `/cmux-browser` first, `/chrome-devtools` only as the fallback (see "Checking the app in a browser" above), and don't close the browser mid-session. Screenshots go in `.playwright/`, clean up after.
-- **Don't add Co-Authored-By** lines to commits.
-- **Don't commit code review files** (`CODE_REVIEW*.md`) — these are local-only artifacts, gitignored.
-
-### Styling
-
-**Aesthetic:** "Trello meets Linear" — an instrument panel. The chrome is neutral hairlines; the only saturated pixels on screen are the ones carrying data (status dots, tag pills, priority, due-date urgency). **A gradient is allowed on a full-page brand moment and on an AI surface, and nowhere else.** The brand moments are the auth layout — four washes and the icon tile (`layouts/auth.vue:7,10,16,19,32`), plus `.auth-glow` and the 2px indigo→violet edge of `.auth-glass::before` in `main.css` — and `app/error.vue:60,63,69,72`, which mirrors it: screens with no work on them to compete with. The AI one is `AiWriteButton.vue:162`, a six-stop violet animated at `:164`; it is hardcoded hex rather than the `secondary` token, and that is owed. Everywhere a user is working, surfaces are flat: the logo (`layouts/default.vue:101`) is the only gradient in the app chrome, no button carries one (there is none in `app/app.config.ts`), and the lifted card is **not** one — `.sortable-drag` is `rotate(1.5deg) scale(1.03)` plus `box-shadow: var(--elevation-drag)`. The two divider fades in `SocialLoginButtons.vue:113,115` are on the auth screens and are neutral rather than brand. Anywhere else a gradient is decoration.
-
-**Never paint a surface with a raw palette utility.** `app/app.config.ts` is the single source of truth for the brand (`primary: indigo`, `secondary: violet` for AI features, `neutral: zinc`), and it reaches markup only through Nuxt UI's semantic tokens:
-
-| Use | Token |
-|---|---|
-| Page / card background | `bg-default` |
-| Recessed surface (column tray, table header) | `bg-muted` |
-| Raised surface (hover, chips) | `bg-elevated` · `bg-accented` |
-| Body text | `text-default` · `text-toned` |
-| Secondary / tertiary text | `text-muted` · `text-dimmed` |
-| Headings | `text-highlighted` |
-| Hairline / emphasis border | `border-default` · `border-accented` |
-| Brand, status | `*-primary` · `*-error` · `*-warning` · `*-success` |
-
-Writing `zinc-500` instead means dark mode has to be maintained by hand and the palette no longer follows the config. The app carried ~1900 such pairs, and because `neutral` was `slate` while templates used `zinc`, dark mode showed a visible navy-vs-charcoal seam between the sidebar and the content. `tests/unit/design-tokens.test.ts` fails on any new raw `zinc`/`slate` surface utility.
-
-**The test only rejects `zinc` and `slate`, so raw `red-*` / `indigo-*` walks past it too.** What walks past it is not a legacy leaf, it is the destructive idiom, and the idiom is *shared*: `DeleteConfirmation.vue` is the panel (`bg-red-50/50 dark:bg-red-950/20`, :32), the input (`border-red-200 dark:border-red-800/50` + `focus:border-red-400 dark:focus:border-red-600`, :42) and a hand-rolled `bg-red-500 hover:bg-red-600 active:bg-red-700` button (:46) where `UButton color="error"` exists. `ProfileDangerZone` repeats all three (:67, :78/:85, :101), `pages/projects/[slug]/index.vue` repeats the panel-input and the button (:674, :686), and `ProjectMembers` (:559) and `pages/admin/skills.vue` (:327) repeat the button. Every one of those pairs is a dark mode maintained by hand, which is the defect rather than the age: `border-error/30` and `text-error` sit in the same class strings, so these files are half-migrated, not pre-dating anything. **`DeleteConfirmation.vue` is where to fix it** — the pattern lives in the shared component, and the copies follow it. (`placeholder-zinc-*` used to be named here as a DangerZone smell and never was one: it was the app's placeholder convention across the whole of `app/`, and it is `placeholder:text-dimmed` now.)
-
-**That test reads utility classes, so raw palette in a *custom property* walks straight past it.** `ProseDescription` carried thirty lines of `--tw-prose-*: var(--color-zinc-600)` plus a second copy of itself under `:root.dark` for exactly that reason — the hand-maintained dark mode the rule exists to prevent, sitting in the file every description and every comment renders through. Typography's variables now take `--ui-*` values, which carry both themes, and the dark block is down to the one value that genuinely differs. Two facts about the dark ramp that this turned up and that bite anywhere:
-- **The dark surface ramp is overridden in `main.css`, and that override is load-bearing.** Nuxt UI's dark defaults put `--ui-border`, `--ui-bg-muted` and `--ui-bg-elevated` all on zinc-800 and both accented tokens on zinc-700 — six semantic tokens on three values, against light mode's five. Two things it broke, measured: every board column's `border-default` drew itself in its own `bg-muted` colour, and `hover:bg-elevated` on a `bg-muted` surface was a 0-delta no-op in 27 files. The ramp now declares all six (`--ui-bg` 21% · `bg-muted` 24.4 · `bg-elevated` 28.5 · `border` 32 · `bg-accented` 34 · `border-accented` 41), so `border-default` on a recessed surface is simply correct and `--ui-border-accented` is free to mean *emphasis* again. **Don't reinstate the old advice to reach for `border-accented` whenever a border sits on `bg-muted`** — that was a per-call-site tax nothing enforced, and it spent the emphasis step on being merely visible.
-- **A recessed surface reads *lighter* in dark mode** — there is nowhere darker to go — so `bg-muted` is the right token for a code block in both themes and needs no per-theme override. It is the *inline* `code` chip that needs one, stepping to `--ui-bg-accented` so it stays distinct from a code block beside it.
-
-**Scales are closed sets.** No arbitrary values.
-- **Type** — six working steps: `text-2xs` 10 · `text-xs` 12 · `text-sm` 13 (the workhorse) · `text-base` 14 · `text-lg` 16 · `text-xl` 20. `sm`/`base`/`lg` are redefined in `main.css`, so Nuxt UI's internals tighten with our markup. The test rejects any `text-[Npx]`.
-- **Type: the display tier** — three declared steps above the working ladder: `text-2xl` 26 · `text-3xl` 32 · `text-4xl` 38, each with its own leading (1.2 / 1.1 / 1.05) and `tracking-display` (−0.03em). It is **not** a continuation of the working steps — 26 is deliberately the biggest jump in the ladder (1.3× off `xl`, against 1.25× for the largest working step) so the tier opens as a change of register. It exists because the declared ladder capped at 20px, a 2× total range, so no surface could have a display moment; the two sites that reached past it landed on Tailwind's untuned defaults and looked accidental for it. **The face is `font-display`, which resolves to JetBrains Mono** — a role, not a face, so call sites survive the face changing. Mono because three of the four display surfaces render a number or a technical string (an error code, a stat readout, a wordmark); because it adds no font load and no FOUT risk; because it extends an axis we already have (`card-id`, `tabular-nums`, `.code-lang`); and because a tight heavy mono at 26–38px reads as the instrument readout this app is, where a display serif would be a fourth type role and an editorial voice. **Where it is allowed is a mechanism, not a list: a display step needs a surface with no work to compete with** — a full stop, not a place where someone is doing something. Today that is `error.vue`, `layouts/auth.vue` and the one stat readout in `ProfileActivity`; the board, lists, cards and the panel are dense working surfaces and the test fails on a display step in any of them.
-- **Radius encodes containment depth, not role** — `rounded-md` 6 for something dense sitting *inside* a surface (inline controls, chips, code) · `rounded-lg` 10 for a surface (buttons, inputs, cards, popovers) · `rounded-xl` 14 for a container of surfaces (panels, modals, columns), plus `rounded-full`. Set in Tailwind's `--radius-*`, not `--ui-radius`, because UButton hardcodes `rounded-md` in its own theme. Stated as depth because the alternative reading is a contradiction the file used to carry: it demanded that "a card, a control and a panel" each look different while assigning one radius to buttons, inputs, cards *and* popovers. They share 10 because they sit at the same depth, which is the honest description. If concentric nesting is ever wanted — a control smaller than the card holding it — that is a real change with a fourth step or a reassignment behind it, and worth deciding on purpose rather than discovering that `rounded-lg` was overloaded.
-- **Elevation** — `shadow-raise` · `shadow-float` · `shadow-drag`, indirected through `--elevation-*` so each has a dark-mode value. A plain black-alpha shadow is invisible on a dark surface. **The scale is the target, not the state:** it reaches markup from four files (`KanbanCard`, `KanbanColumn`, `ProfileSettings`, `layouts/default.vue`) plus two `app.config.ts` slots, while the raw Tailwind shadows it replaced are still live in seventeen-odd files, about two dozen utilities — `grep -rE 'shadow-(sm|md|lg|xl)' app/` is the count, and it is the honest measure of how far this got. The failure those carry is exactly the one the indirection removes: `layouts/auth.vue:32` is `shadow-xl shadow-indigo-500/25 dark:shadow-indigo-500/10`, a shadow whose dark mode is maintained by hand. Convert what you touch, and don't add a new raw one.
-- **Motion** — `transition-colors` by default; `transition` (the default property set) only where opacity or transform actually animates. Never `transition-all`: it animates layout properties too.
-
-**User-chosen colours go through `.swatch`, which sets their lightness and keeps their hue.** Tag, status and project-accent hex is user data that has to work on white and on near-black. Set `--swatch` inline and `.swatch` / `.swatch-outline` / `.swatch-dot` / `.swatch-text` / `.swatch-bar` derive a foreground, fill, ring and mark per theme — no colour-mode logic in JS. The derivation is `oklch(from var(--swatch) L c h)`: **hue and chroma are the user's, lightness is ours.** Chroma is scaled rather than set, so a grey stays grey.
-
-That mechanism is the point, and it replaced a `color-mix(… var(--swatch) N%, black)` recipe that could not be fixed by tuning. A mix's output lightness depends on its *input's*, so the pill was only ever as readable as the colour somebody picked — and `COLOR_PALETTE` deliberately offers eight dark hexes (`#334155`, `#78716c`, the whole -700/-800 half) so that picking a dark one is a certainty, not a risk. Measured on the old recipe: **2.50:1** for a label in light mode, **3.61:1** in dark, and **1.92:1 / 1.71:1** for a status dot, which owes only the 3:1 of a graphical object. Four of six under threshold, on the app's most-repeated coloured element. Forcing lightness clears AA for all sixteen offered colours in both themes with headroom — live on the demo board, 6.16:1 and 3.65:1 in light, 7.44:1 and 5.84:1 in dark. `tests/unit/design-tokens.test.ts` recomputes all of it from the L values in `main.css`, at both thresholds, so retuning a number re-derives instead of needing a test edit.
-
-Two things not to undo. **`--swatch-mark` exists because a dot is not a label:** `.swatch-dot` and `.swatch-bar` are pure colour with no text in them and were drawn from the stored hex untouched, which is how a slate status dot reached 1.71:1 — a status dot nobody can see is the whole control. And **`--ui-bg` is declared in the `.dark` ramp** so the contrast assertion derives the page colour rather than restating it.
-
-**One colour is *derived* rather than stored: a person's avatar tint,** from `identityColor(name)` through `.swatch-avatar`. Same recipe, its own two lightness values — a 24px disc is mostly rim and glyph where a pill is mostly fill, so it takes a stronger tint (L .94 at 40% chroma against the pill's .965 at 28%) to read as coloured at all. Under the old percentages that difference had to be spelled as a *second set of mix shares*, which is how `.swatch-avatar` briefly became the name of two rules and how the contrast test came to measure the pill's numbers and pass. Both are held to 4.5:1 by the same assertion now.
-
-- **Priority spends colour only where it matters:** urgent → `text-error`, high → `text-warning`, medium and low → neutral, and only urgent/high draw the 2px edge bar (mirrored by `KanbanCard` and `ListView`, so both views describe priority identically). The board card's priority *control* is a neutral `signal` glyph, deliberately: it used to be lit in the priority's own colour, pulsing for urgent, an inch from an edge bar already saying that in the same colour — two marks for one fact, and it made priority the only control on the strip whose shape changed with its value. Medium used to be indigo, which on a board where most cards are medium meant the accent carried no information. The medium icon is `equal`, **not** `grip-horizontal` — six dots on a draggable card reads as a drag handle. Charts are the exception and use `priorityChartClass()`, where all four levels must stay distinguishable. Helpers in `app/utils/constants.ts`.
-- **Due date:** overdue → `text-error`, due-soon (today/tomorrow) → `text-warning`, future → `text-muted`.
-- **Absent data is absent — in a scan column.** An em-dash, not "N/A" / "Unassigned" / "No tags", because ten rows of "Unassigned" down a column is noise about data that isn't there. The rule is about the *repetition*, not the words: a filter option or a group header that reads "Unassigned" is naming a set rather than repeating an absence, and is correct. Stated with its scope because the wordless version banned the vocabulary outright and would have blocked grouping a list by assignee.
-- **An empty *section* is its own invitation** — which is the same rule read the other way, not a contradiction. A table cell is seen a hundred times and has no action attached, so it stays blank; a card's description is seen once and has one, so its empty state is a full-width control reading "Add a description…" that is simultaneously the label, the empty state and the button. Never a heading over a void — a card with nothing on it used to show two in a row, and it reads as a section that failed to load. Never a sentence announcing emptiness either: the collapsed comment composer says "Leave a comment…", which reports the same fact as "No comments yet" *and* offers the action, so the sentence was deleted.
-
-  Stated once, since the card surfaces apply it three times: **an empty section is one row — icon, verb, border — and nothing above it.** `tests/unit/card-editors.test.ts` pins all three parts.
-  - **The label arrives with the count.** `UiSectionLabel` is gated on `attachments.length` / `comments.length`, not on `count || null` — that older form rendered the heading with the number simply absent, which is the heading-over-a-void it was meant to avoid.
-  - **All three rows look identical, and the icon and the words are what differentiate them.** The attachments row was briefly dashed on the reasoning that solid means a field you type into while dashed means somewhere you drop something. That reasoning does not survive being looked at: at 1px a dash reads as *fainter*, not as a different kind of thing, so two solid rows and one dashed 24px apart read as an inconsistency — and a convention nobody meets twice teaches nothing. The dash is spent on the drag state instead, where it arrives with the primary border, the tint and "Drop to upload" and is actually legible. A solid row that opens a file picker is fine because the collapsed comment composer already establishes the idiom: a solid row looks like an input, and clicking it starts the thing its words name.
-  - **The description never gets a heading at all.** It is what the card *is*, sitting directly under the title; attachments and comments are appendices that accumulate and are therefore worth counting. Three peer headings claimed the three regions were peers. Its icon (`i-lucide-text`) moved into the empty row, where it does more work than it did as decoration on a label.
-- **Ticket IDs:** `{projectKey}-{cardId}`. **De-emphasised, because it had more visual weight than the title:** on a board card `TicketIdCopy` at `size="xs"` renders `text-2xs text-dimmed`, the same weight as the comment and attachment counts beside it, against a `text-sm font-semibold text-highlighted` title. The footer line is one implementation of that and not the only one — move it if a layout wants it elsewhere, as long as the title still outweighs it.
-- **Destructive actions: two idioms, and the choice is about the control, not the stakes.** `<UiConfirmDialog>` is the default, wrapped in `<UTooltip>` where icon-only; pass `confirmText` for anything that cascades or can't be recovered (projects, views, statuses, users), omit it for cards and tokens. The exception is **a dense repeated row in a list** — a comment, an attachment, a status in the manager — where a component instance per row isn't worth it and a dialog for one row of thirty is heavy: those use the two-step inline confirm (`Delete?` ✓ ✗, 5s timeout) that `CommentList` and `AttachmentList` share. What matters is that neighbouring rows in the same list use the *same* one; removing an attachment used to have no confirmation at all while the comment directly below it had the inline one. Never invent a third — there used to be four.
-
-  **Deleting a card is the full-page view's, and it is the only entry point.** Not the board card, not the list row, and no longer the panel: the `⋯` menu there held exactly one item, so it was a menu whose job was to hide a button. Three clicks and a navigation is the right price for a destructive, rare action, and the page is where the provenance that informs the decision already is. If bulk cleanup ever becomes a real workflow the answer is multi-select on the list view, not a per-card menu.
-- **Icon-only controls need `aria-label`.** A popover trigger must be a `<button>`, never a `<div @click>`: five inline list editors were unreachable by keyboard because of that. They generally want a `<UTooltip>` too — `aria-label` serves a screen reader, not the sighted user staring at an unlabelled glyph.
-- **The app is pointer-first, and that is a decision — not a gap to close and not a licence to strip what is there.** Two halves follow, and they are opposite mistakes: building a keyboard *model* the app does not have is a feature rather than a tidy-up, and deleting a keyboard *affordance* it already has is a regression.
-
-  **Arrow-key navigation ships, and only from the open card panel.** `app/utils/board-nav.ts` is the whole of it. `nextCard` walks ↑/↓ within the column you are in and ←/→ to the *top card* of the next column, skipping empty ones because there would be no card to show; it does not wrap, since a dead end is how you learn you are at the end and wrapping reads as the list re-ordering itself. It is called over the *filtered* ordering, from the board page rather than from `KanbanBoard`, so an arrow cannot land on a card the current filters hide. `columnPosition` is the "2/7" readout between the chevrons. `arrowKeysAreClaimed(document)` is the arbitration, and it stands down for everything with a more specific claim on the key: a caret in an `input`/`textarea`/`select` or a contenteditable, any open `[role="menu"]` / `[role="listbox"]` / `[role="grid"]` (menus, selects, the date calendar), and a second stacked `dialog`/`alertdialog` — checked by role and focus rather than by listener order, the same way ⌘↵ is routed. The keys are not the whole feature: `CardModal`'s `NAV_CONTROLS` renders four chevrons (never arrows — an up-arrow beside a kanban card reads as *move this card up*, which is a real operation here), each disabled when its direction goes nowhere, each teaching its key from its own tooltip, and the tray renders only where a host passes `nav`, so the list view has none. `tests/unit/board-nav.test.ts` pins both halves.
-
-  **What is still deliberately absent is the board itself.** A `KanbanCard` is a `<div @click>` with no `tabindex`, and there is no roving tabindex across cards or columns — the arrows need no focus manager precisely because the panel is open and has made the board inert, and the card the panel is showing is the only thing that plays the part of a selection. Tab on the board walks the per-card controls in DOM order and never lands on a card itself, and closing *that* gap is a feature — a focused-card model, a focus order, a visible focus state on a card — not a tidy-up, so it wants a request behind it. Keyboard works where it already works: ⌘K search, form fields, the editors, and the menus once open (arrow keys and type-to-jump come free from Reka).
-
-  **Don't remove what costs nothing either.** Semantic `<button>`s, `aria-label`s and `:focus-visible` rings are the framework's defaults or one attribute; deleting them buys no lines worth having and turns "we haven't invested here" into an audit finding, paid for by whoever navigates by keyboard out of necessity. `useMenuFocusReturn` is the piece of real code this line produced, and it exists for the *mouse*: it samples the modality when a menu *opens* (by close time Escape has already flipped it to keyboard) and prevents Reka's `closeAutoFocus` only for a menu opened by pointer, so no ring appears round an icon you merely clicked — Escape is itself a keypress, and the browser upgrades the restored focus to `:focus-visible`. Focus return survives for the keyboard case, which is what keeps the fix from breaking Tab order.
-
-  Testing note: **Safari excludes buttons and links from the tab order by default** — Settings → Advanced → "Press Tab to highlight each item on a webpage". "No focus ring anywhere in Safari" is that preference, not a bug here; turn it on before concluding anything from a Safari tab-through.
-- **`<UTooltip>` is the tooltip. Native `title=` is not.** The two look nothing alike — the browser's is unstyled, ~1s late, and invisible on touch — and the app had them side by side, sometimes on adjacent buttons in the same toolbar. Native `title` survives in exactly one role: dense, repeated elements where the hint is the element's *own data* rather than authored copy, and a component instance per item isn't worth it — the file name behind a truncated attachment link, the icon name in the 50-cell project-icon grid, the exact timestamp behind a relative one in the admin table. Anything that *explains a control* is a `UTooltip`. Note `title` is also a legitimate **prop** on `UiPage`, `UiModal`, `UiConfirmDialog` and `UEmpty`; those are not tooltips and grep will show them.
-- **ESLint:** No comma dangles, 1tbs brace style.
-
-### Shared components
-
-Reach for these before hand-rolling. Nuxt UI v4 is fully MIT and includes the former Pro components, so `UEmpty`, `UUser`, `UAlert`, `UCard`, `UBadge`, `UKbd`, `USkeleton` and the `UDashboard*` family are all available — the app previously reimplemented most of them.
-
-- **`UiPage`** — every page's shell, owning the navbar. Two body contracts: `document` (page scrolls, left-aligned under the navbar title) and `surface` (child owns its scroll, bleeds to the edges). Global chrome — notifications, ⌘K search, the user menu — lives in `layouts/default.vue`, once. Don't hand-build a page header; five idioms used to coexist.
-- **`UiModal`** — the dialog shell. Uses UModal's real `#header`, so the dialog has an accessible name. Overriding `#content` discards the panel styling and forces you to rebuild it.
-- **`UiConfirmDialog`**, **`UiSaveBar`** (footer order is fixed: destructive far left, primary last), **`UiPerson`**, **`UiAvatar`**, **`UiSectionLabel`**, **`UiStatusDot`**, **`UiFieldRow`**, **`UiDraftNotice`**.
-  - **`UiAvatar` is every person's avatar; a bare `UAvatar` is a bug.** `UAvatar` renders initials on `bg-elevated`, so any screen with several people on it showed several identical grey discs. `UiAvatar` derives a stable colour from the display name (`identityColor`, 14 hues, FNV-1a) and paints it through `.swatch-avatar` — the same recipe a tag pill uses, retuned for something 24px across. Photos are left untinted, and `:tint="false"` keeps the neutral disc for a slot with *no* person in it, such as a comment whose author has been deleted. Colour is an aid, not an identifier — five people in one thread collide about half the time at any palette size worth having, which is why the disc still carries initials — but it is the only signal in the case that has no other: `Lola3`/`Lola4`/`Lola6` all render as one letter. `tests/unit/design-tokens.test.ts` recomputes the disc's WCAG contrast from the percentages in `main.css` rather than asserting the percentages, which is what caught the first version shipping amber initials at 3.13:1.
-  - **`UiFieldRow` supplies the row; the *host* supplies the border.** There was a `UiFieldGroup` wrapper for the border and the hairlines, with exactly one consumer — `CardProperties`' `rows` layout — whose only host is a bordered card, so it drew a bordered box 12px inside a bordered box and the property labels sat 25px from the card's edge while the rows beneath them sat at 16. Deleted; `CardProperties` draws the dividers. Its docstring claimed it had already replaced a duplicated class string in five files and it hadn't — `ProjectForm`, `CreateViewModal` and the three `Profile*` panels still hand-roll `rounded-lg border … divide-y divide-default overflow-hidden`. That migration is still owed.
-  - **A comment thread is a ruled document, and the rules are *inset* — they start where the prose starts and the faces hang outside them, in the margin.** This is the fourth answer; three of the first three are still wrong and one of them shipped, so all four are recorded in the component:
-    - **Full-width hairlines between comments.** Still wrong, and the reason is precise rather than aesthetic: a rule spanning the whole row cuts across the avatar gutter, so the column the faces are supposed to own gets sliced at every comment. An inset rule does the opposite and *defines* that column by starting at its edge — which is the distinction the original rejection missed, and the whole of this design.
-    - **A vertical connector down that gutter,** GitHub's stub generalised. Its length is whatever the comment above happens to be tall, so between two one-liners it is a 20px tick and below one carrying a code block a 115px rail — a fragment rather than structure. A connector earns its keep when the nodes it joins are cards of their own (GitHub) or uniform rows (an activity log).
-    - **Avatars alone, no rules at all** — Linear's answer, and what shipped for a release. It does not survive being read on a real card, and the arithmetic says why: nine comments put nine 24px discs across ~500px of text, so the "column" is 95% empty space while everything else is left-aligned to one x. The eye gets a single ragged block of text with occasional bold 12px lines in it. Tinting the discs (below) fixed *identity* and did nothing for *separation*.
-    - **What settles it is not taste: a comment can contain a code block** — a slab with its own border, surface and radius. With no boundary on the comment, the most sharply defined thing on the thread was the *inside* of a comment rather than the comment, and an inverted hierarchy is one the reader has to fight. That gives the rule a job **and a ceiling**: present, and weaker than the code block's border, so one `border-default` hairline and never a card. It lives on the content column (`border-t` + `pt-4`, reset with `group-first:`), never on the `<li>` and never as `divide-y`, and the 16px above it is the list's `space-y-4` so the hairline sits centred in a 32px band instead of hugging one comment.
-    - **No hover background on a comment row.** There was one, `hover:bg-muted/50`, which over white computes to `oklab(0.985 0 0 / 0.5)` — a 0.75% lightness delta, invisible in light mode. The contrast is the lesser problem: nothing in the row is clickable, and a surface that lights up under the pointer and then does nothing is worse than one that never suggested it could. Its real job was tying the far-right action buttons to their comment, and the rule now does that by bounding the record all the way to the edge those buttons sit on. **Those buttons anchor to the byline, not the `<li>`** — measured from the li's top edge they floated in the band *above* the rule, straddling it and belonging to neither record.
-    - **Nothing inside a comment invents a type size.** Measured across one thread there were seven, five of them inside a 2.4px range — 11.57px (code in a block), 11.9px (inline code), 12px (the byline), 12.6px (a mention), 14px (the prose) — and no two of those differences read as hierarchy. They read as a page that cannot settle, which is what a reader reports as "restless" without being able to name a cause. A mention is now exactly the size of its sentence (the pill, the weight and the brand colour already say "person"; size was the one signal doing no work); inline code takes the one step down that lands on 12px at body size. And `pre` **declared** 13.5px while **rendering** 11.57px, because typography's own `code` rule sets 0.857em and wins inside the block — hence the `pre code { font-size: inherit }` reset, without which the declaration is decoration.
-    - **The byline is deliberately smaller than the body it introduces** — 12px semibold name over 14px prose, with the timestamp at the *same* 12px and separated only by weight and tone (it was 10px, which put two baselines in one 16px line and made the byline itself read as a fragment). The original defect was not the gap ratio (8:1 was plenty) but that a 13px semibold name and the 14px sentence under it *looked alike*, so four comments read as eight interchangeable lines.
-    - **The faces still carry identity, just not structure.** Nine comments on TK-21 drew nine grey `bg-elevated` discs, four of them reading "DA" — see `UiAvatar` above. Repetition is information here: four discs of one colour say "the same person, four times" without a word.
-    - **The composer sits 40px below the last comment.** Two comments are 32px apart (16 + rule + 16), so the earlier 32px put the one row that is *not* a comment at exactly the interval that says "next record" — it had been 24 against 24 before the rules arrived, and adding them re-created the same collision at a new number. It is the gap that has to differ, not just the border it carries.
-    - **A comment's prose must start and end flush with its own box.** `ProseDescription` resets the first and last *block*, not just the first and last paragraph — which is what it used to do, and it only looked right because most comments are paragraphs. The one comment ending in a fenced code block kept typography's 16px bottom margin inside its `<li>` and sat 40px from the comment below it. A single 40px gap in a stack of 24s reads as a missing record and takes a devtools measurement to explain, so it gets diagnosed as "the spacing is off" and fixed by changing `space-y-6` — wrong four times to be right once.
-    - **Author grouping was considered and rejected.** Collapsing consecutive same-author headers is what Slack and iMessage do and it would tidy the demo card's three "Demo Admin" rows — but those comments are 23 minutes and 3½ hours apart, so no window honest enough to imply they were written together actually fires, and a generous one trades information for tidiness. GitHub repeats the author on every comment for the same reason. Rejecting it is only defensible because every relative time now carries `formatTimestamp` behind it: "2d ago" is the right thing to *show* and a useless thing to *reason* with, and all three of those render identically.
-    - **Reactions and threaded replies are the two real gaps** against GitHub and ClickUp, and both are features with a schema behind them rather than layout — don't fake either with client-only state.
-  - **The card page's rail is one card, one stack, one inset, and read-only rows differ only by having no chevron.** Status → tags → created → updated → delete are eight instances of the same row: same height, same 16px inset, icon on the same vertical line (the delete row is a plain `<button>` for that reason — a `UButton`'s own padding puts its glyph 6px inside the column). Nothing in the rail signals "editable" except the chevron, which is the same trick the empty rows in the main column use: one vocabulary, differentiated by content rather than by chrome. Delete is grey at rest and red on hover, so the only destructive control on the page announces itself when you reach for it rather than the whole time you read the card.
-  - **`UiSectionLabel` is the small uppercase heading — use it, don't retype it.** The card panel's three sections rendered at 0.48px, 0.84px and 0.30px of tracking, one of them without the icon its neighbours had, because two of the three hand-rolled the style. `tests/unit/card-editors.test.ts` rejects a fresh `text-xs font-semibold uppercase tracking-[…]` in those files.
-  - **A keyboard hint rides on the button it triggers**, as `<UKbd value="meta" />` in a `#trailing` slot. There were three spellings — a floating grey chip beside the button, a raw `<kbd>` inside it, and this one. `<kbd>` is banned in the files that carry shortcuts.
-- **`FieldMenu`** — the one menu behind status, priority, assignee and tags, with `StatusMenu` / `PriorityMenu` / `AssigneeMenu` / `TagMenu` as thin wrappers supplying options and the field's own aria-label. They are the same act — pick from a list, the chosen ones are marked — and had drifted into six implementations at three widths with three ways of marking the selection. `multiple` changes only whether choosing closes the menu. **Don't hand-roll a `UPopover` + button list for a new field**; the due date is a calendar and is the one thing that legitimately isn't this.
-- **Menu placement is `app/utils/menu-placement.ts`** — below the control, 4px down, 8px clear of the window edge. Only the alignment axis is a call-site decision, because it follows how the controls are anchored: `start` in a table (cells are a column, so every menu lines up), `end` on a board card (the cluster is pinned to the card's right edge). `KanbanCard` also passes a measured `alignOffset` so all four menus land flush with the card rather than with the button — the buttons move when a due date renders as text instead of an icon. `tests/unit/menu-placement.test.ts` fails on any component that grows its own `sideOffset`.
-- **`useMenuFocusReturn`** — see the pointer-first note under Styling. It exists for the *mouse*.
-- **`CardProperties`** — status/assignee/priority/due/tags, shared by `CardModal` and the card detail page so the same fields can't drift into two control vocabularies again.
-- **`useFileDrop`** — a file dropped anywhere on a card attaches it. The surface owns it (`CardModal`, the card page) and hands the files to `AttachmentList.uploadFiles()`; the section only *reports* the drag via a `dragging` prop. Three things about it are load-bearing:
-  - **The `preventDefault` is unconditional and comes before the containment check.** Handlers used to live on the attachments section's own wrapper, so nothing prevented the default anywhere else — and a screenshot dropped on the description made the browser navigate the tab to `file:///…`, taking the card view with it. That is the failure mode this exists to close, not the missing highlight.
-  - **The backstop timeout is 500ms and cannot be much shorter.** The drag-and-drop model re-runs `dragover` every 350ms, so a pointer held still over the panel is the slowest legitimate event stream there is; below that the highlight blinks off between two perfectly normal events. Leaving is detected properly instead — a `dragleave` whose `relatedTarget` is outside the root — and the timer only covers events a drag can genuinely swallow.
-  - **State is refreshed from `dragover`, never counted from enter/leave.** Those fire for every child element the pointer crosses; the previous implementation tracked them directly and papered over the storms with a 50ms unset timer, which is why the highlight was unreliable.
-- **`useTagOverflow`** — as many tags as fit on one line, then `+N`. Shared by `KanbanCard` and `CardProperties`' *compact* layout, so a board card and the card panel describe tags identically. The clipping is CSS (`max-h-4 overflow-hidden`, one pill tall) and this only reads it off `offsetTop`; the `rows` layout passes `enabled: false` because its row isn't clipped, and measuring an unclipped row prints a `+N` beside tags that are plainly visible. `remeasure` uses `requestAnimationFrame` and not `nextTick` — a microtask measures a row that hasn't been styled yet, the count comes back identical, the loop reads that as settled, and every overflowing card is short by exactly one.
-- **`useCopyText`** — two seconds of "Copied!" on the control that did it, for the copies that aren't ticket IDs (`useCopyTicketId` owns those): the description's, and every code block's. Swallows the rejection — `writeText` fails outside a secure context and when the document isn't focused, and an error toast would be the loudest thing on screen for the least consequential failure there is.
-- **`useTextDraft`** — persists in-progress prose to `localStorage`, keyed `card:<id>:<field>`. Four editors use it: the description on both card surfaces (one shared scope, deliberately, so a draft begun in the panel is waiting on the page), a new comment, and an in-progress comment edit. Prose is the only thing on those screens with nowhere else to live, and persisting *all* of it is what let the blocking unsaved-text confirmation go — leave one editor unprotected and that guard has to come back for it.
-  - **A restored draft must open its editor.** `load()` writes into the same ref the read view renders, so restoring silently makes unsaved text appear as prose, indistinguishable from something a colleague saved. Both card surfaces set `editingDescription` when `restored` is set, and show `UiDraftNotice`.
-  - **It takes a baseline** — what the server already holds — so text equal to it is not a draft. Without it the composable stores the description of every card merely opened, and then "restores" text nobody typed.
-  - **Explicit discard clears the draft; an implicit close keeps it.** Cancel and the notice's Discard both call `clear()`; closing the panel lets the unmount flush write. Restoring text somebody deliberately threw away is worse than losing it.
-  - It shipped with **zero call sites** for a whole commit while this file described it as load-bearing. `tests/unit/text-drafts.test.ts` counts the call sites for that reason.
-
-**Card mutations are optimistic.** `useViewData`'s `updateCard` / `deleteCard` / `updateCardTags` patch the local row, then reconcile with the response, and restore a snapshot on failure. Don't add `refresh()` back: it meant every one-click edit triggered a full view refetch and re-render. Keep nested `status` and `assignee` in step with their ids — the PUT response resolves `assignee` but never `status`.
-
-**`useViewData` must fetch with `deep: true`, and it is not a preference.** Nuxt's `useFetch` defaults to a `shallowRef`, so `data.value.cards[i]` is a *raw* object and patching it in place mutates something Vue never sees. Nothing looks broken in a network log or a database check — the request fires, the object updates — but the board keeps rendering the previous value until an unrelated re-render happens to flush it, which a closing popover or dialog does. That makes the bug intermittent and easy to "verify" as working. It was survivable while every mutation ended in `refresh()`, because replacing `data.value` wholesale is something a shallowRef does notice. `tests/unit/optimistic-reactivity.test.ts` guards it.
-
-**Instant save is split by what a field is, not by which screen it's on.** Status, assignee, priority, due date and tags persist the moment they change — on the board, in the list, in the card modal and on the card detail page alike. Title saves debounced, and flushes on blur, on close and on route leave. `useCardFieldSync` owns this for both card surfaces.
-
-Description and comments stay explicit — the editor is a markdown textarea, so writing and reading are genuinely different modes, and a mode you leave by saving is honest about that. Revisit when the editors become WYSIWYG; until then, **the Save belongs to the editor, not to the surface.** It sits directly under the textarea with `⌘↵` on it and Cancel beside it. Neither card surface has a save bar any more: the panel renders no `#footer` in edit mode and the page's rail holds only Delete, because a bar with one permanently-disabled button on every card nobody is editing is worse than no bar. `⌘↵` routes three ways — a comment editor claims it by containment, otherwise it is the description's, and with no editor open it does nothing. That last branch used to fall through to a card-level submit that wrote and closed a card nobody had touched.
-
-**Clicking the prose does not edit it, and that was a deliberate reversal.** It used to, guarded against following a link and against ending a selection — and the guard cannot cover the gesture people actually use to copy half a sentence: click a word, shift-click to extend. That first click has a *collapsed* selection, indistinguishable from "edit this", so the common way to copy out of a card threw you into the editor every time. Two things follow, and both are pinned by `tests/unit/card-editors.test.ts`:
-- **The pencil is always rendered, never revealed on hover.** With the gesture gone it is the only way in, and an affordance you find by sweeping the panel isn't one. It sits absolutely positioned at the top-right of the description region, so the pair costs no height where the deleted heading used to be, with the prose padded clear of it (`pr-16`) rather than running underneath.
-- **The `hover:bg-muted/60` fill went with the click.** A surface that lights up under the pointer and then does nothing is worse than one that never suggested it could.
-- **Copy is the other half of the trade.** If copying is common enough to cost us click-to-edit it deserves a control, and copying the *markdown* is better than anything hand-selecting rendered prose would have given you.
-
-**Rendered markdown is `ProseDescription`, shared by both descriptions and every comment** — so anything added there lands in three places, which is a reason to be careful what it lets through. Code blocks get their copy button and language label by **decorating post-sanitize DOM**, not from a `marked` renderer: emitting the wrapper would mean adding `div` to `ALLOWED_TAGS`, and `marked` passes raw HTML in a description straight through, so the wrapper would arrive by widening what *user* markdown may render in order to buy a button we can build ourselves. The language is read off the `language-*` class already on the `<code>`, and `v-html` discards the wrappers on every update, which is why `decorateCodeBlocks` re-runs on `rendered` and can simply skip anything already wrapped.
-
-**Leaving an editor reverts.** `cancelEditingDescription` restores the card's text before unmounting the editor; Escape is bound to it. Merely setting `editingDescription = false` leaves the typed value in `description`, which the read view then renders as prose — and the old close guard, which keyed off `editingDescription`, went quiet along with it.
-
-Its watchers fire on *divergence* from the card rather than behind a "syncing" flag: populating local state sets local == card, so nothing fires, with no dependency on watcher flush order. That also makes a rejected save self-correcting — a revert changes the *card*, which pulls local back through `syncProperties`, and the resulting local change is then equal to the card so no second save is attempted. Title and description are deliberately excluded from that pull; force-syncing them would overwrite text mid-keystroke.
-
-## Testing
-
-**When to run which tests. Measured, because the spread is 19×:**
-
-| | cost | what it is for |
+| | cost | for |
 |---|---|---|
 | `pnpm lint` | **5s** | the only thing that catches a broken `.vue` template, with a line number |
-| `pnpm vitest run --project unit` | **1.4s** | every test under `tests/unit/` |
-| `pnpm typecheck` | 7s | types and props. Does **not** parse templates |
-| `pnpm test` | **27s** | the above plus a full build and the HTTP suite |
+| `pnpm vitest run --project unit` | **1.4s** | everything under `tests/unit/` |
+| `pnpm typecheck` | 7s | types and props — does **not** parse templates |
+| `pnpm test` | **27s** | the above plus a build and the HTTP suite |
 
-- **Frontend-only change** (`app/**`, `tests/unit/**`): `pnpm lint` + `pnpm vitest run --project unit`. That is ~6s and it is the whole safety net — the integration suite talks HTTP to a built server and cannot observe a Vue change except by failing to build.
-- **`server/`, `shared/`, or a schema change:** full `pnpm test`. The integration suite is the only thing that exercises an endpoint.
-- **Before you commit, and before a release:** full `pnpm test`, once. This is the gate; the loop above is not a substitute for it.
-- **A unit test failed?** Re-run *that file* (`pnpm vitest run --project unit tests/unit/foo.test.ts`), not the suite. Add `--reporter=verbose` to get the failing test names rather than `tail`-ing a truncated summary.
-- **CLI changes** (`cli/`): `cd cli && go test ./...`, **on the host** — the dev image has no Go toolchain.
+Frontend-only change → `lint` + `unit`. That ~6s is the whole safety net; the integration suite talks HTTP to a built server and cannot observe a Vue change except by failing to build. Touching `server/`, `shared/` or the schema → full `pnpm test`. Before committing → full `pnpm test`, once.
 
-**The full suite is the *worst* of the four at reporting frontend breakage, so don't reach for it as a safety net.** Verified on a stray `</UTooltip>`: `lint` names it (`319:13 error Parsing error: x-invalid-end-tag`) in 5s, `typecheck` passes it silently, and `pnpm test` spends 27s and then fails inside `global-setup` with `Serialized Error: { status: 1, signal: null … }` — no file, no line, nothing pointing at a template. **If the full suite dies in global-setup with an opaque error, run `pnpm lint` to find out why.**
+**If the full suite dies in `global-setup` with an opaque `Serialized Error`, run `pnpm lint`** — that is a template syntax error, and the full suite is the worst of the four at reporting it.
 
-This table exists because the previous instruction was "run `pnpm test` and `pnpm lint` after changes", and following it literally through one UI session meant eight full-suite runs — 218 seconds — where nothing outside `app/` had been touched and 1.4s would have given the same answer every time.
+The suite **cannot see the client**. Upgrading nuxt 4.4.6 → 4.5.1 split the tree into two Vue copies and the app failed to mount while 481 tests, lint and typecheck stayed green. After any framework bump, load the app and check the console.
 
-**App tests:** Two vitest projects: `unit` (fast) + `integration` (sequential, 30s timeout). Test DB on `:43210`. Tests use their own throwaway `test.db` inside the container, so they never touch the dev database.
+Two integration-suite traps: use `fetch(url('/path'))` when you need to inspect a non-2xx response, because the shared `$fetch` is ofetch and throws on one; and **`process.env.NODE_ENV` is inlined at build**, so runtime gating needs a custom env var.
 
-**CLI tests:** Go unit tests covering semver comparison, env file parsing, config precedence, and output formatting. No HTTP integration tests — the CLI is a thin API client; the API is tested by the vitest integration suite.
+## Core model
 
-### Dependency upgrades: the suite cannot see the client
+**Statuses and cards belong to projects, not views.** Boards and lists are views; cards have a `projectId` + `statusId` and reach a board through the `boardColumns` junction. Removing a column unlinks it — cards survive. Deleting a status cascades.
 
-**The integration tests talk HTTP to a built server and never mount the Vue app.** So a client-side runtime break passes every test. This is not hypothetical: upgrading nuxt 4.4.6 → 4.5.1 split the tree into two Vue copies and the app failed to mount with `Cannot read properties of null (reading 'ce')` — while 481 tests, `lint`, and `typecheck` all stayed green.
+Two different things are called "column": a **board column** is how a status appears on a board (`boardColumns`), a **field column** is which card field shows in a list table (`listColumns`).
 
-Two things guard this, deliberately chosen over adding browser tests to CI:
+- **Cards use INTEGER AUTOINCREMENT**, not UUID, so they can be `TK-42`. Everything else is UUID. Parse card ids with `Number()`.
+- **Done + retention:** views *filter out* old done cards rather than deleting them; card counts exclude the done status; `null` retention keeps forever.
+- **Positions** are integers, and a new item is `max(existing) + 1` — never `.length`.
+- **Password sentinels** `'!oauth'` and `'!invited'` are unhashable by design.
+- `isAdmin` grants a synthetic `{ role: 'owner' }`, and the API returns `role: 'admin'` for non-member admins — don't render it as a real project role. My Tasks is **not** admin-elevated.
 
-- **`tests/unit/dependency-singletons.test.ts`** asserts that `vue`, `@vue/runtime-core`, `@vue/runtime-dom`, `@vue/reactivity`, `@vue/server-renderer`, and `vue-router` each resolve to exactly one version in `pnpm-lock.yaml`. Vue keeps module-level state, so two copies break at runtime. Fix a failure with `pnpm update <pkg>` (usually a stale lockfile pin) or a `pnpm.overrides` entry. `@vue/compiler-*` and `@vue/shared` are excluded on purpose — build-time only, and `vue-tsc` legitimately pins an older compiler.
-- **After any framework-level bump (nuxt, @nuxt/ui, vue, vite), actually load the app in a browser** and check the console. There are no automated browser tests: `createPage()` would need Playwright plus the `chromium` apk in the dev image (~300 MB), which wasn't judged worth it because this check happens during agent-assisted development anyway. Don't assume green tests mean the UI renders.
+## Security invariants
 
-`@nuxt/test-utils` was removed — it was an unused devDependency (the e2e harness here is hand-rolled in `global-setup.ts` + `tests/setup/`, one build and one shared server for all files, which is faster) and it declares `vue` as a hard dependency rather than a peer, which is what pinned the second Vue copy. If browser tests are ever wanted, it can come back in host mode (`setup({ host })` skips its own build and server, so the single-server model survives).
+Each of these was a live vulnerability, and none has a code-level signal:
 
-**Gotchas:**
-- `fetch(url('/path'))` for raw responses (ofetch throws on non-2xx)
-- `randomKey()` in fixtures to avoid 409 conflicts
-- `process.env.NODE_ENV` inlined at build — use custom env vars for runtime gating
-- **Stale test servers are cleaned up automatically** by `tests/global-setup.ts`, which finds the previous `.output/server/index.mjs` via `/proc` and kills only that. Don't "fix" it with `lsof -ti:PORT | xargs kill -9` — that was the original code and it took the container down: Alpine's `lsof` is a BusyBox symlink that ignores `-t`/`-i` and prints every open file, so `xargs kill -9` killed PID 1 and the vitest process (SIGKILL, exit 137). BusyBox `fuser` is no substitute either — it resolves no owner for a listening TCP port in this image.
+- **Scope `email_verification_tokens` by `purpose`.** One table serves verification, password reset and account setup. Verify and reset both *sign the caller in*, so an unscoped consumer let an emailed "confirm your address" link be POSTed to `/auth/reset-password` to take the account over — a forwarded message or a shared inbox was enough. `lookupVerificationToken()` takes purpose as a required argument. A new flow owes a new purpose value and a consumer that names it. Setup additionally checks `isPendingSetup()`.
+- **Never serve `attachments.mimeType`** — it is whatever the client declared. Derive from the filename (`serveContentType()`), send `nosniff`, and only use `Content-Disposition: inline` for `isInlineSafe()` types. Echoing it made every upload stored XSS on the app origin, which an attacker turns into a non-expiring API token via `POST /api/user/tokens`; `HttpOnly` does not help, because the attack runs same-origin requests rather than reading the cookie. `isAllowedMimeType()` is not the defence and cannot be — it matches the filename and ignores the declared type.
+- **404, not 403,** for non-member access, and every card/tag/board endpoint validates that the resource belongs to the project in the URL.
+- **A page under `app/pages/auth/` needs an entry in `PUBLIC_ROUTES`** (`shared/utils/auth-routes.ts`). With `ssr: false` the global middleware runs on every navigation with no way to opt out from the page, so a missing entry redirects anonymous visitors to `/login` *and* drops the token in the query string — which is how password recovery was unreachable while every server-side test passed. Keep one-shot emailed links out of `SIGNED_IN_REDIRECT_ROUTES` for the same reason.
+- User search returns names, never email.
+- The domain allowlist restricts **self-registration only** — invitations and admin-created users bypass it.
 
-## Environment & Commands
+## Schema changes
 
-`NUXT_SESSION_PASSWORD` is the only required env var (min 32 chars). See `env.sample` for the rest. Key vars: `DATABASE_URL` (default `sqlite.db`), `AI_PROVIDER` (`anthropic`/`openai`/`openrouter`, empty=disabled), `SMTP_HOST` (empty=email disabled), `UPLOAD_DIR` (default `data/uploads`), `NUXT_OAUTH_*_CLIENT_ID/SECRET` (empty=provider disabled).
+**Every schema change needs a committed migration.** Edit `server/database/schema.ts` → `zdev migrate generate` → **commit the `.sql` *and* the `meta/` changes**, because `meta/_journal.json` is what the migrator reads and a `.sql` without its journal entry silently never runs.
 
-In dev these run **in the container** — prefix each with `zdev exec app` (several have a shorter `zdev` alias, see Local Dev Environment). The bare forms below are what prod/CI run.
+- **Never `drizzle-kit push` against a database you keep.** It applies the schema without recording a migration, which permanently poisons that DB — `db:migrate` afterwards either restarts at `0000` and dies on `table already exists`, or dies on `duplicate column name`. Both verified. The fix is to discard the database.
+- **Product defaults ship via a data migration; the seed is demo content only.** `db:migrate` is the only step guaranteed to run once on every install. Anything in `db-seed.ts` reaches fresh installs *only*, and seed inserts must be guarded per row by name — "does this table have any rows" meant a new default was skipped forever on any install that already had one.
 
-```bash
-zdev exec app pnpm build / test / lint / typecheck    # `pnpm dev` is already supervised by zpinit
-zdev exec app pnpm db:migrate / db:init-admin / db:seed / db:cleanup   # or: zdev migrate | seed | cleanup
-zdev exec app pnpm user:create <email> <password> [name] [admin]
-zdev exec app pnpm user:set-role <email> <admin|user>
-zdev exec app pnpm user:verify-email <email>
-zdev migrate generate                                # drizzle-kit generate — then COMMIT the .sql + meta/
-zdev exec app pnpm setup                             # migrate + init-admin + seed (non-zdev bootstrap only)
-```
+## Design system
 
-### Local Dev Environment (zdev)
+`app/app.config.ts` is the source of truth for the brand and names all six roles. Reach markup only through semantic tokens — `bg-default` / `bg-muted` / `bg-elevated` / `bg-accented`, `text-default` / `toned` / `muted` / `dimmed` / `highlighted`, `border-default` / `border-accented`, and `*-primary` / `error` / `warning` / `success`. A raw palette utility (`zinc-500`, `red-50`) means dark mode has to be maintained by hand; `design-tokens.test.ts` fails on one in any prefix, variant or family.
 
-`.zdev/` defines the containerized dev env (was `.scdev/`). `zdev start` serves the app at `https://completo.0ploy.dev`.
+**Scales are closed sets**, all declared in `app/assets/css/main.css` with the reasoning beside them:
 
-**Two Docker setups, deliberately different — don't unify them:**
+- **Type** — six working steps 10 / 12 / 13 / 14 / 16 / 20, plus a **display tier** 26 / 32 / 38 in `font-display` (JetBrains Mono). A display step needs a surface with no work to compete with, so it is banned on the board, lists, cards and the panel.
+- **Radius** encodes containment *depth*, not role: `md` inside a surface, `lg` a surface, `xl` a container of surfaces.
+- **Elevation** — `shadow-raise` / `float` / `drag`. Never a raw Tailwind shadow: its dark value would be maintained by hand.
+- **Tracking** — `tracking-label` for small uppercase labels, `tracking-heading` for chrome titles, `tracking-name` for a record's own name.
+- The **dark surface ramp is overridden** because Nuxt UI's defaults collapse six semantic tokens onto three values. `border-default` on `bg-muted` is now simply correct — don't reach for `border-accented` to make a border visible, that spends the emphasis step on nothing.
 
-| | `docker/Dockerfile` (prod) | `.zdev/Dockerfile` (dev) |
-|---|---|---|
-| Purpose | Released image, built in CI | Local dev container |
-| Runtime base | `alpine:3.24` + `apk add nodejs` (~109MB) | `node:24-alpine` (~229MB) |
-| zpinit mode | 3 — supervise (`node .output/…`) | 3 — supervise (`pnpm dev`) |
-| Admin user | From `ADMIN_USER_*` env vars | Hardcoded dev credentials |
+**User colour goes through `.swatch*`, which sets lightness and keeps hue** (`oklch(from var(--swatch) L c h)`). Mixing toward black cannot fix a dark stored hex, and the palette offers dark ones on purpose. `UiAvatar` is every person's avatar; a bare `UAvatar` is a grey disc beside a tinted one.
 
-Prod optimizes for size and drops npm/corepack it never uses; dev needs corepack (pnpm) and `python3/g++/make` (better-sqlite3 has no musl prebuild). Node 24 LTS + pnpm 11.17.0 in both — bump `packageManager` in `package.json` and both Dockerfiles together.
+**Aesthetic:** "Trello meets Linear" — an instrument panel. Chrome is neutral hairlines; the only saturated pixels carry data. A gradient is allowed on a full-page brand moment and on an AI surface, nowhere else.
 
-**Scripts run as `node scripts/foo.ts` — no tsx, no package manager.** Node strips TypeScript natively (default since 22.18; `process.features.typescript === 'strip'`), so the same command works in dev, in prod, and on the host. This is deliberate: the prod runtime image has neither npm nor pnpm, so anything invoking a package manager could not be shared between the two. Two constraints follow:
-- `engines.node >= 22.18` in `package.json`. Type stripping is erasable-syntax-only, so **no `enum`, `namespace`, parameter properties, or decorators in `scripts/*.ts`**, and relative imports would need explicit `.ts` extensions (currently there are none).
-- `scripts/package.json` still vendors `better-sqlite3`/`dotenv`/`drizzle-orm` into `scripts/node_modules` for the prod image (installed with npm — it has its own `package-lock.json`). It no longer carries `tsx`.
+Reach for `app/components/ui/*` and `FieldMenu` before hand-rolling; Nuxt UI v4 is fully MIT, so `UEmpty`, `UUser`, `UAlert`, `UKbd` and the `UDashboard*` family are all available.
 
-`node:sqlite` would let us drop `better-sqlite3` (and with it the native toolchain and the builder↔runtime ABI constraint), but `drizzle-orm/node-sqlite` only exists in drizzle-orm v1 beta. Revisit when v1 is stable.
+## CSS traps
 
-```bash
-zdev start / stop / restart / logs -f app
-zdev update              # apply config.yaml changes (restart alone does NOT)
-zdev exec app pnpm test  # run any command in the container
-zdev info                # shows the dev logins
-zdev mail                # Mailpit — catches all outgoing mail
-zdev migrate             # apply migrations; also: generate | push | seed | cleanup
-```
+These have no single file to host the comment:
 
-- **Dev logins are seeded on every boot** and printed by `zdev info`: `admin@completo.local / admin1234` (admin) and `demo@completo.local / demo1234`. Defined once in `.zdev/config.yaml` `variables:` and referenced from both `environment:` and `info:`. Dev-only — prod still provisions from `ADMIN_USER_*`.
-- **Boot order** is `.zdev/zpinit/entrypoint.d/`: `10-install` (waits for the `/.zdev-sync-ready` marker, then `pnpm install`) → `20-migrate` → `30-seed`, then zpinit supervises `pnpm dev` from `.zdev/zpinit/services/10_app.toml`.
-- **The dev container is built not to die.** zpinit stays PID 1 (supervise mode) and `entrypoint_on_failure = "continue"`, so a crashed dev server *or* a failed `pnpm install` leaves a live container with the error in `zdev logs` — always something to `zdev exec app sh` into. After 5 consecutive crashes the service goes FATAL and zpinit stops retrying, still holding the container open. Drive it with `zdev exec app zpctl status` / `zpctl restart app` / `zpctl tail -f app`.
-- **`.zdev/config.yaml` must not set `command:`** — zdev turns that into the container CMD, which flips zpinit out of supervise mode into exec mode.
-- **Editing `entrypoint.d/` needs a rebuild.** `.zdev` is excluded from the file sync, so `/etc/zpinit` is the image's copy. `zdev update` rebuilds on *Dockerfile content* changes only — touch `.zdev/Dockerfile` after editing an entrypoint script.
-- **The container's DB is `/app/data/sqlite.db` in the `data` named volume, and it is the only dev database.** It's out of the file sync deliberately (SQLite WAL over Mutagen risks corruption), and no host-side `sqlite.db` shadows it — `*.db*` is in `mutagen.ignore` so a stray one can't sync in and look authoritative.
+- **`theme()` does not work in scoped CSS** — Tailwind 4 uses `var(--color-*)`.
+- **Suppressing the focus ring needs `outline-none!`.** The ring is an *unlayered* `:focus-visible` rule, and unlayered CSS beats `@layer utilities` whatever the specificity, so even `focus-visible:outline-none` loses. Only do this on something that should not be a keyboard destination at all.
+- **Two `bg-*` utilities on one element is a coin flip** decided by stylesheet order, not by which you wrote last.
+- **`shared/utils/` is auto-imported for Nitro but not for app components** — a `.vue` file must `import { … } from '#shared/utils/…'` or the identifier is silently undefined. **A new file there needs a dev-server restart** (`zdev exec app zpctl restart app`); until then server code throws a runtime `X is not defined` while `pnpm test` passes, because the suite builds fresh.
+- **Icon names in a `.ts` module are not found by Nuxt Icon** — `clientBundle.scan` globs templates only. `nuxt.config.ts` extends `globInclude` to cover it; watch the "client bundle consist of N icons" line.
 
-  Dev data is **disposable by design**: `zdev down -v -f` destroys the volume and the next `zdev start` rebuilds it from migrations + seed, back to the demo board and the two fixed logins. Nothing else holds a copy, so that command means what it says. Tests are unaffected (they use their own throwaway `test.db`).
+## Fetching and mutations
 
-  **So change it freely while testing.** Creating cards, moving them between columns, toggling tags, renaming a board — none of it needs undoing afterwards, and carefully restoring the previous state costs more than it is worth. Clicking through a change in the browser is how you verify it; treat the demo board as a scratchpad. (This is dev only. Nothing here licenses touching a real database.)
+Pages use `useFetch()`, composables `$fetch()`. Refresh after mutations — **except card mutations**, which patch the local row and reconcile with the response (`useViewData`). Don't add `refresh()` back: it made every one-click edit refetch the whole view.
 
-  Historical trap, in case old notes say otherwise: before `DATABASE_URL` was set here, the app fell back to the relative default `'sqlite.db'`, which resolved against `/app` — the bind-mounted project dir — so the container silently shared the *host's* DB. That's why a container could appear to "lose" data when the setting was introduced.
-- Boot applies committed migrations (`node scripts/db-migrate.ts`). For a schema change: `zdev migrate generate`, commit it, restart. There is no `zdev migrate push` — see Schema Changes & Migrations for why.
-- **`.zdev/commands/migrate.just` → `zdev migrate`** is only an alias for those same `node scripts/*.ts` commands, so dev and prod stay verifiably identical. Adding a `.just` file there adds a `zdev <name>` subcommand.
-- **Email is wired to the shared Mailpit** (`SMTP_HOST: mail`). Because `isEmailEnabled()` keys off `SMTP_HOST`, logins require a verified email — the seeded users are auto-verified; check other mail via `zdev mail`.
-- **There is no `.env` file.** Dev secrets (`NUXT_SESSION_PASSWORD`, the OAuth client IDs/secrets, AI keys) live in a 1Password Environment, attached via `op-env: ${op-env}` on the app service. The Environment **ID** in `.zdev/config.yaml` is not secret and commits safely; values are fetched by the `op` CLI only when a container is created. Needs the beta CLI (`brew install 1password-cli@beta`) with the desktop-app integration enabled.
-  - After rotating or adding variables in 1Password: **`zdev update --refresh-secrets`**. Plain `zdev restart`/`zdev update` will *not* pick them up — the env is baked into the container at creation. The refresh compares a `zdev.secrets-hash` label and only recreates services whose injected set actually changed, so it's cheap to run habitually.
-  - Non-secret, dev-specific values (`SMTP_HOST: mail`, `APP_URL`, `DATABASE_URL`, the dev logins) stay as explicit `environment:` entries — those always win over injected variables, which is what keeps prod-shaped values in 1Password from leaking into dev.
-  - Host-side `pnpm dev` / `pnpm setup` no longer get these vars automatically. Prefix with `op run --env-file=...` or export them manually if you need to run outside the container.
-- Per-developer overrides go in `.zdev/local/config.yaml` (gitignored, deep-merged). Don't put secrets in `.zdev/config.yaml` — use the 1Password Environment.
-- `zdev restart` does not pick up `config.yaml` edits — use `zdev update`. Source changes are live via the file sync.
+**`useViewData` must fetch with `deep: true`.** `useFetch` defaults to a `shallowRef`, so a patched row mutates something Vue never sees — the request fires, the database updates, and the board keeps rendering the old value until an unrelated re-render flushes it. That makes it intermittent and easy to "verify" as working.
 
-### Changelog
+## Changelog and releases
 
-`CHANGELOG.md` uses `## vX.Y.Z` sections (latest on top) with `### App`, `### CLI` and — where a release needs them — `### Upgrading` (anything an operator must do *before* deploying) and `### Dev` (migrations, security internals, invariants a contributor has to know). When making changes, add entries under `## Unreleased` at the top. If no `## Unreleased` section exists, create one. Use concise, user-facing language (not commit messages). At release time, rename `## Unreleased` to `## vX.Y.Z` with the date — and **don't** add an empty `## Unreleased` back. A heading with nothing under it reads as "a release is pending" to anyone landing on the file, which is the opposite of what it means; the next change to land creates the section, as above. (Both v0.7.0 and v0.8.0 shipped with that empty heading at the top of `main` because this used to say otherwise.)
+`CHANGELOG.md` uses `## vX.Y.Z` sections, latest first, with `### App`, `### CLI` and where needed `### Upgrading` and `### Dev`. Add to `## Unreleased`, creating it if absent; at release, rename it and **don't add an empty one back**.
 
-**Not every change earns an entry, and a commit is not the unit.** `### App` is read by people *using* Completo, so the test is whether someone who never sees the repository would notice: a new capability, changed behaviour, or a bug they could have hit in a version they actually ran. Refactors, renames, consolidations, test and doc changes and dependency bumps are not entries however much work they were — if a contributor needs to know, that is what `### Dev` is for, and most of the time nobody does. Three failure modes to watch, all of which the UI overhaul produced:
+**A commit is not the unit.** `### App` is read by people who never see the repository: a new capability, changed behaviour, or a bug they could have hit *in a version they ran*. Three failure modes to avoid:
 
-- **A bug introduced and fixed between two releases never happened.** Nobody outside the branch could have met it, so "Fixed: …" is telling users about a stumble in the workshop. Delete the note along with the bug.
-- **One user-visible change is one entry, however many commits it took.** Three separate bullets saying tag colours became readable — in the picker, in the tag manager, on a card — read as three changes to a user who experienced one.
-- **"We unified six implementations" is not a user-facing sentence.** Say what they now see (every menu names its field, marks the selection the same way), not how many there used to be. The reasoning that justified the work to us is rarely what a user needs; that belongs in the commit message, where it is preserved anyway.
+- **A bug introduced and fixed between two releases never happened** — delete the note with the bug.
+- **One user-visible change is one entry**, however many commits it took.
+- **"We unified six implementations" is not a user-facing sentence.** Say what they now see.
 
-A release with two dozen entries is fine when two dozen things changed for users. A release with two dozen entries because twenty-seven commits landed is not.
+Refactors, renames, test and doc changes and dependency bumps are not entries; if a contributor needs them, that is `### Dev`.
 
-### Releasing
+Before tagging: bump `package.json`, rename `## Unreleased`, update `README.md`. The release workflow pulls the body with `awk "/^## ${TAG}/…"` and **publishes a stub body if no section matches the tag** — verify before pushing. Then `git tag vX.Y.Z && git push origin vX.Y.Z`.
 
-**Before tagging a release:** bump `version` in `package.json`, rename `## Unreleased` to `## vX.Y.Z` in `CHANGELOG.md`, update `README.md` with any user-facing changes, and commit those changes.
+## Where the reasoning lives
 
-The rename is what produces the release notes, and skipping it fails quietly: `release-build.yml` pulls the body with `awk "/^## ${TAG}/…"`, so with no section matching the tag it falls back to a body of just `Release vX.Y.Z` and publishes anyway. Check with `awk "/^## v0.8.0/{f=1;next} /^## v/{if(f)exit} f" CHANGELOG.md` before tagging. Anything above the newest version heading — an in-progress `## Unreleased` — is never picked up, so it can't leak into a release.
+Don't reconstruct a decision from scratch, and don't re-litigate one without reading why it was made:
 
-**To release:** `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag push triggers two workflows:
-- **CI** (`ci.yml`) — runs lint + tests against the tag.
-- **Release** (`release-build.yml`) — builds multi-arch Docker image, cross-compiles Go CLI binaries (5 targets), pushes Docker to GHCR (`ghcr.io/scalecommerce-dev/completo`), and creates a GitHub Release with changelog notes and CLI binaries attached.
+- **A component's own comments** carry the alternatives that were tried and why they failed — `CommentList`, `CardProperties`, `useFileDrop`, `useTagOverflow`, `board-nav` are all substantially prose.
+- **`main.css`** carries every token's measurement.
+- **`tests/unit/*.test.ts`** carry the numbers, and the good ones recompute rather than restate.
+- **Registries** are single-sourced and guarded: `shared/utils/list-fields.ts` (what a list column can be), `card-fields.ts` (what a board card can show — it stores the fields that are **off**, so a new field appears by default), `ai-skills.ts` (skill scopes).
+- `server/assets/openapi.json` must stay in sync with endpoints, for headless API usage only.
+- `skills/completo/SKILL.md` is the in-repo copy of the agent skill — update it when CLI commands change.
 
-**To re-tag** (e.g. after a fix): delete the GitHub release (`gh release delete vX.Y.Z --yes`), delete remote + local tag (`git push origin --delete vX.Y.Z && git tag -d vX.Y.Z`), then re-tag and push.
-
-### CLI (`cli/`)
-
-Go CLI for interacting with Completo from the terminal or AI agents. Uses Cobra. Config: `~/.completo/.env` (credentials) + `.completo` (project-scoped). Build: `cd cli && go build -o completo .`
-
-**Local dev override:** Create a `.completo.local` file (gitignored) alongside `.completo` to point the CLI at the local dev server instead of production. Config precedence: `~/.completo/.env` → `.completo` → `.completo.local` → `--env-file` → env vars.
-
-```env
-# .completo.local
-COMPLETO_URL=http://localhost:3000
-COMPLETO_TOKEN=<dev-api-token>
-```
-
-Alternatively, use `--env-file path/to/env` for one-off overrides (e.g. CI, testing a built binary from a different directory).
-
-### Agent Skill (`skills/completo/SKILL.md`)
-
-The Completo agent skill lives in-repo at `skills/completo/SKILL.md` — this is the local development copy, not the installed one. When CLI commands change, update this file to keep the skill in sync. Use the `/skill-creator` skill to help with updates.
-
-### Completo Briefing
-
-`Completo-Briefing.md` provides project context to Completo's AI features (card description generation). Update it when the domain model, architecture, or conventions change significantly. Use the `/completo-briefing` skill to regenerate it, then upload via `completo briefing --file Completo-Briefing.md`.
-
-### Schema Changes & Migrations
-
-**Every schema change requires a committed migration. No exceptions.**
-
-1. Edit `server/database/schema.ts`
-2. `zdev migrate generate` (drizzle-kit runs in the container — a host `npx drizzle-kit` would read the host's separate deps and no dev database)
-3. **Commit both** the new `server/database/migrations/*.sql` *and* the `meta/` changes — `meta/_journal.json` is what the migrator reads; a `.sql` file without its journal entry is invisible and silently never runs
-4. Apply with `zdev migrate` (or just restart the dev container — it migrates on every boot)
-
-`pnpm db:migrate` is the only thing that touches a real database: dev container boot, the prod entrypoint, and deploys all run it. Skip steps 2–3 and the change exists only on your machine — CI, the prod image, and every teammate diverge, and the deploy fails on the first query against the missing column.
-
-**Product defaults ship via a migration; the seed is only demo content.** `db:migrate` is the only step guaranteed to run exactly once on every install, so anything that must exist everywhere (the default AI skills, for instance) belongs in a data migration — `0003_default_comment_skills.sql` is the worked example, hand-written since drizzle-kit only generates DDL. It needs its own `meta/_journal.json` entry plus a `meta/NNNN_snapshot.json` copied from the previous one with a fresh `id` and `prevId` chained, or `drizzle-kit generate` loses its diff base. Anything added to `scripts/db-seed.ts` reaches **fresh installs only**. Guard seed inserts per row (by name), never with "does this table have any rows" — that older guard meant a new default was skipped forever on any install that already had one, and it silently skipped the card skills once migration 0003 populated the table.
-
-**AI skill scopes** (`card` / `board` / `comment`) decide which editor offers a skill. The list lives once in `shared/utils/ai-skills.ts` — it was previously duplicated across the public endpoint and both admin write endpoints, which is how it came to be missing a value in some. The column is plain text with no CHECK constraint, so adding a scope needs no migration, but every validator must know about it.
-
-**Never run `drizzle-kit push` against a database you keep.** It applies the schema without recording a migration, which permanently poisons that DB: `db:migrate` afterwards either restarts at `0000` and dies on `table already exists`, or — if you later generate the matching migration — dies on `duplicate column name`. Both are verified. `pnpm setup` breaks too, since it chains migrate first. The only fix is to discard the database (`zdev down -v -f && zdev start` for the dev container; its SQLite is a named volume and boot re-migrates and re-seeds). If it holds data worth saving, the `__drizzle_migrations` journal can be backfilled by hand — ask before attempting it.
-
-**`scripts/package.json`** is a deploy manifest for CLI tools. When changing imports in scripts, update it to keep deps in sync.
-
-## Documentation
-
-- Nuxt: https://nuxt.com/llms.txt
-- Nuxt UI: https://ui.nuxt.com/llms.txt
-- Nuxt Auth Utils: https://raw.githubusercontent.com/atinux/nuxt-auth-utils/refs/heads/main/README.md
+Docs: [Nuxt](https://nuxt.com/llms.txt) · [Nuxt UI](https://ui.nuxt.com/llms.txt) · [nuxt-auth-utils](https://raw.githubusercontent.com/atinux/nuxt-auth-utils/refs/heads/main/README.md)
