@@ -200,14 +200,22 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
 
 <template>
   <div class="mt-6">
-    <!-- The three sections of a card sat at three different letter-spacings —
+    <!-- The label arrives with the first comment.
+         The collapsed composer is already this section's empty state — that is why
+         "No comments yet" could go — so a heading above it is a heading over a
+         void, which is the thing the attachments section stopped doing in the same
+         pass. What the label is *for* is the count, and there is nothing to count
+         until somebody writes something.
+
+         (The three card sections also sat at three different letter-spacings —
          0.48px, 0.84px and 0.30px — because two of them hand-rolled the style
-         that UiSectionLabel exists to hold, and this one had no icon while its
-         neighbours did. -->
+         UiSectionLabel exists to hold, and this one had no icon while its
+         neighbours did.) -->
     <UiSectionLabel
+      v-if="comments.length"
       label="Comments"
       icon="i-lucide-message-square"
-      :count="comments.length || null"
+      :count="comments.length"
       class="mb-3"
     />
 

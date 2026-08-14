@@ -101,6 +101,30 @@ const CHIP = computed(() => isCompact.value ? 'shrink-0 max-w-[190px]' : '')
  */
 const TAG_CHIP = computed(() => isCompact.value ? 'shrink-0 max-w-full' : '')
 
+/**
+ * Compact clamps the pills to one line and counts the rest, exactly as a board
+ * card does — see `useTagOverflow`.
+ *
+ * This row is the card panel's *pinned* chrome: the body scrolls under it, so
+ * every line it grows is a line the title, the properties and the description all
+ * lose for the life of the card. Thirteen tags fit on one line in a 900px panel
+ * and take four at 390px, and it was the four-line version that decided this.
+ *
+ * Nothing is hidden by it in any real sense — the chip is a menu trigger, so the
+ * full list is one click away with the selected ones marked, and the trigger's
+ * own `aria-label` still enumerates every one of them.
+ *
+ * `rows` is deliberately left alone. The card page's rail is a sidebar that can
+ * afford to grow, and it isn't clipped, so measuring it would print a `+N` beside
+ * tags that are plainly visible — hence `enabled`.
+ */
+const tagRow = useTemplateRef<HTMLElement>('tagRow')
+const { hiddenCount: hiddenTagCount } = useTagOverflow({
+  row: () => tagRow.value,
+  tags: () => selectedTags.value,
+  enabled: () => isCompact.value && selectedTags.value.length > 0
+})
+
 function row(label: string, icon: string, align?: 'start') {
   if (isCompact.value) return {}
   return align ? { label, icon, align } : { label, icon }
@@ -265,10 +289,19 @@ function row(label: string, icon: string, align?: 'start') {
             class="flex items-start gap-1 rounded-md px-1.5 py-1 -mx-1.5 transition-colors hover:bg-elevated cursor-pointer text-left"
             :aria-label="label"
           >
-            <span class="flex flex-wrap items-center gap-1 min-w-0">
+            <!-- `max-h-4` is one pill tall, so an overflowing tag wraps onto a
+                 line that isn't rendered and `useTagOverflow` reads the count off
+                 that. Only where the pills are the content: the empty "Add tags"
+                 label is `text-sm` and a 16px clip would slice it. -->
+            <span
+              ref="tagRow"
+              class="flex flex-wrap items-center gap-1 min-w-0"
+              :class="isCompact && selectedTags.length ? 'max-h-4 overflow-hidden' : ''"
+            >
               <TagPill
                 v-for="tag in selectedTags"
                 :key="tag.id"
+                data-tag
                 :name="tag.name"
                 :color="tag.color"
                 variant="quiet"
@@ -284,6 +317,13 @@ function row(label: string, icon: string, align?: 'start') {
                 Add tags
               </span>
             </span>
+            <!-- Outside the clipped group, so unlike the board card's this needs
+                 no absolute positioning and can never be clipped by the thing it
+                 is reporting on. -->
+            <span
+              v-if="hiddenTagCount"
+              class="text-2xs font-medium text-dimmed shrink-0 mt-0.5"
+            >+{{ hiddenTagCount }}</span>
             <UIcon
               name="i-lucide-chevron-down"
               class="text-2xs text-dimmed shrink-0 mt-1"

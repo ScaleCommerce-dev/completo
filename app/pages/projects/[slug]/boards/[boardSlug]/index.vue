@@ -79,7 +79,6 @@ const {
   ensureCardForDraft,
   handleCreateCard,
   handleUpdateCard,
-  handleDeleteCard,
   deleteDraftCard
 } = useViewPage({
   allCards,
@@ -291,7 +290,6 @@ async function handleDeleteBoard() {
       :nav="cardNav"
       @update="handleUpdateCard"
       @update-tags="updateCardTags"
-      @delete="handleDeleteCard"
       @navigate="(d) => navigateCards(NAV_DIRECTIONS[d]!)"
     />
 

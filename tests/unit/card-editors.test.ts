@@ -86,11 +86,47 @@ describe('empty sections are their own invitation', () => {
     expect(src).toContain('Add a description…')
   })
 
-  it.each(surfaces)('%s drops the header button when there is nothing to edit', (_name, src) => {
-    // Two invitations to write the same paragraph is one too many, and the
-    // header one was a 19px hit target in ~2.5:1 grey.
-    expect(src).toMatch(/v-if="!editingDescription && description"/)
+  it.each(surfaces)('%s offers Copy and Edit only where there is prose', (_name, src) => {
+    // Two invitations to write the same paragraph is one too many, so the pair
+    // belongs to the branch that renders a description, never to the empty one —
+    // there the placeholder row is itself the button.
+    const readMode = src.slice(src.indexOf('v-else-if="description"'))
+    const empty = src.indexOf('Add a description…')
+
+    expect(readMode).toContain('aria-label="Edit the description"')
+    expect(readMode).toContain('aria-label="Copy the description as Markdown"')
+    expect(src.indexOf('aria-label="Edit the description"')).toBeLessThan(empty)
     expect(src).not.toMatch(/'Edit' : 'Add'/)
+  })
+
+  it.each(surfaces)('%s puts the three empty rows in one vocabulary', (_name, src) => {
+    // An empty section is one row — icon, verb, border — and no heading above it.
+    // The description's placeholder is the same object as the collapsed comment
+    // composer, down to the classes.
+    expect(src).toMatch(/rounded-lg border border-default bg-default px-3 py-2[\s\S]{0,400}Add a description…/)
+    expect(src).toContain('i-lucide-text')
+  })
+
+  it('spends the dashed border on the drag state, not on resting', () => {
+    // It was permanently dashed, which at 1px reads as *fainter* rather than as a
+    // different kind of thing — two solid rows and one dashed 24px apart looked
+    // like an inconsistency. The dash now arrives with the primary border and
+    // "Drop to upload", where it is legible and means something.
+    const attachments = read('app/components/AttachmentList.vue')
+    const rest = attachments.match(/: '(border-default[^']*)'/)?.[1] ?? ''
+
+    expect(rest).not.toContain('border-dashed')
+    expect(attachments).toMatch(/dragging\s*\?\s*'border-dashed border-primary/)
+  })
+
+  it('leaves the empty sections unlabelled, so no heading sits over a void', () => {
+    // The count is what the label is *for*, and there is nothing to count until
+    // the section has something in it. Both gate on that rather than on `|| null`,
+    // which used to render the heading with the number simply absent.
+    for (const path of ['app/components/AttachmentList.vue', 'app/components/CommentList.vue']) {
+      const src = read(path)
+      expect(src, path).toMatch(/<UiSectionLabel\s+v-if="(attachments|comments)\.length"/)
+    }
   })
 
   it('the comment composer is the comments empty state', () => {
@@ -153,14 +189,17 @@ describe('the card panel fades its scroll edges', () => {
  * *trigger*. A dialog placed there renders into the page behind the panel —
  * centred, with its buttons under the panel's left edge and unreachable — and it
  * looks like a z-index problem rather than a slot one.
+ *
+ * The panel has no dialog of its own any more (the delete confirmation left with
+ * the `⋯` menu), so this now guards the rule rather than an instance of it: put
+ * one back inside those tags and the panel breaks the same way it did before.
  */
-describe('the delete confirmation is not inside the slideover', () => {
-  it('places UiConfirmDialog after the panel closes', () => {
+describe('no dialog is nested inside the slideover', () => {
+  it('keeps the panel body free of UiConfirmDialog', () => {
     const panelEnd = CARD_MODAL.indexOf('</USlideover>')
-    const dialog = CARD_MODAL.indexOf('<UiConfirmDialog')
 
     expect(panelEnd).toBeGreaterThan(-1)
-    expect(dialog).toBeGreaterThan(panelEnd)
+    expect(CARD_MODAL.slice(0, panelEnd)).not.toContain('<UiConfirmDialog')
   })
 })
 
@@ -169,20 +208,77 @@ describe('the delete confirmation is not inside the slideover', () => {
  * their own version of.
  */
 describe('one spelling per idiom', () => {
-  it('gives the three card sections one heading style', () => {
+  it('gives the card’s remaining sections one heading style', () => {
     // Measured off the rendered panel: 0.48px, 0.84px and 0.30px of tracking on
     // three stacked headings, one of them without the icon its neighbours had —
     // because two hand-rolled the style UiSectionLabel exists to hold.
-    const sections = [
-      'app/components/CardModal.vue',
-      'app/components/CommentList.vue',
-      'app/components/AttachmentList.vue'
-    ]
-
-    for (const path of sections) {
+    for (const path of ['app/components/CommentList.vue', 'app/components/AttachmentList.vue']) {
       expect(read(path), path).toContain('<UiSectionLabel')
       expect(read(path), path).not.toMatch(/text-xs font-semibold uppercase tracking-\[/)
     }
+  })
+
+  it('puts no heading over the card’s own body', () => {
+    // "DESCRIPTION" labelled the one region on either surface that needs no
+    // label — it is what the card *is*, directly under the title — while the two
+    // below it label collections worth counting. Three peer headings claimed the
+    // three regions were peers; they are a body and two appendices.
+    for (const [name, src] of [['CardModal', CARD_MODAL], ['the card page', CARD_PAGE]] as const) {
+      expect(src, name).not.toMatch(/label="Description"/)
+      expect(src, name).not.toMatch(/text-xs font-semibold uppercase tracking-\[/)
+    }
+  })
+
+  it('does not turn a click on the prose into an edit', () => {
+    // The guard could never cover the gesture people actually use: clicking a
+    // word and shift-clicking to extend, or clicking once to drop a previous
+    // selection, both start collapsed and so were indistinguishable from "edit
+    // this". The hover fill has to go with it — a surface that lights up under the
+    // pointer and then does nothing is worse than one that never offered.
+    for (const [name, src] of [['CardModal', CARD_MODAL], ['the card page', CARD_PAGE]] as const) {
+      expect(src, name).not.toContain('onProseClick')
+      expect(src, name).not.toMatch(/hover:bg-muted\/60/)
+    }
+  })
+})
+
+/**
+ * A file dropped anywhere on a card attaches it. Before that, the handlers lived
+ * on the attachments section's own wrapper, so a screenshot dropped on the
+ * description hit the browser's default handler and navigated the tab to
+ * `file:///…`, taking the card view with it.
+ */
+describe('the whole card is the drop target', () => {
+  it('is wired from the surface, not from the section that stores the result', () => {
+    for (const [name, src] of [['CardModal', CARD_MODAL], ['the card page', CARD_PAGE]] as const) {
+      expect(src, name).toContain('useFileDrop(')
+      expect(src, name).toMatch(/:dragging="dragging"/)
+    }
+
+    // The section no longer owns any of it — it only reports, and uploads what it
+    // is handed.
+    const attachments = read('app/components/AttachmentList.vue')
+    expect(attachments).not.toMatch(/@dragover|@dragenter|@dragleave|@drop/)
+    expect(attachments).toMatch(/defineExpose\(\{[^}]*uploadFiles/)
+  })
+
+  it('swallows the browser default wherever the file lands', () => {
+    const drop = read('app/composables/useFileDrop.ts')
+
+    // Unconditional and ahead of the containment check: this is the call that
+    // stops a stray drop leaving the app.
+    expect(drop).toMatch(/e\.preventDefault\(\)\n\s*if \(opts\.enabled/)
+  })
+
+  it('does not unset the highlight faster than a drag reports itself', () => {
+    // The drag-and-drop model re-runs every 350ms, so a stationary pointer over
+    // the panel is the slowest legitimate event stream there is and a shorter
+    // timeout blinks the highlight off between two normal `dragover`s. Leaving is
+    // detected by containment instead; this is only the backstop.
+    const drop = read('app/composables/useFileDrop.ts')
+
+    expect(drop).toMatch(/dragging\.value = false\n\s*\}, 500\)/)
+    expect(drop).toMatch(/if \(inRoot\(e\.relatedTarget\)\) return/)
   })
 
   it('puts every ⌘↵ hint on the button it triggers', () => {
@@ -226,18 +322,106 @@ describe('one spelling per idiom', () => {
  * in the page's rail, with its own red hex values.
  */
 describe('one destructive idiom', () => {
-  const surfaces: Array<[string, string]> = [
-    ['CardModal', CARD_MODAL],
-    ['the card detail page', CARD_PAGE]
-  ]
+  it('the card page confirms its delete through UiConfirmDialog', () => {
+    expect(CARD_PAGE).toContain('<UiConfirmDialog')
+  })
 
-  it.each(surfaces)('%s confirms a delete through UiConfirmDialog', (_name, src) => {
-    expect(src).toContain('<UiConfirmDialog')
+  it('the panel has no delete of its own, and no menu hiding one', () => {
+    // The `⋯` menu held exactly one item, so it was a menu whose job was to hide
+    // a button: two clicks and a popover in front of an action that already has a
+    // confirmation behind it. Deleting a card is the full-page view's, beside the
+    // provenance the decision wants.
+    expect(CARD_MODAL).not.toContain('i-lucide-ellipsis')
+    expect(CARD_MODAL).not.toMatch(/Delete card/)
+    expect(CARD_MODAL).not.toMatch(/delete: \[cardId/)
+    // And nothing is left bound to the emit that went with it.
+    expect(read('app/composables/useViewPage.ts')).not.toMatch(/^\s*handleDeleteCard,$/m)
+  })
+
+  it('removing an attachment asks first', () => {
+    // It was the only destructive action on either surface with no confirmation
+    // at all — one mis-click on a hover-only trash icon. The two-step inline
+    // confirm, matching the comment rows directly below it rather than inventing
+    // a second answer for the same question in the same list.
+    const attachments = read('app/components/AttachmentList.vue')
+
+    expect(attachments).toMatch(/confirmRemoveId/)
+    expect(attachments).toMatch(/@click="requestRemove\(attachment\.id\)"/)
+    expect(attachments).not.toMatch(/@click="remove\(attachment\.id\)"/)
   })
 
   it('the card page no longer paints its own destructive button', () => {
     // `bg-red-500` on a hand-built button, which dark mode had to be maintained
     // for by hand — see the token rule in CLAUDE.md.
     expect(CARD_PAGE).not.toMatch(/bg-red-500/)
+  })
+})
+
+/**
+ * Rendered prose is shared by the description on both card surfaces and by every
+ * comment, so anything added to it lands in all three at once — which is a reason
+ * to be careful about what it lets through.
+ */
+describe('rendered prose', () => {
+  const PROSE = read('app/components/ProseDescription.vue')
+
+  it('decorates code blocks without widening what markdown may render', () => {
+    // The tidier-looking version emits the wrapper from marked's own renderer,
+    // which means adding `div` to ALLOWED_TAGS — and marked passes raw HTML in a
+    // description straight through, so the wrapper would arrive by widening what
+    // *user* markdown can render, to buy a button we can build ourselves. This
+    // runs on post-sanitize DOM instead.
+    expect(PROSE).toMatch(/function decorateCodeBlocks/)
+    expect(PROSE).toMatch(/ALLOWED_TAGS: \[[\s\S]*?\]/)
+    expect(PROSE.match(/ALLOWED_TAGS: \[[\s\S]*?\]/)![0]).not.toMatch(/'div'/)
+  })
+
+  it('reads the language rather than plumbing it', () => {
+    // `language-ts` is already on the <code> and `class` is already allowed.
+    expect(PROSE).toMatch(/language-\(\[\\w\+#\.-\]\+\)/)
+  })
+
+  it('re-decorates after an edit, because v-html discards the wrappers', () => {
+    expect(PROSE).toMatch(/watch\(rendered, \(\) => nextTick\(decorateCodeBlocks\)\)/)
+  })
+
+  it('takes its palette from the semantic tokens, in one theme-aware copy', () => {
+    // This was thirty lines of raw zinc and indigo plus a second copy of itself
+    // under `:root.dark` — the hand-maintained dark mode the token rule exists to
+    // prevent, which slipped in because design-tokens.test.ts reads utility
+    // classes and these are custom properties.
+    expect(PROSE).not.toMatch(/--color-(zinc|slate|indigo)-/)
+
+    // What survives is the two values that genuinely differ by theme — a code
+    // block wants to sit *below* the page, and `--ui-bg-muted` is lighter than the
+    // surface in dark mode — rather than a duplicate of every line above.
+    const darkRules = PROSE.match(/:root\.dark \.prose-description/g) || []
+    expect(darkRules.length).toBeLessThanOrEqual(2)
+  })
+})
+
+/**
+ * Tags fill one line and `+N` counts what didn't, on a board card and in the card
+ * panel's properties row alike — the same argument as priority's edge bar, which
+ * KanbanCard and ListView mirror so both views describe priority identically.
+ */
+describe('tag overflow is measured in one place', () => {
+  const USERS = ['app/components/KanbanCard.vue', 'app/components/CardProperties.vue']
+
+  it('is shared rather than reimplemented', () => {
+    for (const path of USERS) {
+      const src = read(path)
+      expect(src, path).toMatch(/useTagOverflow\(\{/)
+      expect(src, path).toContain('data-tag')
+      // The measurement itself belongs to the composable. A second copy is how
+      // the two surfaces would drift into counting differently.
+      expect(src, path).not.toMatch(/offsetTop/)
+    }
+  })
+
+  it('leaves the card page’s rail alone, where nothing is clipped', () => {
+    // Measuring an unclipped row counts the tags on lines two and three as hidden
+    // and prints a `+N` beside tags that are plainly visible.
+    expect(read('app/components/CardProperties.vue')).toMatch(/enabled: \(\) => isCompact\.value/)
   })
 })

@@ -75,6 +75,20 @@ const selectedTagNames = computed(() => (projectTagsData.value || []).filter(t =
 // Sync from fetched data once loaded
 const synced = ref(false)
 
+/**
+ * A file dropped anywhere on the card attaches it — see `useFileDrop`, and note
+ * that until this existed a file dropped outside the attachments section made the
+ * browser navigate to `file:///…` and leave the page.
+ */
+const dropRoot = ref<HTMLElement | null>(null)
+const attachmentsRef = ref<{ uploadFiles: (files: File[]) => Promise<void> } | null>(null)
+
+const { dragging } = useFileDrop({
+  root: () => dropRoot.value,
+  enabled: () => !!card.value,
+  onFiles: files => attachmentsRef.value?.uploadFiles(files)
+})
+
 /** See CardModal — the description is the one field a navigation can destroy. */
 const descriptionDraft = useTextDraft(
   () => (card.value ? `card:${card.value.id}:description` : null),
@@ -238,11 +252,14 @@ async function submit() {
   }
 }
 
-/** See CardModal — click the prose, but never at the cost of a link or a selection. */
-function onProseClick(e: MouseEvent) {
-  if ((e.target as HTMLElement | null)?.closest('a')) return
-  if (!window.getSelection()?.isCollapsed) return
-  startEditingDescription()
+/**
+ * See CardModal for why clicking the prose no longer edits it, and why copying
+ * the markdown is the control that replaced the gesture it was breaking.
+ */
+const { copied: descriptionCopied, copy: copyText } = useCopyText()
+
+function copyDescription() {
+  copyText(description.value)
 }
 
 async function confirmDelete() {
@@ -395,7 +412,15 @@ async function confirmDelete() {
       </aside>
 
       <!-- ═══ MAIN CONTENT — title + description ═══ -->
-      <div class="flex-1 min-w-0 lg:order-1">
+      <!-- Also the drop region: a file may land anywhere down this column, not
+           only on the attachments section. The ring says where — on the column
+           rather than on that section, which a long description can push out of
+           sight. -->
+      <div
+        ref="dropRoot"
+        class="flex-1 min-w-0 lg:order-1 rounded-xl transition-shadow"
+        :class="dragging ? 'ring-2 ring-primary ring-offset-4 ring-offset-default' : ''"
+      >
         <!-- Title -->
         <!-- A textarea, so a long title wraps rather than running off the edge.
              See CardModal — Enter still commits. -->
@@ -411,24 +436,8 @@ async function confirmDelete() {
           @keydown.enter.prevent="flushTitle"
         />
 
-        <!-- Description header -->
-        <div class="flex items-center gap-1.5 mb-2">
-          <UiSectionLabel
-            label="Description"
-            icon="i-lucide-text"
-          />
-          <!-- See CardModal: with no description, its placeholder is the button. -->
-          <UButton
-            v-if="!editingDescription && description"
-            icon="i-lucide-pencil"
-            label="Edit"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            class="ml-auto"
-            @click="startEditingDescription"
-          />
-        </div>
+        <!-- No heading over the card's own body — see CardModal for why the other
+             two sections keep theirs and this one never had a claim to one. -->
 
         <!-- Description: edit mode -->
         <UiDraftNotice
@@ -473,27 +482,65 @@ async function confirmDelete() {
           </div>
         </template>
 
-        <!-- Description: read mode. The prose is the edit target; see CardModal. -->
+        <!-- Description: read mode. Copy and Edit sit where the heading's button
+             did, absolutely positioned so the pair costs no height; see CardModal
+             for why the pencil is the only way into the editor now, and why it is
+             always drawn rather than revealed on hover. -->
         <div
           v-else-if="description"
-          class="select-text rounded-lg -mx-1.5 px-1.5 py-1 hover:bg-muted/60 transition-colors"
-          @click="onProseClick"
+          class="relative"
         >
-          <ProseDescription :content="description" />
+          <div class="absolute top-0 right-0 flex items-center gap-0.5">
+            <UTooltip :text="descriptionCopied ? 'Copied!' : 'Copy as Markdown'">
+              <UButton
+                :icon="descriptionCopied ? 'i-lucide-check' : 'i-lucide-copy'"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :class="descriptionCopied ? 'text-success!' : ''"
+                aria-label="Copy the description as Markdown"
+                @click="copyDescription"
+              />
+            </UTooltip>
+            <UTooltip text="Edit description">
+              <UButton
+                icon="i-lucide-pencil"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                aria-label="Edit the description"
+                @click="startEditingDescription"
+              />
+            </UTooltip>
+          </div>
+
+          <div class="select-text pr-16">
+            <ProseDescription :content="description" />
+          </div>
         </div>
 
+        <!-- Empty: one row that is the label, the empty state and the button, and
+             the same row the comment composer is. -->
         <button
           v-else
           type="button"
-          class="w-full rounded-lg border border-dashed border-default px-3 py-2 text-left text-sm text-dimmed hover:border-accented hover:bg-muted transition-colors"
+          class="w-full flex items-center gap-2.5 rounded-lg border border-default bg-default px-3 py-2 text-left hover:bg-muted transition-colors"
           @click="startEditingDescription"
         >
-          Add a description…
+          <UIcon
+            name="i-lucide-text"
+            class="text-base text-dimmed shrink-0"
+          />
+          <span class="text-sm text-dimmed">Add a description…</span>
         </button>
 
         <!-- Attachments -->
         <div class="mt-6">
-          <AttachmentList :card-id="card?.id" />
+          <AttachmentList
+            ref="attachmentsRef"
+            :card-id="card?.id"
+            :dragging="dragging"
+          />
         </div>
 
         <!-- Comments -->

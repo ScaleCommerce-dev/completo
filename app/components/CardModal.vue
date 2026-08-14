@@ -72,7 +72,6 @@ const emit = defineEmits<{
   /** Omit `tagIds` unless tags actually changed — passing them costs a second request. */
   update: [cardId: number, updates: Record<string, unknown>, tagIds?: string[]]
   updateTags: [cardId: number, tagIds: string[]]
-  delete: [cardId: number]
   deleteDraft: [cardId: number]
   navigate: [direction: 'prev' | 'next' | 'prevColumn' | 'nextColumn']
 }>()
@@ -108,7 +107,6 @@ function resizeTitle() {
 
 watch(title, () => nextTick(resizeTitle))
 const descriptionEditorRef = ref<{ startEditing: () => void }>()
-const showDeleteConfirm = ref(false)
 const draftCardId = ref<number | null>(null)
 const showDraftDiscardConfirm = ref(false)
 /** UButton's root *is* the <button>, so `$el` is what takes focus. */
@@ -139,6 +137,21 @@ const bodyStart = ref<HTMLElement | null>(null)
 let bodyScroller: HTMLElement | null = null
 let bodyObserver: ResizeObserver | null = null
 
+/**
+ * The panel itself — Reka's dialog element, reached from the body the same way,
+ * since USlideover gives us no ref to it either. It is what a file may be dropped
+ * on, which is the whole panel and not just the section that stores the result;
+ * see `useFileDrop` for what that fixes.
+ */
+const panelEl = ref<HTMLElement | null>(null)
+const attachmentsRef = ref<{ uploadFiles: (files: File[]) => Promise<void> } | null>(null)
+
+const { dragging } = useFileDrop({
+  root: () => panelEl.value,
+  enabled: () => isEdit.value || !!props.onEnsureCard,
+  onFiles: files => attachmentsRef.value?.uploadFiles(files)
+})
+
 function updateBodyFade() {
   const el = bodyScroller
   if (!el) return
@@ -150,6 +163,7 @@ function updateBodyFade() {
 function watchBodyScroll() {
   bodyScroller = bodyStart.value?.parentElement ?? null
   if (!bodyScroller) return
+  panelEl.value = bodyScroller.closest<HTMLElement>('[role="dialog"]') ?? bodyScroller
   bodyScroller.addEventListener('scroll', updateBodyFade, { passive: true })
   if (typeof ResizeObserver !== 'undefined') {
     bodyObserver = new ResizeObserver(updateBodyFade)
@@ -164,6 +178,7 @@ function unwatchBodyScroll() {
   bodyObserver?.disconnect()
   bodyObserver = null
   bodyScroller = null
+  panelEl.value = null
 }
 
 onUnmounted(unwatchBodyScroll)
@@ -254,7 +269,6 @@ function populateFromCard(card: NonNullable<typeof props.card>) {
   selectedTagIds.value = (card.tags || []).map((t: { id: string }) => t.id)
   selectedDueDate.value = toDateInput(card.dueDate)
   editingDescription.value = false
-  showDeleteConfirm.value = false
   // After the card's own text, so a draft wins over what the server holds — and
   // straight into the editor, because a restored draft rendered as prose would
   // read exactly like a saved description. That is the bug
@@ -299,18 +313,29 @@ function startEditingDescription() {
 }
 
 /**
- * Click the paragraph to edit it — without costing prose the two things prose is
- * for. A click that landed on a link follows the link, and a click that ends a
- * selection is somebody copying a line out, not somebody asking to rewrite it.
+ * Reading a description and editing one are separate acts, and clicking the prose
+ * used to be both.
  *
- * This is why the rendered description is a `div` and not a `button`: a button
- * cannot legally contain the links a description routinely has, and it would
- * swallow the drag-select as a press.
+ * It was guarded — a click on a link followed the link, and a click that ended a
+ * selection was treated as a copy — but the guard cannot cover the gesture people
+ * actually use. Clicking a word and then shift-clicking to extend, or clicking
+ * once to dismiss a previous selection, both start with a collapsed selection,
+ * which is indistinguishable from "edit this". So the common way to copy half a
+ * sentence out of a card threw you into the editor instead, every time.
+ *
+ * Editing is now only ever the pencil, which is why that button is always
+ * rendered rather than revealed on hover: it is the single path in. The hover fill
+ * this block used to carry went with the click — a surface that lights up under
+ * the pointer and then does nothing is worse than one that never suggested it.
+ *
+ * `copyDescription` is the other half of the trade. If copying is common enough to
+ * cost us click-to-edit, it deserves a control, and copying the *markdown* is
+ * better than what hand-selecting the rendered prose would ever have given you.
  */
-function onProseClick(e: MouseEvent) {
-  if ((e.target as HTMLElement | null)?.closest('a')) return
-  if (!window.getSelection()?.isCollapsed) return
-  startEditingDescription()
+const { copied: descriptionCopied, copy: copyText } = useCopyText()
+
+function copyDescription() {
+  copyText(description.value)
 }
 
 /**
@@ -367,7 +392,6 @@ function reset() {
   selectedTagIds.value = []
   selectedDueDate.value = null
   editingDescription.value = false
-  showDeleteConfirm.value = false
   draftCardId.value = null
   showDraftDiscardConfirm.value = false
 }
@@ -435,19 +459,18 @@ const NAV_CONTROLS = [
   { dir: 'nextColumn', flag: 'hasNextColumn', icon: 'i-lucide-chevron-right', tip: 'Next column', kbd: 'arrowright', aria: 'First card of the next column', before: 'rule' }
 ] as const
 
-const cardMenuItems = computed(() => [[{
-  label: 'Delete card',
-  icon: 'i-lucide-trash-2',
-  color: 'error' as const,
-  onSelect: () => { showDeleteConfirm.value = true }
-}]])
-
-function confirmDelete() {
-  if (!props.card) return
-  showDeleteConfirm.value = false
-  emit('delete', props.card.id)
-}
-
+/**
+ * The panel's `⋯` menu is gone, and with it the only delete on this surface.
+ *
+ * It held exactly one item, so it was a menu whose job was to hide a button —
+ * two clicks and a popover in front of an action that already has a confirmation
+ * behind it. Deleting a card now lives on the full-page view, beside the
+ * provenance the decision actually wants: who filed it and when it last moved.
+ *
+ * What the header gains is a readable shape. It reads left to right as identity,
+ * then navigate, then change surface, then leave, with nothing on it that changes
+ * the card.
+ */
 function confirmDiscardDraft() {
   const id = draftCardId.value
   showDraftDiscardConfirm.value = false
@@ -521,11 +544,8 @@ watch(open, (isOpen) => {
     // keystrokes. Closing is a commit point, not a discard.
     flushTitle()
   }
-  if (!isOpen) {
-    showDeleteConfirm.value = false
-    if (!isEdit.value) {
-      reset()
-    }
+  if (!isOpen && !isEdit.value) {
+    reset()
   }
   if (isOpen && !isEdit.value) {
     nextTick(() => titleInput.value?.focus())
@@ -561,7 +581,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
       // the value arrives as a custom property. The fallback is what surfaces
       // without a board — a list, My Tasks — and any window too narrow for the
       // reveal get.
-      content: 'sm:max-w-[var(--card-panel-w,620px)]',
+      //
+      // The ring is where a dragged file will land. On the panel rather than on
+      // the attachments section, because the whole panel takes the drop and the
+      // section it files into may well be scrolled out of sight — and a ring
+      // rather than a background tint because `bg-primary/5` and the theme's own
+      // `bg-default` are both `bg-*` utilities, so which one won would come down
+      // to stylesheet order.
+      content: `sm:max-w-[var(--card-panel-w,620px)] ${dragging ? 'ring-2 ring-primary ring-inset' : ''}`,
       // 40px in from the edges, which is the gap the board keeps between the
       // sidebar and its first column — so the panel is inset by the same amount
       // that separates the two surfaces beside it. The 24px it inherited was set
@@ -715,24 +742,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             />
           </UTooltip>
 
-          <!-- Card-level actions. Delete lives here rather than in a footer:
-               with the description committing itself there is no Save for it to
-               sit beside, and a pinned bar holding one destructive button is a
-               bar that exists to hold a destructive button. -->
-          <UDropdownMenu
-            v-if="isEdit"
-            :items="cardMenuItems"
-            :content="FIELD_MENU_ALIGN_END"
-          >
-            <UButton
-              icon="i-lucide-ellipsis"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              aria-label="Card actions"
-            />
-          </UDropdownMenu>
-
           <!-- Leaving is not one more thing you can do to the card, so it does
                not sit flush against the things that are. -->
           <div class="w-px h-4 bg-accented mx-1" />
@@ -812,27 +821,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
 
         <!-- Edit mode: read-only view with edit toggle -->
         <template v-else>
-          <div class="flex items-center gap-1.5 mb-1.5">
-            <UiSectionLabel
-              label="Description"
-              icon="i-lucide-text"
-            />
-            <!-- Only when there is something to edit. With the description empty
-                 its own placeholder is the affordance, and two invitations to
-                 write the same paragraph — a 19px ghost button up here and a
-                 full-width target below — is one too many. -->
-            <UButton
-              v-if="!editingDescription && description"
-              icon="i-lucide-pencil"
-              label="Edit"
-              color="neutral"
-              variant="ghost"
-              size="xs"
-              class="ml-auto"
-              @click="startEditingDescription"
-            />
-          </div>
-
           <div v-if="editingDescription">
             <UiDraftNotice
               v-if="descriptionDraft.restored.value"
@@ -878,41 +866,84 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             </div>
           </div>
 
-          <!-- No inner scroll box. The panel already scrolls, and a scroll area
-               nested inside one traps the wheel over whichever half you happen to
-               be pointing at.
+          <!--
+            No heading over the card's own body.
 
-               The prose is the edit target. Hunting for a 19px "Edit" button to
-               change a paragraph you are already looking at is the mode showing
-               through; clicking the thing you want to change is not. The button
-               stays for discoverability and for keyboard reach. -->
+            "DESCRIPTION" labelled the one thing on the panel that needs no
+            label — it is what the card *is*, sitting directly under the title —
+            while the two headings below it label collections that grow and are
+            worth counting. Three peer headings said the three regions were peers;
+            they are a body and two appendices, and the hierarchy now says so.
+
+            No inner scroll box either. The panel already scrolls, and a scroll
+            area nested inside one traps the wheel over whichever half you happen
+            to be pointing at.
+          -->
           <div
             v-else-if="description"
-            class="select-text rounded-lg -mx-1.5 px-1.5 py-1 hover:bg-muted/60 transition-colors"
-            @click="onProseClick"
+            class="relative"
           >
-            <ProseDescription :content="description" />
+            <!-- Where the heading's actions were, minus the heading. Absolute, so
+                 the row costs no height; the prose is padded clear of it rather
+                 than running underneath. Always rendered, never hover-only: with
+                 click-to-edit gone the pencil is the only way in, and an
+                 affordance you have to find by sweeping the panel is not one. -->
+            <div class="absolute top-0 right-0 flex items-center gap-0.5">
+              <UTooltip :text="descriptionCopied ? 'Copied!' : 'Copy as Markdown'">
+                <UButton
+                  :icon="descriptionCopied ? 'i-lucide-check' : 'i-lucide-copy'"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  :class="descriptionCopied ? 'text-success!' : ''"
+                  aria-label="Copy the description as Markdown"
+                  @click="copyDescription"
+                />
+              </UTooltip>
+              <UTooltip text="Edit description">
+                <UButton
+                  icon="i-lucide-pencil"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  aria-label="Edit the description"
+                  @click="startEditingDescription"
+                />
+              </UTooltip>
+            </div>
+
+            <div class="select-text pr-16">
+              <ProseDescription :content="description" />
+            </div>
           </div>
 
-          <!-- Empty: the placeholder is the button. A heading with a void under
-               it reads as a section that failed to render, and it is what the
-               panel used to show — twice over, since attachments did the same
-               thing an inch below. -->
+          <!-- Empty: the placeholder is the button, the label and the empty state
+               at once. Solid-bordered and icon-led, the same row the collapsed
+               comment composer is — the icon is the one the deleted heading
+               carried, doing more work here than it did there. -->
           <button
             v-else
             type="button"
-            class="w-full rounded-lg border border-dashed border-default px-3 py-2 text-left text-sm text-dimmed hover:border-accented hover:bg-muted transition-colors"
+            class="w-full flex items-center gap-2.5 rounded-lg border border-default bg-default px-3 py-2 text-left hover:bg-muted transition-colors"
             @click="startEditingDescription"
           >
-            Add a description…
+            <UIcon
+              name="i-lucide-text"
+              class="text-base text-dimmed shrink-0"
+            />
+            <span class="text-sm text-dimmed">Add a description…</span>
           </button>
         </template>
       </div>
 
-      <!-- Attachments -->
-      <div class="mx-4 sm:mx-10 mt-3">
+      <!-- Attachments. One section gap, the same one the comments take: with the
+           description's heading gone, spacing is what separates the body from
+           what follows, so the two gaps can't be 12px and 24px any more. -->
+      <div class="mx-4 sm:mx-10 mt-6">
         <AttachmentList
+          ref="attachmentsRef"
           :card-id="attachmentCardId"
+          :dragging="dragging"
           :on-before-upload="!isEdit ? handleBeforeUpload : undefined"
         />
       </div>
@@ -986,17 +1017,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
     </template>
   </USlideover>
 
-  <!-- One destructive idiom, the one CLAUDE.md names. No `confirmText`: a card is
-       cheap to recreate, so it is a single click rather than type-the-name.
+  <!-- Nothing else belongs here, and the reason is worth keeping now that the one
+       thing that did has gone with the `⋯` menu.
 
-       A sibling of the slideover, never a child: USlideover's default slot is its
-       *trigger*, so a dialog placed there renders into the page behind the panel —
-       centred, with its buttons under the panel's left edge and unclickable. -->
-  <UiConfirmDialog
-    v-model:open="showDeleteConfirm"
-    title="Delete this card?"
-    description="Its comments and attachments go with it. This cannot be undone."
-    action-label="Delete card"
-    @confirm="confirmDelete"
-  />
+       USlideover's default slot is its *trigger*. Anything rendered into it lands
+       in the page *behind* the panel — the delete confirmation used to appear
+       centred on the board, with its buttons under the panel's left edge and
+       unclickable, which reads as a z-index bug and isn't one. A dialog this panel
+       ever needs again goes here, after `</USlideover>`, as a sibling. -->
 </template>

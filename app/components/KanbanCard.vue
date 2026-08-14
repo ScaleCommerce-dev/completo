@@ -99,69 +99,19 @@ const showTags = computed(() => shows('tags') && !!props.card.tags?.length)
 const allTagNames = computed(() => (props.card.tags || []).map(t => t.name).join(', '))
 
 /**
- * Tags fill the line, and `+N` counts what didn't fit.
+ * Tags fill the line, and `+N` counts what didn't fit — see `useTagOverflow`,
+ * which the card panel's properties row now shares so the two surfaces describe
+ * tags identically.
  *
- * It used to be `slice(0, 2)` and `length - 2`, which is wrong in both
- * directions on the same board: three tags named "v1", "is" and "of" showed
- * "+1" with two thirds of the line empty, while two long ones overflowed it.
- *
- * The clipping is CSS and needs no measuring: the row wraps and is one pill tall
- * (`max-h-4` — `text-2xs` at `leading-none` plus `py-[3px]` is exactly 16px), so
- * a tag that doesn't fit moves to a second line that isn't rendered. Nothing is
- * ever half-shown, and nothing is removed from the DOM, which is what keeps the
- * count honest: it is just how many pills wrapped.
- *
- * The badge is positioned rather than in flow — in flow it would wrap onto the
- * clipped line and disappear exactly when it was needed — and the row reserves
- * room for it only once something has overflowed. That reserve can push one more
- * tag over, so the count is re-taken until it stops moving. It always does, and
- * quickly: reserving space can only ever *raise* the count, never lower it, so
- * the sequence is monotonic and bounded by the number of tags. Two passes is the
- * normal case, hence the cap of three.
+ * `badgeLeft` is the part only this surface needs: the row is full-width here, so
+ * a count in flow would wrap onto the clipped line and vanish exactly when it was
+ * needed.
  */
 const tagRow = useTemplateRef<HTMLElement>('tagRow')
-const hiddenTagCount = ref(0)
-const badgeLeft = ref(0)
-
-function countWrappedTags() {
-  const pills = tagRow.value ? [...tagRow.value.querySelectorAll<HTMLElement>('[data-tag]')] : []
-  const firstLine = pills[0]?.offsetTop
-  if (firstLine === undefined) {
-    hiddenTagCount.value = 0
-    return
-  }
-  const shown = pills.filter(p => p.offsetTop === firstLine)
-  hiddenTagCount.value = pills.length - shown.length
-  // Sits against the last pill rather than against the far edge of the row — it
-  // counts *those* tags, and a card whose tags end halfway across left it
-  // stranded on the other side of an inch of nothing.
-  const last = shown[shown.length - 1]
-  badgeLeft.value = last ? last.offsetLeft + last.offsetWidth : 0
-}
-
-/**
- * `requestAnimationFrame`, not `nextTick`. `nextTick` resolves on a microtask
- * and the second pass measured a row that still had no `pr-6` on it — so the
- * count came back identical, the loop read that as "settled", and every
- * overflowing card was short by exactly one. A frame callback runs after the
- * patch has been applied and styled, which is the state we need to measure.
- */
-function remeasureTags(passes = 3) {
-  requestAnimationFrame(() => {
-    const before = hiddenTagCount.value
-    countWrappedTags()
-    if (passes > 1 && hiddenTagCount.value !== before) remeasureTags(passes - 1)
-  })
-}
-
-onMounted(() => {
-  remeasureTags()
-  // Metrics change when Plus Jakarta Sans replaces the fallback, and a name that
-  // fitted in one may not fit in the other.
-  document.fonts?.ready.then(() => remeasureTags())
+const { hiddenCount: hiddenTagCount, badgeLeft } = useTagOverflow({
+  row: () => tagRow.value,
+  tags: () => props.card.tags
 })
-
-watch(() => props.card.tags, () => remeasureTags(), { deep: true })
 
 /**
  * What the card holds beyond its own fields: a discussion, and files.

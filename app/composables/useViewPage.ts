@@ -118,12 +118,13 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
     }
   }
 
-  async function handleDeleteCard(cardId: number) {
-    await deleteCard(cardId)
-    showCardDetail.value = false
-    selectedCard.value = null
-  }
-
+  /**
+   * There is no `handleDeleteCard` any more: the card panel used to carry a `⋯`
+   * menu whose single item was Delete, and this was the only thing bound to it.
+   * Deleting a card is the full-page view's, beside the provenance the decision
+   * wants. `deleteCard` stays — `deleteDraftCard` above still needs it, for the
+   * half-made card an attachment forces into existence.
+   */
   return {
     activeTagFilters,
     isFiltered,
@@ -139,7 +140,6 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
     ensureCardForDraft,
     handleCreateCard,
     handleUpdateCard,
-    handleDeleteCard,
     deleteDraftCard
   }
 }

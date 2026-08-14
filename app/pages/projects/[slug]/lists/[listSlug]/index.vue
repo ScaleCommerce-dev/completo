@@ -69,7 +69,6 @@ const {
   ensureCardForDraft,
   handleCreateCard,
   handleUpdateCard,
-  handleDeleteCard,
   deleteDraftCard
 } = useViewPage({
   allCards,
@@ -191,7 +190,6 @@ async function handleDeleteList() {
       :can-moderate="canModerateComments"
       @update="handleUpdateCard"
       @update-tags="updateCardTags"
-      @delete="handleDeleteCard"
     />
 
     <ViewConfigModal
