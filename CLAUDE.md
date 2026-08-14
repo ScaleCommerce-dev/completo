@@ -30,6 +30,10 @@ Why it matters — these are not stylistic preferences:
 
 **The only things that legitimately run on the host:** `zdev` itself, `git`, and the Go CLI in `cli/` (`go build` / `go test` — the dev image has no Go toolchain). If you genuinely need a host-side `pnpm` command, prefix it with `op run --env-file=...` to get the secrets, and know it operates on the host's separate `node_modules`.
 
+## ⚠️ Checking the app in a browser
+
+**When a change needs looking at in a real browser, drive it with `/cmux-browser`. Only if that isn't available, fall back to `/chrome-devtools`.** Both reach the dev server at `https://completo.0ploy.dev` (`zdev start` first). Don't reach for a third browser tool, and don't close the browser mid-session — screenshots go in `.playwright/`, cleaned up after.
+
 Non-zdev installs (prod, CI) use `pnpm install && pnpm setup && pnpm dev` directly. `pnpm setup` chains migrate → init-admin → seed and reads `ADMIN_USER_EMAIL` / `ADMIN_USER_PASSWORD` (+ optional `ADMIN_USER_NAME`) to create the first admin; skip them and you get an empty install (no users, no demo project). Add an admin later with `pnpm user:create you@example.com password "You" admin`, then `pnpm db:seed` to populate.
 
 ## Architecture
@@ -111,7 +115,7 @@ Non-zdev installs (prod, CI) use `pnpm install && pnpm setup && pnpm dev` direct
   **A confirmation that renders below the fold reads as a broken app.** `CardModal`'s discard banner used to sit above the actions, which on a card with comments is far off-screen: the modal simply refused to close with no visible reason. Only the create-mode one survives — it deletes a real draft row — and it lives in the pinned footer, which is visible by construction and needs no `scrollIntoView`. It focuses the safe option, the only way a keyboard user reaches it without tabbing the whole form, and dismissing it restores focus to wherever the guard fired (see the focus-containment note below). **The edit-mode one is gone, and don't add it back:** every editor on the panel persists its draft, so closing cannot destroy anything, and a dialog asking permission to do something harmless was charged on every close.
 
   **Containment means focus must stay inside the wrapper**, which is easy to break by accident: any control that takes focus and then unmounts — or a popover that restores focus to a trigger which has since been swapped out — drops focus to `<body>`, and the keystroke silently routes to the card again. The AI review buttons in `DescriptionEditor.vue` did exactly that and cost a written comment. They now carry `@mousedown.prevent` and hand focus back explicitly (to the Keep button while reviewing, since the textarea is hidden behind the preview tab, then to the textarea). Anything new that pulls focus out of a comment editor owes the same treatment.
-- **Don't close the browser** during Playwright MCP sessions. Screenshots go in `.playwright/`, clean up after.
+- **Don't pick your own browser tool** — `/cmux-browser` first, `/chrome-devtools` only as the fallback (see "Checking the app in a browser" above), and don't close the browser mid-session. Screenshots go in `.playwright/`, clean up after.
 - **Don't add Co-Authored-By** lines to commits.
 - **Don't commit code review files** (`CODE_REVIEW*.md`) — these are local-only artifacts, gitignored.
 
