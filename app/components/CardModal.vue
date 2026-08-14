@@ -409,6 +409,33 @@ function submit() {
   open.value = false
 }
 
+/**
+ * The four ways out of this card, in the order they sit on screen.
+ *
+ * Declared rather than written out four times: they differ only in direction,
+ * and four near-identical button blocks is how one of them ends up with a
+ * different size or a missing `aria-label`.
+ *
+ * **Chevrons, never arrows.** On a kanban board an up-arrow beside a card reads
+ * as *move this card up the column* and a right-arrow as *move it to the next
+ * column* — both real operations here, so a real arrow would name the wrong one.
+ * A chevron says "there is more this way" without claiming to move anything. The
+ * literal keys still appear in the tooltips, where they mean the keyboard.
+ */
+const NAV_CONTROLS = [
+  { dir: 'prevColumn', flag: 'hasPrevColumn', icon: 'i-lucide-chevron-left', tip: 'Previous column', kbd: 'arrowleft', aria: 'First card of the previous column' },
+  { dir: 'prev', flag: 'hasPrev', icon: 'i-lucide-chevron-up', tip: 'Previous card', kbd: 'arrowup', aria: 'Previous card in this column' },
+  { dir: 'next', flag: 'hasNext', icon: 'i-lucide-chevron-down', tip: 'Next card', kbd: 'arrowdown', aria: 'Next card in this column' },
+  { dir: 'nextColumn', flag: 'hasNextColumn', icon: 'i-lucide-chevron-right', tip: 'Next column', kbd: 'arrowright', aria: 'First card of the next column' }
+] as const
+
+/**
+ * Nuxt UI renders tooltip keys at `sm`, which for a letter is fine and for an
+ * arrow glyph is not — ↑ and ← at that size are a smudge, and these tooltips
+ * exist precisely to teach the key.
+ */
+const NAV_KBD_UI = { kbdsSize: 'md' as const }
+
 const cardMenuItems = computed(() => [[{
   label: 'Delete card',
   icon: 'i-lucide-trash-2',
@@ -550,147 +577,77 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
     @after:leave="unwatchBodyScroll"
   >
     <template #header>
-      <!-- Identity: the card's immutable facts — its ID, its author, its permalink.
-           The editable properties sit below; keeping authorship up here (rather than as
-           a sixth chip among them) avoids dressing a read-only field as a dropdown. -->
-      <!-- `outline-none!` with the bang, which is why the title fields below
-           carry one too: the app's focus ring is an *unlayered* `:focus-visible`
-           rule in main.css, and unlayered CSS beats Tailwind's layered utilities
-           whatever their specificity. Only `!important` gets past it. A
-           `tabindex="-1"` container is never a keyboard destination, so it never
-           wants the ring. -->
+      <!--
+        Two rows, because they are two different things and sharing one made both
+        worse. The top row is *panel* chrome — move through the board, open this
+        card as a page, act on it, leave. The row under it is the card's own
+        identity. They used to run together as one line of icon buttons, which is
+        why close read as a fourth item in a row of four rather than as the way
+        out, and why six controls plus an author name fought for 358px on a phone.
+
+        `outline-none!` with the bang, which is why the title fields below carry
+        one too: the app's focus ring is an *unlayered* `:focus-visible` rule in
+        main.css, and unlayered CSS beats Tailwind's layered utilities whatever
+        their specificity. Only `!important` gets past it, and a `tabindex="-1"`
+        container is never a keyboard destination so it never wants the ring.
+      -->
       <div
         ref="panelTop"
         tabindex="-1"
-        class="flex items-center gap-2.5 min-w-0 h-6 outline-none!"
+        class="flex items-center gap-0.5 min-w-0 h-7 -mx-1.5 outline-none!"
       >
-        <template v-if="isEdit">
-          <TicketIdCopy
-            :project-key="projectKey"
-            :project-slug="projectSlug"
-            :card-id="card!.id"
-            variant="pill"
-          />
-          <!-- "by" earns its place: a bare name beside the ticket ID reads as the
-               assignee, which this panel also has a field for. -->
-          <span
-            v-if="card!.creator"
-            class="flex items-baseline gap-1 min-w-0 text-xs font-medium"
+        <!-- Walking the board, for the hand already on the mouse. The arrow keys
+             do this too, but the app is pointer-first by decision, so a
+             keyboard-only affordance would hand the feature to the minority and
+             hide it from everyone else. The tooltips carry the keys, so the
+             visible control and the invisible one arrive together.
+
+             All four directions: a card panel gives no hint that columns can be
+             stepped through, and arrow keys in list-shaped apps are usually
+             vertical only, so nothing would have carried the horizontal half.
+
+             Only where a host offers navigation — a list view opens this same
+             panel with no column to walk. -->
+        <template v-if="nav">
+          <UTooltip
+            v-for="control in NAV_CONTROLS"
+            :key="control.dir"
+            :text="control.tip"
+            :kbds="[control.kbd]"
+            :ui="NAV_KBD_UI"
           >
-            <span class="text-dimmed shrink-0">by</span>
-            <span class="text-muted truncate">{{ card!.creator.name }}</span>
-          </span>
-          <NuxtLink
-            v-if="projectSlug"
-            :to="`/projects/${projectSlug}/cards/${formatTicketId(projectKey, card!.id)}`"
-            class="flex items-center gap-1 text-xs font-medium text-dimmed hover:text-toned transition-colors"
-            aria-label="Open this card as a full page"
-            @click="open = false"
-          >
-            <UIcon
-              name="i-lucide-expand"
-              class="text-base"
+            <UButton
+              :icon="control.icon"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :aria-label="control.aria"
+              :disabled="!nav[control.flag]"
+              @click="emit('navigate', control.dir)"
             />
-          </NuxtLink>
+          </UTooltip>
         </template>
-        <span
-          v-else
-          class="text-2xs font-semibold uppercase tracking-[0.08em] text-dimmed"
-        >New card</span>
 
         <div class="ml-auto flex items-center gap-0.5 shrink-0">
-          <!-- Walking the board, for the hand that is already on the mouse.
-               The arrow keys do this, but this app is pointer-first by decision,
-               so a keyboard-only affordance would hand the feature to the
-               minority and hide it from everyone else. Beside the close button
-               is the shape every other "browse a set from a detail view" uses —
-               Gmail, Quick Look, a photo viewer — and the tooltips are what
-               teach the keys, so the visible control and the invisible one
-               arrive together.
+          <UTooltip
+            v-if="isEdit && projectSlug"
+            text="Open as a full page"
+          >
+            <UButton
+              :to="`/projects/${projectSlug}/cards/${formatTicketId(projectKey, card!.id)}`"
+              icon="i-lucide-expand"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              aria-label="Open this card as a full page"
+              @click="open = false"
+            />
+          </UTooltip>
 
-               All four directions, laid out as they are on screen, because the
-               board is two-dimensional and showing only the vertical half left
-               the horizontal one undiscoverable — there is nothing in a card
-               panel to suggest columns can be stepped through, and arrow keys in
-               list-shaped apps are usually vertical only, so no analogy carries
-               it.
-
-               **Chevrons rather than arrows**, and not merely by convention: on
-               a kanban board an up-arrow beside a card reads as *move this card
-               up the column*, and a right-arrow as *move it to the next column*.
-               Both are real operations here, so real arrows would name the wrong
-               one. A chevron says "there is more this way" without claiming to
-               move anything. The literal keys still appear — as `UKbd` inside
-               the tooltips, where they mean the keyboard rather than the action.
-
-               Only when a host offers navigation: a list view opens this same
-               panel and has no column to walk. -->
-          <template v-if="nav">
-            <UTooltip
-              text="Previous column"
-              :kbds="['arrowleft']"
-            >
-              <UButton
-                icon="i-lucide-chevron-left"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                aria-label="First card of the previous column"
-                :disabled="!nav.hasPrevColumn"
-                @click="emit('navigate', 'prevColumn')"
-              />
-            </UTooltip>
-            <UTooltip
-              text="Previous card"
-              :kbds="['arrowup']"
-            >
-              <UButton
-                icon="i-lucide-chevron-up"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                aria-label="Previous card in this column"
-                :disabled="!nav.hasPrev"
-                @click="emit('navigate', 'prev')"
-              />
-            </UTooltip>
-            <UTooltip
-              text="Next card"
-              :kbds="['arrowdown']"
-            >
-              <UButton
-                icon="i-lucide-chevron-down"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                aria-label="Next card in this column"
-                :disabled="!nav.hasNext"
-                @click="emit('navigate', 'next')"
-              />
-            </UTooltip>
-            <UTooltip
-              text="Next column"
-              :kbds="['arrowright']"
-            >
-              <UButton
-                icon="i-lucide-chevron-right"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                aria-label="First card of the next column"
-                :disabled="!nav.hasNextColumn"
-                @click="emit('navigate', 'nextColumn')"
-              />
-            </UTooltip>
-            <!-- Moving between cards is not an action on this card. -->
-            <div class="w-px h-4 bg-accented mx-1" />
-          </template>
-
-          <!-- Card-level actions. Delete lives here rather than in the footer
-               because the footer is gone on an existing card: with the description
-               committing itself there is no Save to sit beside, and a pinned bar
-               holding one destructive button is a bar that exists to hold a
-               destructive button. -->
+          <!-- Card-level actions. Delete lives here rather than in a footer:
+               with the description committing itself there is no Save for it to
+               sit beside, and a pinned bar holding one destructive button is a
+               bar that exists to hold a destructive button. -->
           <UDropdownMenu
             v-if="isEdit"
             :items="cardMenuItems"
@@ -705,19 +662,50 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             />
           </UDropdownMenu>
 
-          <!-- Our own close, because overriding #header replaces the panel's default
-             header content — the button included. Esc and clicking outside both route
-             through the same `open` setter, so all three honour the discard guards. -->
+          <!-- Leaving is not one more thing you can do to the card, so it does
+               not sit flush against the things that are. -->
+          <div class="w-px h-4 bg-accented mx-1" />
+
+          <!-- Our own close, because overriding #header replaces the panel's
+               default header content — the button included. Esc and clicking
+               outside both route through the same `open` setter, so all three
+               honour the discard guards. -->
           <UButton
             icon="i-lucide-x"
             color="neutral"
             variant="ghost"
             size="sm"
             aria-label="Close card"
-            class="-mr-1.5"
             @click="open = false"
           />
         </div>
+      </div>
+
+      <!-- Identity: the card's immutable facts. The editable properties sit
+           below; keeping authorship here rather than as a sixth chip among them
+           avoids dressing a read-only field as a dropdown. -->
+      <div class="flex items-center gap-2.5 min-w-0 mt-0.5">
+        <template v-if="isEdit">
+          <TicketIdCopy
+            :project-key="projectKey"
+            :project-slug="projectSlug"
+            :card-id="card!.id"
+            variant="pill"
+          />
+          <!-- "by" earns its place: a bare name beside the ticket ID reads as
+               the assignee, which this panel also has a field for. -->
+          <span
+            v-if="card!.creator"
+            class="flex items-baseline gap-1 min-w-0 text-xs font-medium"
+          >
+            <span class="text-dimmed shrink-0">by</span>
+            <span class="text-muted truncate">{{ card!.creator.name }}</span>
+          </span>
+        </template>
+        <span
+          v-else
+          class="text-2xs font-semibold uppercase tracking-[0.08em] text-dimmed"
+        >New card</span>
       </div>
 
       <!-- Title. Blur commits immediately rather than waiting out the debounce;

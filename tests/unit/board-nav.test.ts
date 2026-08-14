@@ -136,22 +136,33 @@ describe('yielding the arrow keys', () => {
 describe('the panel offers the same walk to the mouse', () => {
   const modal = read('app/components/CardModal.vue')
 
-  it('shows a control for all four directions, named for screen readers', () => {
+  /** The `NAV_CONTROLS` declaration the four buttons are rendered from. */
+  const controls = modal.slice(modal.indexOf('const NAV_CONTROLS'), modal.indexOf('] as const'))
+
+  it('declares a control for all four directions, named for screen readers', () => {
     // All four, not just the vertical pair: a card panel gives no hint that
     // columns can be stepped through, and arrow keys in list-shaped apps are
     // usually vertical only, so there is no analogy to carry the horizontal.
-    expect(modal).toContain('aria-label="Previous card in this column"')
-    expect(modal).toContain('aria-label="Next card in this column"')
-    expect(modal).toContain('aria-label="First card of the previous column"')
-    expect(modal).toContain('aria-label="First card of the next column"')
+    expect(controls).toContain('aria: \'Previous card in this column\'')
+    expect(controls).toContain('aria: \'Next card in this column\'')
+    expect(controls).toContain('aria: \'First card of the previous column\'')
+    expect(controls).toContain('aria: \'First card of the next column\'')
   })
 
   it('teaches every shortcut from its tooltip', () => {
     // Drop the kbds and the feature goes back to being a secret, which is the
     // state this change exists to end.
     for (const key of ['arrowup', 'arrowdown', 'arrowleft', 'arrowright']) {
-      expect(modal, key).toMatch(new RegExp(`:kbds="\\['${key}'\\]"`))
+      expect(controls, key).toContain(`kbd: '${key}'`)
     }
+    expect(modal).toContain(':kbds="[control.kbd]"')
+  })
+
+  it('renders the keys at a size an arrow survives', () => {
+    // Nuxt UI's tooltip default is `sm`, which is fine for a letter and a smudge
+    // for ↑ or ←. These tooltips exist to teach the key.
+    expect(modal).toContain('kbdsSize: \'md\'')
+    expect(modal).toContain(':ui="NAV_KBD_UI"')
   })
 
   it('uses chevrons, never arrows', () => {
@@ -161,15 +172,16 @@ describe('the panel offers the same walk to the mouse', () => {
     // this way" without claiming to move anything. The literal keys still show,
     // as UKbd inside the tooltips, where they mean the keyboard not the action.
     for (const side of ['up', 'down', 'left', 'right']) {
-      expect(modal, side).toContain(`i-lucide-chevron-${side}`)
+      expect(controls, side).toContain(`i-lucide-chevron-${side}`)
       expect(modal, side).not.toContain(`i-lucide-arrow-${side}`)
     }
   })
 
   it('greys out any direction that goes nowhere', () => {
     for (const flag of ['hasPrev', 'hasNext', 'hasPrevColumn', 'hasNextColumn']) {
-      expect(modal, flag).toMatch(new RegExp(`:disabled="!nav\\.${flag}"`))
+      expect(controls, flag).toContain(`flag: '${flag}'`)
     }
+    expect(modal).toContain(':disabled="!nav[control.flag]"')
   })
 
   it('shows them only where there is a set to walk', () => {

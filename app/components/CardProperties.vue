@@ -86,8 +86,20 @@ const Row = computed(() => isCompact.value ? 'div' : resolveComponent('UiFieldRo
  * status or member name from taking the whole line to itself.
  */
 const CHIP = computed(() => isCompact.value ? 'shrink-0 max-w-[190px]' : '')
-/** Tags wrap among themselves, so they get their own line rather than a 190px box. */
-const TAG_CHIP = computed(() => isCompact.value ? 'basis-full min-w-0' : '')
+/**
+ * Tags join the same line as the rest and wrap with it.
+ *
+ * They used to carry `basis-full`, which put them on a line of their own
+ * *always* — so a card with two tags and short property values spent two rows
+ * saying what fits comfortably in one, and the break happened at a fixed place
+ * rather than where the content ran out.
+ *
+ * `shrink-0` matters as much as dropping that: tags are the only shrinkable item
+ * on the row, so without it a line overflowing by twenty pixels squeezed the
+ * whole shortfall out of this one chip rather than wrapping it. `max-w-full`
+ * then keeps it inside the row once it does wrap.
+ */
+const TAG_CHIP = computed(() => isCompact.value ? 'shrink-0 max-w-full' : '')
 
 function row(label: string, icon: string, align?: 'start') {
   if (isCompact.value) return {}
@@ -230,31 +242,51 @@ function row(label: string, icon: string, align?: 'start') {
         @toggle="toggleTag"
       >
         <template #default="{ label }">
+          <!--
+            The pills wrap; the chevron does not take part.
+
+            It used to be the last item in the same wrapping flow, so when the
+            row ran a few pixels short the chevron alone dropped to a second
+            line, under the last pill — which reads as a rendering fault rather
+            than as a wrap. Keeping it outside the wrapping group means it stays
+            beside the pills at any width, and a long tag list wraps among itself
+            with the chevron still at the end of the first row.
+
+            No `max-w-full` here, deliberately. A percentage max-width inside a
+            shrink-to-fit parent is circular — the parent's width depends on this
+            element's content and this element's cap depends on the parent — and
+            browsers resolved it by handing the button 211px when 223 were free
+            and 167 to spare on the row, so the pills wrapped for no visible
+            reason. The cap lives on the row item instead, where the containing
+            block is definite.
+          -->
           <button
             type="button"
-            class="flex flex-wrap items-center gap-1 max-w-full rounded-md px-1.5 py-1 -mx-1.5 transition-colors hover:bg-elevated cursor-pointer text-left"
+            class="flex items-start gap-1 rounded-md px-1.5 py-1 -mx-1.5 transition-colors hover:bg-elevated cursor-pointer text-left"
             :aria-label="label"
           >
-            <TagPill
-              v-for="tag in selectedTags"
-              :key="tag.id"
-              :name="tag.name"
-              :color="tag.color"
-              variant="quiet"
-            />
-            <span
-              v-if="!selectedTags.length"
-              class="inline-flex items-center gap-0.5 text-sm text-dimmed"
-            >
-              <UIcon
-                name="i-lucide-plus"
-                class="text-2xs"
+            <span class="flex flex-wrap items-center gap-1 min-w-0">
+              <TagPill
+                v-for="tag in selectedTags"
+                :key="tag.id"
+                :name="tag.name"
+                :color="tag.color"
+                variant="quiet"
               />
-              Add tags
+              <span
+                v-if="!selectedTags.length"
+                class="inline-flex items-center gap-0.5 text-sm text-dimmed"
+              >
+                <UIcon
+                  name="i-lucide-plus"
+                  class="text-2xs"
+                />
+                Add tags
+              </span>
             </span>
             <UIcon
               name="i-lucide-chevron-down"
-              class="text-2xs text-dimmed shrink-0"
+              class="text-2xs text-dimmed shrink-0 mt-1"
             />
           </button>
         </template>
