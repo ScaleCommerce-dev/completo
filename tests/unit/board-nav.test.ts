@@ -150,19 +150,23 @@ describe('the panel offers the same walk to the mouse', () => {
   })
 
   it('teaches every shortcut from its tooltip', () => {
-    // Drop the kbds and the feature goes back to being a secret, which is the
+    // Drop the keys and the feature goes back to being a secret, which is the
     // state this change exists to end.
     for (const key of ['arrowup', 'arrowdown', 'arrowleft', 'arrowright']) {
       expect(controls, key).toContain(`kbd: '${key}'`)
     }
-    expect(modal).toContain(':kbds="[control.kbd]"')
+    expect(modal).toContain('<UiKey')
+    expect(modal).toContain(':value="control.kbd"')
   })
 
-  it('renders the keys at a size an arrow survives', () => {
-    // Nuxt UI's tooltip default is `sm`, which is fine for a letter and a smudge
-    // for ↑ or ←. These tooltips exist to teach the key.
-    expect(modal).toContain('kbdsSize: \'md\'')
-    expect(modal).toContain(':ui="NAV_KBD_UI"')
+  it('draws the keys rather than typing them', () => {
+    // Not the tooltip's own `:kbds` prop: it takes UKbd *props*, and these keys
+    // have to be icons because no font carries ← and → (see UiKey and
+    // key-glyphs.test.ts). The slot hands back Nuxt UI's `ui`, so the styling
+    // stays the component's rather than a copy of it.
+    expect(modal).toMatch(/#content="\{ ui \}"/)
+    expect(modal).toContain('ui.kbds()')
+    expect(modal).not.toMatch(/:kbds=/)
   })
 
   it('uses chevrons, never arrows', () => {

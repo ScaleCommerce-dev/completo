@@ -460,8 +460,8 @@ async function confirmDelete() {
               @click="submit"
             >
               Save
-              <UKbd value="meta" />
-              <UKbd value="enter" />
+              <UiKey value="meta" />
+              <UiKey value="enter" />
             </UButton>
             <UButton
               size="xs"

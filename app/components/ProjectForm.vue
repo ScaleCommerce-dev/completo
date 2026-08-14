@@ -482,8 +482,8 @@ function confirmDelete() {
           :disabled="!canSubmit"
         >
           <template #trailing>
-            <UKbd value="meta" />
-            <UKbd value="enter" />
+            <UiKey value="meta" />
+            <UiKey value="enter" />
           </template>
         </UButton>
       </div>

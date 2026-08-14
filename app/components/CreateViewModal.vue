@@ -474,8 +474,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 @click="createView"
               >
                 <template #trailing>
-                  <UKbd value="meta" />
-                  <UKbd value="enter" />
+                  <UiKey value="meta" />
+                  <UiKey value="enter" />
                 </template>
               </UButton>
             </div>

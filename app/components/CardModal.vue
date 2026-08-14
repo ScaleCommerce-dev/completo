@@ -429,13 +429,6 @@ const NAV_CONTROLS = [
   { dir: 'nextColumn', flag: 'hasNextColumn', icon: 'i-lucide-chevron-right', tip: 'Next column', kbd: 'arrowright', aria: 'First card of the next column' }
 ] as const
 
-/**
- * Nuxt UI renders tooltip keys at `sm`, which for a letter is fine and for an
- * arrow glyph is not — ↑ and ← at that size are a smudge, and these tooltips
- * exist precisely to teach the key.
- */
-const NAV_KBD_UI = { kbdsSize: 'md' as const }
-
 const cardMenuItems = computed(() => [[{
   label: 'Delete card',
   icon: 'i-lucide-trash-2',
@@ -609,13 +602,23 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
              Only where a host offers navigation — a list view opens this same
              panel with no column to walk. -->
         <template v-if="nav">
+          <!-- Custom content rather than `:kbds`, because that prop takes only
+               UKbd *props* and these keys have to be drawn as icons — see
+               UiKey. The slot hands back Nuxt UI's own `ui`, so the text and
+               key styling stay the component's rather than a copy of it. -->
           <UTooltip
             v-for="control in NAV_CONTROLS"
             :key="control.dir"
             :text="control.tip"
-            :kbds="[control.kbd]"
-            :ui="NAV_KBD_UI"
           >
+            <template #content="{ ui }">
+              <span :class="ui.text()">{{ control.tip }}</span>
+              <span :class="ui.kbds()">
+                <UiKey
+                  :value="control.kbd"
+                />
+              </span>
+            </template>
             <UButton
               :icon="control.icon"
               color="neutral"
@@ -821,8 +824,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 @click="saveDescription"
               >
                 Save
-                <UKbd value="meta" />
-                <UKbd value="enter" />
+                <UiKey value="meta" />
+                <UiKey value="enter" />
               </UButton>
               <UButton
                 size="xs"
@@ -934,8 +937,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           @click="submit"
         >
           <template #trailing>
-            <UKbd value="meta" />
-            <UKbd value="enter" />
+            <UiKey value="meta" />
+            <UiKey value="enter" />
           </template>
         </UButton>
       </div>

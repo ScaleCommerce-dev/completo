@@ -143,10 +143,25 @@ const searchGroups = computed(() => [
       </template>
 
       <template #default="{ collapsed }">
+        <!-- Its own `kbds` prop renders ⌘ as a character, and no font on any
+             platform we checked carries ⌘, ↵, ← and → together — so the glyph
+             came from a system fallback and looked different in every browser.
+             The `#trailing` slot replaces them with drawn keys. See UiKey. -->
         <UDashboardSearchButton
           :collapsed="collapsed"
           variant="outline"
-        />
+        >
+          <template #trailing>
+            <UiKey
+              value="meta"
+              variant="subtle"
+            />
+            <UiKey
+              value="k"
+              variant="subtle"
+            />
+          </template>
+        </UDashboardSearchButton>
 
         <template
           v-for="(section, i) in navSections"

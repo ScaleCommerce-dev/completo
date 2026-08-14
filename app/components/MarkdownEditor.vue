@@ -190,7 +190,17 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
       v-show="editTab === 'write'"
       class="flex items-center gap-0.5 px-3 py-1.5 border-b border-default bg-muted bg-elevated"
     >
-      <UTooltip text="Bold ⌘B">
+      <!-- The shortcut is spelled with drawn keys, not a literal ⌘: no font
+           here carries that character, so it fell back to whatever the OS
+           offered and rendered differently in every browser. See UiKey. -->
+      <UTooltip text="Bold">
+        <template #content="{ ui }">
+          <span :class="ui.text()">Bold</span>
+          <span :class="ui.kbds()">
+            <UiKey value="meta" />
+            <UiKey value="b" />
+          </span>
+        </template>
         <button
           type="button"
           class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
@@ -203,7 +213,14 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
           />
         </button>
       </UTooltip>
-      <UTooltip text="Italic ⌘I">
+      <UTooltip text="Italic">
+        <template #content="{ ui }">
+          <span :class="ui.text()">Italic</span>
+          <span :class="ui.kbds()">
+            <UiKey value="meta" />
+            <UiKey value="i" />
+          </span>
+        </template>
         <button
           type="button"
           class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
@@ -217,7 +234,14 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
         </button>
       </UTooltip>
       <div class="w-px h-4 bg-accented mx-1" />
-      <UTooltip text="Inline code ⌘E">
+      <UTooltip text="Inline code">
+        <template #content="{ ui }">
+          <span :class="ui.text()">Inline code</span>
+          <span :class="ui.kbds()">
+            <UiKey value="meta" />
+            <UiKey value="e" />
+          </span>
+        </template>
         <button
           type="button"
           class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"

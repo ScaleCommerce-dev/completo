@@ -86,14 +86,12 @@ const STATUS_TONES = {
           v-if="shortcut"
           #trailing
         >
-          <UKbd
+          <UiKey
             value="meta"
-            size="sm"
             class="max-sm:hidden"
           />
-          <UKbd
+          <UiKey
             value="enter"
-            size="sm"
             class="max-sm:hidden"
           />
         </template>

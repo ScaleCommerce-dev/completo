@@ -30,7 +30,7 @@ describe('the card surfaces have no surface-level save', () => {
     // The surviving Save is the description editor's: its label is followed
     // immediately by the ⌘↵ keys, which is what distinguishes it from a bar
     // button. A second Save anywhere would be a surface-level one returning.
-    const editorSaves = [...src.matchAll(/>\s*Save\s*<UKbd value="meta"/g)]
+    const editorSaves = [...src.matchAll(/>\s*Save\s*<UiKey value="meta"/g)]
 
     expect(editorSaves).toHaveLength(1)
     expect(src).not.toMatch(/label="Save"/)

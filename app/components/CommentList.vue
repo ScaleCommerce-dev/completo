@@ -334,8 +334,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
                 @click="saveEdit(comment.id)"
               >
                 Save
-                <UKbd value="meta" />
-                <UKbd value="enter" />
+                <UiKey value="meta" />
+                <UiKey value="enter" />
               </UButton>
               <UButton
                 size="xs"
@@ -407,8 +407,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
             @click="submit"
           >
             Comment
-            <UKbd value="meta" />
-            <UKbd value="enter" />
+            <UiKey value="meta" />
+            <UiKey value="enter" />
           </UButton>
           <UButton
             size="xs"

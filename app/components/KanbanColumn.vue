@@ -223,9 +223,8 @@ const countLabel = computed(() =>
             @click="cancelComposing"
           />
           <span class="ml-auto text-2xs text-dimmed">
-            <UKbd
+            <UiKey
               value="enter"
-              size="sm"
             /> to add
           </span>
         </div>

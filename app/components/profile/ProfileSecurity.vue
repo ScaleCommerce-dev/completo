@@ -140,16 +140,18 @@ async function signOut() {
       </div>
 
       <div class="flex items-center gap-2">
-        <span class="text-2xs font-mono text-dimmed hidden sm:block">
-          <kbd class="px-1 py-0.5 rounded-md bg-elevated border border-accented text-dimmed">&#8984;&#x23CE;</kbd>
-        </span>
         <UButton
           type="submit"
           label="Change password"
           icon="i-lucide-lock"
           :loading="passwordLoading"
           :disabled="!currentPassword || !newPassword || newPassword !== confirmPassword || newPassword.length < 6"
-        />
+        >
+          <template #trailing>
+            <UiKey value="meta" />
+            <UiKey value="enter" />
+          </template>
+        </UButton>
       </div>
     </div>
 
