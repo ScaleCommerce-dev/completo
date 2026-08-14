@@ -32,7 +32,7 @@ Why it matters — these are not stylistic preferences:
 
 ## ⚠️ Checking the app in a browser
 
-**When a change needs looking at in a real browser, drive it with `/cmux-browser`. Only if that isn't available, fall back to `/chrome-devtools`.** Both reach the dev server at `https://completo.0ploy.dev` (`zdev start` first). Don't reach for a third browser tool, and don't close the browser mid-session — screenshots go in `.playwright/`, cleaned up after.
+**When a change needs looking at in a real browser, drive it with `/cmux-browser`. Only if that isn't available, fall back to `/chrome-devtools`.** Both reach the dev server at `https://completo.0ploy.dev` (`zdev start` first). Before opening a new browser instance, check whether one is already running against that same base URL (cmux's page list, or `mcp__chrome-devtools__list_pages`) and reuse it instead of starting a fresh one. Don't reach for a third browser tool, and don't close the browser mid-session — screenshots go in `.playwright/`, cleaned up after.
 
 Non-zdev installs (prod, CI) use `pnpm install && pnpm setup && pnpm dev` directly. `pnpm setup` chains migrate → init-admin → seed and reads `ADMIN_USER_EMAIL` / `ADMIN_USER_PASSWORD` (+ optional `ADMIN_USER_NAME`) to create the first admin; skip them and you get an empty install (no users, no demo project). Add an admin later with `pnpm user:create you@example.com password "You" admin`, then `pnpm db:seed` to populate.
 
