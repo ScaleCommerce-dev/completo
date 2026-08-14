@@ -125,15 +125,19 @@ describe('the width the board publishes is the width the panel reads', () => {
 })
 
 /**
- * The panel grew so content-heavy cards are easier to read, which only works if
- * the prose does *not* grow with it — at 835px a paragraph runs to 113
- * characters, and past roughly 75 the eye loses its place on the return sweep.
+ * Text has a ceiling, set for screen reading rather than for print.
+ *
+ * Measured on the neighbours rather than assumed: GitHub caps an issue body at
+ * 878px / 14px — 125 characters — unchanged between 1440 and 1920, and a README
+ * at 838px / 16px, 106 characters. Linear's docs run 84. The 45–75 rule this was
+ * first built on is Bringhurst describing a single-column serif page in print,
+ * and the screen studies disagree with it.
  */
-describe('prose keeps its measure however wide the surface gets', () => {
+describe('prose has a screen-reading ceiling', () => {
   const prose = readFileSync(join(ROOT, 'app/components/ProseDescription.vue'), 'utf8')
 
   it('caps the text blocks', () => {
-    expect(prose).toMatch(/max-width: var\(--prose-measure, 36rem\)/)
+    expect(prose).toMatch(/max-width: var\(--prose-measure, 52rem\)/)
   })
 
   it('lets the things that have no measure use the full width', () => {
@@ -151,12 +155,12 @@ describe('prose keeps its measure however wide the surface gets', () => {
     expect(modal).not.toMatch(/sm:px-6|sm:mx-6/)
   })
 
-  it('never makes a narrow surface narrower', () => {
-    // 36rem = 576px. The panel at its narrowest gives 540px of text — 620 less
-    // 40 of inset each side — so the cap is inert there and only bites once the
-    // panel is wider than about 656.
-    const narrowestText = CARD_PANEL_MIN_WIDTH - 2 * PANEL_INSET
+  it('never binds inside the card panel, at any width the panel takes', () => {
+    // 52rem = 832px, against 820px of text in the widest panel the cap allows.
+    // So prose fills the panel — the cap is there for the card *page*, whose
+    // main column runs past 1100px and would otherwise reach ~150 characters.
+    const widestPanelText = CARD_PANEL_MAX_WIDTH - 2 * PANEL_INSET
 
-    expect(36 * 16).toBeGreaterThan(narrowestText)
+    expect(52 * 16).toBeGreaterThanOrEqual(widestPanelText)
   })
 })

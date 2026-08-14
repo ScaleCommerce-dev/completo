@@ -96,22 +96,30 @@ const rendered = computed(() => {
 }
 
 /*
- * Text keeps its measure however wide the surface gets.
+ * Text has a ceiling, but a screen-reading one rather than a print one.
  *
- * The card panel is no longer a fixed 620px — it takes whatever the board can
- * spare once the focused column has its gutter, and the card page's main column
- * is wider still. Letting paragraphs fill that would work against the reason the
- * panel grew: at 835px this renders 113 characters to the line, and past roughly
- * 75 the eye starts losing its place on the return sweep, so "more room to read"
- * would have made reading worse.
+ * This was 36rem — about 79 characters — on the strength of the familiar 45–75
+ * rule. That rule is Bringhurst's, and it describes a *single-column serif page
+ * in print*; the screen evidence points the other way. Shaikh's 2005 study of
+ * online news found reading speed and efficiency highest at 95 cpl of the four
+ * widths tested, with no effect on comprehension, and the earlier Dyson &
+ * Haselgrove result that favoured 55 cpl was measuring a different thing —
+ * comprehension under instructions to read fast.
  *
- * 36rem sits just above what the panel gives at its narrowest — 540px inside a
- * 620px panel — so the cap does nothing until the panel is wider than about
- * 656px. It only ever stops the *extra* width reaching the prose; it never makes
- * a narrow surface narrower.
+ * What the neighbours do, measured rather than assumed: GitHub caps an issue
+ * body at 878px / 14px — 125 characters — and holds that at 1440 and 1920 alike,
+ * and a README at 838px / 16px, 106 characters. Linear's docs run 650px / 15px,
+ * 84 characters. Our audience reads GitHub issues all day, so 79 was the outlier
+ * here, not the safe choice.
+ *
+ * 52rem is 832px, about 114 characters at our 14px. It is deliberately inert
+ * inside the card panel at every width the panel actually takes — prose fills it
+ * — and exists for the card *page*, whose main column runs past 1100px and would
+ * otherwise reach ~150. The generous 1.7 line-height is what makes a measure
+ * this wide comfortable: long lines want more leading, and these have it.
  */
 .prose-description :deep(> *) {
-  max-width: var(--prose-measure, 36rem);
+  max-width: var(--prose-measure, 52rem);
 }
 
 /* What the extra width is actually for. These have no measure to blow. */
