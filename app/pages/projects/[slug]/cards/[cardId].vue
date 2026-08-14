@@ -174,16 +174,6 @@ const { flushTitle, syncProperties } = useCardFieldSync({
   }
 })
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit'
-  })
-}
-
 function startEditingDescription() {
   editingDescription.value = true
   nextTick(() => descriptionEditorRef.value?.startEditing())
@@ -407,7 +397,7 @@ async function confirmDelete() {
                   :person="card.creator"
                   size="3xs"
                 />
-                <UTooltip :text="formatDate(card.createdAt)">
+                <UTooltip :text="formatTimestamp(card.createdAt)">
                   <span
                     class="text-sm shrink-0"
                     :class="card.creator ? 'text-dimmed' : 'text-muted'"
@@ -421,7 +411,7 @@ async function confirmDelete() {
               label="Updated"
               icon="i-lucide-history"
             >
-              <UTooltip :text="formatDate(card.updatedAt)">
+              <UTooltip :text="formatTimestamp(card.updatedAt)">
                 <span class="text-sm text-muted">{{ relativeTime(card.updatedAt) }}</span>
               </UTooltip>
             </UiFieldRow>

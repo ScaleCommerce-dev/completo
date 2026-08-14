@@ -31,9 +31,14 @@ withDefaults(defineProps<{
       <slot>{{ label }}</slot>
     </span>
 
+    <!-- `border-t border-default`, not `h-px bg-border`: there is no
+         `--color-border` token in this app, so `bg-border` resolved to nothing and
+         this hairline has never been drawn. It went unnoticed because `rule` has
+         zero call sites — the same trap `useTextDraft` fell into, which is why
+         CLAUDE.md counts call sites. Hairlines are borders here, everywhere else. -->
     <div
       v-if="rule"
-      class="flex-1 h-px bg-border"
+      class="flex-1 border-t border-default"
     />
 
     <span

@@ -216,7 +216,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
       label="Comments"
       icon="i-lucide-message-square"
       :count="comments.length"
-      class="mb-3"
+      class="mb-2"
     />
 
     <div
@@ -226,44 +226,112 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
       Loading…
     </div>
 
+    <!--
+      A timeline: one vertical hairline down the avatar gutter, and nothing else.
+
+      Two wrong answers came first and both are worth recording, because the second
+      is the more tempting one.
+
+      **`space-y-4` and nothing else.** 16px between comments and 2px between a name
+      and the body under it. The gap ratio was not really the problem — 8:1 is
+      plenty — it was that *the two lines looked alike*: a 13px semibold name over
+      14px body text, both starting at the same x. Four comments therefore read as
+      eight interchangeable lines. That diagnosis is what the header change below
+      fixes, and it is the half that was missing the first time round.
+
+      **Then horizontal hairlines between comments.** Consistent with the app, and
+      wrong: this app uses a divided stack for a *table of uniform fields* — the
+      card page's rail, the attachments list — where every row is a label and a
+      value. Comments are prose of wildly varying length, and banding prose reads as
+      a spreadsheet. Worse, a full-width rule cuts straight across the avatar
+      gutter, so the column the avatars are supposed to own gets sliced four times
+      and stops meaning anything.
+
+      **Then a vertical connector down the gutter**, GitHub's stub generalised. Also
+      wrong, and for a reason worth writing down: its length is whatever the comment
+      above it happens to be tall, so between two one-line comments it is a 20px
+      tick and below one carrying a code block it is a 115px rail. It reads as a
+      fragment rather than as structure. A connector earns its keep when the nodes
+      it joins are cards of their own (GitHub) or uniform rows (an activity log);
+      here it was decoration justifying a gutter that needs no justifying.
+
+      What is left is what Linear does, and what should have been the answer first:
+      **the avatars are the structure.** A column of them down the left edge marks
+      where each comment starts, no line required — and 24px between comments
+      against roughly 7px between a byline and its own body is the ratio that makes
+      each pair read as one thing.
+
+      **Author grouping was considered and rejected**, though it is what Slack and
+      iMessage do and it would collapse the three consecutive "Demo Admin" headers
+      on the demo card. Those three comments are 23 minutes and 3½ hours apart, so
+      any window honest enough not to imply they were written together barely fires
+      — and hiding a 3½-hour gap to save a repeated name trades information for
+      tidiness. GitHub repeats the author on every comment for the same reason.
+      Rejecting it is only defensible because the exact time now sits behind every
+      relative one; see the tooltip below.
+    -->
     <ul
       v-else-if="comments.length"
-      class="space-y-4 mb-4"
+      class="space-y-6"
     >
       <li
         v-for="comment in comments"
         :key="comment.id"
-        class="group flex gap-2.5"
+        class="group relative flex gap-3"
       >
         <UAvatar
           :src="comment.authorAvatarUrl ?? undefined"
           :alt="comment.authorName ?? 'Unknown'"
           size="xs"
-          class="mt-0.5 shrink-0"
+          class="shrink-0"
         />
 
         <div class="min-w-0 flex-1">
+          <!-- The byline is deliberately *smaller* than what it introduces.
+               13px semibold over 14px prose is barely a step, which is why a name
+               and the sentence under it were indistinguishable and four comments
+               read as eight loose lines. At 12px against 14px body text the eye
+               takes the byline as a label and the comment as the content — which
+               is the true hierarchy on a task card, where the avatar has already
+               said who is speaking and what they said is the point. -->
           <div class="flex items-center gap-2">
-            <span class="text-sm font-medium text-default truncate">
+            <span class="text-xs font-semibold text-default truncate">
               <!-- authorId is nulled when a user is deleted, so the name can be missing -->
               {{ comment.authorName ?? 'Deleted user' }}
             </span>
-            <span class="text-xs text-dimmed">
-              {{ relativeTime(comment.createdAt) }}
-            </span>
-            <span
+            <!-- The exact moment sits behind the relative one. "2d ago" is what
+                 anyone wants to read, but it flattens genuinely different moments
+                 into one label — the demo card's first three comments are 23
+                 minutes and 3½ hours apart and every one of them renders as "2d
+                 ago". Rejecting author-grouping (see the list comment) is only
+                 honest if the real times are reachable. -->
+            <UTooltip :text="formatTimestamp(comment.createdAt)">
+              <span class="text-2xs text-dimmed shrink-0">
+                {{ relativeTime(comment.createdAt) }}
+              </span>
+            </UTooltip>
+            <UTooltip
               v-if="wasEdited(comment)"
-              class="text-xs text-dimmed"
-            >· edited</span>
+              :text="`Edited ${formatTimestamp(comment.updatedAt)}`"
+            >
+              <span class="text-2xs text-dimmed shrink-0">· edited</span>
+            </UTooltip>
 
             <!-- Quiet at rest, like the attachment row's. These used to be lit
                  on every comment, so a thread of five carried ten icons nobody
                  had asked for. `focus-within` keeps them reachable by keyboard,
                  and a pending delete confirmation stays visible regardless —
-                 fading out the question you just asked is not a hover state. -->
+                 fading out the question you just asked is not a hover state.
+
+                 Absolute, and that is not cosmetic: in the byline's flex row these
+                 20px buttons set the row's height, so the byline was 20px tall
+                 whether or not anything was in it and the comment's own text sat
+                 24px below its author's name — the coupling this design depends on,
+                 undone by a control that only appears on hover. Out of flow, the
+                 byline is its natural 16px and the body sits 2px under it. -->
             <div
               v-if="canDelete(comment) && editingId !== comment.id"
-              class="ml-auto flex items-center gap-0.5 transition-opacity"
+              class="absolute right-0 top-0 flex items-center gap-0.5 transition-opacity"
               :class="confirmDeleteId === comment.id
                 ? 'opacity-100'
                 : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100 max-sm:opacity-60'"
@@ -356,6 +424,11 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
             </div>
           </div>
 
+          <!-- `mt-1`, not `mt-0.5`. The name and the body it belongs to were 2px
+               apart while one comment and the next were 16px apart — an 8:1 ratio
+               that is nowhere near enough to read as grouping, which is why the
+               thread looked like eight loose lines rather than four comments. The
+               dividers do most of that work now; this is the rest of it. -->
           <ProseDescription
             v-else
             :content="comment.body"
@@ -365,8 +438,11 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
       </li>
     </ul>
 
+    <!-- Set apart from the records above it by space rather than by one more
+         hairline: it is the one row here that isn't a comment. -->
     <div
       v-if="!readonly && cardId"
+      :class="comments.length ? 'mt-6' : ''"
       data-comment-editor="new"
     >
       <!-- Collapsed: one row that reads as an input and doubles as the empty

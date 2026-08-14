@@ -474,3 +474,83 @@ describe('the card page rail is one stack', () => {
     expect(classes).toMatch(/\border-2\b/)
   })
 })
+
+/**
+ * A comment thread is a stack of records, and it was rendered as neither a stack
+ * nor records: `space-y-4` put 16px between comments and 2px between a name and
+ * its own body, so four comments read as eight loose lines with nothing marking
+ * where one ended.
+ */
+describe('the comment thread', () => {
+  const COMMENTS = read('app/components/CommentList.vue')
+
+  it('draws no lines at all — the avatars are the structure', () => {
+    // Two wrong answers came first. **Horizontal hairlines between comments:** this
+    // app uses a divided stack for a *table of uniform fields* — the rail, the
+    // attachments list — and banding prose reads as a spreadsheet; worse, a
+    // full-width rule cuts across the avatar gutter and slices the column the
+    // avatars are supposed to own. **Then a vertical connector down that gutter:**
+    // its length is whatever the comment above happens to be tall, so between two
+    // one-liners it is a 20px tick and below a code block a 115px rail — a fragment
+    // rather than structure. A connector earns its keep when the nodes it joins are
+    // cards (GitHub) or uniform rows (an activity log).
+    const classes = [...COMMENTS.matchAll(/class="([^"]*)"/g)].map(m => m[1]!).join(' ')
+
+    expect(classes).not.toMatch(/divide-y/)
+    expect(classes).not.toMatch(/border-y/)
+    expect(classes).not.toMatch(/border-l border-accented/)
+    // Whitespace does the separating: 24px between comments against roughly 7px
+    // between a byline and its own body.
+    expect(classes).toMatch(/space-y-6/)
+  })
+
+  it('keeps the byline subordinate to the body it introduces', () => {
+    // 13px semibold over 14px prose is barely a step, which is why a name and the
+    // sentence under it were indistinguishable and four comments read as eight
+    // loose lines. That — not the gap ratio — was the original defect.
+    expect(COMMENTS).toMatch(/text-xs font-semibold text-default truncate/)
+    expect(COMMENTS).not.toMatch(/text-sm font-medium text-default truncate/)
+  })
+
+  it('takes the row actions out of the byline’s flow', () => {
+    // In the flex row these 20px buttons set the byline's height, so it was 20px
+    // tall whether or not anything was in it and the body sat 24px under its own
+    // author's name — the coupling the design depends on, undone by a control that
+    // only appears on hover.
+    expect(COMMENTS).toMatch(/absolute right-0 top-0 flex items-center gap-0\.5 transition-opacity/)
+  })
+
+  it('keeps every relative time honest about the moment behind it', () => {
+    // Author grouping — Slack's answer to a repeated name — was rejected because
+    // the demo card's three consecutive comments are 23 minutes and 3½ hours
+    // apart, so no honest window fires. That is only defensible if the real times
+    // are reachable, so each one carries an absolute timestamp.
+    expect(COMMENTS).toMatch(/<UTooltip :text="formatTimestamp\(comment\.createdAt\)"/)
+    expect(COMMENTS).toMatch(/Edited \$\{formatTimestamp\(comment\.updatedAt\)\}/)
+  })
+
+  it('shares one absolute-date formatter', () => {
+    // It was a local `formatDate` on the card page, which is where the second
+    // caller would have copied it from.
+    expect(read('app/utils/formatting.ts')).toMatch(/export function formatTimestamp/)
+    expect(CARD_PAGE).not.toMatch(/function formatDate/)
+    expect(CARD_PAGE).toMatch(/formatTimestamp\(card\.createdAt\)/)
+  })
+})
+
+/**
+ * `UiSectionLabel`'s `rule` variant drew `h-px bg-border`, and there is no
+ * `--color-border` token in this app — so the hairline resolved to nothing and had
+ * never once been visible. It went unnoticed because `rule` has zero call sites,
+ * which is the trap `useTextDraft` fell into and the reason CLAUDE.md counts them.
+ */
+describe('hairlines are borders', () => {
+  it('leaves no bg-border in a class attribute', () => {
+    // Scoped to classes: both files now *name* the broken utility in prose
+    // explaining why it went, and matching that would pass for the wrong reason.
+    for (const path of ['app/components/ui/SectionLabel.vue', 'app/components/CommentList.vue']) {
+      const classes = [...read(path).matchAll(/class="([^"]*)"/g)].map(m => m[1]!).join(' ')
+      expect(classes, path).not.toMatch(/bg-border\b/)
+    }
+  })
+})
