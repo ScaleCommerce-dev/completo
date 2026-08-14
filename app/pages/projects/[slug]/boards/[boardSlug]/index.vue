@@ -108,6 +108,74 @@ const filteredCardsByColumn = computed(() => {
 })
 
 /**
+ * Walk the board from inside the card panel: ↑/↓ through the column you are in,
+ * ←/→ to the top of the next one.
+ *
+ * The panel makes the board inert, so the arrows have nothing else to do while
+ * it is open — except inside an editor, a menu or the date calendar, each of
+ * which has a stronger claim on them. `arrowKeysAreClaimed` is that check, and
+ * it works by role and focus rather than by listener order.
+ *
+ * Driven from here rather than from KanbanBoard because the ordering that
+ * matters is the *filtered* one — arrowing onto a card the current filters hide
+ * would look like the panel had opened the wrong card.
+ */
+const boardRef = ref<{ revealColumn: (columnId: string) => void } | null>(null)
+
+function navigateCards(direction: NavDirection) {
+  const current = selectedCard.value
+  if (!current) return
+
+  const target = nextCard({
+    columns: columnsData.value,
+    cardsByColumn: filteredCardsByColumn.value,
+    currentColumnId: current.statusId,
+    currentCardId: current.id,
+    direction
+  })
+  if (!target) return
+
+  if (target.columnId !== current.statusId) boardRef.value?.revealColumn(target.columnId)
+  openCardDetail({ id: target.cardId })
+}
+
+/**
+ * What the panel's chevrons are allowed to do. Computed rather than assumed, so
+ * a card at the top or bottom of its column disables the control that would go
+ * nowhere instead of offering a click that does nothing.
+ */
+const cardNav = computed(() => {
+  const current = selectedCard.value
+  if (!current) return undefined
+  const probe = (direction: NavDirection) => !!nextCard({
+    columns: columnsData.value,
+    cardsByColumn: filteredCardsByColumn.value,
+    currentColumnId: current.statusId,
+    currentCardId: current.id,
+    direction
+  })
+  return { hasPrev: probe('up'), hasNext: probe('down') }
+})
+
+const ARROWS: Record<string, NavDirection> = {
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+  ArrowLeft: 'left',
+  ArrowRight: 'right'
+}
+
+function onArrowKey(e: KeyboardEvent) {
+  if (!showCardDetail.value || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return
+  const direction = ARROWS[e.key]
+  if (!direction || arrowKeysAreClaimed(document)) return
+  e.preventDefault()
+  navigateCards(direction)
+}
+
+onMounted(() => document.addEventListener('keydown', onArrowKey, true))
+onUnmounted(() => document.removeEventListener('keydown', onArrowKey, true))
+
+/**
  * `statusId` is omitted when the board-level "New card" button is used rather
  * than a column's own — the board had no header-level add button at all before,
  * only the list view did. Falling back to the leftmost column matches where a
@@ -175,6 +243,7 @@ async function handleDeleteBoard() {
 
     <KanbanBoard
       v-else
+      ref="boardRef"
       :columns="columnsData"
       :cards-by-column="filteredCardsByColumn"
       :project-key="projectKey"
@@ -206,9 +275,11 @@ async function handleDeleteBoard() {
       :project-key="projectKey"
       :project-slug="(route.params.slug as string)"
       :can-moderate="canModerateComments"
+      :nav="cardNav"
       @update="handleUpdateCard"
       @update-tags="updateCardTags"
       @delete="handleDeleteCard"
+      @navigate="(d) => navigateCards(d === 'prev' ? 'up' : 'down')"
     />
 
     <ViewConfigModal

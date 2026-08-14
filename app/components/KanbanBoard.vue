@@ -216,6 +216,12 @@ watch(() => _props.cardPanelOpen, (open) => {
 onBeforeUnmount(() => document.documentElement.style.removeProperty('--card-panel-w'))
 
 /**
+ * Arrow-key navigation is driven by the page — it owns the card data and the
+ * filters — but the scroller lives here, so revealing a column is ours to do.
+ */
+defineExpose({ revealColumn })
+
+/**
  * The column id comes from the template rather than the card: `BoardCard` has no
  * `statusId`, deliberately — on a board the column already says what the status
  * is, so carrying it on every card would be a second copy to keep in step.

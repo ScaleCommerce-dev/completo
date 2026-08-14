@@ -11,6 +11,12 @@ const props = defineProps<{
   projectSlug?: string
   /** Viewer may delete others' comments (project owner or instance admin). */
   canModerate?: boolean
+  /**
+   * Set by a host that can walk a set of cards — the board, where a column is
+   * the set. Absent on a list view, which opens this same panel with nothing to
+   * step through, and that absence is what hides the controls there.
+   */
+  nav?: { hasPrev: boolean, hasNext: boolean }
   onEnsureCard?: (data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) => Promise<number>
 }>()
 
@@ -60,6 +66,7 @@ const emit = defineEmits<{
   updateTags: [cardId: number, tagIds: string[]]
   delete: [cardId: number]
   deleteDraft: [cardId: number]
+  navigate: [direction: 'prev' | 'next']
 }>()
 
 const isEdit = computed(() => !!props.card)
@@ -585,39 +592,83 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           class="text-2xs font-semibold uppercase tracking-[0.08em] text-dimmed"
         >New card</span>
 
-        <!-- Card-level actions. Delete lives here rather than in the footer
-             because the footer is gone on an existing card: with the description
-             committing itself there is no Save to sit beside, and a pinned bar
-             holding one destructive button is a bar that exists to hold a
-             destructive button. -->
-        <UDropdownMenu
-          v-if="isEdit"
-          :items="cardMenuItems"
-          :content="FIELD_MENU_ALIGN_END"
-        >
+        <div class="ml-auto flex items-center gap-0.5 shrink-0">
+          <!-- Walking the column, for the hand that is already on the mouse.
+               The arrow keys do this, but this app is pointer-first by decision,
+               so a keyboard-only affordance would hand the feature to the
+               minority and hide it from everyone else. Two chevrons beside the
+               close button is the shape every other "browse a set from a detail
+               view" uses — Gmail, Quick Look, a photo viewer — and the tooltips
+               are what teach the keys, so the visible control and the invisible
+               one arrive together.
+
+               Only when a host offers navigation: a list view opens this same
+               panel and has no column to walk. -->
+          <template v-if="nav">
+            <UTooltip
+              text="Previous card"
+              :kbds="['arrowup']"
+            >
+              <UButton
+                icon="i-lucide-chevron-up"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                aria-label="Previous card in this column"
+                :disabled="!nav.hasPrev"
+                @click="emit('navigate', 'prev')"
+              />
+            </UTooltip>
+            <UTooltip
+              text="Next card"
+              :kbds="['arrowdown']"
+            >
+              <UButton
+                icon="i-lucide-chevron-down"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                aria-label="Next card in this column"
+                :disabled="!nav.hasNext"
+                @click="emit('navigate', 'next')"
+              />
+            </UTooltip>
+            <!-- Moving between cards is not an action on this card. -->
+            <div class="w-px h-4 bg-accented mx-1" />
+          </template>
+
+          <!-- Card-level actions. Delete lives here rather than in the footer
+               because the footer is gone on an existing card: with the description
+               committing itself there is no Save to sit beside, and a pinned bar
+               holding one destructive button is a bar that exists to hold a
+               destructive button. -->
+          <UDropdownMenu
+            v-if="isEdit"
+            :items="cardMenuItems"
+            :content="FIELD_MENU_ALIGN_END"
+          >
+            <UButton
+              icon="i-lucide-ellipsis"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              aria-label="Card actions"
+            />
+          </UDropdownMenu>
+
+          <!-- Our own close, because overriding #header replaces the panel's default
+             header content — the button included. Esc and clicking outside both route
+             through the same `open` setter, so all three honour the discard guards. -->
           <UButton
-            icon="i-lucide-ellipsis"
+            icon="i-lucide-x"
             color="neutral"
             variant="ghost"
             size="sm"
-            aria-label="Card actions"
-            class="ml-auto shrink-0"
+            aria-label="Close card"
+            class="-mr-1.5"
+            @click="open = false"
           />
-        </UDropdownMenu>
-
-        <!-- Our own close, because overriding #header replaces the panel's default
-             header content — the button included. Esc and clicking outside both route
-             through the same `open` setter, so all three honour the discard guards. -->
-        <UButton
-          icon="i-lucide-x"
-          color="neutral"
-          variant="ghost"
-          size="sm"
-          aria-label="Close card"
-          class="-mr-1.5 shrink-0"
-          :class="isEdit ? '' : 'ml-auto'"
-          @click="open = false"
-        />
+        </div>
       </div>
 
       <!-- Title. Blur commits immediately rather than waiting out the debounce;
