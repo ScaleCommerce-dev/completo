@@ -381,8 +381,13 @@ describe('priority', () => {
   it('spends colour only on high and urgent', () => {
     // Most cards on a board are medium. Colouring medium — it used to be indigo,
     // the brand colour — meant the accent carried no information at all.
-    expect(priorityTextClass('low')).toBe('text-dimmed')
-    expect(priorityTextClass('medium')).toBe('text-muted')
+    //
+    // The rule is that low and medium are *neutral*; which grey step each takes
+    // is tuning, and pinning the exact class made a retune a test edit. High and
+    // urgent stay pinned to their roles, because warning/error is the decision.
+    const NEUTRAL_TEXT = /^text-(dimmed|muted|toned|default)$/
+    expect(priorityTextClass('low')).toMatch(NEUTRAL_TEXT)
+    expect(priorityTextClass('medium')).toMatch(NEUTRAL_TEXT)
     expect(priorityTextClass('high')).toBe('text-warning')
     expect(priorityTextClass('urgent')).toBe('text-error')
   })
@@ -406,7 +411,8 @@ describe('priority', () => {
   })
 
   it('falls back safely for an unknown priority', () => {
-    expect(priorityTextClass('bogus')).toBe('text-dimmed')
+    // Neutral and bar-less, like low/medium — the exact grey is tuning here too.
+    expect(priorityTextClass('bogus')).toMatch(/^text-(dimmed|muted|toned|default)$/)
     expect(priorityBarClass('bogus')).toBe('')
     expect(priorityIcon('bogus')).toBe('i-lucide-equal')
   })

@@ -93,9 +93,11 @@ Each of these was a live vulnerability, and none has a code-level signal:
 - **Tracking** — `tracking-label` for small uppercase labels, `tracking-heading` for chrome titles, `tracking-name` for a record's own name.
 - The **dark surface ramp is overridden** because Nuxt UI's defaults collapse six semantic tokens onto three values. `border-default` on `bg-muted` is now simply correct — don't reach for `border-accented` to make a border visible, that spends the emphasis step on nothing.
 
+**A failing design guard asks for a reason, not a retreat.** The scales are closed so that additions get argued, not so the current design is frozen. Every guard that can collide with legitimate design work carries a named exemption list (`OFF_SCALE`, `OFF_RAMP`, `ALLOWED`, `GRADIENT_BRAND_MOMENTS`) or derives from a declaration in `main.css` — extending the list, or retuning the declaration, with the reason written beside the entry in the same change, **is the intended workflow**, not a workaround. Two responses are defects: shipping the worse design to keep a test green, and quieting a guard by deleting its mechanism or widening a pattern.
+
 **User colour goes through `.swatch*`, which sets lightness and keeps hue** (`oklch(from var(--swatch) L c h)`). Mixing toward black cannot fix a dark stored hex, and the palette offers dark ones on purpose. `UiAvatar` is every person's avatar; a bare `UAvatar` is a grey disc beside a tinted one.
 
-**Aesthetic:** "Trello meets Linear" — an instrument panel. Chrome is neutral hairlines; the only saturated pixels carry data. A gradient is allowed on a full-page brand moment and on an AI surface, nowhere else.
+**Aesthetic:** "Trello meets Linear" — an instrument panel. Chrome is neutral hairlines; the only saturated pixels carry data. Decorative *paint* gradients read as brand moments, so they live where the brand is the content — the auth and error pages, and AI surfaces. A gradient used as a mask (the board's and panel's scroll-edge fades) is not paint and is fine anywhere.
 
 Reach for `app/components/ui/*` and `FieldMenu` before hand-rolling; Nuxt UI v4 is fully MIT, so `UEmpty`, `UUser`, `UAlert`, `UKbd` and the `UDashboard*` family are all available.
 
@@ -133,7 +135,7 @@ Before tagging: bump `package.json`, rename `## Unreleased`, update `README.md`.
 
 Don't reconstruct a decision from scratch, and don't re-litigate one without reading why it was made:
 
-- **A component's own comments** carry the alternatives that were tried and why they failed — `CommentList`, `CardProperties`, `useFileDrop`, `useTagOverflow`, `board-nav` are all substantially prose.
+- **A component's own comments** carry the alternatives that were tried and why they failed — `CommentList`, `CardProperties`, `useFileDrop`, `useTagOverflow`, `board-nav` are all substantially prose. A recorded rejection binds only while its mechanism still applies: it is context to argue with, not a veto on the next redesign. A redesign that removes the premise re-opens the option — and owes the prose an update, not obedience.
 - **`main.css`** carries every token's measurement.
 - **`tests/unit/*.test.ts`** carry the numbers, and the good ones recompute rather than restate.
 - **Registries** are single-sourced and guarded: `shared/utils/list-fields.ts` (what a list column can be), `card-fields.ts` (what a board card can show — it stores the fields that are **off**, so a new field appears by default), `ai-skills.ts` (skill scopes).

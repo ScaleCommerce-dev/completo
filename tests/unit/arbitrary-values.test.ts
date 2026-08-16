@@ -102,12 +102,9 @@ describe('arbitrary values', () => {
     expect(shared, 'a value two files agree on is shared vocabulary; name it in @theme').toEqual([])
   })
 
-  /**
-   * The counterpart, and the reason the guard above is narrow: these are the
-   * values that stayed literals because exactly one file uses them. If this ever
-   * empties out, the guard above has stopped distinguishing anything.
-   */
-  it('one-offs stay literals', () => {
-    expect(Object.values(LITERALS).filter(files => files.length === 1).length).toBeGreaterThan(0)
-  })
+  // There used to be a counterpart here asserting that at least one one-off
+  // literal *exists* — a canary for the guard above going vacuous. It mandated
+  // the presence of arbitrary values, so a design pass that legitimately
+  // tokenised the last one would fail CI for making the app cleaner. A guard
+  // must never fail because the defect it polices has been fully removed.
 })

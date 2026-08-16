@@ -232,18 +232,24 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
 
       That distinction is the whole design, and it is what makes this the fourth
       answer rather than a return to the first. Recording all four, because three
-      of them are tempting and one of them was shipped and looked at:
+      of them are tempting and one of them was shipped and looked at. Each verdict
+      below is premised on *this* structure — an avatar gutter beside an inset
+      content column — and binds only while that premise holds; a redesign that
+      changes the structure re-opens them, and should rewrite this record rather
+      than obey it:
 
       **`space-y-4` and nothing else.** 16px between comments and 2px between a name
       and the body under it. The gap ratio was not the problem — 8:1 is plenty — it
       was that a 13px semibold name and the 14px sentence under it *looked alike*,
       so four comments read as eight interchangeable lines.
 
-      **Full-width hairlines between comments.** Rejected then and still rejected: a
+      **Full-width hairlines between comments.** Wrong for one checkable reason: a
       rule spanning the whole row cuts straight across the avatar gutter, so the
       column the faces are supposed to own gets sliced at every comment and stops
       being a column. An inset rule does the opposite — it *defines* that column by
-      starting at its edge, which is the move this had missed.
+      starting at its edge, which is the move this had missed. (A layout with no
+      gutter column has nothing for a full-width rule to cross; there this verdict
+      says nothing.)
 
       **A vertical connector down the gutter**, GitHub's stub generalised. Its length
       is whatever the comment above happens to be tall, so between two one-liners it
@@ -262,9 +268,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
       code block** — a slab with its own border, its own surface and its own corner
       radius. With no boundary on the comment, the most sharply defined thing on the
       thread was the inside of a comment rather than the comment, and a hierarchy
-      that inverts is a hierarchy a reader has to fight. So the rule has a job and
-      also a ceiling: it must be *weaker* than the code block's border, which is why
-      it is one hairline of `border-default` and not a card.
+      that inverts is a hierarchy a reader has to fight. The mechanism is that the
+      comment's boundary must outrank the code block's. A bare hairline can only do
+      that by being *weaker* — a line competing with a line loses to the heavier one
+      — hence one `border-default` and no card here. But a container that outranks
+      the block by other means (a surface change, a header band, the block inset
+      inside it) clears the same mechanism by a different route: "not a card" is
+      this design's answer, not a ban on the device.
 
       **Author grouping was considered and rejected**, though it is what Slack and
       iMessage do and it would collapse the three consecutive "Demo Admin" headers
