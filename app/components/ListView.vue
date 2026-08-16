@@ -484,7 +484,7 @@ const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.le
   left: 0;
   top: 4px;
   bottom: 4px;
-  width: 2.5px;
+  width: var(--spacing-accent-bar);
   border-radius: 0 2px 2px 0;
   opacity: 0.5;
   transition: opacity 0.15s ease, width 0.15s ease;

@@ -1,31 +1,29 @@
 <script setup lang="ts">
 /**
- * The accent strip down the left edge of a project or view card.
+ * The left-edge accent on a project or view card.
  *
- * Deliberately *not* on the swatch recipe, and that is the whole point of this
- * file. The recipe exists to make an **arbitrary user-chosen hex** readable by
- * forcing its lightness — `COLOR_PALETTE` offers dark entries on purpose, so a
- * tag label has to be defended against whatever someone picked. `ACCENT_COLORS`
- * is the opposite: a fixed ramp this repo curated, never user input, with
- * nothing drawn on top of it. There is nothing to defend against, and forcing
- * the lightness only destroys the variety the ramp was tuned for.
+ * **Geometry is the ticket card's, and it is a rule rather than a measurement:**
+ * the bar is a *child* of the bordered surface, and the surface clips it. So it
+ * carries no radius of its own, sits inside the border, and tapers with whatever
+ * corner the card has — `rounded-lg` on a ticket card, `rounded-xl` here.
  *
- * Measured, because this was consolidated onto `.swatch-bar` once and it looked
- * wrong: at L 0.62 amber moves −0.149, cyan −0.095 and emerald −0.076, so three
- * of eight accents come back muddy while the rest barely move. That is a ramp
- * flattened to one lightness for no benefit.
+ * The version this replaces was a sibling with `rounded-l-xl`, faking the
+ * corner. That is wrong twice over: it bulged past the curve, and a single fake
+ * radius cannot be right on two different cards. It also sat outside the border
+ * rather than inside it, so the same device read differently on the board and on
+ * the project page. The host needs `relative overflow-hidden` — the clip is what
+ * does the work.
  *
- * The icon tile beside this *does* keep `.swatch`, and the split is by whether
- * anything is drawn on the colour: the tile has an icon on its tint and measured
- * ~2.2:1 as a raw hex on its own 8% wash, this strip has nothing on it at all.
+ * **Colour is deliberately not the swatch recipe.** That recipe forces lightness
+ * to make an *arbitrary user-chosen hex* readable; `ACCENT_COLORS` is a ramp this
+ * repo curates, never user input, with nothing drawn on top of it. Forcing L 0.62
+ * costs amber 0.149 and cyan 0.095 — a curated ramp flattened to defend against
+ * input that cannot occur here. The icon tile beside this *does* keep `.swatch`,
+ * because an icon is drawn on its tint; the split is by whether anything is drawn
+ * on the colour.
  *
- * `z-10` because the card it belongs to is `position: relative` on the project
- * page: a later positioned sibling paints over an earlier one, so an opaque
- * `bg-default` card hid this completely except for the rounded corner. A strip
- * rather than a border so the card's own hairline stays uniform underneath.
- *
- * `aria-hidden`: the colour repeats the record's identity, which its name
- * already carries. Announcing it would add noise, not information.
+ * `aria-hidden`: the colour repeats the record's identity, which its name already
+ * carries. Announcing it would add noise, not information.
  */
 defineProps<{
   /** One of `ACCENT_COLORS` — `accentFor(record)` in practice. */
@@ -35,7 +33,7 @@ defineProps<{
 
 <template>
   <span
-    class="absolute left-0 inset-y-0 z-10 w-[3px] rounded-l-xl"
+    class="absolute left-0 top-0 bottom-0 w-accent-bar"
     :style="{ backgroundColor: color }"
     aria-hidden="true"
   />

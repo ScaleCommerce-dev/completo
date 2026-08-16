@@ -581,8 +581,8 @@ function cancelDeleteTag() {
               :key="view.id"
               class="group relative"
             >
-              <UiAccentBar :color="accentFor(view)" />
-              <div class="relative rounded-xl border border-default bg-default p-4 group-hover:border-primary/60 group-hover:shadow-float transition-colors">
+              <div class="relative overflow-hidden rounded-xl border border-default bg-default p-4 group-hover:border-primary/60 group-hover:shadow-float transition-colors">
+                <UiAccentBar :color="accentFor(view)" />
                 <UTooltip
                   v-if="canDeleteView(view)"
                   :text="`Delete ${view._type}`"

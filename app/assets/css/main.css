@@ -163,6 +163,21 @@
      between KanbanColumn and KanbanBoard's add-column placeholder. */
   --spacing-column: 19rem;            /* 304px */
 
+  /* The left-edge accent, on every surface that carries one: a card's priority,
+     a project or view's identity colour, a list row's priority.
+
+     One width, because they are one device — a reader should not have to notice
+     that a project card's stripe is 3px where a ticket card's is 2.5. It reached
+     three spellings before this: `w-[2.5px]` on the kanban card, `width: 2.5px`
+     in `.list-row-bar`, and a `w-[3px]` on the project accent.
+
+     The *geometry* is a rule rather than a value, and it is the part that was
+     actually broken: the bar is a child of the surface it marks and the surface
+     clips it, so it carries no radius of its own. A sibling with `rounded-l-xl`
+     guessing at the card's corner bulged past the curve on every card whose
+     radius was not `xl` — and it could not be right on two radii at once. */
+  --spacing-accent-bar: 0.15625rem;   /* 2.5px */
+
   /* Row geometry, same story as the column: the list-view cell height was
      copied into all seven `ListCell*` components, and the field-row height into
      UiFieldRow plus the card page's delete row, which was written by copying

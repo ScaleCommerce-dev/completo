@@ -195,8 +195,8 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         class="group relative rise-in"
         :style="{ animationDelay: staggerDelay(index * 40) }"
       >
-        <UiAccentBar :color="accentFor(project)" />
-        <div class="rounded-xl border border-default p-4 h-full group-hover:border-primary/60 group-hover:shadow-float transition-colors">
+        <div class="relative overflow-hidden rounded-xl border border-default p-4 h-full group-hover:border-primary/60 group-hover:shadow-float transition-colors">
+          <UiAccentBar :color="accentFor(project)" />
           <!-- Top row: icon + name + key + settings -->
           <div class="flex items-start gap-3">
             <div

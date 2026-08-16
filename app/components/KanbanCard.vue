@@ -287,7 +287,7 @@ function toggleTag(tagId: string) {
     <!-- Priority edge bar. High and urgent only. -->
     <span
       v-if="shows('priority') && priorityBarClass(card.priority)"
-      class="absolute left-0 top-0 bottom-0 w-[2.5px]"
+      class="absolute left-0 top-0 bottom-0 w-accent-bar"
       :class="[priorityBarClass(card.priority), card.priority === 'urgent' ? 'priority-urgent-pulse' : '']"
       aria-hidden="true"
     />
