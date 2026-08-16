@@ -195,7 +195,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         class="group relative rise-in"
         :style="{ animationDelay: staggerDelay(index * 40) }"
       >
-        <div class="relative overflow-hidden rounded-xl border border-default p-4 h-full group-hover:border-primary/60 group-hover:shadow-float transition-colors">
+        <div class="lift relative overflow-hidden rounded-xl border border-default shadow-raise p-4 h-full group-hover:border-accented">
           <UiAccentBar :color="accentFor(project)" />
           <!-- Top row: icon + name + key + settings -->
           <div class="flex items-start gap-3">
@@ -210,7 +210,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
             </div>
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5">
-                <h3 class="font-bold text-base tracking-name group-hover:text-primary transition-colors truncate">
+                <h3 class="font-bold text-base tracking-name truncate">
                   {{ project.name }}
                 </h3>
                 <!-- The key is for the CLI, ticket IDs and URLs — the same judgment as

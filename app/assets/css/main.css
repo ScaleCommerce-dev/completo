@@ -670,11 +670,20 @@
               box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1),
               border-color 0.15s ease;
 }
-.lift:hover {
+/* The second selector is for a card whose click target is a stretched overlay
+   *sibling* rather than a wrapper — the project and view cards, which need that
+   arrangement because a `<button>` inside an `<a>` is invalid and the delete
+   action has to sit outside the link. The overlay paints over the card, so
+   `:hover` never reaches it; the shared `.group` ancestor is the only thing both
+   the card and the overlay have in common. `:active` propagates to ancestors,
+   so the press state reaches it the same way. */
+.lift:hover,
+.group:hover > .lift {
   transform: translateY(-2px);
   box-shadow: var(--elevation-float);
 }
-.lift:active {
+.lift:active,
+.group:active > .lift {
   transform: translateY(0);
   box-shadow: var(--elevation-raise);
 }
@@ -853,6 +862,7 @@
     scroll-behavior: auto !important;
   }
 
-  .lift:hover { transform: none; }
+  .lift:hover,
+  .group:hover > .lift { transform: none; }
   .sortable-drag { transform: none; }
 }

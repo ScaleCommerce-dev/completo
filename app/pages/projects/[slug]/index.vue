@@ -581,7 +581,7 @@ function cancelDeleteTag() {
               :key="view.id"
               class="group relative"
             >
-              <div class="relative overflow-hidden rounded-xl border border-default bg-default p-4 group-hover:border-primary/60 group-hover:shadow-float transition-colors">
+              <div class="lift relative overflow-hidden rounded-xl border border-default bg-default shadow-raise p-4 group-hover:border-accented">
                 <UiAccentBar :color="accentFor(view)" />
                 <UTooltip
                   v-if="canDeleteView(view)"
@@ -609,7 +609,7 @@ function cancelDeleteTag() {
                         class="text-base"
                       />
                     </div>
-                    <span class="font-semibold text-base tracking-name group-hover:text-primary transition-colors flex-1 min-w-0 truncate">
+                    <span class="font-semibold text-base tracking-name flex-1 min-w-0 truncate">
                       {{ view.name }}
                     </span>
                   </div>
