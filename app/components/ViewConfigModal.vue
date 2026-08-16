@@ -820,32 +820,17 @@ function handleDeleteView() {
       <!-- Normal footer -->
       <div
         v-else
-        class="w-full flex items-center justify-between px-5 pt-4 pb-5 border-t border-muted"
+        class="w-full px-5 pt-4 pb-5 border-t border-muted"
       >
-        <div>
-          <UButton
-            v-if="viewName !== undefined"
-            color="error"
-            variant="ghost"
-            icon="i-lucide-trash-2"
-            label="Delete"
-            size="sm"
-            @click="showDeleteConfirm = true; deleteConfirmName = ''"
-          />
-        </div>
-        <div class="flex items-center gap-2">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            label="Close"
-            @click="close"
-          />
-          <UButton
-            label="Save"
-            :disabled="!isDirty"
-            @click="save"
-          />
-        </div>
+        <UiSaveBar
+          :destructive-label="viewName !== undefined ? 'Delete' : undefined"
+          cancel-label="Close"
+          :disabled="!isDirty"
+          :shortcut="false"
+          @destructive="showDeleteConfirm = true; deleteConfirmName = ''"
+          @cancel="close"
+          @submit="save"
+        />
       </div>
     </template>
   </UModal>

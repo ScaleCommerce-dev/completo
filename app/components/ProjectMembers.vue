@@ -547,20 +547,16 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
               Are you sure you want to remove <strong class="text-default">{{ pendingRemove.name }}</strong> from this project?
             </p>
           </div>
-          <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
-            <UButton
-              label="Cancel"
-              variant="ghost"
-              color="neutral"
-              @click="pendingRemove = null"
-            />
-            <UButton
-              color="error"
-              icon="i-lucide-user-minus"
-              label="Remove"
+          <div class="px-5 pb-5 pt-2 border-t border-muted mt-2">
+            <UiSaveBar
+              submit-label="Remove"
+              submit-tone="error"
+              submit-icon="i-lucide-user-minus"
               :loading="removing === pendingRemove?.id"
               :disabled="removing === pendingRemove?.id"
-              @click="confirmRemoveMember"
+              :shortcut="false"
+              @cancel="pendingRemove = null"
+              @submit="confirmRemoveMember"
             />
           </div>
         </div>

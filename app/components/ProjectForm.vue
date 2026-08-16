@@ -450,45 +450,19 @@ function confirmDelete() {
     />
 
     <!-- Actions -->
-    <div
-      class="flex items-center px-5 pt-4 pb-5 mt-4 border-t border-muted"
-      :class="mode === 'edit' ? 'justify-between' : 'justify-end'"
-    >
-      <!-- Delete button (edit mode only) -->
-      <div
-        v-if="mode === 'edit'"
-        class="flex items-center gap-1.5"
-      >
-        <UButton
-          v-if="!showDeleteConfirm"
-          label="Delete"
-          icon="i-lucide-trash-2"
-          variant="ghost"
-          color="error"
-          @click="showDeleteConfirm = true"
-        />
-      </div>
-
-      <div class="flex items-center gap-2">
-        <UButton
-          label="Cancel"
-          variant="ghost"
-          color="neutral"
-          @click="emit('cancel')"
-        />
-        <!-- See CreateViewModal: the shortcut rides on its own button. -->
-        <UButton
-          type="submit"
-          :label="mode === 'create' ? 'Create' : 'Save'"
-          :icon="mode === 'create' ? 'i-lucide-plus' : undefined"
-          :loading="loading"
-          :disabled="!canSubmit"
-        >
-          <template #trailing>
-            <UiShortcutKeys />
-          </template>
-        </UButton>
-      </div>
+    <!-- `submit-type="submit"` keeps Enter-in-a-field submitting the form, which
+         is the native behaviour the bar has to preserve to be usable here. -->
+    <div class="px-5 pt-4 pb-5 mt-4 border-t border-muted">
+      <UiSaveBar
+        :destructive-label="mode === 'edit' && !showDeleteConfirm ? 'Delete' : undefined"
+        :submit-label="mode === 'create' ? 'Create' : 'Save'"
+        :submit-icon="mode === 'create' ? 'i-lucide-plus' : undefined"
+        submit-type="submit"
+        :loading="loading"
+        :disabled="!canSubmit"
+        @destructive="showDeleteConfirm = true"
+        @cancel="emit('cancel')"
+      />
     </div>
   </form>
 </template>

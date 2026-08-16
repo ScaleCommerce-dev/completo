@@ -279,18 +279,15 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
           />
 
           <!-- Actions -->
-          <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
-            <UButton
-              label="Cancel"
-              variant="ghost"
-              color="neutral"
-              @click="showModal = false"
-            />
-            <UButton
-              :label="isEdit ? 'Save' : 'Create'"
+          <div class="px-5 pb-5 pt-2 border-t border-muted mt-2">
+            <UiSaveBar
+              :submit-label="isEdit ? 'Save' : 'Create'"
+              :submit-icon="isEdit ? undefined : 'i-lucide-plus'"
               :loading="modalSaving"
               :disabled="!modalName.trim() || !modalPrompt.trim()"
-              @click="saveSkill"
+              :shortcut="false"
+              @cancel="showModal = false"
+              @submit="saveSkill"
             />
           </div>
         </div>
@@ -325,20 +322,15 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
               Are you sure you want to delete <strong class="text-default">"{{ deleteTarget.name }}"</strong>?
             </p>
           </div>
-          <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
-            <UButton
-              label="Cancel"
-              variant="ghost"
-              color="neutral"
-              @click="showDeleteModal = false"
-            />
-            <UButton
-              color="error"
-              icon="i-lucide-trash-2"
-              label="Delete"
+          <div class="px-5 pb-5 pt-2 border-t border-muted mt-2">
+            <UiSaveBar
+              submit-label="Delete"
+              submit-tone="error"
               :loading="deleting"
               :disabled="deleting"
-              @click="confirmDelete"
+              :shortcut="false"
+              @cancel="showDeleteModal = false"
+              @submit="confirmDelete"
             />
           </div>
         </div>

@@ -115,6 +115,15 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+/** The footer's summary line: what this view will contain, before it exists. */
+const selectionSummary = computed(() => {
+  const base = viewType.value === 'board'
+    ? `${selectedBoardColumns.value.size} statuses`
+    : `${selectedListFields.value.size} fields`
+  const tags = selectedTagFilters.value.size
+  return tags ? `${base}, ${tags} tag filter${tags > 1 ? 's' : ''}` : base
+})
+
 function selectViewType(type: 'board' | 'list') {
   viewType.value = type
   viewStep.value = 2
@@ -468,30 +477,18 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             class="mx-5 mt-1"
           />
 
-          <div class="flex items-center justify-between px-5 pt-4 pb-5 border-t border-muted">
-            <span class="text-xs text-dimmed">
-              {{ viewType === 'board' ? `${selectedBoardColumns.size} statuses` : `${selectedListFields.size} fields` }}{{ selectedTagFilters.size ? `, ${selectedTagFilters.size} tag filter${selectedTagFilters.size > 1 ? 's' : ''}` : '' }}
-            </span>
-            <div class="flex items-center gap-2">
-              <UButton
-                label="Back"
-                variant="ghost"
-                color="neutral"
-                @click="viewStep = 2"
-              />
-              <!-- The shortcut belongs on the button it triggers, not floating
-                   beside it. There were three spellings of this hint. -->
-              <UButton
-                label="Create"
-                icon="i-lucide-plus"
-                :loading="creatingView"
-                @click="createView"
-              >
-                <template #trailing>
-                  <UiShortcutKeys />
-                </template>
-              </UButton>
-            </div>
+          <!-- The selection count is the bar's `status` slot: left-aligned
+               validation-or-summary text is exactly what it is for. -->
+          <div class="px-5 pt-4 pb-5 border-t border-muted">
+            <UiSaveBar
+              :status="selectionSummary"
+              cancel-label="Back"
+              submit-label="Create"
+              submit-icon="i-lucide-plus"
+              :loading="creatingView"
+              @cancel="viewStep = 2"
+              @submit="createView"
+            />
           </div>
         </div>
       </div>

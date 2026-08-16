@@ -24,12 +24,24 @@
  * carries nothing, and a destructive action keeps `trash-2` because it is the one
  * an eye should catch before reading.
  *
- * This bar is still only used by `admin/users`, and that is now a scoping fact
- * rather than a failure: the four rows that most needed sharing were field rows,
- * which is why they could not adopt a bar hardcoded to `ml-auto`, `md` and
- * primary-last. They went to `UiCommitRow` instead. What remains here is modal
- * footers, which are structurally fine as they are — migrating them is a diff
- * with no user-visible outcome, so it has not been spent.
+ * It was written to end eleven hand-rolled footers and then reached one call
+ * site, and the reason recorded here for a while — "migrating them is a diff
+ * with no user-visible outcome" — was wrong twice over. A consolidation that
+ * changes no pixels is what a correct one looks like, so that is not a cost;
+ * and while it stood, twelve files went on rebuilding this row by hand next to
+ * the component written to stop them, which reads to the next person as twelve
+ * deliberate exceptions. The real blockers were two missing props: a bar that
+ * could not be `type="submit"` was unusable inside the two forms that most
+ * needed it, and one that could not carry a submit icon could not express
+ * Create. Both exist now.
+ *
+ * Four rows deliberately do not use it, and they differ in *shape* rather than
+ * in history — each is a confirm that follows a field rather than closing a
+ * surface, so it aligns left and puts its primary at that end:
+ * `DeleteConfirmation` (the row also holds the type-the-name input),
+ * `ViewConfigModal`'s delete confirm, `ProfileDangerZone`'s, and
+ * `KanbanBoard`'s add-column composer, whose row also carries a colour swatch.
+ * `UiCommitRow` is the field-scoped counterpart for the ones that commit prose.
  */
 withDefaults(defineProps<{
   submitLabel?: string
@@ -46,12 +58,27 @@ withDefaults(defineProps<{
   /** `error` when the primary action is itself the destructive one — a delete
    *  confirmation has no separate destructive slot, the submit *is* the delete. */
   submitTone?: 'primary' | 'error'
+  /**
+   * An icon earns its place by saying something the label does not: `plus` on
+   * Create says a new thing appears. Save takes none — `check` and `save` are
+   * pictures of the word beside them. Left unset with `submitTone="error"` this
+   * defaults to `trash-2`, the one icon an eye should catch before it reads,
+   * which is also the only case where every call site wants the same one.
+   */
+  submitIcon?: string
+  /**
+   * `submit` when the bar sits inside a `<form>`, so Enter in a text field still
+   * submits it. Without this the bar could not be used by the two forms that
+   * needed it most, which is a large part of why it went unadopted.
+   */
+  submitType?: 'button' | 'submit'
 }>(), {
   submitLabel: 'Save',
   cancelLabel: 'Cancel',
   shortcut: true,
   statusTone: 'muted',
-  submitTone: 'primary'
+  submitTone: 'primary',
+  submitType: 'button'
 })
 
 const emit = defineEmits<{
@@ -96,7 +123,9 @@ const STATUS_TONES = {
       />
 
       <UButton
+        :type="submitType"
         :label="submitLabel"
+        :icon="submitIcon ?? (submitTone === 'error' ? 'i-lucide-trash-2' : undefined)"
         :color="submitTone"
         :loading="loading"
         :disabled="disabled"
