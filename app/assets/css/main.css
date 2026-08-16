@@ -736,6 +736,34 @@
 .sidebar-brand { letter-spacing: -0.03em; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   THE COMMAND PALETTE IS ALWAYS THE TOP SURFACE
+
+   Nuxt UI gives no dialog a z-index: overlays stack by their order in <body>,
+   and a portal's children are inserted at the position of its *anchor*, which
+   is fixed when the component mounts — not when the dialog opens. The palette
+   lives in the layout, so its anchor is created before any page's. Opening a
+   card panel and then hitting ⌘K therefore put the palette *underneath* the
+   panel: the right half of it clipped by the panel's edge, the left half dimmed
+   by the panel's own overlay, and the input unreachable.
+
+   50 is a step on Tailwind's own scale, above everything the app declares
+   (`stacking.test.ts` recomputes that and fails if anything outbids it) and
+   below the toaster's z-[100], which must stay visible over the palette.
+
+   The overlay is a *sibling* of the content inside the same portal, and Nuxt UI
+   exposes no class hook for it — `UDashboardSearch` forwards its `ui` prop to
+   the command palette, and only its `class` reaches the modal. So the content
+   carries the marker and the overlay is selected through it. Both are needed:
+   raising the content alone leaves the panel undimmed and bright behind a
+   floating palette, which reads as two dialogs open at once.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.palette-on-top,
+[data-slot='overlay']:has(+ .palette-on-top) {
+  z-index: 50;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    REDUCED MOTION
 
    Every keyframe above is decorative. None of them communicates state that is

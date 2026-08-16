@@ -2180,6 +2180,133 @@
         }
       }
     },
+    "/api/cards/search": {
+      "get": {
+        "tags": [
+          "Cards"
+        ],
+        "summary": "Search cards across projects",
+        "description": "Searches title and description (LIKE, case-insensitive) and card ID across every project the caller can see — their memberships, or all projects for an instance admin. Supports ticket slugs (e.g. \"TK-42\"). Text queries need 2 characters; a bare card ID may be shorter. Returns at most 10 — exact ID matches first, then title matches, each most-recently-updated first.",
+        "operationId": "searchCards",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching cards",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": [
+                          "low",
+                          "medium",
+                          "high",
+                          "urgent"
+                        ]
+                      },
+                      "dueDate": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "projectId": {
+                        "type": "string"
+                      },
+                      "projectName": {
+                        "type": "string"
+                      },
+                      "projectSlug": {
+                        "type": "string"
+                      },
+                      "projectKey": {
+                        "type": "string"
+                      },
+                      "statusName": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "statusColor": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "isDone": {
+                        "type": "boolean",
+                        "description": "Whether the card sits in its project's done status."
+                      },
+                      "snippet": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "The part of the description this query matched, flattened to one line of prose and capped at ~260 characters. Null when the card has no description."
+                      },
+                      "assignee": {
+                        "type": "object",
+                        "nullable": true,
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "avatarUrl": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      },
+                      "tags": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "color": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/api/cards/{id}": {
       "get": {
         "tags": [

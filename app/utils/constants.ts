@@ -249,3 +249,14 @@ export function dueDateIcon(status: DueDateStatus | null): string {
     default: return 'i-lucide-calendar'
   }
 }
+
+/**
+ * A run of text that matched a search query.
+ *
+ * The same two utilities Nuxt UI's command-palette theme puts on its own
+ * `<mark>` — `[&>mark]:text-primary [&>mark]:bg-primary/15` — so a term marked
+ * from `matchSegments` is indistinguishable from one the palette marked for
+ * itself. No radius: an inline mark hugging a line of 13px text encodes no
+ * containment depth, and depth is the only thing the radius scale means.
+ */
+export const SEARCH_MARK_CLASS = 'text-primary bg-primary/15'

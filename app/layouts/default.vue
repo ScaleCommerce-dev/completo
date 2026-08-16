@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { CommandPaletteItem } from '@nuxt/ui'
+import { matchSegments } from '#shared/utils/card-search'
+
 /**
  * The app shell.
  *
@@ -14,6 +17,14 @@
 const { user, clear } = useUserSession()
 const { navSections } = useNavigation()
 const router = useRouter()
+const colorMode = useColorMode()
+
+/** The three states `UColorModeButton` cycles, as command-palette rows. */
+const COLOR_MODES = [
+  { value: 'system', label: 'System theme', icon: 'i-lucide-monitor' },
+  { value: 'light', label: 'Light theme', icon: 'i-lucide-sun' },
+  { value: 'dark', label: 'Dark theme', icon: 'i-lucide-moon' }
+] as const
 
 const sidebarCollapsed = useCookie<boolean>('sidebar-collapsed', { default: () => false })
 
@@ -49,10 +60,19 @@ const userMenuItems = computed(() => [
  * the sidebar's project list was flat, unsearchable and unbounded — with thirty
  * projects it simply got long.
  *
- * Boards and lists are deliberately absent: `/api/projects` returns counts, not
- * the views themselves, and widening a documented API response is out of scope
- * for a UI change. Reaching a board is project → view, one hop.
+ * Two of the three groups are fixed lists the palette filters client-side with
+ * its own fuse pass. Cards cannot be: there are as many as the instance holds,
+ * and the whole point is finding one you cannot see. They come from
+ * `/api/cards/search` instead — see `useCardSearch`.
+ *
+ * Boards and lists are still deliberately absent: `/api/projects` returns
+ * counts, not the views themselves, and widening a documented API response is
+ * out of scope for a UI change. Reaching a board is project → view, one hop.
  */
+const searchOpen = ref(false)
+const searchTerm = ref('')
+const { results: cardHits, loading: searchingCards } = useCardSearch(searchTerm)
+
 const searchGroups = computed(() => [
   {
     id: 'go',
@@ -63,6 +83,43 @@ const searchGroups = computed(() => [
       to: i.to
     }))
   },
+  /**
+   * Cards come from the server already filtered, so `ignoreFilter` stops the
+   * palette's fuse pass from filtering them a second time against its own
+   * notion of a match — which drops rows that matched on the description,
+   * since the description is not in the item.
+   *
+   * The group disappears rather than showing "no cards" when there are none:
+   * the palette is also how you reach a project or run an action, and an empty
+   * section pushes both of those below the fold on every keystroke.
+   */
+  ...(cardHits.value.length
+    ? [{
+        id: 'cards',
+        label: 'Cards',
+        ignoreFilter: true,
+        // Routes these rows to the `#card-*` slots below, which mark the query
+        // inside the title. `ignoreFilter` means the palette's fuse pass never
+        // runs on them, so its own `labelHtml` highlighting never arrives —
+        // and it would not be usable here anyway, since that prop takes a
+        // string of markup and card titles are whatever someone typed.
+        slot: 'card',
+        items: cardHits.value.map(c => ({
+          // The ticket id leads, because it is the handle people quote to each
+          // other; the project name trails, because it is what disambiguates
+          // two cards called "Fix the header" in different projects.
+          prefix: formatTicketId(c.projectKey, c.id),
+          label: c.title,
+          suffix: c.projectName,
+          icon: 'i-lucide-square-kanban',
+          to: `/projects/${c.projectSlug}/cards/${formatTicketId(c.projectKey, c.id)}`,
+          // Rides along so the highlight handler can find the card again. The
+          // palette hands the whole item back as the listbox value, minus a
+          // fixed set of internal keys, so anything else on it survives.
+          cardId: c.id
+        }))
+      }]
+    : []),
   {
     id: 'actions',
     label: 'Actions',
@@ -76,8 +133,62 @@ const searchGroups = computed(() => [
       },
       { label: 'Sign out', icon: 'i-lucide-log-out', onSelect: logout }
     ]
+  },
+  /**
+   * `UDashboardSearch` appends this group itself when it renders its own
+   * content. Composing the palette in the `#content` slot means composing this
+   * too — without it, taking over the layout would silently remove the theme
+   * switch from the palette, which is the kind of loss nothing reports.
+   */
+  {
+    id: 'theme',
+    label: 'Theme',
+    items: COLOR_MODES.map(mode => ({
+      label: mode.label,
+      icon: mode.icon,
+      active: colorMode.preference === mode.value,
+      onSelect: () => { colorMode.preference = mode.value }
+    }))
   }
 ])
+
+/**
+ * Which row the selection is on, so the preview pane can show it.
+ *
+ * Reka's `ListboxRoot` emits `highlight` with the collection entry whose
+ * `value` is the palette item — `UCommandPalette` spreads `$attrs` onto that
+ * root, so the listener reaches it. Anything that is not a card (a project, an
+ * action, a theme) yields no id, and the pane falls back to its resting state.
+ */
+const highlightedCardId = ref<number | null>(null)
+const highlightedCard = computed(() =>
+  cardHits.value.find(c => c.id === highlightedCardId.value) || null)
+
+function onSearchHighlight(payload?: { ref: HTMLElement, value: CommandPaletteItem }) {
+  // `CommandPaletteItem` is an open shape, so `cardId` — which only the card
+  // rows carry — is not on the declared type.
+  highlightedCardId.value = (payload?.value as { cardId?: number } | undefined)?.cardId ?? null
+}
+
+/**
+ * Navigation is the item's own `to`, via the link the palette wraps it in —
+ * this only has to shut the dialog and clear the query, which is what
+ * `UDashboardSearch` does for its own content.
+ */
+function onSearchSelect(item?: { disabled?: boolean }) {
+  if (item?.disabled) return
+  searchOpen.value = false
+  searchTerm.value = ''
+}
+
+// A stale query behind a closed palette means the next ⌘K opens on the last
+// search, and `useCardSearch` would still be holding its results.
+watch(searchOpen, (open) => {
+  if (!open) {
+    searchTerm.value = ''
+    highlightedCardId.value = null
+  }
+})
 </script>
 
 <template>
@@ -219,15 +330,96 @@ const searchGroups = computed(() => [
       </template>
     </UDashboardSidebar>
 
-    <!-- title/description are passed explicitly: the installed @nuxt/ui locale
-         has no `dashboardSearch.title` or `.description` key, so the defaults
-         render as the literal translation keys in the dialog. -->
+    <!--
+      title/description are passed explicitly: the installed @nuxt/ui locale
+      has no `dashboardSearch.title` or `.description` key, so the defaults
+      render as the literal translation keys in the dialog.
+
+      The z-index is the fix for a real stacking bug, not caution. Nuxt UI gives
+      no overlay a z-index at all — dialogs stack by their order in `<body>`,
+      and a portal is inserted where its *anchor* sits, which is fixed when the
+      component mounts. This palette lives in the layout, so its anchor is
+      created before any page's; opening the card panel and then hitting ⌘K put
+      the palette *underneath* the panel, half of it clipped by the panel's edge
+      and the rest dimmed by the panel's own overlay. Both slots need it: the
+      overlay must cover the panel for the same reason the content must.
+
+      50 rather than a bigger number so it stays legible next to Tailwind's own
+      `z-50` scale step; `stacking.test.ts` fails if anything in the app outbids
+      it, which is the only way this can regress.
+    -->
     <UDashboardSearch
+      v-model:open="searchOpen"
+      v-model:search-term="searchTerm"
       title="Search"
-      description="Jump to a project or run a command"
-      placeholder="Search projects and actions..."
+      description="Jump to a card, project, or command"
+      placeholder="Search cards, projects and actions..."
+      :loading="searchingCards"
       :groups="searchGroups"
-    />
+      class="palette-on-top"
+      :ui="{ modal: 'sm:max-w-5xl!' }"
+    >
+      <!--
+        The palette is composed here rather than left to `UDashboardSearch`
+        because the preview pane has to sit *beside* the list, and the component
+        lays its own content out as a column: input, then results, then footer.
+        Taking the modal's `#content` slot is what allows a row.
+
+        Everything below reproduces what `UDashboardSearch` renders by default,
+        with two additions: `@highlight`, which is how the pane learns which row
+        the selection is on (Reka's ListboxRoot emits it, and `UCommandPalette`
+        spreads `$attrs` onto that root), and closing on select, which the
+        default content does for us and this one has to do itself.
+
+        `sm:max-w-5xl!` above widens the dialog from `UDashboardSearch`'s own
+        `sm:max-w-3xl` — 48rem leaves ~35 characters of title once the pane
+        takes its share, so the pane would be paid for out of the list. The `!`
+        is deliberate: two `max-w-*` utilities on one element are otherwise
+        resolved by `@theme` declaration order rather than by what is written
+        (see CLAUDE.md), and `!` makes the winner declared.
+      -->
+      <template #content>
+        <div class="flex min-h-0 flex-1">
+          <UCommandPalette
+            v-model:search-term="searchTerm"
+            :groups="searchGroups"
+            :loading="searchingCards"
+            placeholder="Search cards, projects and actions..."
+            :input="{ fixed: true }"
+            close
+            class="flex-1 min-w-0"
+            @update:model-value="onSearchSelect"
+            @update:open="searchOpen = $event"
+            @highlight="onSearchHighlight"
+          >
+            <!-- Same three parts the default label renders — prefix, label,
+                 suffix — with the matched words marked. Segments rather than
+                 the palette's `labelHtml`, so no markup is ever built out of a
+                 card title. See `matchSegments`. -->
+            <template #card-label="{ item }">
+              <span class="text-default shrink-0">{{ item.prefix }}</span>
+              <span class="text-highlighted">
+                <span
+                  v-for="(seg, i) in matchSegments(String(item.label), searchTerm)"
+                  :key="i"
+                  :class="seg.match ? SEARCH_MARK_CLASS : ''"
+                >{{ seg.text }}</span>
+              </span>
+              <span class="text-dimmed">{{ item.suffix }}</span>
+            </template>
+          </UCommandPalette>
+
+          <!-- Below `lg` the dialog is the width of the screen and the pane
+               would leave the list unreadable, so the palette is exactly what
+               it was before. -->
+          <CardSearchPreview
+            :card="highlightedCard"
+            :query="searchTerm"
+            class="hidden lg:flex"
+          />
+        </div>
+      </template>
+    </UDashboardSearch>
 
     <slot />
   </UDashboardGroup>
