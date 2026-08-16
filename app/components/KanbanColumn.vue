@@ -207,28 +207,19 @@ const countLabel = computed(() =>
           @keydown.esc.stop.prevent="cancelComposing"
           @blur="commitDraft(false)"
         />
-        <div class="flex items-center gap-1.5 mt-1.5">
-          <UButton
-            label="Add"
-            size="xs"
-            :disabled="!draft.trim()"
-            @mousedown.prevent
-            @click="commitDraft(true)"
-          />
-          <UButton
-            label="Cancel"
-            variant="ghost"
-            color="neutral"
-            size="xs"
-            @mousedown.prevent
-            @click="cancelComposing"
-          />
-          <span class="ml-auto text-2xs text-dimmed">
-            <UiKey
-              value="enter"
-            /> to add
-          </span>
-        </div>
+        <!-- `@mousedown.prevent` on the row, not per button: the textarea commits
+             on blur, so a mousedown that moved focus would fire `commitDraft(false)`
+             before the click ever landed. Preventing the default on the way up
+             stops the focus shift for whichever child was pressed. -->
+        <UiCommitRow
+          class="mt-1.5"
+          submit-label="Add"
+          shortcut="enter"
+          :disabled="!draft.trim()"
+          @mousedown.prevent
+          @submit="commitDraft(true)"
+          @cancel="cancelComposing"
+        />
       </div>
 
       <UButton

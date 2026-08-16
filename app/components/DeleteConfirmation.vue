@@ -42,6 +42,18 @@ function onConfirm() {
         :placeholder="name"
         class="flex-1 min-w-0 text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-2.5 py-1.5 focus:border-error/60 transition-colors"
       >
+      <!-- Cancel then Delete, not the reverse. The field takes the row's left
+           end, so the terminal end here is the right one and the primary belongs
+           there — the same rule every other action row in the app follows. This
+           was the only row that broke it, and the only one mixing a `UButton`
+           with a hand-rolled `<button>`, which meant two systems setting the
+           height of two controls standing side by side. -->
+      <UButton
+        label="Cancel"
+        variant="ghost"
+        color="neutral"
+        @click="show = false"
+      />
       <UButton
         color="error"
         icon="i-lucide-trash-2"
@@ -50,13 +62,6 @@ function onConfirm() {
         :disabled="!valid || loading"
         @click="onConfirm"
       />
-      <button
-        type="button"
-        class="px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
-        @click="show = false"
-      >
-        Cancel
-      </button>
     </div>
   </div>
 </template>

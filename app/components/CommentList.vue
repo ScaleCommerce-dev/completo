@@ -468,26 +468,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
               ai-scope="comment"
               @escape="cancelEdit"
             />
-            <div class="flex items-center gap-2 mt-2">
-              <UButton
-                size="xs"
-                :loading="saving"
-                :disabled="!editDraft.trim()"
-                @click="saveEdit(comment.id)"
-              >
-                Save
-                <UiKey value="meta" />
-                <UiKey value="enter" />
-              </UButton>
-              <UButton
-                size="xs"
-                variant="ghost"
-                color="neutral"
-                @click="cancelEdit"
-              >
-                Cancel
-              </UButton>
-            </div>
+            <UiCommitRow
+              class="mt-2"
+              :loading="saving"
+              :disabled="!editDraft.trim()"
+              @submit="saveEdit(comment.id)"
+              @cancel="cancelEdit"
+            />
           </div>
 
           <!-- `mt-1`, not `mt-0.5`. The name and the body it belongs to were 2px
@@ -572,25 +559,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
             ai-scope="comment"
             @escape="escapeComposer"
           />
-          <div class="flex items-center gap-2 mt-2">
-            <UButton
-              size="xs"
-              :loading="saving"
-              :disabled="!draft.trim()"
-              @click="submit"
-            >
-              Comment
-              <UiKey value="meta" />
-              <UiKey value="enter" />
-            </UButton>
-            <UButton
-              size="xs"
-              variant="ghost"
-              color="neutral"
-              label="Cancel"
-              @click="closeComposer"
-            />
-          </div>
+          <UiCommitRow
+            class="mt-2"
+            submit-label="Comment"
+            :loading="saving"
+            :disabled="!draft.trim()"
+            @submit="submit"
+            @cancel="closeComposer"
+          />
         </div>
       </div>
     </div>

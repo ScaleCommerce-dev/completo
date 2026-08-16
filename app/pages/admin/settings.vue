@@ -108,7 +108,6 @@ const hasChanges = computed(() => {
         <div class="flex justify-end">
           <UButton
             label="Save changes"
-            icon="i-lucide-save"
             :loading="saving"
             :disabled="!hasChanges"
             @click="save"

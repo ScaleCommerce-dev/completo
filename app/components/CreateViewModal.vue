@@ -336,13 +336,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               </span>
             </div>
             <div class="flex items-center gap-2">
-              <button
-                type="button"
-                class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+              <UButton
+                label="Back"
+                variant="ghost"
+                color="neutral"
                 @click="viewStep = 1"
-              >
-                Back
-              </button>
+              />
               <UButton
                 type="submit"
                 label="Next"
@@ -474,13 +473,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               {{ viewType === 'board' ? `${selectedBoardColumns.size} statuses` : `${selectedListFields.size} fields` }}{{ selectedTagFilters.size ? `, ${selectedTagFilters.size} tag filter${selectedTagFilters.size > 1 ? 's' : ''}` : '' }}
             </span>
             <div class="flex items-center gap-2">
-              <button
-                type="button"
-                class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+              <UButton
+                label="Back"
+                variant="ghost"
+                color="neutral"
                 @click="viewStep = 2"
-              >
-                Back
-              </button>
+              />
               <!-- The shortcut belongs on the button it triggers, not floating
                    beside it. There were three spellings of this hint. -->
               <UButton
@@ -490,8 +488,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 @click="createView"
               >
                 <template #trailing>
-                  <UiKey value="meta" />
-                  <UiKey value="enter" />
+                  <UiShortcutKeys />
                 </template>
               </UButton>
             </div>

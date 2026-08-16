@@ -1,20 +1,35 @@
 <script setup lang="ts">
 /**
- * The footer action row shared by every editing surface.
+ * The action row under a *surface* — a modal, a page, a panel. `UiCommitRow` is
+ * the same act for a *field*, and the two are a pair; read its docstring for why
+ * there are two and not one.
  *
  * Every modal had invented its own: button order differed in all eleven, the
  * ⌘⏎ hint existed in six spellings (five inline `<kbd>` blocks, one literal
  * "Cmd+Enter" text), and CardModal had no Cancel button at all while the card
  * detail page made the *safe* action a filled button.
  *
- * The order is fixed and the same everywhere: destructive far left, status text,
- * then Cancel and the primary action on the right — primary last, because that is
- * where the eye lands and where the keyboard arrives.
+ * The order is fixed: destructive far left, status text, then Cancel and the
+ * primary on the right. Stated generally, it is the rule both rows share — the
+ * primary sits at the row's *terminal end*, and for a right-aligned row that is
+ * the right. Cancel is quieter than the primary without asking, because
+ * `app.config.ts` rests every ghost neutral button at `text-dimmed`.
  *
- * "Shared by every editing surface" is the intent, not the count: `admin/users`
- * is the only consumer. `ProjectForm:474` and `CreateViewModal:477` still
- * hand-roll the row, which is where the eleven spellings came from and where a
- * twelfth would come from next.
+ * Neither row gives its primary an icon, and that is the rule rather than an
+ * omission: an icon earns its place by saying something the label does not.
+ * `plus` on Create says a new thing appears — information the word alone does not
+ * carry, and it is on all four Create buttons. Save had three answers (`check`,
+ * `save`, nothing), and the first two only restate the word beside them; a floppy
+ * disk next to "Save" is a picture of the label. So Create carries `plus`, Save
+ * carries nothing, and a destructive action keeps `trash-2` because it is the one
+ * an eye should catch before reading.
+ *
+ * This bar is still only used by `admin/users`, and that is now a scoping fact
+ * rather than a failure: the four rows that most needed sharing were field rows,
+ * which is why they could not adopt a bar hardcoded to `ml-auto`, `md` and
+ * primary-last. They went to `UiCommitRow` instead. What remains here is modal
+ * footers, which are structurally fine as they are — migrating them is a diff
+ * with no user-visible outcome, so it has not been spent.
  */
 withDefaults(defineProps<{
   submitLabel?: string
@@ -91,14 +106,7 @@ const STATUS_TONES = {
           v-if="shortcut"
           #trailing
         >
-          <UiKey
-            value="meta"
-            class="max-sm:hidden"
-          />
-          <UiKey
-            value="enter"
-            class="max-sm:hidden"
-          />
+          <UiShortcutKeys />
         </template>
       </UButton>
     </div>

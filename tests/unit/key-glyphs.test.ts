@@ -70,6 +70,30 @@ describe('every keyboard key is drawn rather than typed', () => {
     }
   })
 
+  /**
+   * The ⌘⏎ *combination* has one home too, for the same reason a single key does.
+   *
+   * `UiKey` fixed how a key is drawn; it did nothing about how the commit chord is
+   * assembled, so seven surfaces assembled it seven times. Five of them predated
+   * the responsive rule and so advertised a ⌘ on phones, where there is no ⌘ to
+   * press and the return key inserts a newline — while `UiSaveBar` hid it. That
+   * split was not a decision, it was the age of each call site.
+   *
+   * Only the meta+enter pair is claimed. `MarkdownEditor` draws ⌘B / ⌘I / ⌘E in
+   * tooltips, which is a different statement — the key a *format* is bound to,
+   * not the chord that commits a form.
+   */
+  it('assembles the commit chord in exactly one place', () => {
+    const OWNER = 'app/components/ui/ShortcutKeys.vue'
+    const PAIR = /<UiKey[^>]*value="meta"[^>]*\/>\s*<UiKey[^>]*value="enter"/
+
+    const offenders = SURFACES
+      .filter(p => p !== OWNER)
+      .filter(p => PAIR.test(code(p)))
+
+    expect(offenders, `reach for UiShortcutKeys — ${OWNER} owns this pair`).toEqual([])
+  })
+
   it('sizes the icon against the key it sits in', () => {
     // `em`, so one rule covers every UKbd size. 1em rather than something matched
     // to a letter's cap height: ⌘ is four interlocking loops and turns to mush

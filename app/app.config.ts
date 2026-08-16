@@ -56,10 +56,27 @@ export default defineAppConfig({
     // and the theme's own `focus-visible:ring-inverted` took the ring on the
     // bordered variants from a light hairline to near-black. That was the only
     // focus marker left on a non-text control anywhere in the app.
+    //
+    // A ghost neutral button is the app's *retreat* — Cancel, Close, Back, Keep
+    // editing — and Nuxt UI rests it at `text-default`, which is body-copy
+    // weight. Beside a solid primary that merely competes; measured on the
+    // board's quick-add composer, "Cancel" read as the strongest mark in the
+    // row while "Add" carried the action. Twelve hand-rolled `<button>`s had
+    // already worked around it — byte-identical geometry to `size="md"`
+    // (`px-2.5 py-1.5` + the base below) and the one thing they changed was
+    // exactly this: rest at `text-dimmed`, rise to `text-toned` on hover. That
+    // is the correct call, so it belongs here rather than at twelve call sites.
+    // `hover:` and not `hover:not-focus-visible:` because this is a colour, not
+    // a border — it cannot outrank the focus rule, which never paints a fill.
     button: {
       slots: {
         base: 'rounded-lg font-semibold disabled:opacity-45 aria-disabled:opacity-45 focus-visible:ring-accented'
       },
+      compoundVariants: [{
+        color: 'neutral',
+        variant: 'ghost',
+        class: 'text-dimmed hover:text-toned'
+      }],
       defaultVariants: {
         size: 'md'
       }

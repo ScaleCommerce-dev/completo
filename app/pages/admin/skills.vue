@@ -153,26 +153,26 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
           </div>
           <div class="flex items-center gap-0.5 opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 transition-opacity shrink-0">
             <UTooltip text="Edit">
-              <button
-                class="p-1.5 rounded-md text-dimmed hover:text-primary hover:bg-primary/10 transition-colors"
+              <UButton
+                icon="i-lucide-pencil"
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                :aria-label="`Edit ${skill.name}`"
+                class="hover:text-primary hover:bg-primary/10"
                 @click="openEdit(skill)"
-              >
-                <UIcon
-                  name="i-lucide-pencil"
-                  class="text-sm"
-                />
-              </button>
+              />
             </UTooltip>
             <UTooltip text="Delete">
-              <button
-                class="p-1.5 rounded-md text-dimmed hover:text-error hover:bg-error/10 transition-colors"
+              <UButton
+                icon="i-lucide-trash-2"
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                :aria-label="`Delete ${skill.name}`"
+                class="hover:text-error hover:bg-error/10"
                 @click="openDelete(skill)"
-              >
-                <UIcon
-                  name="i-lucide-trash-2"
-                  class="text-sm"
-                />
-              </button>
+              />
             </UTooltip>
           </div>
         </div>
@@ -280,13 +280,12 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
 
           <!-- Actions -->
           <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
-            <button
-              type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+            <UButton
+              label="Cancel"
+              variant="ghost"
+              color="neutral"
               @click="showModal = false"
-            >
-              Cancel
-            </button>
+            />
             <UButton
               :label="isEdit ? 'Save' : 'Create'"
               :loading="modalSaving"
@@ -327,13 +326,12 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
             </p>
           </div>
           <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
-            <button
-              type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+            <UButton
+              label="Cancel"
+              variant="ghost"
+              color="neutral"
               @click="showDeleteModal = false"
-            >
-              Cancel
-            </button>
+            />
             <UButton
               color="error"
               icon="i-lucide-trash-2"

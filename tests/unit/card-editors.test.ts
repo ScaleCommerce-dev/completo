@@ -138,18 +138,30 @@ describe('the card surfaces have no surface-level save', () => {
   ]
 
   it('the description editor owns the only Save, and it carries the shortcut', () => {
-    // Counted as rendered text nodes, comments stripped. The previous version
-    // required `<UiKey value="meta"` to follow the label immediately, so it could
-    // not see `<UButton>Save</UButton>` — the most natural spelling, and exactly
-    // what the footer button it exists to keep out was.
-    const source = strip(DESCRIPTION)
-    const template = source.slice(source.indexOf('<template>'))
-    const saves = [...template.matchAll(/>\s*Save\s*</g)]
+    // Two earlier versions of this checked the *spelling* of one call site: first
+    // that `<UiKey value="meta"` followed the label immediately (which could not
+    // see `<UButton>Save</UButton>`), then that a `>Save<` text node did. Both
+    // broke when the row became `UiCommitRow` — a component that cannot render a
+    // commit without the shortcut on it, which is a stronger guarantee than any
+    // grep over this file could make.
+    //
+    // So it is checked where it is now true: the section commits through exactly
+    // one commit row, and the commit row puts the keys in the primary's own
+    // `#trailing` slot. That holds for every consumer of the row, not just this
+    // one, and it fails if either half is unpicked.
+    const template = strip(DESCRIPTION).slice(strip(DESCRIPTION).indexOf('<template>'))
+    expect([...template.matchAll(/<UiCommitRow\b/g)], 'one commit, in the editor').toHaveLength(1)
 
-    expect(saves).toHaveLength(1)
-    // Its label is followed immediately by the ⌘↵ keys, which is what
-    // distinguishes it from a bar button.
-    expect(template.slice(saves[0]!.index)).toMatch(/^>\s*Save\s*<UiKey value="meta"[^>]*\/>\s*<UiKey value="enter"/)
+    // Two hops now: the row puts the chord in the primary's `#trailing`, and
+    // `UiShortcutKeys` is what the chord *is*. Both are asserted, because either
+    // one alone is satisfiable while the hint sits somewhere it does not belong.
+    const row = strip(read('app/components/ui/CommitRow.vue'))
+    const trailing = row.slice(row.indexOf('#trailing'), row.indexOf('</UButton>'))
+    expect(trailing, 'the shortcut rides on the button it fires').toMatch(/<UiShortcutKeys\b/)
+
+    const chord = strip(read('app/components/ui/ShortcutKeys.vue'))
+    expect(chord, 'and the chord is still ⌘ then ⏎')
+      .toMatch(/<UiKey[\s\S]*value="meta"[\s\S]*<UiKey[\s\S]*value="enter"/)
   })
 
   it.each(surfaces)('%s has no save of its own', (_name, src) => {

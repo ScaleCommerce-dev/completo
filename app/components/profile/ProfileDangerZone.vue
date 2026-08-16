@@ -48,17 +48,13 @@ async function deleteAccount() {
         v-if="!showDeleteAccount"
         class="mt-3"
       >
-        <button
-          type="button"
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-error hover:text-error hover:bg-error/10 transition-colors"
+        <UButton
+          label="Delete Account"
+          icon="i-lucide-trash-2"
+          variant="ghost"
+          color="error"
           @click="showDeleteAccount = true; deleteEmail = ''; deletePassword = ''; deleteError = ''"
-        >
-          <UIcon
-            name="i-lucide-trash-2"
-            class="text-base"
-          />
-          Delete Account
-        </button>
+        />
       </div>
 
       <!-- Inline confirmation panel -->
@@ -106,13 +102,12 @@ async function deleteAccount() {
             :disabled="!deleteEmailValid || !deletePassword || deleteLoading"
             @click="deleteAccount"
           />
-          <button
-            type="button"
-            class="px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+          <UButton
+            label="Cancel"
+            variant="ghost"
+            color="neutral"
             @click="showDeleteAccount = false; deleteEmail = ''; deletePassword = ''; deleteError = ''"
-          >
-            Cancel
-          </button>
+          />
         </div>
       </div>
     </div>

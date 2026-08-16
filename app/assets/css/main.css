@@ -518,6 +518,35 @@
   outline: none;
 }
 
+/* One non-text control states focus, and it is named here rather than on the
+   element because `design-tokens.test.ts` › `focus lands on text entry, and only
+   there` bans a focus utility in markup — correctly. Focus has one home; this is
+   it.
+
+   Why this control and not the other 71 raw `<button>`s: `CellTrigger` is the
+   list's inline-editor trigger, and all five of those cells were `<div>`s until
+   someone converted them specifically so the editors stopped being "unreachable
+   without a mouse" (its docstring). That conversion is half a feature while the
+   focused cell looks identical to the unfocused one — it is reachable and
+   invisible. Every other raw button is reached by pointer or by shortcut: the
+   board's arrow keys, ⌘K, Escape. None of those walk the tab order, so a marker
+   on them would be paint for a journey nobody takes.
+
+   Unlayered, because the reset above is unlayered and `@layer utilities` loses to
+   it outright. `.cell-trigger:focus-visible` is (0,2,0) against the reset's
+   (0,1,0), so it wins on specificity rather than on source order.
+
+   An outline rather than a border, which is the one place this departs from the
+   text-entry sentence: the trigger owns no border, and giving it one moves its
+   text off the `min-h-cell` rhythm that the component exists to hold. Offset 0,
+   so it cannot clip inside a row with `overflow-hidden`, and `outline` follows
+   `border-radius`, so the `rounded-md` corners survive. Still an edge, never a
+   fill. */
+.cell-trigger:focus-visible {
+  outline: 2px solid var(--ui-primary);
+  outline-offset: 0;
+}
+
 /* Text entry states focus on `border-color`. Different property from the reset
    above, so the two never contend — what decides this one is *specificity*, and
    it is picked to slot between the two things that also set `border-color`:

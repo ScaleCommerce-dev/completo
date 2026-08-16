@@ -302,13 +302,13 @@ function onCardClick(columnId: string, card: BoardCard) {
           </template>
 
           <div class="flex justify-end pt-0.5">
-            <button
-              type="button"
-              class="px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+            <UButton
+              label="Cancel"
+              variant="ghost"
+              color="neutral"
+              size="xs"
               @click="cancelAddColumn"
-            >
-              Cancel
-            </button>
+            />
           </div>
         </template>
 
@@ -353,13 +353,13 @@ function onCardClick(columnId: string, card: BoardCard) {
               </UPopover>
               <span class="text-xs text-dimmed">Color</span>
               <div class="flex-1" />
-              <button
-                type="button"
-                class="px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+              <UButton
+                label="Cancel"
+                variant="ghost"
+                color="neutral"
+                size="xs"
                 @click="cancelAddColumn"
-              >
-                Cancel
-              </button>
+              />
               <UButton
                 type="submit"
                 label="Add"

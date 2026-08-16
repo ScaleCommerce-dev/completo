@@ -459,39 +459,33 @@ function confirmDelete() {
         v-if="mode === 'edit'"
         class="flex items-center gap-1.5"
       >
-        <button
+        <UButton
           v-if="!showDeleteConfirm"
-          type="button"
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-semibold text-error hover:text-error hover:bg-error/10 transition-colors"
+          label="Delete"
+          icon="i-lucide-trash-2"
+          variant="ghost"
+          color="error"
           @click="showDeleteConfirm = true"
-        >
-          <UIcon
-            name="i-lucide-trash-2"
-            class="text-base"
-          />
-          Delete
-        </button>
+        />
       </div>
 
       <div class="flex items-center gap-2">
-        <button
-          type="button"
-          class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+        <UButton
+          label="Cancel"
+          variant="ghost"
+          color="neutral"
           @click="emit('cancel')"
-        >
-          Cancel
-        </button>
+        />
         <!-- See CreateViewModal: the shortcut rides on its own button. -->
         <UButton
           type="submit"
           :label="mode === 'create' ? 'Create' : 'Save'"
-          :icon="mode === 'create' ? 'i-lucide-plus' : 'i-lucide-check'"
+          :icon="mode === 'create' ? 'i-lucide-plus' : undefined"
           :loading="loading"
           :disabled="!canSubmit"
         >
           <template #trailing>
-            <UiKey value="meta" />
-            <UiKey value="enter" />
+            <UiShortcutKeys />
           </template>
         </UButton>
       </div>

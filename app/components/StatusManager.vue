@@ -296,16 +296,16 @@ async function setDoneStatus(statusId: string | null) {
       v-if="isOwnerOrAdmin"
       v-model:open="showAddColPopover"
     >
-      <button
-        type="button"
-        class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-primary hover:bg-default transition-colors shrink-0"
-      >
-        <UIcon
-          name="i-lucide-plus"
-          class="text-xs"
-        />
-        <span>Status</span>
-      </button>
+      <!-- `hover:bg-default`, not the variant's `bg-elevated`: this trigger sits
+           on `bg-muted`, where elevated is the wrong direction. -->
+      <UButton
+        label="Status"
+        icon="i-lucide-plus"
+        variant="ghost"
+        color="neutral"
+        size="xs"
+        class="shrink-0 hover:text-primary hover:bg-default"
+      />
       <template #content>
         <form
           class="p-3 w-52"

@@ -489,16 +489,16 @@ function cancelDeleteTag() {
               v-if="isOwnerOrAdmin"
               v-model:open="showAddTagPopover"
             >
-              <button
-                type="button"
-                class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-primary hover:bg-default transition-colors shrink-0"
-              >
-                <UIcon
-                  name="i-lucide-plus"
-                  class="text-xs"
-                />
-                <span>Tag</span>
-              </button>
+              <!-- See StatusManager's twin: `hover:bg-default` because this sits
+                   on `bg-muted`. -->
+              <UButton
+                label="Tag"
+                icon="i-lucide-plus"
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                class="shrink-0 hover:text-primary hover:bg-default"
+              />
               <template #content>
                 <form
                   class="p-3 w-52"
@@ -716,13 +716,12 @@ function cancelDeleteTag() {
               class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-3 py-2 focus:border-error/60 transition-colors"
             >
             <div class="flex items-center justify-end gap-2 pt-1">
-              <button
-                type="button"
-                class="px-3 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+              <UButton
+                label="Cancel"
+                variant="ghost"
+                color="neutral"
                 @click="showDeleteView = false"
-              >
-                Cancel
-              </button>
+              />
               <UButton
                 color="error"
                 icon="i-lucide-trash-2"

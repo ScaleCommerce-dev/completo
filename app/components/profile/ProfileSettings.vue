@@ -213,13 +213,11 @@ function formatDate(iso: string): string {
           <UButton
             type="submit"
             label="Save"
-            icon="i-lucide-check"
             :loading="profileLoading"
             :disabled="!profileName.trim()"
           >
             <template #trailing>
-              <UiKey value="meta" />
-              <UiKey value="enter" />
+              <UiShortcutKeys />
             </template>
           </UButton>
         </div>

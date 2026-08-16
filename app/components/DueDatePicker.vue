@@ -59,18 +59,20 @@ function clear() {
             size="sm"
             color="primary"
           />
-          <button
+          <!-- Rests neutral and turns error on hover, rather than `color="error"`:
+               clearing a date is undoable and this sits under a calendar, so a
+               permanently red row would be the loudest thing in the popover. -->
+          <UButton
             v-if="modelValue"
-            type="button"
-            class="w-full mt-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium text-muted hover:text-error hover:bg-error/10 transition-colors"
+            block
+            label="Clear due date"
+            icon="i-lucide-x"
+            variant="ghost"
+            color="neutral"
+            size="xs"
+            class="mt-1 hover:text-error hover:bg-error/10"
             @click="clear"
-          >
-            <UIcon
-              name="i-lucide-x"
-              class="text-xs"
-            />
-            Clear due date
-          </button>
+          />
         </div>
       </div>
     </template>

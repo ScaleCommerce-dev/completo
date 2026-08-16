@@ -548,13 +548,12 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
             </p>
           </div>
           <div class="flex items-center justify-end gap-2 px-5 pb-5 pt-2 border-t border-muted mt-2">
-            <button
-              type="button"
-              class="flex items-center px-2.5 py-1.5 rounded-lg text-sm font-semibold text-dimmed hover:text-toned hover:bg-elevated transition-colors"
+            <UButton
+              label="Cancel"
+              variant="ghost"
+              color="neutral"
               @click="pendingRemove = null"
-            >
-              Cancel
-            </button>
+            />
             <UButton
               color="error"
               icon="i-lucide-user-minus"

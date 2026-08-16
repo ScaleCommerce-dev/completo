@@ -27,12 +27,16 @@ const emit = defineEmits<{ discard: [] }>()
       class="text-sm text-dimmed shrink-0"
     />
     <span class="min-w-0 truncate">Restored your unsaved {{ label || 'draft' }}</span>
-    <button
-      type="button"
-      class="ml-auto shrink-0 rounded-md px-1.5 py-1 font-medium text-dimmed hover:text-error hover:bg-error/10 transition-colors"
+    <!-- Neutral at rest, error on hover, rather than `color="error"`: per the
+         note above, nothing has gone wrong here. The row is `text-xs` and the
+         button sits inside it, so `xs` is the size that does not outgrow it. -->
+    <UButton
+      label="Discard"
+      variant="ghost"
+      color="neutral"
+      size="xs"
+      class="ml-auto shrink-0 hover:text-error hover:bg-error/10"
       @click="emit('discard')"
-    >
-      Discard
-    </button>
+    />
   </div>
 </template>

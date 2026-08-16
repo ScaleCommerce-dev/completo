@@ -91,18 +91,19 @@ const {
       </div>
       <div class="flex items-center gap-2">
         <code class="flex-1 text-xs font-mono text-default bg-default rounded-md px-2 py-1.5 border border-accented truncate select-all">{{ createdToken }}</code>
-        <button
-          type="button"
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0"
-          :class="tokenCopied ? 'text-success bg-success/10' : 'text-muted hover:bg-elevated'"
+        <!-- `text-success!` rather than `text-success`: the variant already sets a
+             colour, and an explicit winner is what keeps stylesheet order out of
+             it. Same spelling as the description's copy button. -->
+        <UButton
+          :label="tokenCopied ? 'Copied!' : 'Copy'"
+          :icon="tokenCopied ? 'i-lucide-check' : 'i-lucide-copy'"
+          variant="ghost"
+          color="neutral"
+          size="sm"
+          class="shrink-0"
+          :class="tokenCopied ? 'text-success! bg-success/10' : ''"
           @click="copyToken"
-        >
-          <UIcon
-            :name="tokenCopied ? 'i-lucide-check' : 'i-lucide-copy'"
-            class="text-sm"
-          />
-          {{ tokenCopied ? 'Copied!' : 'Copy' }}
-        </button>
+        />
         <button
           type="button"
           class="text-xs font-medium text-dimmed hover:text-toned transition-colors"
@@ -118,10 +119,15 @@ const {
       v-if="tokens.length > 0"
       class="mx-5 mt-3 mb-5 rounded-lg border border-default divide-y divide-default overflow-hidden"
     >
+      <!-- `group` is what makes the delete button's `group-hover` reveal fire. It
+           was missing, so those classes had never once applied and an inline
+           `style="opacity: .6"` was holding the button visible instead — which
+           also meant the row could not hide it on the way back out. Same reveal
+           as `admin/skills` and the project cards now. -->
       <div
         v-for="token in tokens"
         :key="token.id"
-        class="flex items-center px-3 py-2.5 bg-default"
+        class="group flex items-center px-3 py-2.5 bg-default"
       >
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
@@ -153,36 +159,34 @@ const {
             v-if="deletingTokenId !== token.id"
             text="Delete token"
           >
-            <button
-              type="button"
-              class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-error hover:bg-error/10 transition opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 max-sm:opacity-60"
-              style="opacity: 0.6"
+            <UButton
+              icon="i-lucide-trash-2"
+              variant="ghost"
+              color="neutral"
+              size="xs"
+              aria-label="Delete this token"
+              class="hover:text-error hover:bg-error/10 opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 max-sm:opacity-60"
               @click="startDeleteToken(token.id)"
-            >
-              <UIcon
-                name="i-lucide-trash-2"
-                class="text-sm"
-              />
-            </button>
+            />
           </UTooltip>
           <div
             v-else
             class="flex items-center gap-1.5"
           >
-            <button
-              type="button"
-              class="px-2 py-1 rounded-md text-xs font-semibold text-error hover:bg-error/10 transition-colors"
+            <UButton
+              label="Delete"
+              variant="ghost"
+              color="error"
+              size="xs"
               @click="confirmDeleteToken(token.id)"
-            >
-              Delete
-            </button>
-            <button
-              type="button"
-              class="px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-toned transition-colors"
+            />
+            <UButton
+              label="Cancel"
+              variant="ghost"
+              color="neutral"
+              size="xs"
               @click="cancelDeleteToken"
-            >
-              Cancel
-            </button>
+            />
           </div>
         </div>
       </div>

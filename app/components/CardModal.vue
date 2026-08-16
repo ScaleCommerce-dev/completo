@@ -918,8 +918,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           @click="submit"
         >
           <template #trailing>
-            <UiKey value="meta" />
-            <UiKey value="enter" />
+            <UiShortcutKeys />
           </template>
         </UButton>
       </div>

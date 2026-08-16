@@ -88,26 +88,15 @@ defineExpose({ startEditing: () => editorRef.value?.startEditing() })
 
     <!-- The description's own commit, under the editor it belongs to. Same shape
          as the comment composer's, because they are the same act: write prose,
-         then decide to keep it. -->
-    <div class="flex items-center gap-2 mt-2">
-      <UButton
-        size="xs"
-        :loading="saving"
-        :disabled="!dirty"
-        @click="emit('save')"
-      >
-        Save
-        <UiKey value="meta" />
-        <UiKey value="enter" />
-      </UButton>
-      <UButton
-        size="xs"
-        variant="ghost"
-        color="neutral"
-        label="Cancel"
-        @click="emit('cancel')"
-      />
-    </div>
+         then decide to keep it — and now literally the same component, which is
+         what makes "same shape" true rather than aspirational. -->
+    <UiCommitRow
+      class="mt-2"
+      :loading="saving"
+      :disabled="!dirty"
+      @submit="emit('save')"
+      @cancel="emit('cancel')"
+    />
   </div>
 
   <!--

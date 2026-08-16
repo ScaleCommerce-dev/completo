@@ -12,6 +12,12 @@
  * without a mouse. Keeping one trigger is what stops the sixth cell from
  * reinventing that.
  *
+ * `.cell-trigger` is a hook, not a style — it carries no declarations of its own.
+ * `main.css` uses it to state focus, because reaching these by keyboard is the
+ * whole point of the paragraph above and the cells owned no marker to show it.
+ * It is the only raw `<button>` in the app that gets one; the reasoning for that
+ * boundary is beside the rule.
+ *
  * Cell-specific type and spacing stay at the call site — the date cell is mono
  * and tabular, priority carries its own colour — because those belong to the
  * field, not to the trigger. Vue merges them onto the root.
@@ -33,7 +39,7 @@ withDefaults(defineProps<{
   <button
     type="button"
     :aria-label="label"
-    class="flex items-center rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-cell"
+    class="cell-trigger flex items-center rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-cell"
     @click.stop
   >
     <slot />

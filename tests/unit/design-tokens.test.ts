@@ -1300,3 +1300,127 @@ describe('identity avatars', () => {
     expect(bare.map(f => f.replace(ROOT + '/', ''))).toEqual([])
   })
 })
+
+/**
+ * A raw `<button>` does not re-implement a `UButton`.
+ *
+ * `app.config.ts` says the button theme "matches what ~50 hand-rolled `<button>`s
+ * were doing by hand" — the convergence was done in the theme and the originals
+ * were never deleted, so the app carried both. Measured before this guard: twelve
+ * hand-rolled Cancels in four sizes, sitting beside eight real ones. Eight of the
+ * twelve were byte-identical to `size="md"` once the theme's `rounded-lg
+ * font-semibold` is added; the other four were off the ramp entirely, including a
+ * `px-3 py-1.5` that exists at no size.
+ *
+ * The mechanism is the ramp itself, read out of Nuxt UI's own theme module rather
+ * than copied here — copying it would restate the value this is supposed to
+ * recompute, and would keep passing after a version bump moved the padding.
+ *
+ * Two shapes are excluded structurally rather than by name, because neither is a
+ * button wearing button geometry by accident:
+ *
+ *   rounded-full  a pill — the app themes `badge` for these, and the filter
+ *                 toggles and tag chips are all rounded-full by intent
+ *   w-full        a full-bleed row — a popover menu item or a list row, whose
+ *                 padding belongs to the row rhythm and not to a control
+ *
+ * That leaves the exemption list to carry only genuine arguments.
+ */
+describe('one button vocabulary', () => {
+  /** Every raw `<button>` in `app/`, as `{ file, line, classTokens }`. */
+  function rawButtons() {
+    return vueFiles().flatMap((file) => {
+      const src = markup(file)
+      const start = src.indexOf('<template>')
+      if (start < 0) return []
+      const tpl = src.slice(start)
+
+      return [...tpl.matchAll(/<button\b/g)].map((m) => {
+        const close = tpl.indexOf('>', m.index)
+        const tag = tpl.slice(m.index, close === -1 ? m.index + 900 : close)
+        return {
+          file: file.replace(ROOT + '/', ''),
+          line: src.slice(0, start + m.index).split('\n').length,
+          tokens: new Set((tag.match(/\bclass="([\s\S]*?)"/)?.[1] ?? '').split(/\s+/).filter(Boolean))
+        }
+      })
+    })
+  }
+
+  /**
+   * `{ xs: ['px-2', 'py-1', 'text-xs'], … }` straight out of the installed theme.
+   *
+   * The module carries a content hash in its filename, so it is found by shape
+   * rather than by path — and a miss throws instead of returning an empty ramp,
+   * because a guard that silently checks nothing is worse than no guard.
+   */
+  function sizeRamp(): Record<string, string[]> {
+    const dir = join(ROOT, 'node_modules/@nuxt/ui/dist/shared')
+    const files = execSync(`ls ${dir}`, { encoding: 'utf8' }).trim().split('\n')
+
+    for (const name of files) {
+      const src = readFileSync(join(dir, name), 'utf8')
+      const at = src.indexOf('const button = (options)')
+      if (at < 0) continue
+
+      const block = src.slice(at, at + 3000).match(/size: \{[\s\S]*?\n {4}\}/)?.[0]
+      if (!block) continue
+
+      const ramp: Record<string, string[]> = {}
+      for (const m of block.matchAll(/(\w+): \{\s*base: "([^"]+)"/g)) {
+        ramp[m[1]!] = m[2]!.split(/\s+/).filter(t => /^(px|py|text)-/.test(t))
+      }
+      if (Object.keys(ramp).length) return ramp
+    }
+
+    throw new Error('could not read the UButton size ramp out of @nuxt/ui — this guard is checking nothing')
+  }
+
+  it('reads a ramp that actually looks like one', () => {
+    // The guard's own input, asserted before it is trusted: five sizes, each with
+    // a horizontal padding, a vertical padding and a text step.
+    const ramp = sizeRamp()
+
+    expect(Object.keys(ramp).sort()).toEqual(['lg', 'md', 'sm', 'xl', 'xs'])
+    for (const [size, triple] of Object.entries(ramp)) {
+      expect(triple.filter(t => t.startsWith('px-')), size).toHaveLength(1)
+      expect(triple.filter(t => t.startsWith('py-')), size).toHaveLength(1)
+      expect(triple.filter(t => t.startsWith('text-')), size).toHaveLength(1)
+    }
+  })
+
+  it('no raw button wears a UButton size', () => {
+    /** Each entry is an argument, not a suppression. */
+    const HAND_ROLLED: Record<string, string> = {
+      'app/components/DescriptionEditor.vue':
+        'the AI decline button, inside the editor toolbar — the whole editor is '
+        + 'being replaced by the WYSIWYG rewrite (CF-7), which owns its toolbar '
+        + 'vocabulary. Re-theming it here would be work thrown away twice.'
+    }
+
+    const ramp = sizeRamp()
+    const offenders = rawButtons().flatMap(({ file, line, tokens }) => {
+      if (tokens.has('rounded-full') || tokens.has('w-full')) return []
+      const size = Object.entries(ramp)
+        .find(([, triple]) => triple.every(t => tokens.has(t)))?.[0]
+      return size && !(file in HAND_ROLLED) ? [`${file}:${line}  is UButton size="${size}"`] : []
+    })
+
+    expect(offenders, 'reach for UButton, or add the reason it cannot be one').toEqual([])
+  })
+
+  it('every hand-rolled exemption is still hand-rolled', () => {
+    // The other direction, and the one that rots: an entry that no longer matches
+    // anything is a claim nobody is checking. `GRADIENT_BRAND_MOMENTS` carries the
+    // same pairing for the same reason.
+    const HAND_ROLLED = ['app/components/DescriptionEditor.vue']
+    const ramp = sizeRamp()
+
+    const stillRaw = new Set(rawButtons()
+      .filter(({ tokens }) => !tokens.has('rounded-full') && !tokens.has('w-full'))
+      .filter(({ tokens }) => Object.values(ramp).some(triple => triple.every(t => tokens.has(t))))
+      .map(b => b.file))
+
+    expect([...stillRaw].sort(), 'an exemption with nothing left to exempt').toEqual(HAND_ROLLED.sort())
+  })
+})

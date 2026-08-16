@@ -160,8 +160,7 @@ async function signOut() {
           :disabled="!currentPassword || !newPassword || newPassword !== confirmPassword || newPassword.length < 6"
         >
           <template #trailing>
-            <UiKey value="meta" />
-            <UiKey value="enter" />
+            <UiShortcutKeys />
           </template>
         </UButton>
       </div>
