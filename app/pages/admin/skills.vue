@@ -139,7 +139,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
       <div
         v-for="skill in skills"
         :key="skill.id"
-        class="group rounded-xl border border-default hover:border-primary/60 hover:shadow-float p-4 transition-colors"
+        class="lift group rounded-xl border border-default shadow-raise hover:border-accented p-4"
       >
         <div class="flex items-start justify-between gap-2 mb-2">
           <div class="flex items-center gap-2 min-w-0">

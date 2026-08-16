@@ -228,7 +228,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <div class="grid grid-cols-2 gap-3">
             <button
               type="button"
-              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary/60 hover:shadow-float border-default"
+              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 border-default"
               @click="selectViewType('board')"
             >
               <div class="flex items-center gap-3 mb-2">
@@ -246,7 +246,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             </button>
             <button
               type="button"
-              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary/60 hover:shadow-float border-default"
+              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 border-default"
               @click="selectViewType('list')"
             >
               <div class="flex items-center gap-3 mb-2">
