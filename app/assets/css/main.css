@@ -554,13 +554,6 @@
   box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--ui-primary) 35%, transparent);
 }
 
-/* A card landing in the done column gets one confirmation pulse. */
-@keyframes settle-done {
-  0%   { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-emerald-500) 60%, transparent); }
-  100% { box-shadow: 0 0 0 12px color-mix(in oklab, var(--color-emerald-500) 0%, transparent); }
-}
-.settle-done { animation: settle-done 0.6s ease-out; }
-
 /* ═══════════════════════════════════════════════════════════════════════════
    MOTION
 
@@ -575,16 +568,16 @@
 }
 .rise-in { animation: rise-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) both; }
 
-@keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.fade-in { animation: fade-in 0.25s ease-out both; }
+/* `.rise-in` is the only entrance animation, and its delay is capped by
+   `staggerDelay` — `both` holds the from-state, so an uncapped delay is time an
+   element spends invisible rather than time it spends arriving.
 
-.page-enter-active,
-.page-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
-.page-enter-from { opacity: 0; transform: translateY(4px); }
-.page-leave-to { opacity: 0; transform: translateY(-4px); }
+   Removed from here: `.settle-done` (a done-column pulse, never applied by
+   anything, and drawn from a raw `--color-emerald-500` where `--ui-success`
+   exists), `.fade-in`, and the `.page-enter-*` / `.page-leave-*` pair, which
+   needs a `pageTransition` this app does not configure. All three were declared
+   and never used — the same defect as `.column-drop-active` above, which was
+   caught and wired up rather than deleted because that one had a job. */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    CARD SURFACE
@@ -697,7 +690,10 @@
     90deg,
     transparent,
     color-mix(in oklab, var(--ui-primary) 70%, transparent),
-    color-mix(in oklab, var(--color-violet-500) 70%, transparent),
+    /* `--ui-secondary`, not `--color-violet-500`: app.config already names
+       secondary as violet, so the literal was a second copy of that decision
+       that a palette change would have left behind. */
+    color-mix(in oklab, var(--ui-secondary) 70%, transparent),
     transparent
   );
   z-index: 10;

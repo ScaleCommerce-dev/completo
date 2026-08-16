@@ -10,10 +10,26 @@
 // own hue measures ~2.2:1 for the amber entry, and mixing cannot fix it because
 // the fix is to *set* the lightness (see the `.swatch` block in main.css).
 //
-// `.swatch-bar` exists for exactly the border-left-plus-tint shape those sites
-// hand-roll, and currently has zero call sites. Migrating them is owed; until
-// then this comment describes the destination, not the present.
+// `.swatch-bar` exists for exactly the accent-strip shape those sites hand-rolled
+// and had zero call sites. Both are settled now: `accentFor` below is the one
+// spelling, and every consumer renders it through `.swatch` / `UiAccentBar`.
 export const ACCENT_COLORS = ['#6366f1', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#ec4899', '#06b6d4']
+
+/**
+ * The accent a project or view is drawn with, derived from its id rather than
+ * stored — the same trick as `identityColor` below, and stable for the same
+ * reason: the same record keeps its colour across sessions and machines.
+ *
+ * One spelling, because there were three: a local `accentFor` copied into two
+ * files and a third written inline at each use, which is how the alpha suffix
+ * drifted (`+'14'` in two files, `+'12'` in the other) without anyone noticing.
+ *
+ * Falls back to the name so a record without an id still gets a stable colour
+ * rather than always landing on the first entry.
+ */
+export function accentFor(record: { id?: string, name?: string }): string {
+  return ACCENT_COLORS[hashCode(record.id || record.name || '') % ACCENT_COLORS.length]!
+}
 
 // ─── Identity ───────────────────────────────────────────────────────────────
 //

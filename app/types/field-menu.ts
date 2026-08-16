@@ -6,7 +6,6 @@
  * glyph and a member's face on the same left edge across all four menus.
  */
 export interface FieldMenuOption {
-  key: string
   label: string
   checked: boolean
   /** User-chosen hex. Goes through `UiStatusDot`, never applied raw. */

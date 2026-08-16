@@ -63,11 +63,9 @@ const allTagNames = computed(() => props.cardTags.map(t => t.name).join(', '))
     @toggle="emit('toggle', $event)"
   >
     <template #default="{ label }">
-      <button
-        type="button"
-        :aria-label="label"
-        class="flex gap-2 items-center rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-cell max-w-full min-w-0 text-left"
-        @click.stop
+      <ListCellTrigger
+        :label="label"
+        class="gap-2 max-w-full min-w-0 text-left"
       >
         <TagPill
           v-for="tag in visibleTags"
@@ -87,11 +85,7 @@ const allTagNames = computed(() => props.cardTags.map(t => t.name).join(', '))
           v-if="!cardTags.length"
           :class="EMPTY_CELL_CLASS"
         >&mdash;</span>
-        <UIcon
-          name="i-lucide-chevron-down"
-          class="text-2xs shrink-0 text-dimmed opacity-0 group-hover:opacity-60 transition-opacity"
-        />
-      </button>
+      </ListCellTrigger>
     </template>
   </TagMenu>
 </template>

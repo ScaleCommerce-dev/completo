@@ -19,12 +19,10 @@ const status = computed(() => getDueDateStatus(props.dueDate))
     @update:open="emit('update:popoverOpen', $event)"
     @update:model-value="emit('select', $event)"
   >
-    <button
-      type="button"
-      :aria-label="dueDate ? `Due ${formatDueDate(dueDate)}. Change due date` : 'Set a due date'"
-      class="flex items-center gap-1 rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer text-sm font-mono tabular-nums min-h-cell"
+    <ListCellTrigger
+      :label="dueDate ? `Due ${formatDueDate(dueDate)}. Change due date` : 'Set a due date'"
+      class="gap-1 text-sm font-mono tabular-nums"
       :class="dueDate ? dueDateTextClass(status) : ''"
-      @click.stop
     >
       <template v-if="dueDate">
         <UIcon
@@ -37,10 +35,6 @@ const status = computed(() => getDueDateStatus(props.dueDate))
         v-else
         :class="EMPTY_CELL_CLASS"
       >&mdash;</span>
-      <UIcon
-        name="i-lucide-chevron-down"
-        class="text-2xs shrink-0 text-dimmed opacity-0 group-hover:opacity-60 transition-opacity"
-      />
-    </button>
+    </ListCellTrigger>
   </DueDatePicker>
 </template>

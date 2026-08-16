@@ -91,33 +91,7 @@ function cancelAddColumn() {
 // The board ended in a hard cut: at 1512px the fifth column was sliced through
 // mid-word with nothing to suggest more existed. The mask fades only the edges
 // that actually have content beyond them, so a board that fits shows no fade.
-const scroller = ref<HTMLElement>()
-const fadeStart = ref(0)
-const fadeEnd = ref(0)
-
-const fadeStyle = computed(() => ({
-  '--board-fade-start': `${fadeStart.value}px`,
-  '--board-fade-end': `${fadeEnd.value}px`
-}))
-
-function updateFade() {
-  const el = scroller.value
-  if (!el) return
-  const max = el.scrollWidth - el.clientWidth
-  fadeStart.value = el.scrollLeft > 4 ? 28 : 0
-  fadeEnd.value = el.scrollLeft < max - 4 ? 28 : 0
-}
-
-onMounted(() => {
-  updateFade()
-  const el = scroller.value
-  if (!el || typeof ResizeObserver === 'undefined') return
-  const ro = new ResizeObserver(updateFade)
-  ro.observe(el)
-  onBeforeUnmount(() => ro.disconnect())
-})
-
-watch(() => _props.columns.length, () => nextTick(updateFade))
+const { scroller, fadeStyle, updateFade } = useScrollFade(() => _props.columns.length)
 
 // ─── Get out of the panel's way ─────────────────────────────────────────────
 /**

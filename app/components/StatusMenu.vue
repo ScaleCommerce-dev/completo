@@ -26,7 +26,6 @@ const ariaLabel = computed(() => selected.value
   : 'Set a status')
 
 const options = computed<FieldMenuOption[]>(() => props.statuses.map(s => ({
-  key: s.id,
   label: s.name,
   checked: props.statusId === s.id,
   swatch: s.color,

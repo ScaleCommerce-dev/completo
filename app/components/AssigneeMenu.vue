@@ -20,7 +20,6 @@ const ariaLabel = computed(() => selected.value
 
 const options = computed<FieldMenuOption[]>(() => [
   {
-    key: '__nobody',
     label: 'Nobody',
     checked: !props.assigneeId,
     icon: 'i-lucide-user-x',
@@ -28,7 +27,6 @@ const options = computed<FieldMenuOption[]>(() => [
     onSelect: () => emit('select', null)
   },
   ...(props.members || []).map(m => ({
-    key: m.id,
     label: m.name,
     checked: props.assigneeId === m.id,
     avatar: { src: m.avatarUrl || undefined, alt: m.name },

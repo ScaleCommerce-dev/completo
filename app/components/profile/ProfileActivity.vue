@@ -22,10 +22,6 @@ const props = defineProps<{
 function priorityCount(priority: string): number {
   return props.profileData.priorityCounts[priority] || 0
 }
-
-function accentFor(project: ProfileProject): string {
-  return ACCENT_COLORS[hashCode(project.id || project.name) % ACCENT_COLORS.length]!
-}
 </script>
 
 <template>
@@ -97,8 +93,8 @@ function accentFor(project: ProfileProject): string {
           class="group flex items-center gap-3 px-3 py-2.5 -mx-1 rounded-lg hover:bg-muted transition-colors"
         >
           <div
-            class="flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
-            :style="{ backgroundColor: accentFor(project) + '14', color: accentFor(project) }"
+            class="swatch flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
+            :style="{ '--swatch': accentFor(project) }"
           >
             <UIcon
               :name="`i-lucide-${project.icon || 'folder'}`"
@@ -109,8 +105,8 @@ function accentFor(project: ProfileProject): string {
             <div class="flex items-center gap-1.5">
               <span class="text-sm font-semibold text-default group-hover:text-primary transition-colors truncate">{{ project.name }}</span>
               <span
-                class="font-mono text-2xs font-bold px-1 py-0.5 rounded-md tracking-wide shrink-0"
-                :style="{ backgroundColor: accentFor(project) + '14', color: accentFor(project) }"
+                class="swatch font-mono text-2xs font-bold px-1 py-0.5 rounded-md tracking-wide shrink-0"
+                :style="{ '--swatch': accentFor(project) }"
               >{{ project.key }}</span>
             </div>
             <span class="text-xs text-dimmed">{{ project.openCards }} open {{ project.openCards === 1 ? 'card' : 'cards' }}</span>

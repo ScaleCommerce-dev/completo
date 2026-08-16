@@ -17,7 +17,6 @@ const ariaLabel = computed(() => `Priority: ${priorityLabel(props.priority || 'm
 // Reversed: urgent first, because a menu you open to escalate should not make
 // you travel past Low to reach Urgent.
 const options = computed<FieldMenuOption[]>(() => PRIORITIES.slice().reverse().map(p => ({
-  key: p.value,
   label: p.label,
   checked: props.priority === p.value,
   icon: p.icon,

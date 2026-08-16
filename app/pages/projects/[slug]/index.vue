@@ -581,10 +581,8 @@ function cancelDeleteTag() {
               :key="view.id"
               class="group relative"
             >
-              <div
-                class="relative rounded-xl border border-default bg-default p-4 group-hover:border-primary/60 group-hover:shadow-float transition-colors"
-                :style="{ borderLeftWidth: '3px', borderLeftColor: ACCENT_COLORS[hashCode(view.id) % ACCENT_COLORS.length] }"
-              >
+              <UiAccentBar :color="accentFor(view)" />
+              <div class="relative rounded-xl border border-default bg-default p-4 group-hover:border-primary/60 group-hover:shadow-float transition-colors">
                 <UTooltip
                   v-if="canDeleteView(view)"
                   :text="`Delete ${view._type}`"
@@ -603,8 +601,8 @@ function cancelDeleteTag() {
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center gap-3">
                     <div
-                      class="flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
-                      :style="{ backgroundColor: ACCENT_COLORS[hashCode(view.id) % ACCENT_COLORS.length] + '12', color: ACCENT_COLORS[hashCode(view.id) % ACCENT_COLORS.length] }"
+                      class="swatch flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
+                      :style="{ '--swatch': accentFor(view) }"
                     >
                       <UIcon
                         :name="view._type === 'board' ? 'i-lucide-layout-dashboard' : 'i-lucide-list'"

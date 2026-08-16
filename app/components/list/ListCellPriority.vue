@@ -31,14 +31,11 @@ const resting = computed(() => isSignalPriority(props.priority)
     @select="emit('select', $event)"
   >
     <template #default="{ label }">
-      <!-- A button, not a div: this was one of five inline list editors that were
-         unreachable by keyboard because the popover trigger had no tabindex. -->
-      <button
-        type="button"
-        :aria-label="label"
-        class="flex items-center gap-1 text-sm font-medium rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-cell"
+      <ListCellTrigger
+        :label="label"
+        chevron-class=""
+        class="gap-1 text-sm font-medium"
         :class="[priorityTextClass(priority), resting, priority === 'urgent' ? 'priority-urgent-pulse' : '']"
-        @click.stop
       >
         <UIcon
           :name="priorityIcon(priority)"
@@ -53,11 +50,7 @@ const resting = computed(() => isSignalPriority(props.priority)
           to 72px and dropped this one menu 27px below its neighbours'.
         -->
         <span>{{ priorityLabel(priority) }}</span>
-        <UIcon
-          name="i-lucide-chevron-down"
-          class="text-2xs shrink-0 opacity-0 group-hover:opacity-60 transition-opacity"
-        />
-      </button>
+      </ListCellTrigger>
     </template>
   </PriorityMenu>
 </template>

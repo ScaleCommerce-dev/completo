@@ -292,16 +292,17 @@ const invitationColumns: TableColumn<PendingInvitation>[] = [
 ]
 
 /**
- * One table vocabulary in the app: these are ListView's header and cell metrics, so the
- * admin tables and the project list views describe a row the same way. UTable's own
- * defaults are a step looser (`px-4 py-3.5`, sentence-case `text-sm` headers) than a
- * dense instrument panel wants.
+ * Padding and header treatment come from `app/utils/table.ts`, which ListView
+ * reads too — UTable's own defaults are a step looser than a dense instrument
+ * panel wants. The cell *type* is this table's own: `text-sm` because an admin
+ * table is a read-only report, where a list view is an editing surface at
+ * `text-base`. The comment that used to sit here claimed both matched.
  */
 const TABLE_UI = {
   base: 'min-w-full',
   thead: 'bg-muted',
-  th: 'px-3 py-2 text-xs font-bold uppercase tracking-label text-dimmed whitespace-nowrap',
-  td: 'px-3 py-2 text-sm text-default align-middle',
+  th: `${TABLE_CELL_PAD} ${TABLE_HEAD_LABEL} text-dimmed whitespace-nowrap`,
+  td: `${TABLE_CELL_PAD} text-sm text-default align-middle`,
   tr: 'transition-colors hover:bg-muted/60'
 }
 </script>

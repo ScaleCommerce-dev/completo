@@ -63,14 +63,12 @@ const isCurrent = (view: View) => view.slug === props.viewSlug || view.id === pr
 
 const viewOptions = computed<FieldMenuOption[]>(() => [
   ...(props.boards || []).map(board => ({
-    key: `board:${board.id}`,
     label: board.name,
     checked: props.viewKind === 'board' && isCurrent(board),
     icon: KIND_ICON.board,
     onSelect: () => navigateTo(`/projects/${props.projectSlug}/boards/${board.slug || board.id}`)
   })),
   ...(props.lists || []).map(list => ({
-    key: `list:${list.id}`,
     label: list.name,
     checked: props.viewKind === 'list' && isCurrent(list),
     icon: KIND_ICON.list,

@@ -40,7 +40,6 @@ const { copiedState, copyUrl, copyId } = useCopyTicketId(
   () => props.cardId
 )
 
-const iconSize = computed(() => variant.value === 'pill' ? 'text-xs' : 'text-xs')
 const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-right-10')
 </script>
 
@@ -74,7 +73,7 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
           >
             <UIcon
               :name="copiedState === 'url' ? 'i-lucide-check' : 'i-lucide-link'"
-              :class="iconSize"
+              class="text-xs"
             />
           </button>
         </UTooltip>
@@ -87,7 +86,7 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
           >
             <UIcon
               :name="copiedState === 'id' ? 'i-lucide-check' : 'i-lucide-file-type'"
-              :class="iconSize"
+              class="text-xs"
             />
           </button>
         </UTooltip>

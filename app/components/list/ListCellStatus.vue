@@ -42,11 +42,10 @@ const emit = defineEmits<{
     @select="emit('select', $event)"
   >
     <template #default="{ label }">
-      <button
-        type="button"
-        :aria-label="label"
-        class="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer max-w-full min-h-cell"
-        @click.stop
+      <ListCellTrigger
+        :label="label"
+        :chevron="!!status"
+        class="gap-1.5 max-w-full"
       >
         <template v-if="status">
           <UiStatusDot
@@ -54,16 +53,12 @@ const emit = defineEmits<{
             size="sm"
           />
           <span class="text-toned truncate text-sm">{{ status.name }}</span>
-          <UIcon
-            name="i-lucide-chevron-down"
-            class="text-2xs shrink-0 text-dimmed opacity-0 group-hover:opacity-60 transition-opacity"
-          />
         </template>
         <span
           v-else
           :class="EMPTY_CELL_CLASS"
         >&mdash;</span>
-      </button>
+      </ListCellTrigger>
     </template>
   </StatusMenu>
 </template>

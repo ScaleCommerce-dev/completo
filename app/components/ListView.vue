@@ -222,35 +222,9 @@ const sortedCards = computed(() => {
 // continues — a truncated name reads as a truncated name, not as "scroll right".
 // Only the edge that actually has content beyond it fades, so a table that fits
 // shows nothing.
-const scroller = ref<HTMLElement>()
-const fadeStart = ref(0)
-const fadeEnd = ref(0)
-
-const fadeStyle = computed(() => ({
-  '--board-fade-start': `${fadeStart.value}px`,
-  '--board-fade-end': `${fadeEnd.value}px`
-}))
-
-function updateFade() {
-  const el = scroller.value
-  if (!el) return
-  const max = el.scrollWidth - el.clientWidth
-  fadeStart.value = el.scrollLeft > 4 ? 28 : 0
-  fadeEnd.value = el.scrollLeft < max - 4 ? 28 : 0
-}
-
-onMounted(() => {
-  updateFade()
-  const el = scroller.value
-  if (!el || typeof ResizeObserver === 'undefined') return
-  const ro = new ResizeObserver(updateFade)
-  ro.observe(el)
-  onBeforeUnmount(() => ro.disconnect())
-})
-
 // Columns are added and removed from the settings dialog, which changes the
 // table's width without resizing the scroller.
-watch(() => props.columns.length, () => nextTick(updateFade))
+const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.length)
 </script>
 
 <template>
@@ -285,7 +259,7 @@ watch(() => props.columns.length, () => nextTick(updateFade))
             v-for="col in columns"
             :key="col.id"
             scope="col"
-            class="px-3 py-2 whitespace-nowrap select-none align-middle group/th text-dimmed"
+            :class="`${TABLE_CELL_PAD} whitespace-nowrap select-none align-middle group/th text-dimmed`"
             :aria-sort="localSortField === col.field
               ? (localSortDirection === 'asc' ? 'ascending' : 'descending')
               : (SORTABLE_FIELDS.has(col.field) ? 'none' : undefined)"
@@ -297,8 +271,9 @@ watch(() => props.columns.length, () => nextTick(updateFade))
             <component
               :is="SORTABLE_FIELDS.has(col.field) ? 'button' : 'span'"
               :type="SORTABLE_FIELDS.has(col.field) ? 'button' : undefined"
-              class="inline-flex items-center gap-1 rounded-md text-xs font-bold uppercase tracking-label"
+              class="inline-flex items-center gap-1 rounded-md"
               :class="[
+                TABLE_HEAD_LABEL,
                 col.field === 'done' ? 'flex justify-center w-full min-h-[1lh] translate-y-px' : '',
                 SORTABLE_FIELDS.has(col.field)
                   ? `cursor-pointer transition-colors hover:text-toned ${localSortField === col.field ? 'text-primary' : ''}`
