@@ -415,7 +415,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
             type="text"
             aria-label="Search people, or enter an email to invite"
             placeholder="Search by name or enter email to invite..."
-            class="w-full text-base text-highlighted placeholder:text-dimmed bg-muted border border-default rounded-lg px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-colors"
+            class="w-full text-base text-highlighted placeholder:text-dimmed bg-muted border border-default rounded-lg px-3 py-2 transition-colors"
             @focus="searchQuery.trim().length >= 2 && (showResults = true)"
             @blur="onInputBlur"
             @keydown="onInputKeydown"

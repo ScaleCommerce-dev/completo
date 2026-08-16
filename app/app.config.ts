@@ -49,9 +49,16 @@ export default defineAppConfig({
     // The disabled opacity is deliberately lower than the theme's 0.75: at that
     // value a solid primary button still reads as active, which matters most on
     // the Save buttons that stay disabled until something is actually dirty.
+    // `focus-visible:ring-accented` names the *resting* ring, so focus does not
+    // change it. Focus is stated on text entry only (see the FOCUS block in
+    // `main.css`), and the outline half of Nuxt UI's treatment is reset there —
+    // but the ring half is a `box-shadow`, which no reset can generically undo,
+    // and the theme's own `focus-visible:ring-inverted` took the ring on the
+    // bordered variants from a light hairline to near-black. That was the only
+    // focus marker left on a non-text control anywhere in the app.
     button: {
       slots: {
-        base: 'rounded-lg font-semibold disabled:opacity-45 aria-disabled:opacity-45'
+        base: 'rounded-lg font-semibold disabled:opacity-45 aria-disabled:opacity-45 focus-visible:ring-accented'
       },
       defaultVariants: {
         size: 'md'

@@ -194,7 +194,7 @@ const countLabel = computed(() =>
     <div class="p-2 shrink-0">
       <div
         v-if="composing"
-        class="rounded-lg border border-accented bg-default p-2 shadow-raise"
+        class="rounded-lg border border-accented focus-within:border-primary bg-default p-2 shadow-raise"
       >
         <textarea
           ref="draftInput"
@@ -202,7 +202,7 @@ const countLabel = computed(() =>
           rows="2"
           :aria-label="`Add a card to ${column.name}`"
           :placeholder="`Add to ${column.name}...`"
-          class="w-full resize-none bg-transparent text-sm leading-snug text-highlighted placeholder:text-dimmed border-0 p-0 focus:outline-none"
+          class="w-full resize-none bg-transparent text-sm leading-snug text-highlighted placeholder:text-dimmed border-0 p-0"
           @keydown.enter.exact.prevent="commitDraft(true)"
           @keydown.esc.stop.prevent="cancelComposing"
           @blur="commitDraft(false)"

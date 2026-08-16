@@ -277,12 +277,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               :aria-label="`${viewType === 'board' ? 'Board' : 'List'} name`"
               :placeholder="`${viewType === 'board' ? 'Board' : 'List'} name...`"
               autofocus
-              class="w-full text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-name leading-snug py-2 transition-colors"
+              class="w-full text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent rounded-none tracking-name leading-snug py-2 transition-colors"
             >
           </div>
 
           <div class="mx-5 mt-4 rounded-lg border border-accented divide-y divide-default overflow-hidden">
-            <div class="flex items-center px-3 py-2.5 bg-default">
+            <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
               <div class="flex items-center gap-2 w-28 shrink-0">
                 <UIcon
                   name="i-lucide-link"
@@ -296,7 +296,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                   type="text"
                   aria-label="URL slug"
                   placeholder="my-view"
-                  class="flex-1 text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border-0 tracking-wide"
+                  class="flex-1 min-w-0 text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border-0 tracking-wide"
                   @input="onSlugInput"
                 >
                 <UIcon

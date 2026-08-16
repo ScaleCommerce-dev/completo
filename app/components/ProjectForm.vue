@@ -221,7 +221,7 @@ function confirmDelete() {
         aria-label="Project name"
         placeholder="Project name..."
         autofocus
-        class="w-full text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-name leading-snug py-2 transition-colors"
+        class="w-full text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent rounded-none tracking-name leading-snug py-2 transition-colors"
       >
     </div>
 
@@ -232,7 +232,7 @@ function confirmDelete() {
         aria-label="Project description"
         placeholder="What is this project about?"
         rows="2"
-        class="w-full text-base text-toned placeholder:text-dimmed bg-muted border border-default rounded-lg px-3 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-colors resize-none leading-relaxed"
+        class="w-full text-base text-toned placeholder:text-dimmed bg-muted border border-default rounded-lg px-3 py-2.5 transition-colors resize-none leading-relaxed"
       />
     </div>
 
@@ -268,7 +268,7 @@ function confirmDelete() {
           aria-label="Project briefing"
           placeholder="Describe the project scope, tech stack, conventions, goals... This context helps AI write better card descriptions."
           rows="6"
-          class="w-full text-base text-toned placeholder:text-dimmed bg-muted border border-default rounded-lg px-3 py-2.5 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/10 transition-colors resize-none leading-relaxed"
+          class="w-full text-base text-toned placeholder:text-dimmed bg-muted border border-default rounded-lg px-3 py-2.5 focus:border-secondary transition-colors resize-none leading-relaxed"
         />
       </template>
     </div>
@@ -279,7 +279,7 @@ function confirmDelete() {
       <ProjectIconPicker v-model="formIcon" />
 
       <!-- Key row -->
-      <div class="flex items-center px-3 py-2.5 bg-default">
+      <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
         <div class="flex items-center gap-2 w-28 shrink-0">
           <UIcon
             name="i-lucide-key-round"
@@ -294,7 +294,7 @@ function confirmDelete() {
             aria-label="Project key"
             placeholder="ENG"
             maxlength="5"
-            class="flex-1 text-base font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 uppercase tracking-wide"
+            class="flex-1 min-w-0 text-base font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 uppercase tracking-wide"
             @input="onKeyInput"
           >
           <span
@@ -324,7 +324,7 @@ function confirmDelete() {
       </div>
 
       <!-- Slug row -->
-      <div class="flex items-center px-3 py-2.5 bg-default">
+      <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
         <div class="flex items-center gap-2 w-28 shrink-0">
           <UIcon
             name="i-lucide-link"
@@ -338,7 +338,7 @@ function confirmDelete() {
             type="text"
             aria-label="URL slug"
             placeholder="my-project"
-            class="flex-1 text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border-0 tracking-wide"
+            class="flex-1 min-w-0 text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border-0 tracking-wide"
             @input="onSlugInput"
           >
           <UIcon
@@ -360,7 +360,7 @@ function confirmDelete() {
       </div>
 
       <!-- Done status row — inline retention -->
-      <div class="flex items-center px-3 py-2.5 bg-default">
+      <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
         <div class="flex items-center gap-2 w-28 shrink-0">
           <UIcon
             name="i-lucide-circle-check-big"
@@ -374,7 +374,7 @@ function confirmDelete() {
             v-if="mode === 'create'"
             v-model="doneStatusName"
             aria-label="Done status"
-            class="text-base font-medium text-highlighted bg-transparent border-0 outline-none cursor-pointer"
+            class="text-base font-medium text-highlighted bg-transparent border-0 cursor-pointer"
           >
             <option
               v-for="col in defaultStatusNames"
@@ -395,7 +395,7 @@ function confirmDelete() {
               v-else
               :value="doneStatusId || ''"
               aria-label="Done status"
-              class="text-base font-medium text-highlighted bg-transparent border-0 outline-none cursor-pointer"
+              class="text-base font-medium text-highlighted bg-transparent border-0 cursor-pointer"
               @change="doneStatusId = ($event.target as HTMLSelectElement).value || null"
             >
               <option value="">
@@ -419,7 +419,7 @@ function confirmDelete() {
               aria-label="Days to keep done cards"
               min="1"
               placeholder="∞"
-              class="w-12 text-sm font-semibold text-center text-highlighted placeholder:text-dimmed bg-elevated border-0 rounded-md py-0.5"
+              class="w-12 text-sm font-semibold text-center text-highlighted placeholder:text-dimmed bg-elevated border border-transparent rounded-md py-0.5"
               @input="doneRetentionDays = ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null"
             >
             <span class="text-xs font-medium text-dimmed uppercase tracking-wider">days</span>

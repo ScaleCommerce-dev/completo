@@ -614,16 +614,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         author name for 358px is containment: the walker is one bordered tray,
         not four buttons, and the author's name truncates rather than competing.
 
-        `outline-none!` with the bang, which is why the title fields below carry
-        one too: the app's focus ring is an *unlayered* `:focus-visible` rule in
-        main.css, and unlayered CSS beats Tailwind's layered utilities whatever
-        their specificity. Only `!important` gets past it, and a `tabindex="-1"`
-        container is never a keyboard destination so it never wants the ring.
+        This carried `outline-none!` for as long as the app drew a ring on every
+        focusable thing: the rule was unlayered, so only `!important` got past
+        it, and a `tabindex="-1"` scroll target is never a keyboard destination.
+        Focus is now stated on text entry alone (see the FOCUS block in
+        main.css), so there is no ring here to suppress and the bang is gone.
       -->
       <div
         ref="panelTop"
         tabindex="-1"
-        class="flex items-center gap-2.5 min-w-0 h-7 -mr-1.5 outline-none!"
+        class="flex items-center gap-2.5 min-w-0 h-7 -mr-1.5"
       >
         <!-- Identity: the card's immutable facts. The editable properties sit
              below; keeping authorship here rather than as a sixth chip among
@@ -770,7 +770,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         rows="1"
         :aria-label="isEdit ? 'Card title' : 'New card title'"
         placeholder="Card title..."
-        class="w-full mt-1.5 text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-name leading-snug py-1.5 transition-colors resize-none overflow-hidden"
+        class="w-full mt-1.5 text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent rounded-none tracking-name leading-snug py-1.5 transition-colors resize-none overflow-hidden"
         @input="resizeTitle"
         @blur="flushTitle"
         @keydown.enter.prevent="isEdit ? flushTitle() : submit()"

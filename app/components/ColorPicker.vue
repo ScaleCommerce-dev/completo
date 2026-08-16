@@ -69,7 +69,7 @@ function onHexBlur() {
         aria-label="Hex colour"
         placeholder="#000000"
         maxlength="7"
-        class="flex-1 min-w-0 text-xs font-mono text-default placeholder:text-dimmed bg-muted border border-default rounded-md px-2 py-1 outline-none focus:border-primary transition-colors"
+        class="flex-1 min-w-0 text-xs font-mono text-default placeholder:text-dimmed bg-muted border border-default rounded-md px-2 py-1 transition-colors"
         @input="onHexInput"
         @blur="onHexBlur"
         @keydown.enter.prevent="onHexBlur"

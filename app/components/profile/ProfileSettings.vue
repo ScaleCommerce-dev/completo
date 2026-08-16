@@ -54,7 +54,7 @@ function formatDate(iso: string): string {
             type="text"
             aria-label="Display name"
             placeholder="Your name..."
-            class="w-full text-lg font-bold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b-2 border-transparent hover:border-default focus:border-primary/40 rounded-none outline-none! ring-0! tracking-heading leading-tight py-0.5 transition-colors"
+            class="w-full text-lg font-bold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent hover:not-focus-visible:border-default rounded-none tracking-heading leading-tight py-0.5 transition-colors"
           >
           <div class="flex items-center gap-1.5 mt-1">
             <UIcon
@@ -126,7 +126,7 @@ function formatDate(iso: string): string {
         <!-- Avatar URL row: no Gravatar or overriding -->
         <div
           v-else-if="hasGravatar === false || gravatarOverride"
-          class="flex items-center px-3 py-2.5 bg-default"
+          class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary"
         >
           <label
             for="profile-avatar-url"
@@ -144,7 +144,7 @@ function formatDate(iso: string): string {
               v-model="profileAvatarUrl"
               type="text"
               placeholder="https://..."
-              class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
+              class="flex-1 min-w-0 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
             >
             <button
               v-if="gravatarOverride"

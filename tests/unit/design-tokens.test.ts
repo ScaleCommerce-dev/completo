@@ -456,41 +456,233 @@ describe('one utility per property', () => {
 })
 
 /**
- * Suppressing the focus ring is opting out of being reachable.
+ * Focus lands on text entry, and only there.
  *
- * `main.css` declares one ring as an *unlayered* `:focus-visible` rule, which
- * beats any layered utility whatever its specificity — so `outline-none!` needs
- * the bang, and the bang is the whole tell that a control is opting out. The
- * FOCUS section claimed the ~20 opt-outs were gone while 20 were live, twelve of
- * them on real text inputs — three of those password fields — with nothing in
- * their place. Keyboard focus was simply invisible there.
+ * The app used to draw one 2px ring on everything focusable, from an *unlayered*
+ * `:focus-visible` rule — which meant it did not sit under the components, it
+ * overrode them. Every `UInput` drew two concentric boxes (Nuxt UI's own soft
+ * halo plus this one); the command palette got a hard box round an input that
+ * sets `focus:outline-none` on purpose; the markdown editor got a second box
+ * round its textarea, clipped by the shell's `overflow-hidden`; and the rule's
+ * `border-radius` mutated the element, so every `rounded-full` control snapped
+ * to a 6px square on focus. Twenty `outline-none` opt-outs were written against
+ * it and every one was dead code, because unlayered beats `@layer utilities`.
  *
- * The exemption is structural rather than a list of files: a `tabindex="-1"`
- * element is never a keyboard destination, so it never wants the ring. Anything
- * else that suppresses has to say what it shows instead, which is what the
- * FOCUS section means by "it opts in, it does not opt out".
+ * What replaced it is one sentence: **the boundary a text field already has
+ * turns primary**. A boxed field has a border; a seamless title reserves a
+ * transparent one; a composite control (the markdown editor, the quick-add card,
+ * the mention popover) states it on the shell that owns the boundary. Nuxt UI's
+ * inputs draw their boundary as a `ring-inset` and colour it themselves.
+ *
+ * These guard both directions, which is what the old one could not do — it only
+ * asked whether an opt-out had a replacement, so the twenty dead `outline-none`
+ * and the two rings on every `UInput` were all invisible to it.
  */
-describe('focus is never suppressed silently', () => {
-  const SUPPRESSORS = /(^|\s)(outline-none!|ring-0!)(\s|$)/
-  const REPLACEMENT = /focus(-visible)?:(border|ring|bg|outline|shadow)/
+describe('focus lands on text entry, and only there', () => {
+  /** Utilities that paint a focus marker. `opacity` is excluded on purpose: a
+   *  control that fades in on focus is the control appearing, not a ring. */
+  const PAINTS_ON_FOCUS = /(^|[\s"'`])focus(-visible|-within)?:(border|ring|outline|shadow|bg)[\w./[\]-]*/g
+  /** The two exceptions, each a colour the app already reserves for a meaning:
+   *  `error` for the type-the-name-to-delete confirmations, `secondary` for the
+   *  agent-briefing field on a section already labelled violet. */
+  const NAMED_EXCEPTIONS = /^focus:border-(error(\/\d+)?|secondary)$/
+  /** Where a field owns no line of its own, the thing that owns one states focus
+   *  for it — still a border, because focus is never a fill. Two structures:
+   *  a composite control (markdown editor, quick-add card, mention popover) has
+   *  a shell; and a field that is a *cell* in a row-table has the row, whose
+   *  separator is the line beneath it. The row-tables dropped `divide-y` for
+   *  exactly this: a separator drawn as the *next* row's top border cannot be
+   *  reached by the focused row, so each row now draws the line beneath itself. */
+  const SHELL = /^focus-within:border-primary$/
 
-  it('every focus opt-out is unreachable or offers a replacement', () => {
-    const offenders: string[] = []
-    for (const file of vueFiles()) {
-      const lines = markup(file).split('\n')
-      lines.forEach((line, i) => {
-        for (const quoted of line.match(/'[^']*'|"[^"]*"/g) || []) {
-          const s = quoted.slice(1, -1)
-          if (!SUPPRESSORS.test(s)) continue
-          if (REPLACEMENT.test(s)) continue
-          // The element's own attributes, which span a few lines either way.
-          const near = lines.slice(Math.max(0, i - 8), i + 4).join('\n')
-          if (/tabindex="-1"/.test(near)) continue
-          offenders.push(`${file.replace(ROOT + '/', '')}:${i + 1}`)
-        }
-      })
+  /** Focus utilities in `src` that are neither a shell nor a named exception. */
+  function strayMarkers(src: string): string[] {
+    return src.split('\n').flatMap((line, i) =>
+      [...line.matchAll(PAINTS_ON_FOCUS)]
+        // The match carries its leading boundary character, which is a quote as
+        // often as a space — the utility that opens a `class="` attribute.
+        .map(m => m[0].replace(/^[\s"'`]+/, ''))
+        .filter(util => !SHELL.test(util) && !NAMED_EXCEPTIONS.test(util))
+        .map(util => `${i + 1}  ${util}`))
+  }
+
+  /** Text controls in `src` with no edge for `main.css` to colour. */
+  function edgelessFields(src: string): number[] {
+    const CONTROL_TYPES = /type="(checkbox|radio|file|submit|button|reset|image|hidden)"/
+    // The component owns something that states focus for its fields — a
+    // composite control's shell, or a row-table row. Scoped to the file rather
+    // than to nearby lines: `MarkdownEditor` declares its shell at the top of
+    // the template and its textarea ~150 lines below, so any proximity window
+    // wide enough to catch that is wide enough to be noise.
+    if (/focus-within:border-primary/.test(src)) return []
+
+    const out: number[] = []
+    for (const m of src.matchAll(/<(input|textarea)\b/g)) {
+      const end = src.indexOf('>', m.index!)
+      const tag = src.slice(m.index!, end === -1 ? m.index! + 700 : end)
+      if (CONTROL_TYPES.test(tag)) continue
+
+      const tokens = (tag.match(/class="([\s\S]*?)"/)?.[1] ?? '').split(/\s+/)
+      // Its own edge: a full border, or a reserved single side. `border-0` is
+      // the absence of one, and `border-transparent` is a colour, not a width.
+      if (tokens.some(t => /^border(-[btlrxy])?(-\d+)?$/.test(t) && t !== 'border-0')) continue
+
+      out.push(src.slice(0, m.index!).split('\n').length)
     }
-    expect(offenders, 'these are keyboard destinations with no visible focus').toEqual([])
+    return out
+  }
+
+  it('no markup paints a focus marker except the shells and the two named colours', () => {
+    const offenders = vueFiles().flatMap(f =>
+      strayMarkers(markup(f)).map(hit => `${f.replace(ROOT + '/', '')}:${hit}`))
+    expect(offenders, 'focus is stated once, in main.css — not per element').toEqual([])
+  })
+
+  it('nothing suppresses focus, because there is nothing left to suppress', () => {
+    // `outline-none` and `ring-0!` were written to fight the old blanket ring —
+    // and twenty of them were dead code, because unlayered CSS beat them. The
+    // reset in `main.css` clears every outline already, so a new one means
+    // someone is fighting the system rather than using it.
+    const offenders = vueFiles().flatMap((f) => {
+      const lines = markup(f).split('\n')
+      return lines.flatMap((line, i) =>
+        /(^|\s)(outline-none!?|ring-0!)(\s|"|')/.test(line) ? [`${f.replace(ROOT + '/', '')}:${i + 1}`] : [])
+    })
+    expect(offenders, 'the reset already clears these').toEqual([])
+  })
+
+  it('every text field has a boundary that can turn primary', () => {
+    // The half of the invariant the markup owns. `main.css` colours a border it
+    // cannot create: an input with `border-0` and no reserved edge shows nothing
+    // at all on focus, which is exactly how fourteen fields — three of them
+    // password fields — ended up with no focus state under the old ring too.
+    const offenders = vueFiles().flatMap(f =>
+      edgelessFields(markup(f)).map(line => `${f.replace(ROOT + '/', '')}:${line}`))
+    expect(offenders, 'these fields have no edge to colour, so focus shows nothing').toEqual([])
+  })
+
+  /** Fields that draw a line *and* sit in something drawing one for them. */
+  function doubledFields(src: string): number[] {
+    const out: number[] = []
+    for (const m of src.matchAll(/<(input|textarea)\b/g)) {
+      const end = src.indexOf('>', m.index!)
+      const tag = src.slice(m.index!, end === -1 ? m.index! + 700 : end)
+      if (!/border-b border-transparent/.test(tag)) continue
+      // The element that wraps it, which for a row-table row or an inline chip
+      // is within a few lines. Deliberately narrow: a shell further away in the
+      // file belongs to some other field, which is the shape of every false
+      // positive here — three seamless titles whose component also owns a table.
+      const above = src.slice(0, m.index!).split('\n').slice(-6).join('\n')
+      if (/focus-within:border-primary/.test(above)) {
+        out.push(src.slice(0, m.index!).split('\n').length)
+      }
+    }
+    return out
+  }
+
+  it('no field draws a line and sits in something drawing one for it', () => {
+    // The API token field reserved its own underline *and* sat in a row that
+    // states focus, so focusing it drew two lines a row apart. Whichever owns
+    // the boundary states it — never both.
+    const offenders = vueFiles().flatMap(f =>
+      doubledFields(markup(f)).map(line => `${f.replace(ROOT + '/', '')}:${line}`))
+    expect(offenders, 'two lines for one focus').toEqual([])
+  })
+
+  /** `flex-1` text controls that can still refuse to shrink. */
+  function unshrinkableFields(src: string): number[] {
+    const out: number[] = []
+    for (const m of src.matchAll(/<(input|textarea)\b/g)) {
+      const end = src.indexOf('>', m.index!)
+      const tag = src.slice(m.index!, end === -1 ? m.index! + 900 : end)
+      const toks = (tag.match(/class="([\s\S]*?)"/)?.[1] ?? '').split(/\s+/)
+      if (!toks.includes('flex-1')) continue
+      if (toks.includes('min-w-0') || toks.includes('w-full')) continue
+      out.push(src.slice(0, m.index!).split('\n').length)
+    }
+    return out
+  }
+
+  it('a flex-1 field can actually shrink', () => {
+    // Not a focus rule, but this is how the focus border surfaced it. A flex
+    // item defaults to `min-width: auto`, and an `<input>`'s intrinsic width is
+    // its ~20-character `size`, so `flex-1` alone does not let it shrink. The
+    // add-status and add-tag fields sat in a `w-52` popover and overflowed its
+    // right edge by 20px — invisible until a focused border was drawn crossing
+    // the panel wall.
+    const offenders = vueFiles().flatMap(f =>
+      unshrinkableFields(markup(f)).map(line => `${f.replace(ROOT + '/', '')}:${line}`))
+    expect(offenders, 'flex-1 without min-w-0 overflows a narrow container').toEqual([])
+  })
+
+  it('recognises each violation when it sees one', () => {
+    expect(unshrinkableFields('<input class="flex-1 px-2">')).toHaveLength(1)
+    expect(unshrinkableFields('<input class="flex-1 min-w-0 px-2">')).toHaveLength(0)
+    expect(unshrinkableFields('<input class="w-full px-2">')).toHaveLength(0)
+
+    expect(doubledFields('<div class="focus-within:border-primary">\n<input class="border-0 border-b border-transparent">')).toHaveLength(1)
+    // A shell far above belongs to a different field, not to this one.
+    expect(doubledFields('<div class="focus-within:border-primary" />' + '\n'.repeat(9) + '<input class="border-0 border-b border-transparent">')).toHaveLength(0)
+
+    // All three guards above report an empty array either way, so each needs a
+    // synthetic case to prove the mechanism still bites — otherwise a typo in a
+    // regex retires the guard silently and the file still reads as protected.
+    expect(strayMarkers('<div class="focus-visible:ring-2 ring-primary" />')).toHaveLength(1)
+    expect(strayMarkers('<input class="focus:border-primary">')).toHaveLength(1)
+    expect(strayMarkers('<div class="focus-within:ring-1" />')).toHaveLength(1)
+    // …and passes the shapes that are legitimately there.
+    expect(strayMarkers('<div class="focus-within:border-primary" />')).toHaveLength(0)
+    // Focus is never a fill — a background was tried for the row-tables and
+    // dropped, because it made a second visual language out of one sentence.
+    expect(strayMarkers('<div class="focus-within:bg-elevated" />')).toHaveLength(1)
+    expect(strayMarkers('<input class="focus:border-error/60">')).toHaveLength(0)
+    expect(strayMarkers('<textarea class="focus:border-secondary" />')).toHaveLength(0)
+    expect(strayMarkers('<button class="focus-visible:opacity-100" />')).toHaveLength(0)
+
+    expect(edgelessFields('<input class="bg-transparent border-0">')).toHaveLength(1)
+    expect(edgelessFields('<textarea class="p-2" />')).toHaveLength(1)
+    // A reserved edge, a full border, and a shell each satisfy it.
+    expect(edgelessFields('<input class="border-0 border-b border-transparent">')).toHaveLength(0)
+    expect(edgelessFields('<input class="border border-default">')).toHaveLength(0)
+    expect(edgelessFields('<div class="focus-within:border-primary"><textarea /></div>')).toHaveLength(0)
+    // Controls carry their focus in their type, not in a border.
+    expect(edgelessFields('<input type="checkbox" class="size-4">')).toHaveLength(0)
+  })
+})
+
+describe('the focus rules in main.css', () => {
+  const css = readFileSync(join(ROOT, 'app/assets/css/main.css'), 'utf8')
+
+  it('clears the outline on pseudo-elements too', () => {
+    // Nuxt UI's `UNavigationMenu` hangs its focus halo on a `::before` rather
+    // than on the link, so a reset that only names the element leaves the whole
+    // sidebar ringed. Found by auditing the live DOM, not by reading the theme.
+    const reset = css.match(/\*:focus-visible[\s\S]{0,120}?\{[^}]*\}/)?.[0] ?? ''
+    expect(reset, 'the reset must reach ::before').toMatch(/::before/)
+    expect(reset).toMatch(/outline:\s*none/)
+  })
+
+  it('keeps the text-entry rule between a resting border and a per-field override', () => {
+    // The rule has to beat `.border-default` (0,1,0) and lose to
+    // `.focus\:border-error\/60:focus` (0,2,0), which puts it at (0,1,1) — one
+    // element plus one pseudo-class, and nothing else that counts.
+    //
+    // Both halves of that have already been got wrong here. In `@layer base` it
+    // lost to the resting `border-default` on every field in the app and did
+    // nothing, which is indistinguishable from working if you only test a field
+    // that has no border class. And a bare `:not([type="checkbox"], …)` adds
+    // (0,1,0) of its own, landing the rule at (0,2,1) — beating the per-field
+    // overrides it exists to lose to. `:where()` is what zeroes it.
+    const rule = css.match(/@layer utilities \{[\s\S]*?input:not\([\s\S]*?\}\s*\}/)?.[0]
+    expect(rule, 'the text-entry rule must be in @layer utilities').toBeDefined()
+    expect(rule!, 'the :not() must be wrapped in :where() to stay at (0,1,1)')
+      .toMatch(/input:not\(:where\(/)
+    expect(rule!).toMatch(/border-color:\s*var\(--ui-primary\)/)
+
+    // And it must not have grown a second declaration: the whole point is that
+    // focus is a border colour, so nothing reflows and nothing clips.
+    const body = rule!.slice(rule!.lastIndexOf('{') + 1, rule!.indexOf('}', rule!.lastIndexOf('{')))
+    expect(body.split(';').filter(d => d.trim()), 'focus is one declaration').toHaveLength(1)
   })
 })
 
@@ -907,13 +1099,10 @@ describe('main.css token layer', () => {
     }
   })
 
-  it('derives the focus ring from the brand rather than a fixed hue', () => {
-    // Read out of the `:focus-visible` rule itself. Matched across the whole
-    // file, this passed on any `outline:` anywhere below the selector, and only
-    // stayed honest because main.css happens to contain exactly one — a
-    // coincidence, not a guard, and one more `outline:` retires it.
-    expect(ruleBlock(css, ':focus-visible')).toMatch(/outline:\s*2px solid var\(--ui-primary\)/)
-  })
+  // The focus ring this used to check is gone — focus is a border colour on text
+  // entry now, and `focus lands on text entry, and only there` above asserts the
+  // same brand-derived property (`var(--ui-primary)`, never a fixed hue) against
+  // the rule that actually exists.
 
   it('honours prefers-reduced-motion', () => {
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)/)

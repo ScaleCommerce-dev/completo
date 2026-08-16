@@ -436,7 +436,7 @@ defineExpose({
                 type="text"
                 aria-label="Image URL"
                 placeholder="https://..."
-                class="flex-1 text-sm text-default placeholder:text-dimmed bg-muted border border-accented rounded-md px-2 py-1.5 outline-none focus:border-primary transition-colors"
+                class="flex-1 min-w-0 text-sm text-default placeholder:text-dimmed bg-muted border border-accented rounded-md px-2 py-1.5 transition-colors"
                 @keydown.enter.prevent="insertUrlImage"
                 @keydown.escape.prevent="closeImagePicker"
               >
@@ -533,7 +533,7 @@ defineExpose({
         v-if="mentionActive"
         class="absolute top-1 left-2 right-2 z-20 rounded-lg border border-default bg-default shadow-float overflow-hidden"
       >
-        <div class="relative border-b border-default">
+        <div class="relative border-b border-default focus-within:border-primary">
           <UIcon
             name="i-lucide-search"
             class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-dimmed"
@@ -543,7 +543,7 @@ defineExpose({
             v-model="mentionSearchQuery"
             aria-label="Search members or cards to mention"
             placeholder="Search members or cards..."
-            class="w-full pl-8 pr-3 py-2.5 text-sm text-default placeholder:text-dimmed bg-transparent border-0 outline-none"
+            class="w-full pl-8 pr-3 py-2.5 text-sm text-default placeholder:text-dimmed bg-transparent border-0"
             @keydown="onMentionKeydown"
           >
         </div>

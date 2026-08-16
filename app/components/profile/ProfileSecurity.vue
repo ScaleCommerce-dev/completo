@@ -36,7 +36,7 @@ async function signOut() {
 
     <div class="mx-5 mt-2 rounded-lg border border-default divide-y divide-default overflow-hidden">
       <!-- Current password -->
-      <div class="flex items-center px-3 py-2.5 bg-default">
+      <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
         <label
           for="password-current"
           class="flex items-center gap-2 w-28 shrink-0 cursor-pointer"
@@ -53,12 +53,12 @@ async function signOut() {
           type="password"
           placeholder="Current password"
           autocomplete="current-password"
-          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
+          class="flex-1 min-w-0 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
         >
       </div>
 
       <!-- New password -->
-      <div class="flex items-center px-3 py-2.5 bg-default">
+      <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
         <label
           for="password-new"
           class="flex items-center gap-2 w-28 shrink-0 cursor-pointer"
@@ -75,12 +75,12 @@ async function signOut() {
           type="password"
           placeholder="New password (min 6 chars)"
           autocomplete="new-password"
-          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
+          class="flex-1 min-w-0 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
         >
       </div>
 
       <!-- Confirm password -->
-      <div class="flex items-center px-3 py-2.5 bg-default">
+      <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
         <label
           for="password-confirm"
           class="flex items-center gap-2 w-28 shrink-0 cursor-pointer"
@@ -97,7 +97,7 @@ async function signOut() {
           type="password"
           placeholder="Confirm new password"
           autocomplete="new-password"
-          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
+          class="flex-1 min-w-0 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
         >
       </div>
     </div>

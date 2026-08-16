@@ -774,7 +774,7 @@ function handleDeleteView() {
             type="text"
             :placeholder="viewName"
             aria-label="Type the view name to confirm deletion"
-            class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-default border border-error/40 rounded-lg px-2.5 py-1.5 outline-none focus:border-error transition-colors"
+            class="flex-1 min-w-0 text-base text-highlighted placeholder:text-dimmed bg-default border border-error/40 rounded-lg px-2.5 py-1.5 focus:border-error transition-colors"
           >
           <UButton
             color="error"

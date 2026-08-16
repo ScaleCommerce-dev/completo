@@ -482,7 +482,7 @@ async function confirmDelete() {
           rows="1"
           aria-label="Card title"
           placeholder="Card title..."
-          class="w-full text-xl font-bold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-name leading-snug py-2 mb-4 transition-colors resize-none overflow-hidden"
+          class="w-full text-xl font-bold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent rounded-none tracking-name leading-snug py-2 mb-4 transition-colors resize-none overflow-hidden"
           @input="resizeTitle"
           @blur="flushTitle"
           @keydown.enter.prevent="flushTitle"

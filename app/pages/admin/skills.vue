@@ -218,7 +218,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
                   v-model="modalName"
                   type="text"
                   placeholder="e.g. Generate Description"
-                  class="w-full px-3 py-2 text-base text-default placeholder:text-dimmed bg-default border border-accented rounded-lg outline-none focus:border-primary transition-colors"
+                  class="w-full px-3 py-2 text-base text-default placeholder:text-dimmed bg-default border border-accented rounded-lg transition-colors"
                 >
               </div>
 
@@ -256,7 +256,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
                   v-model="modalPrompt"
                   rows="6"
                   placeholder="Write a prompt template..."
-                  class="w-full px-3 py-2 text-sm font-mono text-default placeholder:text-dimmed bg-default border border-accented rounded-lg outline-none focus:border-primary transition-colors resize-y leading-relaxed"
+                  class="w-full px-3 py-2 text-sm font-mono text-default placeholder:text-dimmed bg-default border border-accented rounded-lg transition-colors resize-y leading-relaxed"
                 />
                 <p class="text-xs text-dimmed mt-1">
                   Variables: <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{title}</code>

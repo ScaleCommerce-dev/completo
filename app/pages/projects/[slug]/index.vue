@@ -378,7 +378,7 @@ function cancelDeleteTag() {
                   v-model="editingTagName"
                   type="text"
                   aria-label="Tag name"
-                  class="w-24 text-xs font-semibold text-highlighted bg-transparent border-0 py-0"
+                  class="w-24 text-xs font-semibold text-highlighted bg-transparent border-0 border-b border-transparent py-0"
                   @keydown.enter="saveEditTag"
                   @keydown.escape="cancelEditTag"
                 >
@@ -529,7 +529,7 @@ function cancelDeleteTag() {
                       aria-label="Tag name"
                       type="text"
                       placeholder="Tag name..."
-                      class="flex-1 text-sm font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-accented rounded-md px-2 py-1 outline-none! ring-0! focus:border-primary transition-colors"
+                      class="flex-1 min-w-0 text-sm font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-accented rounded-md px-2 py-1 transition-colors"
                       @keydown.enter.prevent="addProjectTag"
                     >
                   </div>
@@ -713,7 +713,7 @@ function cancelDeleteTag() {
               type="text"
               :aria-label="`Type ${deleteViewTarget?.name} to confirm`"
               :placeholder="deleteViewTarget?.name"
-              class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-3 py-2 outline-none focus:border-error/60 transition-colors"
+              class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-3 py-2 focus:border-error/60 transition-colors"
             >
             <div class="flex items-center justify-end gap-2 pt-1">
               <button

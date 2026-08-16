@@ -35,14 +35,14 @@ const {
 
     <!-- Create token form -->
     <div class="mx-5 rounded-lg border border-default overflow-hidden">
-      <div class="flex items-center gap-2 px-3 py-2.5 bg-default">
+      <div class="flex items-center gap-2 px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
         <input
           v-model="tokenName"
           type="text"
           aria-label="Token name"
           placeholder="Token name (e.g. CI Pipeline)"
           maxlength="100"
-          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
+          class="flex-1 min-w-0 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
           @keydown.enter.prevent="createToken"
         >
         <select

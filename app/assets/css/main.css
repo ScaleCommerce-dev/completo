@@ -439,40 +439,113 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    FOCUS
 
-   One visible ring, derived from the brand so it follows any palette change.
-   It used to be a hardcoded `oklch(0.6 0.15 260)` — and was then actively
-   suppressed by ~20 `outline-none! ring-0!` inputs and a global rule that
-   killed outlines inside every list popover.
+   Focus is shown where text is being typed, and nowhere else.
 
-   The popover rule is gone. The blanket suppression took a second pass, and
-   this paragraph claimed it was finished a release too early: twenty opt-outs
-   were still live, twelve of them on real text inputs — three of those password
-   fields — with nothing in their place, so keyboard focus was invisible on
-   exactly the controls that most need it. Those twelve simply dropped the
-   suppression; the ring below is what they get.
+   The previous rule was the opposite — one 2px full-saturation ring on
+   *everything* focusable — and it was unlayered, which is the part that did the
+   damage. Unlayered CSS beats `@layer utilities` at any specificity, so it did
+   not sit under the components; it overrode every focus decision they made:
 
-   What is left is eight deliberate opt-outs, and the rule is that opting out
-   costs you a replacement:
+   - Nuxt UI's entire focus language is a soft `outline-3` at 25% opacity
+     (`outline-primary/25 focus-visible:outline-3`, halo at offset 0). Ours
+     replaced it with a hard 2px line at 2px offset — on top of the 1px inset
+     ring the component keeps — so every `UInput` drew two concentric boxes.
+   - `UCommandPalette` sets `focus:outline-none` on its input on purpose. Ours
+     reinstated a box around the input, which sits in the left column of a
+     two-column dialog and so read as covering half of it. The palette is also
+     the one text field that wants no marker at all, and the reason generalises:
+     a focus marker announces a *change* to something already on screen, and a
+     summoned surface has no before-state — the palette exists only because you
+     asked to type. Its affordance is the highlighted row instead.
+   - `MarkdownEditor` states focus on the shell (`focus-within:ring-1`), which
+     is the honest unit — toolbar, tabs and textarea are one control. Ours added
+     a second box around the textarea alone, clipped by the shell's
+     `overflow-hidden`.
+   - `border-radius: var(--radius-md)` did not round the outline, it *mutated
+     the element*: every `rounded-full` control (the sidebar collapse chevron,
+     avatar buttons, pills) snapped from a circle to a 6px square on focus.
 
-   - Seven seamless inline fields — a card or project title that reads as text
-     until you click it. A 2px ring at 2px offset around a borderless field
-     inside a dense row draws a box where the design's whole point is that there
-     isn't one, so they trade it for `focus:border-accented` on a border that is
-     already reserved and transparent. Visible, in place, no reflow.
-   - One `tabindex="-1"` container in `CardModal`, which is a scroll target
-     rather than a keyboard destination and so wants no focus treatment at all.
+   So the ring is gone from everything that is not text entry, including Nuxt
+   UI's own halos — hence the `::before` in the reset, because `UNavigationMenu`
+   and friends hang their halo on a pseudo-element rather than the link.
 
-   Suppression needs the bang because this rule is *unlayered* and unlayered CSS
-   beats `@layer utilities` at any specificity — which is also what makes the
-   bang a reliable signal. `design-tokens.test.ts` › `focus is never suppressed
-   silently` fails on any opt-out that is neither `tabindex="-1"` nor paired
-   with a `focus:` replacement, so the count above cannot drift again.
+   What text entry gets instead is the boundary it already has: `border-color`
+   goes primary. It works identically for a boxed field and for a seamless
+   inline title, because the seamless ones already reserve a transparent border
+   for exactly this — which is why there is no longer a title exception. No
+   offset, so nothing clips inside `overflow-hidden`; no ring, so nothing
+   reflows; and the caret is doing most of the work regardless.
+
+   Two structures own no line of their own and so state focus one level up, and
+   both still do it with a border — focus is never a fill. A composite control —
+   the markdown editor, the quick-add card, the mention popover — puts
+   `focus-within:border-primary` on its shell, which is the honest unit. A field
+   that is a *cell* in a row-table uses the row's separator: an underline on the
+   input begins after the label column and reads as a line floating mid-row.
+
+   The row reserves a transparent `border-b` and colours that, rather than
+   colouring the separator, because `divide-y` draws each separator as the *next*
+   row's top border — unreachable from the focused row. Making every row own its
+   separator instead was tried and reverted: with the group then needing
+   `border-b-0`, its rounded bottom corners lost their arcs. So the focus line
+   sits directly above the hairline rather than replacing it.
+
+   A background fill was tried here first and dropped. It worked, but it made a
+   second visual language out of one sentence — and it does not generalise: a
+   fill behind a seamless title breaks the premise that the title reads as text
+   until you touch it, and on a boxed field sitting on `bg-muted` it is close to
+   invisible. Focus is a line, everywhere.
+
+   One trap this hit in review: `hover:border-default` is (0,2,0) and beats the
+   focus rule at (0,1,1), so on the profile name the underline appeared only
+   after the pointer left the field. A hover that dresses a field as editable
+   means "not while you are in it", and now says so: `hover:not-focus-visible:`.
+
+   `design-tokens.test.ts` › `focus lands on text entry, and only there` is the
+   guard: it fails on any focus utility outside the allowlist below, in either
+   direction — a control that re-adds a ring, and a text field that hand-rolls
+   its own treatment instead of inheriting this one.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-:focus-visible {
-  outline: 2px solid var(--ui-primary);
-  outline-offset: 2px;
-  border-radius: var(--radius-md);
+/* The reset has to be unlayered to reach Nuxt UI's `focus-visible:outline-3`,
+   and `::before` because `UNavigationMenu` hangs its halo on a pseudo-element
+   rather than on the link — found by diffing computed styles across the sidebar,
+   not by reading the theme. `::after` is the same shape and costs nothing; no
+   component in the app uses it today. It clears `outline` and nothing else. */
+*:focus-visible,
+*:focus-visible::before,
+*:focus-visible::after {
+  outline: none;
+}
+
+/* Text entry states focus on `border-color`. Different property from the reset
+   above, so the two never contend — what decides this one is *specificity*, and
+   it is picked to slot between the two things that also set `border-color`:
+
+     .border-default                 (0,1,0)   resting utility  — must lose
+     input:focus-visible             (0,1,1)   this rule
+     .focus\:border-error\/60:focus  (0,2,0)   per-field override — must win
+
+   So it lives in `@layer utilities` rather than `@layer base`. In `base` it lost
+   to the resting `border-default` on every field in the app and did nothing at
+   all, which looks identical to working if you only check a field that has no
+   border class. Unlayered would have been the other failure: it would beat the
+   `focus:` overrides too, which is exactly the mistake this block replaced.
+
+   Nuxt UI's inputs draw their boundary with `ring-inset` rather than a border,
+   so this rule is a no-op there and their own `focus-visible:ring-primary`
+   carries it. Same sentence either way: the boundary the field already has
+   turns primary. */
+@layer utilities {
+  /* Both arms are exactly (0,1,1). The `:not()` is wrapped in `:where()` to keep
+     it that way — bare, `:not([type="checkbox"], …)` contributes (0,1,0) of its
+     own and the rule lands at (0,2,1), which would beat the per-field `focus:`
+     overrides it is supposed to lose to. The excluded types render as a control
+     rather than a field, and have no caret. */
+  input:not(:where([type="checkbox"], [type="radio"], [type="file"], [type="submit"], [type="button"], [type="reset"], [type="image"], [type="hidden"])):focus-visible,
+  textarea:focus-visible {
+    border-color: var(--ui-primary);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
