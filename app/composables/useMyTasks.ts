@@ -45,7 +45,7 @@ export function useMyTasks() {
   const { data, refresh, status } = useFetch<MyTasksData>('/api/my-tasks', { deep: true })
 
   const columns = computed(() =>
-    (data.value?.columns || []).sort((a, b) => a.position - b.position)
+    [...(data.value?.columns || [])].sort((a, b) => a.position - b.position)
   )
 
   const collapsedProjectIds = computed(() =>

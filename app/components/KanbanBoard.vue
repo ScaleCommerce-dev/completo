@@ -272,10 +272,7 @@ function onCardClick(columnId: string, card: BoardCard) {
               class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-base font-medium text-default hover:bg-elevated transition-colors text-left"
               @click="linkExisting(col.id)"
             >
-              <div
-                class="w-2.5 h-2.5 rounded-full shrink-0"
-                :style="{ backgroundColor: col.color || '#a1a1aa' }"
-              />
+              <UiStatusDot :color="col.color" />
               {{ col.name }}
             </button>
           </div>

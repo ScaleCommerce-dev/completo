@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch } from '../setup/server'
 import { registerTestUser, type TestUser } from '../setup/auth'
-import { createTestProject, createTestBoard, createTestCard, getBoard } from '../setup/fixtures'
+import { createTestProject, createTestBoard, createTestCard, createTestTag, getBoard } from '../setup/fixtures'
 
 /**
  * My Tasks is a list view, so its cells must be able to edit what a project's
@@ -18,8 +18,9 @@ describe('GET /api/my-tasks — editable field data', async () => {
     user = await registerTestUser()
   })
 
-  async function groupFor(name: string) {
+  async function groupFor(name: string, opts?: { tag?: string }) {
     const project = await createTestProject(user, { name })
+    if (opts?.tag) await createTestTag(user, project.id, { name: opts.tag })
     const board = await createTestBoard(user, project.id)
     const statusId = (await getBoard(user, board.id)).columns[0]!.id
     await createTestCard(user, project.id, statusId, { title: 'Mine', assigneeId: user.id })
@@ -28,7 +29,7 @@ describe('GET /api/my-tasks — editable field data', async () => {
       groups: Array<{
         project: { id: string }
         statuses: unknown[]
-        tags: unknown[]
+        tags: Array<{ id: string, name: string }>
         members: Array<{ id: string, name: string }>
         cards: unknown[]
       }>
@@ -45,9 +46,14 @@ describe('GET /api/my-tasks — editable field data', async () => {
   })
 
   it('carries the project tags a card can be tagged with', async () => {
-    const group = await groupFor(`MyTasks Tags ${Date.now()}`)
+    // With no tag created this asserted only that an empty array is an array,
+    // which stayed green for the whole time the payload carried no tags at all —
+    // the defect this file exists to catch. The members test above was already
+    // doing it properly.
+    const name = `Taggable ${Date.now()}`
+    const group = await groupFor(`MyTasks Tags ${Date.now()}`, { tag: name })
 
-    expect(Array.isArray(group.tags)).toBe(true)
+    expect(group.tags.map(t => t.name)).toContain(name)
   })
 
   it('still carries the statuses a card can be moved to', async () => {

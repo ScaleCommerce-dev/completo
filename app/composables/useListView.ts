@@ -59,7 +59,7 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
   } = useViewData<ListView>('lists', listSlugOrId, opts)
 
   const columnsData = computed(() => {
-    return (list.value?.columns || []).sort((a, b) => a.position - b.position)
+    return [...(list.value?.columns || [])].sort((a, b) => a.position - b.position)
   })
 
   const allCards = computed(() => list.value?.cards || [])

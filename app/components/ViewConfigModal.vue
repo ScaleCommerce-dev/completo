@@ -310,8 +310,14 @@ function filtersChanged(current: string[], snapshot: string[]) {
   return a.length !== b.length || a.some((id, i) => id !== b[i])
 }
 
+/** A rename to nothing is not a rename — `save` skips it, so it cannot count. */
+const nameChanged = computed(() => {
+  const trimmed = editName.value.trim()
+  return !!trimmed && trimmed !== snapshotName.value
+})
+
 const isDirty = computed(() => {
-  if (editName.value.trim() !== snapshotName.value) return true
+  if (nameChanged.value) return true
   const currentOrder = localColumns.value.map(c => c.id)
   if (currentOrder.length !== snapshotColumnOrder.value.length
     || currentOrder.some((id, i) => id !== snapshotColumnOrder.value[i])) return true
@@ -330,10 +336,12 @@ function save() {
     return
   }
 
-  const trimmedName = editName.value.trim()
-  if (trimmedName && trimmedName !== snapshotName.value) {
-    emit('rename', trimmedName)
-  }
+  // Emptying the field used to enable Save, and Save then closed the dialog
+  // having skipped the rename — no view renamed, nothing said. It no longer
+  // counts as a change, and the field goes back to the name the view actually
+  // has so the dialog never closes showing one it does not.
+  if (nameChanged.value) emit('rename', editName.value.trim())
+  else editName.value = snapshotName.value
 
   const currentOrder = localColumns.value.map(c => c.id)
   const orderChanged = currentOrder.length !== snapshotColumnOrder.value.length

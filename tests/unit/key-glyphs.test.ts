@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ROOT = join(import.meta.dirname, '../..')
@@ -13,7 +13,12 @@ function vueFiles(dir: string): string[] {
   })
 }
 
-const SURFACES = [...vueFiles('app/components'), ...vueFiles('app/pages'), ...vueFiles('app/layouts')]
+// `app/error.vue` and `app/app.vue` sit at the root rather than in one of the
+// three directories, so the guard could not see them — and the error page is
+// exactly the sort of surface that grows a "press Esc" line.
+const ROOT_SURFACES = ['app/error.vue', 'app/app.vue'].filter(p => existsSync(join(ROOT, p)))
+
+const SURFACES = [...vueFiles('app/components'), ...vueFiles('app/pages'), ...vueFiles('app/layouts'), ...ROOT_SURFACES]
   .filter(p => p !== KEY_COMPONENT)
 
 /**

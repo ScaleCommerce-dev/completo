@@ -53,6 +53,10 @@ export default defineEventHandler(async (event) => {
 
   const boards = projectBoards.map(b => ({
     ...b,
+    // Normalized here too, or this endpoint hands out the raw JSON *string* the
+    // column stores while `boards/[id]` hands out an array for the same board —
+    // and the spec promises an array for both.
+    hiddenCardFields: normalizeHiddenCardFields(safeParseJson(b.hiddenCardFields, [])),
     cardCount: boardCardCounts.get(b.id) || 0,
     lastActivity: boardLastActivity.get(b.id)?.toISOString() || null,
     createdBy: b.createdById ? creatorsMap.get(b.createdById) || null : null

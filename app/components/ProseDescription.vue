@@ -52,6 +52,25 @@ if (!(globalThis as Record<string, unknown>)[_markedConfigured]) {
  * sanitize for the rest of the session. The output stayed correct, which is why
  * nothing caught it; the cost is the whole hook chain re-walking every node.
  */
+/**
+ * The two classes this component actually renders against: `mention` styles the
+ * pill emitted by the extension above, and `language-*` is what the code-block
+ * decoration reads to label a fence.
+ *
+ * `class` has to stay in `ALLOWED_ATTR` for those, but allowing it *unfiltered*
+ * let anyone writing raw HTML in a description — `marked` passes it through —
+ * reach for a layout utility and cover the surface: `class="fixed inset-0"` on a
+ * span is all it takes. Member-only, so this was never urgent; it is also two
+ * lines. Verified: those classes are now stripped.
+ *
+ * What this does *not* stop is a hand-written `<span class="mention">`, because
+ * nothing distinguishes it from the one the extension emits — same tag, same
+ * class. That is impersonation of the *look* only: mention notifications are
+ * derived from the markdown source by `extractMentionedUserIds`, never from this
+ * HTML, so a fake pill notifies nobody and links nowhere.
+ */
+const ALLOWED_CLASS = /^(mention|language-[\w+#.-]+)$/
+
 const _linkHookInstalled = '__proseLinkHookInstalled'
 if (!(globalThis as Record<string, unknown>)[_linkHookInstalled]) {
   DOMPurify.addHook('afterSanitizeAttributes', (node) => {
@@ -60,6 +79,20 @@ if (!(globalThis as Record<string, unknown>)[_linkHookInstalled]) {
       if (node.getAttribute('target') === '_blank' || node.getAttribute('href')?.startsWith('http')) {
         node.setAttribute('target', '_blank')
       }
+    }
+
+    const classAttr = node.getAttribute?.('class')
+    if (classAttr) {
+      const kept = classAttr.split(/\s+/).filter(c => ALLOWED_CLASS.test(c))
+      if (kept.length) node.setAttribute('class', kept.join(' '))
+      else node.removeAttribute('class')
+    }
+
+    // `input` is allowed for GFM task lists and nothing else. Without pinning the
+    // type, the same tag renders a text box or a button inside rendered prose.
+    if (node.tagName === 'INPUT') {
+      node.setAttribute('type', 'checkbox')
+      node.setAttribute('disabled', '')
     }
   })
   ;(globalThis as Record<string, unknown>)[_linkHookInstalled] = true

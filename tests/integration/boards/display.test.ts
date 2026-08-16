@@ -64,6 +64,29 @@ describe('board display settings', async () => {
     expect(updated.hiddenCardFields).toEqual(['assignee', 'priority', 'ticketId'])
   })
 
+  it('rejects a shape it cannot read instead of clearing the setting', async () => {
+    // `normalizeHiddenCardFields` answers `[]` for anything that is not an array,
+    // so a string or a number used to wipe the board's display settings and come
+    // back 200. Dropping unknown *keys* is deliberate; accepting an unknown
+    // *shape* is a client bug worth reporting.
+    const board = await freshBoard()
+    await put(board.id, ['tags'])
+
+    for (const bad of ['tags', 42, { tags: true }]) {
+      await expectError(
+        $fetch(`/api/boards/${board.id}`, {
+          method: 'PUT',
+          body: { hiddenCardFields: bad },
+          headers: user.headers
+        }),
+        400
+      )
+    }
+
+    // And the setting it would have cleared is still there.
+    expect((await getBoard(user, board.id)).hiddenCardFields).toEqual(['tags'])
+  })
+
   it('drops a field name it does not know', async () => {
     // A board configured by a newer release must not hand this one a key it will
     // then compare against the card face.

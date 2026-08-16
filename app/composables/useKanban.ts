@@ -58,7 +58,11 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
   } = useViewData<Board>('boards', boardSlugOrId, opts)
 
   const columnsData = computed(() => {
-    return (board.value?.columns || []).sort((a, b) => a.position - b.position)
+    // Copy before sorting. `useViewData` fetches with `deep: true`, so this array
+    // is reactive and `.sort()` would reorder the fetched data itself from inside
+    // a computed — a write during a read, which is how a computed ends up
+    // invalidating itself.
+    return [...(board.value?.columns || [])].sort((a, b) => a.position - b.position)
   })
 
   const cardsByColumn = computed(() => {

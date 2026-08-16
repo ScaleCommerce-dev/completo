@@ -3303,6 +3303,13 @@
                         }
                       }
                     },
+                    "collapsedProjectIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
                     "groups": {
                       "type": "array",
                       "items": {
@@ -3315,6 +3322,18 @@
                             "type": "array",
                             "items": {
                               "$ref": "#/components/schemas/Status"
+                            }
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/Tag"
+                            }
+                          },
+                          "members": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/UserSummary"
                             }
                           },
                           "cards": {

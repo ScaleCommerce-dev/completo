@@ -28,6 +28,41 @@ function key(scope: string) {
   return `${PREFIX}${scope}`
 }
 
+/**
+ * Drop every draft that has aged out, once per session.
+ *
+ * `read` expires a key only when something asks for that key, so a draft is
+ * only ever cleaned up by reopening the exact card it belongs to — and the
+ * drafts most likely to be stale are the ones on cards nobody will open again.
+ * Deleted cards are worse: their keys can never be read, so nothing could
+ * remove them and they accumulate for the life of the browser profile.
+ *
+ * Cheap enough to do eagerly: it is one pass over the keys this app owns, and
+ * only on the first `useTextDraft` of the session.
+ */
+let swept = false
+function sweep() {
+  if (swept || import.meta.server) return
+  swept = true
+  try {
+    for (const k of Object.keys(localStorage)) {
+      if (!k.startsWith(PREFIX)) continue
+      const raw = localStorage.getItem(k)
+      let stale = true
+      try {
+        const parsed = JSON.parse(raw ?? '') as StoredDraft
+        stale = !parsed?.text || Date.now() - parsed.at > MAX_AGE_MS
+      } catch {
+        // Unparseable is stale by definition — nothing can restore it.
+      }
+      if (stale) localStorage.removeItem(k)
+    }
+  } catch {
+    // Same reason as `read`: storage can throw outright, and a missed sweep is
+    // not worth a crash on card open.
+  }
+}
+
 function read(scope: string): string | null {
   if (import.meta.server) return null
   try {
@@ -75,6 +110,8 @@ export function useTextDraft(
   source: Ref<string>,
   baseline: MaybeRefOrGetter<string> = ''
 ) {
+  sweep()
+
   /** A draft found on disk that differs from what the editor was given. */
   const restored = ref<string | null>(null)
 

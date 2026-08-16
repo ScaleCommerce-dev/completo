@@ -57,11 +57,15 @@ export default defineEventHandler(async (event) => {
     updates.priorityFilters = priorityFilters.length ? JSON.stringify(priorityFilters) : null
   }
 
-  // Filtered to keys this release knows, so an unrecognised one is dropped
-  // rather than stored and handed back out. A board hiding nothing stores null
-  // rather than `[]`, which keeps "never configured" and "configured back to
-  // the default" the same row.
+  // Unknown *keys* are dropped rather than rejected — a board saved by a newer
+  // release naming a field this one has never heard of should lose that setting,
+  // not fail to save. A wrong *shape* is a different thing: `normalizeHiddenCardFields`
+  // answers `[]` for a string, a number or null, so sending one silently cleared
+  // the board's display settings and returned 200 as if it had worked.
   if (hiddenCardFields !== undefined) {
+    if (!Array.isArray(hiddenCardFields)) {
+      throw createError({ statusCode: 400, message: 'hiddenCardFields must be an array' })
+    }
     const hidden = normalizeHiddenCardFields(hiddenCardFields)
     updates.hiddenCardFields = hidden.length ? JSON.stringify(hidden) : null
   }

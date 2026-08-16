@@ -106,6 +106,17 @@ const mentionCardResults = ref<Array<{ id: number, title: string }>>([])
 
 let mentionSearchTimeout: ReturnType<typeof setTimeout> | null = null
 
+/**
+ * Every path that *ends* a mention already clears this — picking a result,
+ * closing the menu, typing past the trigger. Unmount was the one that did not,
+ * and it is the likeliest: the editor closes on Escape or Cancel while a search
+ * typed 300ms ago is still pending, and the callback then fetches and assigns
+ * into a component that is gone.
+ */
+onBeforeUnmount(() => {
+  if (mentionSearchTimeout) clearTimeout(mentionSearchTimeout)
+})
+
 const mentionAllResults = computed(() => [
   ...mentionUserResults.value.map(u => ({ ...u, _type: 'user' as const })),
   ...mentionCardResults.value.map(c => ({ ...c, _type: 'card' as const }))

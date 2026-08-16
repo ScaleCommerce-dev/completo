@@ -54,3 +54,6 @@ docs/ui-audit/
 # Session Stuff
 TODO/
 prompts/
+
+# Written by tests/global-setup.ts so the workers can find the built server.
+tests/.test-server-url

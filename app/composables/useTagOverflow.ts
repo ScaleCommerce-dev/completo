@@ -75,14 +75,29 @@ export function useTagOverflow(opts: {
    * lower it, so the sequence is monotonic and bounded by the number of tags. Two
    * passes is the normal case, hence the cap of three.
    */
+  let measureFrame: number | null = null
+  /**
+   * Tracked and cancelled on unmount, and `disposed` covers the callers that
+   * schedule work we do not own: `document.fonts.ready` resolves whenever the
+   * font arrives, which can be after this row is gone. A pass that lands then
+   * measures detached elements — harmless today only because `measure` happens
+   * to bail on null refs.
+   *
+   * Cancelling the previous frame also collapses a burst into one pass, which is
+   * what happens when the tags change and the font resolves in the same tick.
+   */
   function remeasure(passes = 3) {
-    requestAnimationFrame(() => {
+    if (disposed) return
+    if (measureFrame !== null) cancelAnimationFrame(measureFrame)
+    measureFrame = requestAnimationFrame(() => {
+      measureFrame = null
       const before = hiddenCount.value
       measure()
       if (passes > 1 && hiddenCount.value !== before) remeasure(passes - 1)
     })
   }
 
+  let disposed = false
   let resizeFrame: number | null = null
   function onResize() {
     if (resizeFrame !== null) return
@@ -106,8 +121,10 @@ export function useTagOverflow(opts: {
   })
 
   onUnmounted(() => {
+    disposed = true
     window.removeEventListener('resize', onResize)
     if (resizeFrame !== null) cancelAnimationFrame(resizeFrame)
+    if (measureFrame !== null) cancelAnimationFrame(measureFrame)
   })
 
   watch(opts.tags, () => remeasure(), { deep: true })

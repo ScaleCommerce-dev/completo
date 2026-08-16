@@ -55,7 +55,7 @@ export async function getBoard(user: TestUser, boardIdOrSlug: string) {
     columns: Array<{ id: string, name: string, color: string | null, position: number }>
     cards: Array<{ id: number, title: string, statusId: string, position: number, priority: string, assignee: unknown }>
     members: Array<{ id: string, name: string }>
-    showDescription: boolean
+    hiddenCardFields: string[]
   }
 }
 

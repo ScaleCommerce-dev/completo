@@ -99,5 +99,10 @@ export default defineEventHandler(async (event) => {
   }
 
   setResponseStatus(event, 201)
-  return db.select().from(schema.boards).where(eq(schema.boards.id, boardId)).get()
+  // Same normalization the GET and PUT do: a board is one shape wherever it is
+  // handed out, rather than an array from two endpoints and a JSON string here.
+  const created = db.select().from(schema.boards).where(eq(schema.boards.id, boardId)).get()
+  return created
+    ? { ...created, hiddenCardFields: normalizeHiddenCardFields(safeParseJson(created.hiddenCardFields, [])) }
+    : created
 })
