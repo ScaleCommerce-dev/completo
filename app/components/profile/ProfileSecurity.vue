@@ -49,7 +49,7 @@ async function signOut() {
           type="password"
           placeholder="Current password"
           autocomplete="current-password"
-          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0!"
+          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
         >
       </div>
 
@@ -67,7 +67,7 @@ async function signOut() {
           type="password"
           placeholder="New password (min 6 chars)"
           autocomplete="new-password"
-          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0!"
+          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
         >
       </div>
 
@@ -85,7 +85,7 @@ async function signOut() {
           type="password"
           placeholder="Confirm new password"
           autocomplete="new-password"
-          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0!"
+          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
         >
       </div>
     </div>

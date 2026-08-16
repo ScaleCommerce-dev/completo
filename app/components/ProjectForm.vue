@@ -290,7 +290,7 @@ function confirmDelete() {
             type="text"
             placeholder="ENG"
             maxlength="5"
-            class="flex-1 text-base font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0! uppercase tracking-wide"
+            class="flex-1 text-base font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 uppercase tracking-wide"
             @input="onKeyInput"
           >
           <span
@@ -333,7 +333,7 @@ function confirmDelete() {
             :value="formSlug"
             type="text"
             placeholder="my-project"
-            class="flex-1 text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0! tracking-wide"
+            class="flex-1 text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border-0 tracking-wide"
             @input="onSlugInput"
           >
           <UIcon
@@ -411,7 +411,7 @@ function confirmDelete() {
               type="number"
               min="1"
               placeholder="∞"
-              class="w-12 text-sm font-semibold text-center text-highlighted placeholder:text-dimmed bg-elevated border-0 outline-none! ring-0! rounded-md py-0.5"
+              class="w-12 text-sm font-semibold text-center text-highlighted placeholder:text-dimmed bg-elevated border-0 rounded-md py-0.5"
               @input="doneRetentionDays = ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null"
             >
             <span class="text-xs font-medium text-dimmed uppercase tracking-wider">days</span>

@@ -345,7 +345,7 @@ function cancelDeleteTag() {
                   v-model="editingTagName"
                   type="text"
                   aria-label="Tag name"
-                  class="w-24 text-xs font-semibold text-highlighted bg-transparent border-0 outline-none! ring-0! py-0"
+                  class="w-24 text-xs font-semibold text-highlighted bg-transparent border-0 py-0"
                   @keydown.enter="saveEditTag"
                   @keydown.escape="cancelEditTag"
                 >

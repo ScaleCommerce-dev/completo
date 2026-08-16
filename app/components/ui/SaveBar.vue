@@ -10,6 +10,11 @@
  * The order is fixed and the same everywhere: destructive far left, status text,
  * then Cancel and the primary action on the right — primary last, because that is
  * where the eye lands and where the keyboard arrives.
+ *
+ * "Shared by every editing surface" is the intent, not the count: `admin/users`
+ * is the only consumer. `ProjectForm:474` and `CreateViewModal:477` still
+ * hand-roll the row, which is where the eleven spellings came from and where a
+ * twelfth would come from next.
  */
 withDefaults(defineProps<{
   submitLabel?: string

@@ -136,7 +136,7 @@ function formatDate(iso: string): string {
               v-model="profileAvatarUrl"
               type="text"
               placeholder="https://..."
-              class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0!"
+              class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
             >
             <button
               v-if="gravatarOverride"

@@ -17,6 +17,14 @@
  *
  * The button order is fixed: safe action left, destructive right. Autofocus goes
  * to Cancel, never to the destructive action.
+ *
+ * Two of the four idioms are still live. `DeleteConfirmation.vue` — the one this
+ * supersedes — is still rendered by `ProjectForm`, and the two-step inline
+ * "Delete?" with a timeout survives in `StatusManager`, `CommentList`,
+ * `ViewConfigModal`, `ProfileTokens` and `projects/[slug]/index`. Current
+ * consumers are `AttachmentList` and `cards/[cardId]`. So the four idioms are
+ * not yet one; what is settled is which one wins, and each of those files is a
+ * migration owed rather than a variant with a reason.
  */
 const props = withDefaults(defineProps<{
   title: string

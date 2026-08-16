@@ -455,6 +455,45 @@ describe('one utility per property', () => {
   })
 })
 
+/**
+ * Suppressing the focus ring is opting out of being reachable.
+ *
+ * `main.css` declares one ring as an *unlayered* `:focus-visible` rule, which
+ * beats any layered utility whatever its specificity — so `outline-none!` needs
+ * the bang, and the bang is the whole tell that a control is opting out. The
+ * FOCUS section claimed the ~20 opt-outs were gone while 20 were live, twelve of
+ * them on real text inputs — three of those password fields — with nothing in
+ * their place. Keyboard focus was simply invisible there.
+ *
+ * The exemption is structural rather than a list of files: a `tabindex="-1"`
+ * element is never a keyboard destination, so it never wants the ring. Anything
+ * else that suppresses has to say what it shows instead, which is what the
+ * FOCUS section means by "it opts in, it does not opt out".
+ */
+describe('focus is never suppressed silently', () => {
+  const SUPPRESSORS = /(^|\s)(outline-none!|ring-0!)(\s|$)/
+  const REPLACEMENT = /focus(-visible)?:(border|ring|bg|outline|shadow)/
+
+  it('every focus opt-out is unreachable or offers a replacement', () => {
+    const offenders: string[] = []
+    for (const file of vueFiles()) {
+      const lines = markup(file).split('\n')
+      lines.forEach((line, i) => {
+        for (const quoted of line.match(/'[^']*'|"[^"]*"/g) || []) {
+          const s = quoted.slice(1, -1)
+          if (!SUPPRESSORS.test(s)) continue
+          if (REPLACEMENT.test(s)) continue
+          // The element's own attributes, which span a few lines either way.
+          const near = lines.slice(Math.max(0, i - 8), i + 4).join('\n')
+          if (/tabindex="-1"/.test(near)) continue
+          offenders.push(`${file.replace(ROOT + '/', '')}:${i + 1}`)
+        }
+      })
+    }
+    expect(offenders, 'these are keyboard destinations with no visible focus').toEqual([])
+  })
+})
+
 describe('priority', () => {
   it('covers every priority in every lookup', () => {
     for (const p of PRIORITIES) {

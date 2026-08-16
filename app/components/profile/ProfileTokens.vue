@@ -41,12 +41,12 @@ const {
           type="text"
           placeholder="Token name (e.g. CI Pipeline)"
           maxlength="100"
-          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0!"
+          class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
           @keydown.enter.prevent="createToken"
         >
         <select
           v-model="tokenExpiry"
-          class="text-sm text-muted bg-transparent border-0 outline-none! ring-0! cursor-pointer"
+          class="text-sm text-muted bg-transparent border-0 cursor-pointer"
         >
           <option value="">
             No expiry

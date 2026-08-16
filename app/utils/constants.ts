@@ -1,6 +1,18 @@
-// Project accent colours. User-facing only as a decorative tint per project, so
-// a fixed hex ramp is fine here — it is rendered through the `.swatch` classes
-// in main.css, which derive a readable foreground and fill for the active theme.
+// Project accent colours — a decorative tint per project, so a fixed hex ramp is
+// fine as the *source*.
+//
+// This said the ramp "is rendered through the `.swatch` classes", which is what
+// it should do and not what it does: all six call sites build inline styles from
+// the raw hex instead (`projects/index.vue`, `projects/[slug]/index.vue`,
+// `ProfileActivity.vue`), and the alpha suffix has already drifted between them
+// — `+'14'` in two files, `+'12'` in the third. That is the bug the swatch
+// recipe was written to end, reintroduced by hand: a raw hex on a wash of its
+// own hue measures ~2.2:1 for the amber entry, and mixing cannot fix it because
+// the fix is to *set* the lightness (see the `.swatch` block in main.css).
+//
+// `.swatch-bar` exists for exactly the border-left-plus-tint shape those sites
+// hand-roll, and currently has zero call sites. Migrating them is owed; until
+// then this comment describes the destination, not the present.
 export const ACCENT_COLORS = ['#6366f1', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#ec4899', '#06b6d4']
 
 // ─── Identity ───────────────────────────────────────────────────────────────

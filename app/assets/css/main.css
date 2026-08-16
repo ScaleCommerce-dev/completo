@@ -433,8 +433,31 @@
    One visible ring, derived from the brand so it follows any palette change.
    It used to be a hardcoded `oklch(0.6 0.15 260)` — and was then actively
    suppressed by ~20 `outline-none! ring-0!` inputs and a global rule that
-   killed outlines inside every list popover. Both are gone; if a control needs
-   a different focus treatment it opts in, it does not opt out.
+   killed outlines inside every list popover.
+
+   The popover rule is gone. The blanket suppression took a second pass, and
+   this paragraph claimed it was finished a release too early: twenty opt-outs
+   were still live, twelve of them on real text inputs — three of those password
+   fields — with nothing in their place, so keyboard focus was invisible on
+   exactly the controls that most need it. Those twelve simply dropped the
+   suppression; the ring below is what they get.
+
+   What is left is eight deliberate opt-outs, and the rule is that opting out
+   costs you a replacement:
+
+   - Seven seamless inline fields — a card or project title that reads as text
+     until you click it. A 2px ring at 2px offset around a borderless field
+     inside a dense row draws a box where the design's whole point is that there
+     isn't one, so they trade it for `focus:border-accented` on a border that is
+     already reserved and transparent. Visible, in place, no reflow.
+   - One `tabindex="-1"` container in `CardModal`, which is a scroll target
+     rather than a keyboard destination and so wants no focus treatment at all.
+
+   Suppression needs the bang because this rule is *unlayered* and unlayered CSS
+   beats `@layer utilities` at any specificity — which is also what makes the
+   bang a reliable signal. `design-tokens.test.ts` › `focus is never suppressed
+   silently` fails on any opt-out that is neither `tabindex="-1"` nor paired
+   with a `focus:` replacement, so the count above cannot drift again.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :focus-visible {

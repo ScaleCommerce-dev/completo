@@ -122,7 +122,7 @@ async function setDoneStatus(statusId: string | null) {
         <input
           v-model="editingColName"
           type="text"
-          class="w-24 text-xs font-medium text-highlighted bg-transparent border-0 outline-none! ring-0! py-0"
+          class="w-24 text-xs font-medium text-highlighted bg-transparent border-0 py-0"
           @keydown.enter="saveEditStatus"
           @keydown.escape="cancelEditStatus"
         >

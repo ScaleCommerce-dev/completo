@@ -15,6 +15,17 @@
  *
  * This uses UModal's real `#header` slot, so the title is announced, Esc and
  * focus trapping behave, and the panel styling comes from app.config.
+ *
+ * The eleven are not all migrated, and reading this as "the one dialog shell"
+ * is how that goes unnoticed. Two consumers so far — `admin/users.vue` and
+ * `ui/ConfirmDialog` — against seven raw `<UModal>` sites still hand-rolling the
+ * structures above: `CreateViewModal:200`, `ProjectMembers:518`,
+ * `ViewConfigModal:373`, `projects/index:317`, `projects/[slug]/index:654` and
+ * `admin/skills:192,290`. Several re-commit the exact defects this documents —
+ * hand-rebuilt icon+title headers at `admin/skills:192,290` and
+ * `ProjectMembers:518`, and `header: 'hidden'` with no accessible name at
+ * `ViewConfigModal:373`. That migration is owed; this component is where it
+ * lands, not a record that it happened.
  */
 const props = withDefaults(defineProps<{
   /** Leading icon. Omit for dialogs whose title carries enough meaning. */

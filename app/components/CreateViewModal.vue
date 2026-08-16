@@ -294,7 +294,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                   :value="viewSlug"
                   type="text"
                   placeholder="my-view"
-                  class="flex-1 text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border-0 outline-none! ring-0! tracking-wide"
+                  class="flex-1 text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border-0 tracking-wide"
                   @input="onSlugInput"
                 >
                 <UIcon
