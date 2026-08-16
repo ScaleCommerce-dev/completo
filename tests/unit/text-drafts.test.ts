@@ -10,6 +10,12 @@ const CARD_PAGE = read('app/pages/projects/[slug]/cards/[cardId].vue')
 const COMMENT_LIST = read('app/components/CommentList.vue')
 const DRAFT = read('app/composables/useTextDraft.ts')
 
+/** Comments stripped: the prose in these files names the very code being asserted. */
+const strip = (src: string) => src
+  .replace(/<!--[\s\S]*?-->/g, '')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/(^|[^:\w])\/\/[^\n]*/g, '$1')
+
 /**
  * These are source-level guards, in the style of `optimistic-reactivity.test.ts`:
  * the unit project runs in `node` and these composables lean on Nuxt's
@@ -110,14 +116,25 @@ describe('leaving an editor cannot lose text silently', () => {
     ['the card detail page', CARD_PAGE]
   ]
 
-  it.each(editors)('%s reverts on escape instead of just closing the editor', (_name, src) => {
+  it('routes escape through cancel rather than closing the editor', () => {
     // `@escape="editingDescription = false"` unmounted the editor while leaving
-    // the typed text in `description`, so the panel rendered *unsaved* text as
+    // the typed text in `description`, so the surface rendered *unsaved* text as
     // prose — indistinguishable from a saved description — and the close guard,
     // which keyed off `editingDescription`, went quiet along with it.
-    expect(src).not.toMatch(/@escape="editingDescription = false"/)
-    expect(src).toMatch(/@escape="cancelEditingDescription"/)
+    //
+    // The editor moved into `CardDescriptionSection`, so escape is now one hop
+    // longer: the section turns it into `cancel`, and each surface reverts. Both
+    // hops are asserted, because either alone would let the text survive.
+    const section = read('app/components/CardDescriptionSection.vue')
+    expect(section).not.toMatch(/@escape="editing = false"/)
+    expect(section).toMatch(/@escape="emit\('cancel'\)"/)
+  })
+
+  it.each(editors)('%s reverts the description when the editor cancels', (_name, src) => {
+    expect(src).toMatch(/@cancel="cancelEditingDescription"/)
     expect(src).toMatch(/function cancelEditingDescription/)
+    // The revert itself: local text goes back to what the server holds.
+    expect(strip(src)).toMatch(/description\.value = (?:card|c)[^\n]*description/)
   })
 
   it('CardModal only submits what the Save button would accept', () => {

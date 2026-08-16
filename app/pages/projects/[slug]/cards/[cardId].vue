@@ -492,99 +492,27 @@ async function confirmDelete() {
              two sections keep theirs and this one never had a claim to one. -->
 
         <!-- Description: edit mode -->
-        <UiDraftNotice
-          v-if="editingDescription && descriptionDraft.restored.value"
-          class="mb-1.5"
-          @discard="cancelEditingDescription"
+        <CardDescriptionSection
+          ref="descriptionEditorRef"
+          v-model="description"
+          :editing="editingDescription"
+          :restored="!!descriptionDraft.restored.value"
+          :dirty="descriptionDirty"
+          :saving="saving"
+          :copied="descriptionCopied"
+          :min-height="240"
+          :title="title"
+          :tags="selectedTagNames"
+          :priority="priority"
+          :project-slug="projectSlug"
+          :project-key="projectKey"
+          :members="membersData"
+          :card-id="card?.id"
+          @save="submit"
+          @cancel="cancelEditingDescription"
+          @edit="startEditingDescription"
+          @copy="copyDescription"
         />
-
-        <template v-if="editingDescription">
-          <DescriptionEditor
-            ref="descriptionEditorRef"
-            v-model="description"
-            :title="title"
-            :tags="selectedTagNames"
-            :priority="priority"
-            :project-slug="projectSlug"
-            :project-key="projectKey"
-            :members="membersData"
-            :card-id="card?.id"
-            :min-height="240"
-            @escape="cancelEditingDescription"
-          />
-
-          <div class="flex items-center gap-2 mt-2">
-            <UButton
-              size="xs"
-              :loading="saving"
-              :disabled="!descriptionDirty"
-              @click="submit"
-            >
-              Save
-              <UiKey value="meta" />
-              <UiKey value="enter" />
-            </UButton>
-            <UButton
-              size="xs"
-              variant="ghost"
-              color="neutral"
-              label="Cancel"
-              @click="cancelEditingDescription"
-            />
-          </div>
-        </template>
-
-        <!-- Description: read mode. Copy and Edit sit where the heading's button
-             did, absolutely positioned so the pair costs no height; see CardModal
-             for why the pencil is the only way into the editor now, and why it is
-             always drawn rather than revealed on hover. -->
-        <div
-          v-else-if="description"
-          class="relative"
-        >
-          <div class="absolute top-0 right-0 flex items-center gap-0.5">
-            <UTooltip :text="descriptionCopied ? 'Copied!' : 'Copy as Markdown'">
-              <UButton
-                :icon="descriptionCopied ? 'i-lucide-check' : 'i-lucide-copy'"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                :class="descriptionCopied ? 'text-success!' : ''"
-                aria-label="Copy the description as Markdown"
-                @click="copyDescription"
-              />
-            </UTooltip>
-            <UTooltip text="Edit description">
-              <UButton
-                icon="i-lucide-pencil"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                aria-label="Edit the description"
-                @click="startEditingDescription"
-              />
-            </UTooltip>
-          </div>
-
-          <div class="select-text pr-16">
-            <ProseDescription :content="description" />
-          </div>
-        </div>
-
-        <!-- Empty: one row that is the label, the empty state and the button, and
-             the same row the comment composer is. -->
-        <button
-          v-else
-          type="button"
-          class="w-full flex items-center gap-2.5 rounded-lg border border-default bg-default px-3 py-2 text-left hover:bg-muted transition-colors"
-          @click="startEditingDescription"
-        >
-          <UIcon
-            name="i-lucide-text"
-            class="text-base text-dimmed shrink-0"
-          />
-          <span class="text-sm text-dimmed">Add a description…</span>
-        </button>
 
         <!-- Attachments -->
         <div class="mt-6">

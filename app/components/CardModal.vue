@@ -821,118 +821,27 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
 
         <!-- Edit mode: read-only view with edit toggle -->
         <template v-else>
-          <div v-if="editingDescription">
-            <UiDraftNotice
-              v-if="descriptionDraft.restored.value"
-              class="mb-1.5"
-              @discard="cancelEditingDescription"
-            />
-
-            <DescriptionEditor
-              ref="descriptionEditorRef"
-              v-model="description"
-              :title="title"
-              :tags="selectedTagNames"
-              :priority="priority"
-              :project-slug="projectSlug"
-              :project-key="projectKey"
-              :members="members"
-              :card-id="card?.id"
-              :min-height="120"
-              :max-height="360"
-              @escape="cancelEditingDescription"
-            />
-
-            <!-- The description's own commit, under the editor it belongs to.
-                 Same shape as the comment composer's, because they are the same
-                 act: write prose, then decide to keep it. -->
-            <div class="flex items-center gap-2 mt-2">
-              <UButton
-                size="xs"
-                :disabled="!descriptionDirty"
-                @click="saveDescription"
-              >
-                Save
-                <UiKey value="meta" />
-                <UiKey value="enter" />
-              </UButton>
-              <UButton
-                size="xs"
-                variant="ghost"
-                color="neutral"
-                label="Cancel"
-                @click="cancelEditingDescription"
-              />
-            </div>
-          </div>
-
-          <!--
-            No heading over the card's own body.
-
-            "DESCRIPTION" labelled the one thing on the panel that needs no
-            label — it is what the card *is*, sitting directly under the title —
-            while the two headings below it label collections that grow and are
-            worth counting. Three peer headings said the three regions were peers;
-            they are a body and two appendices, and the hierarchy now says so.
-
-            No inner scroll box either. The panel already scrolls, and a scroll
-            area nested inside one traps the wheel over whichever half you happen
-            to be pointing at.
-          -->
-          <div
-            v-else-if="description"
-            class="relative"
-          >
-            <!-- Where the heading's actions were, minus the heading. Absolute, so
-                 the row costs no height; the prose is padded clear of it rather
-                 than running underneath. Always rendered, never hover-only: with
-                 click-to-edit gone the pencil is the only way in, and an
-                 affordance you have to find by sweeping the panel is not one. -->
-            <div class="absolute top-0 right-0 flex items-center gap-0.5">
-              <UTooltip :text="descriptionCopied ? 'Copied!' : 'Copy as Markdown'">
-                <UButton
-                  :icon="descriptionCopied ? 'i-lucide-check' : 'i-lucide-copy'"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  :class="descriptionCopied ? 'text-success!' : ''"
-                  aria-label="Copy the description as Markdown"
-                  @click="copyDescription"
-                />
-              </UTooltip>
-              <UTooltip text="Edit description">
-                <UButton
-                  icon="i-lucide-pencil"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  aria-label="Edit the description"
-                  @click="startEditingDescription"
-                />
-              </UTooltip>
-            </div>
-
-            <div class="select-text pr-16">
-              <ProseDescription :content="description" />
-            </div>
-          </div>
-
-          <!-- Empty: the placeholder is the button, the label and the empty state
-               at once. Solid-bordered and icon-led, the same row the collapsed
-               comment composer is — the icon is the one the deleted heading
-               carried, doing more work here than it did there. -->
-          <button
-            v-else
-            type="button"
-            class="w-full flex items-center gap-2.5 rounded-lg border border-default bg-default px-3 py-2 text-left hover:bg-muted transition-colors"
-            @click="startEditingDescription"
-          >
-            <UIcon
-              name="i-lucide-text"
-              class="text-base text-dimmed shrink-0"
-            />
-            <span class="text-sm text-dimmed">Add a description…</span>
-          </button>
+          <CardDescriptionSection
+            ref="descriptionEditorRef"
+            v-model="description"
+            :editing="editingDescription"
+            :restored="!!descriptionDraft.restored.value"
+            :dirty="descriptionDirty"
+            :copied="descriptionCopied"
+            :min-height="120"
+            :max-height="360"
+            :title="title"
+            :tags="selectedTagNames"
+            :priority="priority"
+            :project-slug="projectSlug"
+            :project-key="projectKey"
+            :members="members"
+            :card-id="card?.id"
+            @save="saveDescription"
+            @cancel="cancelEditingDescription"
+            @edit="startEditingDescription"
+            @copy="copyDescription"
+          />
         </template>
       </div>
 

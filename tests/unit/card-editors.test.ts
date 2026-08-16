@@ -7,6 +7,15 @@ const read = (p: string) => readFileSync(join(ROOT, p), 'utf8')
 
 const CARD_MODAL = read('app/components/CardModal.vue')
 const CARD_PAGE = read('app/pages/projects/[slug]/cards/[cardId].vue')
+/**
+ * The description block used to be duplicated into both surfaces above, which is
+ * why several assertions here ran `it.each` over the pair. It is one component
+ * now, so those became single assertions — and the ones that compared the two
+ * copies to each other had nothing left to compare and are gone. That is the
+ * intended end state for a guard whose whole job was to police a copy: when the
+ * copy goes, so does it.
+ */
+const DESCRIPTION = read('app/components/CardDescriptionSection.vue')
 const MAIN_CSS = read('app/assets/css/main.css')
 
 /**
@@ -128,28 +137,40 @@ describe('the card surfaces have no surface-level save', () => {
     ['the card detail page', CARD_PAGE]
   ]
 
-  it.each(surfaces)('%s has exactly one Save, and it carries the shortcut', (_name, src) => {
+  it('the description editor owns the only Save, and it carries the shortcut', () => {
     // Counted as rendered text nodes, comments stripped. The previous version
     // required `<UiKey value="meta"` to follow the label immediately, so it could
     // not see `<UButton>Save</UButton>` — the most natural spelling, and exactly
     // what the footer button it exists to keep out was.
-    const source = strip(src)
+    const source = strip(DESCRIPTION)
     const template = source.slice(source.indexOf('<template>'))
     const saves = [...template.matchAll(/>\s*Save\s*</g)]
 
     expect(saves).toHaveLength(1)
-    // The surviving one is the description editor's: its label is followed
-    // immediately by the ⌘↵ keys, which is what distinguishes it from a bar
-    // button.
+    // Its label is followed immediately by the ⌘↵ keys, which is what
+    // distinguishes it from a bar button.
     expect(template.slice(saves[0]!.index)).toMatch(/^>\s*Save\s*<UiKey value="meta"[^>]*\/>\s*<UiKey value="enter"/)
-    // And none arrives as a prop rather than as text.
+  })
+
+  it.each(surfaces)('%s has no save of its own', (_name, src) => {
+    // The point of the assertion above, from the other side: neither surface may
+    // grow a second Save now that the description's lives elsewhere.
+    const source = strip(src)
+    const template = source.slice(source.indexOf('<template>'))
+
+    expect([...template.matchAll(/>\s*Save\s*</g)]).toHaveLength(0)
     expect(source).not.toMatch(/label="Save"/)
     expect(source).not.toMatch(/'Save'/)
   })
 
-  it.each(surfaces)('%s guards the description save on the description changing', (_name, src) => {
-    expect(src).toMatch(/descriptionDirty/)
-    expect(src).toMatch(/:disabled="!descriptionDirty"/)
+  it('guards the description save on the description changing', () => {
+    // The dirty comparison stays with each surface — they compare against
+    // different things — but only a dirty description may be saved.
+    expect(DESCRIPTION).toMatch(/:disabled="!dirty"/)
+    for (const src of [CARD_MODAL, CARD_PAGE]) {
+      expect(src).toMatch(/descriptionDirty/)
+      expect(src).toMatch(/:dirty="descriptionDirty"/)
+    }
   })
 
   it('CardModal keeps a footer only while creating', () => {
@@ -187,50 +208,44 @@ describe('the shortcut belongs to an editor', () => {
  * nothing on it used to show two of those in a row.
  */
 describe('empty sections are their own invitation', () => {
-  const surfaces: Array<[string, string]> = [
-    ['CardModal', CARD_MODAL],
-    ['the card detail page', CARD_PAGE]
-  ]
-
-  it.each(surfaces)('%s offers the description instead of leaving a void', (_name, src) => {
-    expect(src).toContain('Add a description…')
+  it('offers the description instead of leaving a void', () => {
+    expect(DESCRIPTION).toContain('Add a description…')
   })
 
-  it.each(surfaces)('%s offers Copy and Edit only where there is prose', (_name, src) => {
+  it('offers Copy and Edit only where there is prose', () => {
     // Two invitations to write the same paragraph is one too many, so the pair
     // belongs to the branch that renders a description, never to the empty one —
     // there the placeholder row is itself the button.
-    const readMode = src.slice(src.indexOf('v-else-if="description"'))
-    const empty = src.indexOf('Add a description…')
+    const readMode = DESCRIPTION.slice(DESCRIPTION.indexOf('v-else-if="description"'))
+    const empty = DESCRIPTION.indexOf('Add a description…')
 
     expect(readMode).toContain('aria-label="Edit the description"')
     expect(readMode).toContain('aria-label="Copy the description as Markdown"')
-    expect(src.indexOf('aria-label="Edit the description"')).toBeLessThan(empty)
-    expect(src).not.toMatch(/'Edit' : 'Add'/)
+    expect(DESCRIPTION.indexOf('aria-label="Edit the description"')).toBeLessThan(empty)
+    expect(DESCRIPTION).not.toMatch(/'Edit' : 'Add'/)
   })
 
-  it.each(surfaces)('%s makes the empty description one row rather than a heading', (_name, src) => {
+  it('makes the empty description one row rather than a heading', () => {
     // An empty section is one row — icon, verb, border — and no heading above it.
-    expect(src).toContain('i-lucide-text')
-    expect(classesAt(src, 'Add a description…', '<button')).not.toEqual([])
+    expect(DESCRIPTION).toContain('i-lucide-text')
+    expect(classesAt(DESCRIPTION, 'Add a description…', '<button')).not.toEqual([])
   })
 
   it('spells that row and the collapsed comment composer identically', () => {
     // They are the same object, so the assertion is that they carry the same
-    // classes. The previous version claimed exactly this — "down to the classes" —
-    // while pinning one literal on the two card surfaces and never reading
-    // CommentList at all, which left the composer free to drift away from the
-    // thing it is supposed to be identical to. Compared as sorted token sets: the
-    // values are not the point, the three of them agreeing is.
+    // classes. This used to compare *three* copies, two of which were the same
+    // markup pasted into both card surfaces — an agreement the guard could only
+    // ever police, never enforce. Those two are one component now, so what is
+    // left is the comparison that still has teeth: the description row against
+    // the comment composer, which is a genuinely different component that has to
+    // match it. Sorted token sets, because the values are not the point.
     const rows = [
-      classesAt(CARD_MODAL, 'Add a description…', '<button'),
-      classesAt(CARD_PAGE, 'Add a description…', '<button'),
+      classesAt(DESCRIPTION, 'Add a description…', '<button'),
       classesAt(read('app/components/CommentList.vue'), '@click="openComposer"', '<button')
     ].map(list => [...list].sort())
 
     expect(rows[0]!.length).toBeGreaterThan(0)
     expect(rows[1]).toEqual(rows[0])
-    expect(rows[2]).toEqual(rows[0])
   })
 
   it('spends the dashed border on the drag state, not on resting', () => {
