@@ -112,9 +112,16 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
     <!-- Column config modal -->
     <!-- This was `<ListColumnConfigModal>`, a component that does not exist
          anywhere in the repo — so the Fields button silently opened nothing and
-         useMyTasks' add/remove/reorder were wired to it. ViewConfigModal already
-         guards its rename and delete sections on `viewName`, so omitting that
-         prop gives exactly the field picker this needs. -->
+         useMyTasks' add/remove/reorder were wired to it. ViewConfigModal drops a
+         section whose props are absent, so omitting `viewName` drops rename and
+         delete and omitting the `active*Filters` drops the Filters tab, leaving
+         exactly the field picker this needs.
+
+         Both omissions are load-bearing, not incidental: My Tasks spans every
+         project, so there is no single view to rename and nowhere to persist a
+         filter. The Filters tab used to render here regardless — its priority
+         chips need no props — and Save emitted `update-filters` into a page that
+         does not listen. -->
     <ViewConfigModal
       v-model:open="showColumnConfig"
       mode="list"

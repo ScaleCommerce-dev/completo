@@ -93,6 +93,25 @@ function togglePriorityFilter(value: string) {
     : [...localPriorityFilters.value, value]
 }
 
+/**
+ * Filtering is a capability of the surface, not a section of this dialog.
+ *
+ * The priority chips need no props to render, so the Filters tab drew itself on
+ * every consumer — including My Tasks, which has nowhere to persist a filter and
+ * does not listen for `update-filters`. Toggling "Urgent" there enabled Save,
+ * and Save closed the dialog having emitted into nothing: no filter, no error.
+ *
+ * Keyed on the filter state itself, the same device `viewName` uses for rename
+ * and delete. It is not arbitrary — a surface that passes no `active*Filters`
+ * has nothing to seed the local refs from, so the tab could not work even if it
+ * were wired. Pass any one of them and the tab returns.
+ */
+const filterable = computed(() =>
+  props.activeTagFilters !== undefined
+  || props.activeStatusFilters !== undefined
+  || props.activeAssigneeFilters !== undefined
+  || props.activePriorityFilters !== undefined)
+
 // ─── Local state — buffered until Save ───
 const localColumns = ref<ColumnItem[]>([])
 const localTagFilters = ref<string[]>([])
@@ -190,13 +209,15 @@ const tabItems = computed(() => [
     icon: 'i-lucide-columns-3',
     count: localColumns.value.length
   },
-  {
-    label: 'Filters',
-    value: 'filters' as const,
-    slot: 'filters' as const,
-    icon: 'i-lucide-filter',
-    count: activeFilterCount.value
-  },
+  ...(filterable.value
+    ? [{
+        label: 'Filters',
+        value: 'filters' as const,
+        slot: 'filters' as const,
+        icon: 'i-lucide-filter',
+        count: activeFilterCount.value
+      }]
+    : []),
   ...(props.mode === 'board'
     ? [{
         label: 'Display',

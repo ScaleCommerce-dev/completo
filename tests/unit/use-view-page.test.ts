@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { execSync } from 'node:child_process'
 import type { BaseCard } from '../../app/types/card'
 import {
   filterCards,
@@ -7,6 +10,8 @@ import {
   buildFilterSummary
 } from '../../app/utils/card-filters'
 import type { CardFilterState } from '../../app/utils/card-filters'
+
+const ROOT = join(import.meta.dirname, '../..')
 
 function makeCard(overrides: Partial<BaseCard> & { id: number, statusId: string }): BaseCard {
   return {
@@ -182,5 +187,51 @@ describe('buildFilterSummary', () => {
     }
     const result = buildFilterSummary(f, lookup)
     expect(result).toBe('Status: To Do\nPriority: Urgent\nAssignee: Alice\nTags: Bug')
+  })
+})
+
+/**
+ * ViewConfigModal offers a section only where the surface can act on it.
+ *
+ * Its priority chips are four literals that need no props, so the Filters tab
+ * drew itself on every consumer — including My Tasks, which spans all projects,
+ * has no view to store a filter against, and does not listen for
+ * `update-filters`. Toggling a chip there enabled Save, and Save closed the
+ * dialog having emitted into nothing.
+ *
+ * The invariant is a pair, and neither half is visible from inside either file:
+ * a consumer that hands the modal filter state must handle the event it will
+ * emit, and one that handles the event must hand it the state to seed from.
+ */
+describe('ViewConfigModal consumers', () => {
+  const CONSUMERS = [
+    'app/pages/my-tasks.vue',
+    'app/pages/projects/[slug]/lists/[listSlug]/index.vue',
+    'app/pages/projects/[slug]/boards/[boardSlug]/index.vue'
+  ]
+
+  /** The `<ViewConfigModal …>` opening tag, where props and listeners both live. */
+  function usage(file: string): string {
+    const src = readFileSync(join(ROOT, file), 'utf8')
+    const at = src.indexOf('<ViewConfigModal')
+    expect(at, `${file} renders ViewConfigModal`).toBeGreaterThan(-1)
+    return src.slice(at, src.indexOf('/>', at))
+  }
+
+  it.each(CONSUMERS)('%s pairs filter state with a filter handler', (file) => {
+    const tag = usage(file)
+    const seeds = /:active-(tag|status|assignee|priority)-filters=/.test(tag)
+    const handles = /@update-filters=/.test(tag)
+    expect(handles, seeds
+      ? 'passes active filters, so it must handle update-filters'
+      : 'passes no active filters, so the Filters tab is hidden and this handler is dead')
+      .toBe(seeds)
+  })
+
+  it('covers every consumer in the repo', () => {
+    // A fourth surface added without a line here is the way this goes stale.
+    const found = execSync(`grep -rl '<ViewConfigModal' ${ROOT}/app/pages ${ROOT}/app/components`, { encoding: 'utf8' })
+      .trim().split('\n').map(p => p.replace(ROOT + '/', '')).sort()
+    expect(found).toEqual([...CONSUMERS].sort())
   })
 })
