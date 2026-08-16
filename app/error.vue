@@ -50,7 +50,7 @@ function goHome() {
   <!-- inline opacity:0 prevents FOUC — content stays invisible until
        the stylesheet loads and the error-reveal animation overrides it -->
   <div
-    class="error-page fixed inset-0 flex flex-col items-center justify-center p-6 overflow-hidden bg-muted bg-default"
+    class="error-page fixed inset-0 flex flex-col items-center justify-center p-6 overflow-hidden bg-muted"
     style="opacity: 0"
   >
     <!-- Dot pattern -->
@@ -81,7 +81,7 @@ function goHome() {
         <div class="w-[180px] rounded-xl bg-default border border-default shadow-raise p-3.5">
           <!-- Card header -->
           <div class="flex items-center justify-between mb-2.5">
-            <span class="font-mono text-2xs font-bold text-primary/80 text-primary/70 bg-primary/10 bg-primary/15 px-1.5 py-0.5 rounded-md">
+            <span class="font-mono text-2xs font-bold text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded-md">
               ERR-{{ error.statusCode }}
             </span>
             <span class="w-2 h-2 rounded-full bg-error/60" />
@@ -89,13 +89,13 @@ function goHome() {
           <!-- Shimmer lines -->
           <div class="flex flex-col gap-1.5 mb-2.5">
             <div class="h-2 w-full rounded-md bg-elevated" />
-            <div class="h-2 w-3/4 rounded-md bg-elevated bg-accented" />
-            <div class="h-2 w-1/2 rounded-md bg-elevated bg-accented" />
+            <div class="h-2 w-3/4 rounded-md bg-elevated" />
+            <div class="h-2 w-1/2 rounded-md bg-elevated" />
           </div>
           <!-- Card footer -->
           <div class="flex items-center gap-1.5 pt-2 border-t border-muted">
             <div class="w-4 h-4 rounded-full bg-accented" />
-            <div class="h-1.5 w-10 rounded-md bg-accented/60 bg-accented" />
+            <div class="h-1.5 w-10 rounded-md bg-accented/60" />
           </div>
         </div>
       </div>

@@ -113,7 +113,7 @@ async function setDoneStatus(statusId: string | null) {
       <!-- Editing inline -->
       <div
         v-if="editingColId === col.id"
-        class="flex items-center gap-1 px-2 py-1 rounded-md bg-white bg-accented border border-primary/60 border-primary/50 shrink-0"
+        class="flex items-center gap-1 px-2 py-1 rounded-md bg-default border border-primary/60 shrink-0"
       >
         <span
           class="block w-2.5 h-2.5 rounded-full shrink-0"
@@ -152,7 +152,7 @@ async function setDoneStatus(statusId: string | null) {
           class="group/chip flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 transition-colors"
           :class="col.id === doneStatusId
             ? 'bg-success/10 ring-1 ring-success/30'
-            : 'hover:bg-white hover:bg-elevated'"
+            : 'hover:bg-default'"
           @dblclick="startEditStatus(col)"
         >
           <UIcon
@@ -297,7 +297,7 @@ async function setDoneStatus(statusId: string | null) {
     >
       <button
         type="button"
-        class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-primary hover:bg-white hover:bg-elevated transition-colors shrink-0"
+        class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-primary hover:bg-default transition-colors shrink-0"
       >
         <UIcon
           name="i-lucide-plus"

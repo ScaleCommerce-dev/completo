@@ -50,7 +50,7 @@ function formatDate(iso: string): string {
             v-model="profileName"
             type="text"
             placeholder="Your name..."
-            class="w-full text-lg font-bold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b-2 border-transparent hover:border-default hover:border-accented focus:border-primary/40 focus:border-primary/30 rounded-none outline-none! ring-0! tracking-heading leading-tight py-0.5 transition-colors"
+            class="w-full text-lg font-bold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b-2 border-transparent hover:border-default focus:border-primary/40 rounded-none outline-none! ring-0! tracking-heading leading-tight py-0.5 transition-colors"
           >
           <div class="flex items-center gap-1.5 mt-1">
             <UIcon
@@ -141,7 +141,7 @@ function formatDate(iso: string): string {
             <button
               v-if="gravatarOverride"
               type="button"
-              class="text-xs font-medium text-dimmed hover:text-toned hover:text-default transition-colors shrink-0"
+              class="text-xs font-medium text-dimmed hover:text-toned transition-colors shrink-0"
               @click="gravatarOverride = false; profileAvatarUrl = ''"
             >
               Use Gravatar

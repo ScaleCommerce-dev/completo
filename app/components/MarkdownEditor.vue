@@ -188,7 +188,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
     <!-- Toolbar (write tab only) -->
     <div
       v-show="editTab === 'write'"
-      class="flex items-center gap-0.5 px-3 py-1.5 border-b border-default bg-muted bg-elevated"
+      class="flex items-center gap-0.5 px-3 py-1.5 border-b border-default bg-muted"
     >
       <!-- The shortcut is spelled with drawn keys, not a literal ⌘: no font
            here carries that character, so it fell back to whatever the OS

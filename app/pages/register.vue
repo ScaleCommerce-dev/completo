@@ -116,7 +116,7 @@ async function register() {
     <!-- Invitation banner -->
     <div
       v-if="invitationInfo"
-      class="mx-7 mb-2 flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-primary/15 bg-primary/10 border border-primary/50 border-primary/30"
+      class="mx-7 mb-2 flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-primary/15 border border-primary/50"
     >
       <UIcon
         name="i-lucide-mail-plus"

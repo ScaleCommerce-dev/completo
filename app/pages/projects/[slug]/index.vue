@@ -238,9 +238,9 @@ function cancelDeleteTag() {
 
     <template v-else>
       <!-- Statuses / Tags config bar -->
-      <div class="mb-8 rounded-lg bg-muted border border-muted border-accented overflow-hidden">
+      <div class="mb-8 rounded-lg bg-muted border border-muted overflow-hidden">
         <!-- Tab header -->
-        <div class="flex items-center border-b border-default border-accented px-3">
+        <div class="flex items-center border-b border-default px-3">
           <button
             type="button"
             class="flex items-center gap-1.5 px-2.5 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px"
@@ -458,7 +458,7 @@ function cancelDeleteTag() {
             >
               <button
                 type="button"
-                class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-primary hover:bg-white hover:bg-elevated transition-colors shrink-0"
+                class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-primary hover:bg-default transition-colors shrink-0"
               >
                 <UIcon
                   name="i-lucide-plus"
@@ -605,7 +605,7 @@ function cancelDeleteTag() {
             <!-- Ghost "+ New View" card -->
             <button
               type="button"
-              class="rounded-xl border-2 border-dashed border-accented p-4 hover:border-primary hover:border-primary/40 hover:bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer group text-left"
+              class="rounded-xl border-2 border-dashed border-accented p-4 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer group text-left"
               @click="showNewView = true"
             >
               <div class="flex items-center gap-3">

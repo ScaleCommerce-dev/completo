@@ -107,7 +107,7 @@ These have no single file to host the comment:
 
 - **`theme()` does not work in scoped CSS** — Tailwind 4 uses `var(--color-*)`.
 - **Suppressing the focus ring needs `outline-none!`.** The ring is an *unlayered* `:focus-visible` rule, and unlayered CSS beats `@layer utilities` whatever the specificity, so even `focus-visible:outline-none` loses. Only do this on something that should not be a keyboard destination at all.
-- **Two `bg-*` utilities on one element is a coin flip** decided by stylesheet order, not by which you wrote last.
+- **Two utilities for one property on one element is a coin flip** decided by `@theme` declaration order, not by which you wrote last — so the *later-declared* token wins whatever the class attribute says. `design-tokens.test.ts` › `one utility per property` derives the property per utility and fails on it; a lone `!` is the exemption, because that makes the winner declared. The token migration reintroduced this 45 times by rewriting `X dark:Y` to `X Y`.
 - **`shared/utils/` is auto-imported for Nitro but not for app components** — a `.vue` file must `import { … } from '#shared/utils/…'` or the identifier is silently undefined. **A new file there needs a dev-server restart** (`zdev exec app zpctl restart app`); until then server code throws a runtime `X is not defined` while `pnpm test` passes, because the suite builds fresh.
 - **Icon names in a `.ts` module are not found by Nuxt Icon** — `clientBundle.scan` globs templates only. `nuxt.config.ts` extends `globInclude` to cover it; watch the "client bundle consist of N icons" line.
 

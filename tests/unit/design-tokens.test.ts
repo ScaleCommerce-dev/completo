@@ -367,6 +367,94 @@ describe('semantic surface tokens', () => {
   })
 })
 
+/**
+ * Two utilities setting one CSS property under one variant.
+ *
+ * CLAUDE.md states the trap ("two `bg-*` utilities on one element is a coin
+ * flip decided by stylesheet order") and nothing enforced it, so the token
+ * migration reintroduced it 45 times in 16 files: `bg-zinc-50 dark:bg-zinc-950`
+ * was rewritten to `bg-muted bg-default`, dropping the `dark:` and keeping both
+ * classes. Tailwind emits these in `@theme` declaration order, so the *later*
+ * key wins regardless of authoring order — `bg-muted bg-accented` painted
+ * accented — which meant roughly half the sites rendered what had been the dark
+ * value in both modes, one step too dark in light mode.
+ *
+ * The property is derived from each utility rather than matched against a list
+ * of known-bad pairs, so a token added to the theme is covered the day it lands.
+ * Utilities are grouped by variant *and* property because `bg-muted
+ * hover:bg-elevated` is two properties in two states, not a conflict.
+ *
+ * The one deterministic case is exempt on its mechanism, not by name: if exactly
+ * one member of a group carries `!`, the winner is declared rather than
+ * inherited from stylesheet order, which is the property this guards.
+ */
+describe('one utility per property', () => {
+  /** The CSS property a utility paints, or null if it paints none. */
+  function paintedProperty(utility: string): string | null {
+    const u = utility.replace(/!$/, '')
+    if (/^bg-(gradient|linear|radial|conic|clip|origin|repeat|blend|\[)/.test(u)) return null
+    if (/^bg-(none|cover|contain|auto|center|top|bottom|left|right|fixed|local|scroll)$/.test(u)) return null
+    if (/^bg-/.test(u)) return 'background-color'
+    // `text-` is overloaded: size, alignment and wrapping share the prefix.
+    if (/^text-(\d|xs|sm|base|lg|xl|\dxl|2xs|\[|left|right|center|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip)/.test(u)) return null
+    if (/^text-/.test(u)) return 'color'
+    if (/^border(-[xylrtbse])?$/.test(u)) return null
+    if (/^border-([xylrtbse]-)?\d+(\.\d+)?$/.test(u) || /^border-([xylrtbse]-)?\[/.test(u)) return null
+    if (/^border-(solid|dashed|dotted|double|none|hidden|collapse|separate|spacing)/.test(u)) return null
+    if (/^border-/.test(u)) return 'border-color'
+    if (/^ring-\d+(\.\d+)?$/.test(u) || /^ring-\[/.test(u) || /^ring-inset$/.test(u)) return null
+    if (/^ring-offset-/.test(u)) return null
+    if (/^ring-/.test(u)) return 'ring-color'
+    return null
+  }
+
+  function conflicts(source: string) {
+    const found: string[] = []
+    for (const [i, line] of source.split('\n').entries()) {
+      for (const quoted of line.match(/'[^']*'|"[^"]*"/g) || []) {
+        const groups = new Map<string, string[]>()
+        for (const token of quoted.slice(1, -1).split(/\s+/).filter(Boolean)) {
+          const [, variants = '', base = ''] = token.match(/^((?:[a-z0-9-]+:)*)(.+)$/) || []
+          const property = paintedProperty(base)
+          if (!property) continue
+          const key = variants + property
+          groups.set(key, [...(groups.get(key) || []), token])
+        }
+        for (const [key, tokens] of groups) {
+          if (tokens.length < 2) continue
+          // Exactly one `!` makes the winner explicit, so order stops deciding.
+          if (tokens.filter(t => t.endsWith('!')).length === 1) continue
+          found.push(`L${i + 1} ${key.replace(/[a-z-]+$/, '')}→ ${tokens.join(' + ')}`)
+        }
+      }
+    }
+    return found
+  }
+
+  it('no element sets one property twice under the same variant', () => {
+    const offenders: string[] = []
+    for (const file of vueFiles()) {
+      for (const hit of conflicts(markup(file))) {
+        offenders.push(`${file.replace(ROOT + '/', '')}:${hit}`)
+      }
+    }
+    expect(offenders, 'stylesheet order decides which of these wins, not you').toEqual([])
+  })
+
+  it('recognises a conflict when it sees one', () => {
+    // The guard above is only meaningful while it can still fail, and it reports
+    // an empty array either way. A synthetic element proves the mechanism rather
+    // than requiring a live defect to stay in the repo to prove it.
+    expect(conflicts(`<div class="rounded bg-muted bg-default" />`)).toHaveLength(1)
+    expect(conflicts(`<div class="text-sm hover:text-toned hover:text-default" />`)).toHaveLength(1)
+    // …and does not fire on the shapes that are legitimately two utilities.
+    expect(conflicts(`<div class="bg-muted hover:bg-elevated sm:bg-default" />`)).toHaveLength(0)
+    expect(conflicts(`<div class="text-xs text-muted" />`)).toHaveLength(0)
+    expect(conflicts(`<div class="bg-muted bg-default!" />`)).toHaveLength(0)
+    expect(conflicts(`<div class="border border-t-2 border-default" />`)).toHaveLength(0)
+  })
+})
+
 describe('priority', () => {
   it('covers every priority in every lookup', () => {
     for (const p of PRIORITIES) {

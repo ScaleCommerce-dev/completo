@@ -263,7 +263,7 @@ function onCardClick(columnId: string, card: BoardCard) {
     >
       <button
         v-if="!showAddColumn"
-        class="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-default py-10 text-sm font-medium text-dimmed hover:border-primary hover:text-primary hover:border-primary/50 hover:bg-primary/5 hover:bg-primary/10 transition-colors"
+        class="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-default py-10 text-sm font-medium text-dimmed hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors"
         @click="openAddColumn"
       >
         <UIcon
@@ -313,7 +313,7 @@ function onCardClick(columnId: string, card: BoardCard) {
             />
             <button
               type="button"
-              class="flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm font-medium text-primary hover:bg-primary/10 hover:bg-primary/20 transition-colors"
+              class="flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
               @click="switchToCreate"
             >
               <UIcon

@@ -137,8 +137,8 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
             class="rise-in w-full text-left px-4 py-3 flex items-start gap-3 transition-colors duration-150"
             :class="[
               n.readAt
-                ? 'bg-white bg-muted hover:bg-muted'
-                : 'bg-primary/5 hover:bg-primary/15 hover:bg-primary/20'
+                ? 'bg-default hover:bg-muted'
+                : 'bg-primary/5 hover:bg-primary/15'
             ]"
             :style="{ animationDelay: `${gi * 60 + ni * 40}ms` }"
             @click="handleClick(n)"

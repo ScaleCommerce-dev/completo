@@ -68,7 +68,7 @@ function handleCustomPrompt() {
           class="ai-pill group flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide uppercase transition-colors"
           :class="error
             ? 'text-error bg-error/10 ring-1 ring-error/30 hover:bg-error/20'
-            : 'text-white dark:text-white ring-0'"
+            : 'text-white ring-0'"
           @mousedown.prevent
         >
           <UIcon
@@ -104,7 +104,7 @@ function handleCustomPrompt() {
           <!-- Divider -->
           <div
             v-if="(skills as any[])?.length"
-            class="border-t border-muted border-default"
+            class="border-t border-muted"
           />
 
           <!-- Free-text input -->
@@ -114,7 +114,7 @@ function handleCustomPrompt() {
                 v-model="customPrompt"
                 type="text"
                 placeholder="Custom prompt..."
-                class="flex-1 min-w-0 px-2.5 py-1.5 text-sm text-default placeholder:text-dimmed bg-muted bg-accented border border-default border-accented rounded-lg outline-none focus:border-primary transition-colors"
+                class="flex-1 min-w-0 px-2.5 py-1.5 text-sm text-default placeholder:text-dimmed bg-muted border border-default rounded-lg outline-none focus:border-primary transition-colors"
                 @keydown.enter.prevent="handleCustomPrompt"
                 @keydown.stop
               >
@@ -135,7 +135,7 @@ function handleCustomPrompt() {
           <!-- Error feedback -->
           <div
             v-if="error"
-            class="px-3 py-2 text-xs text-error border-t border-muted border-default"
+            class="px-3 py-2 text-xs text-error border-t border-muted"
           >
             {{ error }}
           </div>

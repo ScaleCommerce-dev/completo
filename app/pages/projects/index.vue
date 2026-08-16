@@ -156,7 +156,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
 
     <!-- Summary stats bar -->
     <div
-      class="flex items-center gap-4 mb-6 mt-4 px-3 py-2 rounded-lg bg-muted border border-muted border-accented"
+      class="flex items-center gap-4 mb-6 mt-4 px-3 py-2 rounded-lg bg-muted border border-muted"
     >
       <div class="flex items-center gap-1.5 text-sm font-medium text-muted">
         <UIcon
@@ -297,7 +297,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         to="/projects/new"
         class="group block"
       >
-        <div class="rounded-xl border-2 border-dashed border-accented p-4 h-full hover:border-primary hover:border-primary/40 hover:bg-primary/5 hover:bg-primary/10 transition-colors flex items-center">
+        <div class="rounded-xl border-2 border-dashed border-accented p-4 h-full hover:border-primary hover:bg-primary/5 transition-colors flex items-center">
           <div class="flex items-center gap-3">
             <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-elevated text-dimmed group-hover:bg-primary/10 group-hover:text-primary transition-colors shrink-0">
               <UIcon

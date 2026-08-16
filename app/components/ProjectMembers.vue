@@ -309,7 +309,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
         :key="m.id"
         class="flex items-center gap-2 px-3 py-2 transition-colors group"
         :class="[
-          mIdx % 2 === 0 ? 'bg-default' : 'bg-muted bg-elevated',
+          mIdx % 2 === 0 ? 'bg-default' : 'bg-muted',
           mIdx === 0 ? 'rounded-t-xl' : '',
           mIdx === (sortedMembers).length - 1 && !isOwnerOrAdmin ? 'rounded-b-xl' : ''
         ]"
@@ -466,7 +466,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
               :disabled="adding"
               @mousedown.prevent="inviteByEmail"
             >
-              <div class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/15 bg-primary/20">
+              <div class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/15">
                 <UIcon
                   name="i-lucide-send"
                   class="text-xs text-primary"

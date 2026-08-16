@@ -204,7 +204,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
       >
         <!-- Header -->
         <div class="flex items-center gap-3 px-5 pt-5 pb-2">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 bg-primary/15">
+          <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
             <UIcon
               :name="viewStep === 1 ? 'i-lucide-layout-grid' : viewType === 'board' ? 'i-lucide-layout-dashboard' : 'i-lucide-list'"
               class="text-base text-primary"
@@ -228,7 +228,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <div class="grid grid-cols-2 gap-3">
             <button
               type="button"
-              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary/60 hover:shadow-float border-default border-accented"
+              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary/60 hover:shadow-float border-default"
               @click="selectViewType('board')"
             >
               <div class="flex items-center gap-3 mb-2">
@@ -246,7 +246,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             </button>
             <button
               type="button"
-              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary/60 hover:shadow-float border-default border-accented"
+              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary/60 hover:shadow-float border-default"
               @click="selectViewType('list')"
             >
               <div class="flex items-center gap-3 mb-2">

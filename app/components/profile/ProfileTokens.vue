@@ -103,7 +103,7 @@ const {
         </button>
         <button
           type="button"
-          class="text-xs font-medium text-dimmed hover:text-toned hover:text-default transition-colors"
+          class="text-xs font-medium text-dimmed hover:text-toned transition-colors"
           @click="createdToken = null"
         >
           Dismiss

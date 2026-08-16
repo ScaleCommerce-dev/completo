@@ -226,7 +226,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
                     type="button"
                     class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
                     :class="modalScope === s
-                      ? 'bg-primary/10 text-primary ring-1 ring-primary/30 ring-primary/50'
+                      ? 'bg-primary/10 text-primary ring-1 ring-primary/30'
                       : 'text-dimmed hover:text-toned hover:bg-elevated'"
                     @click="modalScope = s"
                   >
