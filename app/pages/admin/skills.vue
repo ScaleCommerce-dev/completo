@@ -151,7 +151,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
               {{ skill.name }}
             </h3>
           </div>
-          <div class="flex items-center gap-0.5 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-opacity shrink-0">
+          <div class="flex items-center gap-0.5 opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 transition-opacity shrink-0">
             <UTooltip text="Edit">
               <button
                 class="p-1.5 rounded-md text-dimmed hover:text-primary hover:bg-primary/10 transition-colors"
@@ -207,10 +207,14 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
             <div class="flex flex-col gap-3.5">
               <!-- Name -->
               <div>
-                <label class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5">
+                <label
+                  for="skill-name"
+                  class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5"
+                >
                   Name
                 </label>
                 <input
+                  id="skill-name"
                   v-model="modalName"
                   type="text"
                   placeholder="e.g. Generate Description"
@@ -241,10 +245,14 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
 
               <!-- Prompt -->
               <div>
-                <label class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5">
+                <label
+                  for="skill-prompt"
+                  class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5"
+                >
                   Prompt Template
                 </label>
                 <textarea
+                  id="skill-prompt"
                   v-model="modalPrompt"
                   rows="6"
                   placeholder="Write a prompt template..."

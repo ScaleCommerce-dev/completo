@@ -361,6 +361,7 @@ function onCardClick(columnId: string, card: BoardCard) {
             <input
               ref="nameInput"
               v-model="newColumnName"
+              aria-label="Column name"
               type="text"
               placeholder="Column name"
               class="w-full text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-accented rounded-lg px-2.5 py-1.5 outline-none focus:border-primary transition-colors"

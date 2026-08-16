@@ -37,14 +37,18 @@ async function signOut() {
     <div class="mx-5 mt-2 rounded-lg border border-default divide-y divide-default overflow-hidden">
       <!-- Current password -->
       <div class="flex items-center px-3 py-2.5 bg-default">
-        <div class="flex items-center gap-2 w-28 shrink-0">
+        <label
+          for="password-current"
+          class="flex items-center gap-2 w-28 shrink-0 cursor-pointer"
+        >
           <UIcon
             name="i-lucide-lock"
             class="text-sm text-dimmed"
           />
           <span class="text-sm font-medium text-muted">Current</span>
-        </div>
+        </label>
         <input
+          id="password-current"
           v-model="currentPassword"
           type="password"
           placeholder="Current password"
@@ -55,14 +59,18 @@ async function signOut() {
 
       <!-- New password -->
       <div class="flex items-center px-3 py-2.5 bg-default">
-        <div class="flex items-center gap-2 w-28 shrink-0">
+        <label
+          for="password-new"
+          class="flex items-center gap-2 w-28 shrink-0 cursor-pointer"
+        >
           <UIcon
             name="i-lucide-key-round"
             class="text-sm text-dimmed"
           />
           <span class="text-sm font-medium text-muted">New</span>
-        </div>
+        </label>
         <input
+          id="password-new"
           v-model="newPassword"
           type="password"
           placeholder="New password (min 6 chars)"
@@ -73,14 +81,18 @@ async function signOut() {
 
       <!-- Confirm password -->
       <div class="flex items-center px-3 py-2.5 bg-default">
-        <div class="flex items-center gap-2 w-28 shrink-0">
+        <label
+          for="password-confirm"
+          class="flex items-center gap-2 w-28 shrink-0 cursor-pointer"
+        >
           <UIcon
             name="i-lucide-check-circle"
             class="text-sm text-dimmed"
           />
           <span class="text-sm font-medium text-muted">Confirm</span>
-        </div>
+        </label>
         <input
+          id="password-confirm"
           v-model="confirmPassword"
           type="password"
           placeholder="Confirm new password"

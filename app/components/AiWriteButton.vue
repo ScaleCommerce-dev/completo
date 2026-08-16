@@ -113,6 +113,7 @@ function handleCustomPrompt() {
               <input
                 v-model="customPrompt"
                 type="text"
+                aria-label="Custom AI prompt"
                 placeholder="Custom prompt..."
                 class="flex-1 min-w-0 px-2.5 py-1.5 text-sm text-default placeholder:text-dimmed bg-muted border border-default rounded-lg outline-none focus:border-primary transition-colors"
                 @keydown.enter.prevent="handleCustomPrompt"

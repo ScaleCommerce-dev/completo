@@ -423,6 +423,7 @@ defineExpose({
               <input
                 v-model="imageUrlInput"
                 type="text"
+                aria-label="Image URL"
                 placeholder="https://..."
                 class="flex-1 text-sm text-default placeholder:text-dimmed bg-muted border border-accented rounded-md px-2 py-1.5 outline-none focus:border-primary transition-colors"
                 @keydown.enter.prevent="insertUrlImage"
@@ -529,6 +530,7 @@ defineExpose({
           <input
             ref="mentionSearchInput"
             v-model="mentionSearchQuery"
+            aria-label="Search members or cards to mention"
             placeholder="Search members or cards..."
             class="w-full pl-8 pr-3 py-2.5 text-sm text-default placeholder:text-dimmed bg-transparent border-0 outline-none"
             @keydown="onMentionKeydown"

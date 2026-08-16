@@ -296,6 +296,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
         ref="textareaEl"
         v-model="modelValue"
         :placeholder="placeholder"
+        :aria-label="placeholder"
         class="w-full text-base text-toned placeholder:text-dimmed bg-default border-0 px-4 py-3 outline-none transition-colors resize-y leading-[1.7]"
         :style="{ minHeight: `${minHeight}px`, ...(maxHeight != null ? { maxHeight: `${maxHeight}px` } : {}) }"
         @keydown="onKeydown"

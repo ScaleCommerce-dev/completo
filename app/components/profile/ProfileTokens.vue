@@ -39,6 +39,7 @@ const {
         <input
           v-model="tokenName"
           type="text"
+          aria-label="Token name"
           placeholder="Token name (e.g. CI Pipeline)"
           maxlength="100"
           class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
@@ -46,6 +47,7 @@ const {
         >
         <select
           v-model="tokenExpiry"
+          aria-label="Token expiry"
           class="text-sm text-muted bg-transparent border-0 cursor-pointer"
         >
           <option value="">
@@ -153,7 +155,7 @@ const {
           >
             <button
               type="button"
-              class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-error hover:bg-error/10 transition opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60"
+              class="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-dimmed hover:text-error hover:bg-error/10 transition opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 max-sm:opacity-60"
               style="opacity: 0.6"
               @click="startDeleteToken(token.id)"
             >

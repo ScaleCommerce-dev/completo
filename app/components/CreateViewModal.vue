@@ -274,6 +274,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             <input
               v-model="viewName"
               type="text"
+              :aria-label="`${viewType === 'board' ? 'Board' : 'List'} name`"
               :placeholder="`${viewType === 'board' ? 'Board' : 'List'} name...`"
               autofocus
               class="w-full text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-name leading-snug py-2 transition-colors"
@@ -293,6 +294,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 <input
                   :value="viewSlug"
                   type="text"
+                  aria-label="URL slug"
                   placeholder="my-view"
                   class="flex-1 text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border-0 tracking-wide"
                   @input="onSlugInput"
@@ -356,10 +358,21 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           <div class="px-5 py-4 max-h-[320px] overflow-y-auto">
             <!-- Board: checkbox statuses -->
             <template v-if="viewType === 'board'">
-              <div
+              <!--
+                A real control, not a clickable div. These rows are checkboxes in
+                everything but markup — they carry a checked state and toggle it —
+                so `role="checkbox"` with `aria-checked` is what makes the state
+                announced and the row reachable. The tag chips further down were
+                already buttons; these were the odd ones out, and a keyboard could
+                not choose a single column for a new board.
+              -->
+              <button
                 v-for="status in statuses"
                 :key="status.id"
-                class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                type="button"
+                role="checkbox"
+                :aria-checked="selectedBoardColumns.has(status.id)"
+                class="w-full text-left flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                 @click="toggleBoardColumn(status.id)"
               >
                 <div
@@ -379,15 +392,18 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                   :style="{ backgroundColor: status.color || '#a1a1aa' }"
                 />
                 <span class="text-base font-medium text-default">{{ status.name }}</span>
-              </div>
+              </button>
             </template>
 
             <!-- List: checkbox fields -->
             <template v-else>
-              <div
+              <button
                 v-for="f in LIST_FIELD_OPTIONS"
                 :key="f.field"
-                class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                type="button"
+                role="checkbox"
+                :aria-checked="selectedListFields.has(f.field)"
+                class="w-full text-left flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                 @click="toggleListField(f.field)"
               >
                 <div
@@ -403,7 +419,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                   />
                 </div>
                 <span class="text-base font-medium text-default">{{ f.label }}</span>
-              </div>
+              </button>
             </template>
 
             <!-- Tag filters (both board and list) -->

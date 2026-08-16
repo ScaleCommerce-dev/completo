@@ -122,6 +122,7 @@ async function setDoneStatus(statusId: string | null) {
         <input
           v-model="editingColName"
           type="text"
+          aria-label="Status name"
           class="w-24 text-xs font-medium text-highlighted bg-transparent border-0 py-0"
           @keydown.enter="saveEditStatus"
           @keydown.escape="cancelEditStatus"
@@ -329,6 +330,7 @@ async function setDoneStatus(statusId: string | null) {
             <input
               ref="newColNameInput"
               v-model="newColName"
+              aria-label="New status name"
               type="text"
               placeholder="Status name..."
               class="flex-1 text-sm font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-accented rounded-md px-2 py-1 outline-none! ring-0! focus:border-primary transition-colors"

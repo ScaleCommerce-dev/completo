@@ -64,6 +64,7 @@ function applyFilterAsIcon() {
       <input
         v-model="iconFilter"
         type="text"
+        aria-label="Search icons"
         placeholder="Search or type any icon name..."
         class="w-full text-sm text-toned placeholder:text-dimmed bg-muted border border-default rounded-md px-2.5 py-1.5 outline-none focus:border-primary transition-colors"
         @keydown.enter.prevent="applyFilterAsIcon"

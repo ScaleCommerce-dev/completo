@@ -38,6 +38,7 @@ function onConfirm() {
       <input
         v-model="confirmName"
         type="text"
+        :aria-label="`Type ${name} to confirm`"
         :placeholder="name"
         class="flex-1 text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-2.5 py-1.5 outline-none focus:border-error/60 transition-colors"
       >

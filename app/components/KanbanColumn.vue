@@ -200,6 +200,7 @@ const countLabel = computed(() =>
           ref="draftInput"
           v-model="draft"
           rows="2"
+          :aria-label="`Add a card to ${column.name}`"
           :placeholder="`Add to ${column.name}...`"
           class="w-full resize-none bg-transparent text-sm leading-snug text-highlighted placeholder:text-dimmed border-0 p-0 focus:outline-none"
           @keydown.enter.exact.prevent="commitDraft(true)"

@@ -74,12 +74,14 @@ async function deleteAccount() {
           <input
             v-model="deleteEmail"
             type="email"
+            aria-label="Your email address"
             placeholder="Your email address"
             class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-2.5 py-1.5 outline-none focus:border-error/60 transition-colors"
           >
           <input
             v-model="deletePassword"
             type="password"
+            aria-label="Your password"
             placeholder="Your password"
             autocomplete="current-password"
             class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-2.5 py-1.5 outline-none focus:border-error/60 transition-colors"

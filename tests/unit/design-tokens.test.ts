@@ -494,6 +494,58 @@ describe('focus is never suppressed silently', () => {
   })
 })
 
+/**
+ * Every form control says what it is.
+ *
+ * A `placeholder` is not an accessible name: it is a hint, several screen
+ * readers ignore it for naming, and it disappears the moment anything is typed.
+ * Twenty-six controls relied on one anyway — including both password fields on
+ * the account-deletion form and the type-the-name confirmations, which are
+ * exactly the places where "which box is this?" matters most.
+ *
+ * Two ways to satisfy it, and the choice is not arbitrary. A control with
+ * visible label text should be *associated* with it (`<label for>` + `id`), so
+ * the label is also a click target. `aria-label` is for controls that are
+ * deliberately seamless — the profile name field reads as the heading it edits,
+ * so it has no visible text to point at.
+ */
+describe('form controls have accessible names', () => {
+  /** `id` counts because a `<label for>` in the same file is how these pair up. */
+  const NAMED = /(^|\s)(aria-label(?:ledby)?|:aria-label(?:ledby)?|id)=/
+  /** Controls that carry their name in their type rather than in text. */
+  const SELF_DESCRIBING = /type="(hidden|checkbox|radio|submit|button|file|image|reset)"/
+
+  it('no input, select or textarea relies on a placeholder alone', () => {
+    const offenders: string[] = []
+    for (const file of vueFiles()) {
+      const src = markup(file)
+      for (const m of src.matchAll(/<(input|select|textarea)\b/g)) {
+        const end = src.indexOf('>', m.index)
+        const attrs = src.slice(m.index, end === -1 ? m.index + 400 : end)
+        if (NAMED.test(attrs) || SELF_DESCRIBING.test(attrs)) continue
+        offenders.push(`${file.replace(ROOT + '/', '')}:${src.slice(0, m.index).split('\n').length}`)
+      }
+    }
+    expect(offenders, 'a placeholder is a hint, not a name').toEqual([])
+  })
+
+  it('every `for` points at an id that exists in the same file', () => {
+    // The half that rots silently: rename the input's id and the label goes on
+    // looking associated while pointing at nothing.
+    const broken: string[] = []
+    for (const file of vueFiles()) {
+      const src = markup(file)
+      const ids = new Set([...src.matchAll(/\bid="([^"{}]+)"/g)].map(m => m[1]))
+      // Literal `for="…"` only: `(?<![\w:-])` skips the `for` inside `v-for`
+      // and the bound `:for="expr"`, whose target id lives in the consumer.
+      for (const m of src.matchAll(/(?<![\w:-])for="([^"{}]+)"/g)) {
+        if (!ids.has(m[1]!)) broken.push(`${file.replace(ROOT + '/', '')} → for="${m[1]}"`)
+      }
+    }
+    expect(broken, 'a label pointing at no control names nothing').toEqual([])
+  })
+})
+
 describe('priority', () => {
   it('covers every priority in every lookup', () => {
     for (const p of PRIORITIES) {

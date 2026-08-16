@@ -515,7 +515,7 @@ function handleDeleteView() {
                     <span class="text-base font-medium flex-1">
                       {{ mode === 'board' ? col.name : fieldLabel(col.field || '') }}
                     </span>
-                    <div class="flex items-center gap-0.5 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition-opacity">
+                    <div class="flex items-center gap-0.5 opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 transition-opacity">
                       <UTooltip text="Remove column">
                         <UButton
                           icon="i-lucide-trash-2"

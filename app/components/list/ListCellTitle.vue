@@ -26,7 +26,7 @@ defineProps<{
       <NuxtLink
         v-if="detailUrl"
         :to="detailUrl"
-        class="shrink-0 inline-flex items-center justify-center size-6 rounded-md text-dimmed hover:text-primary hover:bg-elevated opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 transition"
+        class="shrink-0 inline-flex items-center justify-center size-6 rounded-md text-dimmed hover:text-primary hover:bg-elevated opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 max-sm:opacity-60 transition"
         @click.stop
       >
         <UIcon

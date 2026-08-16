@@ -185,15 +185,22 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
 
     <!-- Project cards grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-      <NuxtLink
+      <!--
+        The settings button is a sibling of the link, not a child of it.
+        A `<button>` inside an `<a>` is invalid HTML and screen readers flatten
+        it unpredictably — and there is no valid way to nest them, so the link
+        becomes a stretched overlay instead and the button sits above it. Layout
+        is unchanged: the overlay covers the card, so the card's own hover states
+        move to `group-hover`.
+      -->
+      <div
         v-for="(project, index) in projects"
         :key="project.id"
-        :to="`/projects/${project.slug}`"
-        class="group block rise-in"
+        class="group relative rise-in"
         :style="{ animationDelay: staggerDelay(index * 40) }"
       >
         <div
-          class="rounded-xl border border-default p-4 h-full hover:border-primary/60 hover:shadow-float transition-colors"
+          class="rounded-xl border border-default p-4 h-full group-hover:border-primary/60 group-hover:shadow-float transition-colors"
           :style="{ borderLeftWidth: '3px', borderLeftColor: accentFor(project) }"
         >
           <!-- Top row: icon + name + key + settings -->
@@ -228,9 +235,16 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
                 {{ project.description }}
               </p>
             </div>
+            <!--
+              `group-focus-within` alongside `group-hover`, the way
+              `EMPTY_CELL_CLASS` already does it: a control revealed only on
+              hover is a control a keyboard can tab onto while it is still
+              invisible. `relative z-10` lifts it above the link overlay below.
+            -->
             <button
               v-if="project.role === 'owner' || project.role === 'admin'"
-              class="opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 p-1 rounded-md text-dimmed hover:text-toned hover:bg-elevated transition shrink-0"
+              :aria-label="`Settings for ${project.name}`"
+              class="relative z-10 opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 p-1 rounded-md text-dimmed hover:text-toned hover:bg-elevated transition shrink-0"
               @click="openEditProject(project, $event)"
             >
               <UIcon
@@ -290,7 +304,16 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
             </div>
           </div>
         </div>
-      </NuxtLink>
+
+        <!-- The card's link. Last so it sits under the settings button, and
+             named explicitly because a stretched overlay has no text of its
+             own — without this it would announce as an unnamed link. -->
+        <NuxtLink
+          :to="`/projects/${project.slug}`"
+          class="absolute inset-0 rounded-xl"
+          :aria-label="project.name"
+        />
+      </div>
 
       <!-- Ghost "+ New Project" card -->
       <NuxtLink

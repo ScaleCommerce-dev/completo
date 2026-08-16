@@ -46,9 +46,13 @@ function formatDate(iso: string): string {
         />
         <!-- Name + Email -->
         <div class="flex-1 min-w-0">
+          <!-- Seamless by design — it reads as the heading it edits — so there is
+               no visible text to bind a <label> to. `aria-label` is the name;
+               a placeholder is not one. -->
           <input
             v-model="profileName"
             type="text"
+            aria-label="Display name"
             placeholder="Your name..."
             class="w-full text-lg font-bold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b-2 border-transparent hover:border-default focus:border-primary/40 rounded-none outline-none! ring-0! tracking-heading leading-tight py-0.5 transition-colors"
           >
@@ -124,15 +128,19 @@ function formatDate(iso: string): string {
           v-else-if="hasGravatar === false || gravatarOverride"
           class="flex items-center px-3 py-2.5 bg-default"
         >
-          <div class="flex items-center gap-2 w-28 shrink-0">
+          <label
+            for="profile-avatar-url"
+            class="flex items-center gap-2 w-28 shrink-0 cursor-pointer"
+          >
             <UIcon
               name="i-lucide-image"
               class="text-sm text-dimmed"
             />
             <span class="text-sm font-medium text-muted">Avatar URL</span>
-          </div>
+          </label>
           <div class="flex flex-1 items-center gap-2">
             <input
+              id="profile-avatar-url"
               v-model="profileAvatarUrl"
               type="text"
               placeholder="https://..."

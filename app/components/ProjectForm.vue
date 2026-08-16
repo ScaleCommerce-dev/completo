@@ -218,6 +218,7 @@ function confirmDelete() {
       <input
         v-model="formName"
         type="text"
+        aria-label="Project name"
         placeholder="Project name..."
         autofocus
         class="w-full text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent focus:border-accented rounded-none outline-none! ring-0! tracking-name leading-snug py-2 transition-colors"
@@ -228,6 +229,7 @@ function confirmDelete() {
     <div class="px-5 pt-1">
       <textarea
         v-model="formDescription"
+        aria-label="Project description"
         placeholder="What is this project about?"
         rows="2"
         class="w-full text-base text-toned placeholder:text-dimmed bg-muted border border-default rounded-lg px-3 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-colors resize-none leading-relaxed"
@@ -263,6 +265,7 @@ function confirmDelete() {
         </div>
         <textarea
           v-model="formBriefing"
+          aria-label="Project briefing"
           placeholder="Describe the project scope, tech stack, conventions, goals... This context helps AI write better card descriptions."
           rows="6"
           class="w-full text-base text-toned placeholder:text-dimmed bg-muted border border-default rounded-lg px-3 py-2.5 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/10 transition-colors resize-none leading-relaxed"
@@ -288,6 +291,7 @@ function confirmDelete() {
           <input
             :value="formKey"
             type="text"
+            aria-label="Project key"
             placeholder="ENG"
             maxlength="5"
             class="flex-1 text-base font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 uppercase tracking-wide"
@@ -332,6 +336,7 @@ function confirmDelete() {
           <input
             :value="formSlug"
             type="text"
+            aria-label="URL slug"
             placeholder="my-project"
             class="flex-1 text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border-0 tracking-wide"
             @input="onSlugInput"
@@ -368,6 +373,7 @@ function confirmDelete() {
           <select
             v-if="mode === 'create'"
             v-model="doneStatusName"
+            aria-label="Done status"
             class="text-base font-medium text-highlighted bg-transparent border-0 outline-none cursor-pointer"
           >
             <option
@@ -388,6 +394,7 @@ function confirmDelete() {
             <select
               v-else
               :value="doneStatusId || ''"
+              aria-label="Done status"
               class="text-base font-medium text-highlighted bg-transparent border-0 outline-none cursor-pointer"
               @change="doneStatusId = ($event.target as HTMLSelectElement).value || null"
             >
@@ -409,6 +416,7 @@ function confirmDelete() {
             <input
               :value="doneRetentionDays ?? ''"
               type="number"
+              aria-label="Days to keep done cards"
               min="1"
               placeholder="∞"
               class="w-12 text-sm font-semibold text-center text-highlighted placeholder:text-dimmed bg-elevated border-0 rounded-md py-0.5"

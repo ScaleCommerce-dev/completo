@@ -120,10 +120,13 @@ const tagColorPopoverOpen = ref<Record<string, boolean>>({})
  * All four tag mutations route through here.
  *
  * They were bare `await $fetch` with no catch, so a rejection was unhandled and
- * silent — and a duplicate tag name is a 409, which is the most likely thing a
- * user does here. The request failed, nothing was said, and the editor stayed
- * open holding text that had not been saved. `deleteView` in this same file
- * already had the right shape; these did not.
+ * silent: the request failed, nothing was said, and the editor closed having
+ * thrown away what was typed. `deleteView` in this same file already had the
+ * right shape; these did not.
+ *
+ * Note the API does *not* reject a duplicate tag name — two tags called "BUG"
+ * is a supported state — so the reachable failures here are a deleted project,
+ * a lost session or a dropped connection, not validation.
  */
 async function tagMutation(op: () => Promise<unknown>, message: string): Promise<boolean> {
   try {
@@ -523,6 +526,7 @@ function cancelDeleteTag() {
                     <input
                       ref="newTagNameInput"
                       v-model="newTagName"
+                      aria-label="Tag name"
                       type="text"
                       placeholder="Tag name..."
                       class="flex-1 text-sm font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-accented rounded-md px-2 py-1 outline-none! ring-0! focus:border-primary transition-colors"
@@ -569,16 +573,16 @@ function cancelDeleteTag() {
           </p>
 
           <div class="grid grid-cols-2 gap-3">
-            <NuxtLink
+            <!-- Link as a stretched overlay so the delete button is its sibling
+                 rather than its child: a `<button>` inside an `<a>` is invalid
+                 and there is no valid way to nest them. -->
+            <div
               v-for="view in allViews"
               :key="view.id"
-              :to="view._type === 'board'
-                ? `/projects/${slug}/boards/${view.slug || view.id}`
-                : `/projects/${slug}/lists/${view.slug || view.id}`"
-              class="group block"
+              class="group relative"
             >
               <div
-                class="relative rounded-xl border border-default bg-default p-4 hover:border-primary/60 hover:shadow-float transition-colors"
+                class="relative rounded-xl border border-default bg-default p-4 group-hover:border-primary/60 group-hover:shadow-float transition-colors"
                 :style="{ borderLeftWidth: '3px', borderLeftColor: ACCENT_COLORS[hashCode(view.id) % ACCENT_COLORS.length] }"
               >
                 <UTooltip
@@ -586,7 +590,8 @@ function cancelDeleteTag() {
                   :text="`Delete ${view._type}`"
                 >
                   <button
-                    class="absolute top-2 right-2 opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 p-1 rounded-md text-error hover:text-error hover:bg-error/10 transition"
+                    :aria-label="`Delete ${view._type} ${view.name}`"
+                    class="absolute top-2 right-2 z-10 opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 p-1 rounded-md text-error hover:text-error hover:bg-error/10 transition"
                     @click="openDeleteView(view, view._type, $event)"
                   >
                     <UIcon
@@ -630,7 +635,15 @@ function cancelDeleteTag() {
                   </div>
                 </div>
               </div>
-            </NuxtLink>
+
+              <NuxtLink
+                :to="view._type === 'board'
+                  ? `/projects/${slug}/boards/${view.slug || view.id}`
+                  : `/projects/${slug}/lists/${view.slug || view.id}`"
+                class="absolute inset-0 rounded-xl"
+                :aria-label="view.name"
+              />
+            </div>
 
             <!-- Ghost "+ New View" card -->
             <button
@@ -700,6 +713,7 @@ function cancelDeleteTag() {
             <input
               v-model="deleteViewConfirmName"
               type="text"
+              :aria-label="`Type ${deleteViewTarget?.name} to confirm`"
               :placeholder="deleteViewTarget?.name"
               class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-3 py-2 outline-none focus:border-error/60 transition-colors"
             >
