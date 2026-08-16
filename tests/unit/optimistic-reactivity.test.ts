@@ -55,6 +55,47 @@ describe('optimistic card mutations', () => {
 })
 
 /**
+ * A rejected *move* needs more than the rollback its sibling above gets.
+ *
+ * `moveCard` snapshots every card on the board, because renumbering one column
+ * touches all of them. That makes the snapshot a picture of the whole board at
+ * drag-start rather than of the thing being changed, so replaying it also
+ * un-does anything that landed in between — drag A, drag B, A's PUT fails, and
+ * B's server-accepted move vanishes from the board while the database keeps it.
+ * The same snapshot is already stale in the case that causes most rejections:
+ * one issued *because* server state moved.
+ *
+ * So the rollback is the immediate response and the refetch is the correction.
+ * Both, in that order: the rollback needs no network, and whatever failed the
+ * PUT will often fail the GET too.
+ */
+describe('a rejected card move reconciles with the server', () => {
+  // Comments stripped: the prose in `moveCard` explains why the success path has
+  // no `refresh()`, so a naive search finds the word in the very comment that
+  // says it must not be there.
+  const src = readFileSync(join(ROOT, 'app/composables/useKanban.ts'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:\w])\/\/[^\n]*/g, '$1')
+  const moveCard = src.slice(src.indexOf('async function moveCard'), src.indexOf('async function addColumn'))
+  const onReject = moveCard.slice(moveCard.indexOf('} catch'))
+
+  it('does not refetch on the success path', () => {
+    // This is the regression the branch removed on purpose: refetching after a
+    // move re-ran every card's entrance animation on every drag.
+    const tryBlock = moveCard.slice(moveCard.indexOf('try {'), moveCard.indexOf('} catch'))
+    expect(tryBlock).not.toMatch(/refresh\(\)/)
+  })
+
+  it('rolls back and then refetches when the move is rejected', () => {
+    expect(onReject).toMatch(/s\.card\.statusId = s\.statusId/)
+    expect(onReject).toMatch(/await refresh\(\)/)
+    // Order matters, and reversing it is silent: a refetch that fails leaves the
+    // card sitting where it was dropped, which reads as a move that worked.
+    expect(onReject.indexOf('s.card.statusId')).toBeLessThan(onReject.indexOf('await refresh()'))
+  })
+})
+
+/**
  * The instant-save contract, which is split by what a field actually is:
  * properties persist on change, prose stays an explicit draft.
  */

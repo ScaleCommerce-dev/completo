@@ -107,11 +107,26 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
       // renumbering — the board re-rendered and re-ran its entrance animations
       // every time a card was dragged.
     } catch (e) {
+      // Roll back first: it needs no network, and whatever just failed the PUT
+      // is likely to fail the refetch below too. Without this a dropped
+      // connection would leave the card where it was dropped, which reads as a
+      // move that worked.
       for (const s of snapshot) {
         s.card.statusId = s.statusId
         s.card.position = s.position
       }
       toast.add({ title: 'Failed to move card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+      // …then reconcile, because the snapshot is not the truth. It is every card
+      // as it looked when *this* drag started, so restoring it also un-does any
+      // move that landed in between — drag A, drag B, A's PUT fails and B's
+      // accepted move disappears from the board while the database keeps it. It
+      // is also already stale in the case that produces most of these failures:
+      // a rejection *because* server state changed.
+      //
+      // The no-refresh argument in the try block does not reach here. It is
+      // about the success path, where local state already matches what the
+      // server accepted and refetching only re-runs the entrance animations.
+      await refresh()
     }
   }
 
