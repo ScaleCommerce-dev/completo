@@ -86,7 +86,25 @@ function escapeComposer() {
 
 const newCommentEditor = ref<{ startEditing: () => void }>()
 
+/**
+ * The card panel navigates between cards without remounting this component, so
+ * every piece of per-card editor state has to be torn down by hand.
+ *
+ * Clearing `draft` is the load-bearing line: `load()` only *assigns* when the
+ * new card has a stored draft, so on a card with none it left the previous
+ * card's text sitting in the composer — and `composerOpen` below then re-opened
+ * it, under the new card's heading. Pressing Comment posted one card's text to
+ * another. `useTextDraft` flushes the old card's scope before this reset lands,
+ * so what is cleared here is the editor, never the draft.
+ *
+ * `editingId` before `editDraft`: the edit draft's scope is derived from both,
+ * and nulling the id first drops the scope to null, so clearing the text cannot
+ * file it under `card:<new>:comment:<old comment>`.
+ */
 watch(cardIdRef, () => {
+  editingId.value = null
+  editDraft.value = ''
+  draft.value = ''
   commentDraft.load()
   // Text that came back has to be visible, for the same reason a restored
   // description opens its editor: a draft you cannot see is a draft you will

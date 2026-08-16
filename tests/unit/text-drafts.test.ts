@@ -133,3 +133,57 @@ describe('leaving an editor cannot lose text silently', () => {
     expect(CARD_MODAL).not.toMatch(/showTextDiscardConfirm/)
   })
 })
+
+/**
+ * The panel navigates between cards without remounting, so a draft's scope
+ * changes underneath a live component. That produced the worst bug on this
+ * branch: an unposted comment on card A stayed in the composer on card B and
+ * Comment posted it there.
+ *
+ * Source-level for the reason at the top of this file — the composable cannot be
+ * mounted here. What each assertion pins is a mechanism the fix depends on, not
+ * a spelling: drop any one of them and the leak returns.
+ */
+describe('a scope change cannot carry text onto the next card', () => {
+  const code = DRAFT.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\w])\/\/[^\n]*/g, '$1')
+
+  it('CommentList empties every editor before restoring the new card\'s draft', () => {
+    // `load()` only *assigns* when the new card has a stored draft, so on a card
+    // with none it left the previous card's text in place. The reset has to
+    // happen in the watcher and before the load, or it restores nothing over
+    // text that is already wrong.
+    const watcher = COMMENT_LIST.match(/watch\(cardIdRef,[\s\S]*?\}, \{ immediate: true \}\)/)?.[0]
+    expect(watcher, 'the cardIdRef watcher').toBeTruthy()
+    expect(watcher).toMatch(/draft\.value = ''/)
+    expect(watcher).toMatch(/editingId\.value = null/)
+    // Ordering: nulling the edit id first drops that draft's scope to null, so
+    // clearing its text cannot file it under `card:<new>:comment:<old>`.
+    expect(watcher!.indexOf('editingId.value = null')).toBeLessThan(watcher!.indexOf('editDraft.value = \'\''))
+    expect(watcher!.indexOf('draft.value = \'\'')).toBeLessThan(watcher!.indexOf('commentDraft.load()'))
+  })
+
+  it('the pending write remembers which card it belongs to', () => {
+    // Deciding the target when the timer fires reads a scope that may already
+    // have moved on, which files one card's text under another's key.
+    expect(code).toMatch(/pending\s*[:=]/)
+    expect(code).toMatch(/pending = \{ scope/)
+    expect(code).toMatch(/write\(\w+\.scope,/)
+  })
+
+  it('a scope change flushes before the new scope can claim the text', () => {
+    expect(code).toMatch(/watch\(resolvedScope[\s\S]{0,60}flush\(\)/)
+  })
+
+  it('the source watcher is synchronous so the scope is pinned to the edit', () => {
+    // A default pre-flush watcher runs after the tick's prop updates, so typing
+    // on card A and navigating in the same tick captured B's scope for A's text.
+    // Verified in a browser: without this the draft was lost on that path.
+    expect(code).toMatch(/watch\(source[\s\S]*?flush: 'sync'/)
+  })
+
+  it('an explicit discard cancels a write already on the timer', () => {
+    // Otherwise `clear()` removes the key and the pending write puts it back
+    // 400ms later — the one case where restoring text is the wrong answer.
+    expect(code).toMatch(/function clear\(\)\s*\{\s*cancel\(\)/)
+  })
+})

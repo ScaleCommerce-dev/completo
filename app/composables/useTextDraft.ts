@@ -94,6 +94,10 @@ export function useTextDraft(
   }
 
   function clear() {
+    // Drop the pending write too. An explicit discard is the one path where
+    // restoring text is the wrong answer, so a write already on the timer must
+    // not put it back 400ms later.
+    cancel()
     const s = resolvedScope.value
     if (s) write(s, '')
     restored.value = null
@@ -104,22 +108,56 @@ export function useTextDraft(
   }
 
   // Debounced so a fast typist does not hit localStorage on every keystroke.
+  //
+  // *What* to write is decided here rather than when the timer fires, because
+  // the card panel navigates between cards without remounting: by the time a
+  // pending write lands, `resolvedScope` and `baseline` can both already belong
+  // to the next card. Capturing the scope with the text is what keeps one card's
+  // comment out of another card's key.
   let timer: ReturnType<typeof setTimeout> | null = null
+  let pending: { scope: string, text: string } | null = null
+
+  function cancel() {
+    if (timer) clearTimeout(timer)
+    timer = null
+    pending = null
+  }
+
+  function flush() {
+    const due = pending
+    cancel()
+    if (due) write(due.scope, due.text)
+  }
+
+  // `flush: 'sync'` is load-bearing, not a preference. A default pre-flush
+  // watcher runs after the current tick's prop updates, so text typed on card A
+  // and a navigation to card B in the same tick arrive together — and the
+  // callback then reads a `resolvedScope` that already says B, filing A's text
+  // under B's key. Measured: typing and navigating in one tick lost the draft
+  // before this, and leaked it to the wrong card before the capture below.
+  // Running synchronously pins the scope to the moment the text changed.
+  // The debounce still exists — it is the localStorage write that is expensive,
+  // not this.
   watch(source, (val) => {
     const s = resolvedScope.value
+    // Belt and braces for any path that still changes scope first: `pending`
+    // from a different scope belongs to the card we just left, so write it
+    // there before this edit overwrites it.
+    if (pending && pending.scope !== s) flush()
     if (!s) return
     if (timer) clearTimeout(timer)
     // `write` removes the key for empty text, so text that has caught up with
     // the server clears its own draft rather than shadowing it forever.
-    timer = setTimeout(() => write(s, isDraft(val) ? val : ''), 400)
-  })
+    pending = { scope: s, text: isDraft(val) ? val : '' }
+    timer = setTimeout(flush, 400)
+  }, { flush: 'sync' })
 
-  onBeforeUnmount(() => {
-    if (timer) clearTimeout(timer)
-    // Flush synchronously: unmount is exactly the case this exists for.
-    const s = resolvedScope.value
-    if (s) write(s, isDraft(source.value) ? source.value : '')
-  })
+  // Navigating to another card is a scope change with no unmount, so this is the
+  // departing card's only chance to have its text written.
+  watch(resolvedScope, () => flush())
+
+  // Flush synchronously: unmount is exactly the case this exists for.
+  onBeforeUnmount(flush)
 
   return { restored, load, clear, dismissNotice }
 }
