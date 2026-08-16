@@ -321,8 +321,7 @@
 .swatch,
 .swatch-outline,
 .swatch-text,
-.swatch-dot,
-.swatch-bar {
+.swatch-dot {
   --swatch: var(--ui-text-dimmed);
   --swatch-fg: oklch(from var(--swatch) 0.46 c h);
   --swatch-fill: oklch(from var(--swatch) 0.965 calc(c * 0.28) h);
@@ -333,8 +332,7 @@
 :is(.dark) .swatch,
 :is(.dark) .swatch-outline,
 :is(.dark) .swatch-text,
-:is(.dark) .swatch-dot,
-:is(.dark) .swatch-bar {
+:is(.dark) .swatch-dot {
   --swatch-fg: oklch(from var(--swatch) 0.84 c h);
   --swatch-fill: oklch(from var(--swatch) 0.28 calc(c * 0.45) h);
   --swatch-ring: oklch(from var(--swatch) 0.42 calc(c * 0.6) h);
@@ -381,10 +379,6 @@
 .swatch-dot {
   background-color: var(--swatch-mark);
   box-shadow: 0 0 0 1px color-mix(in oklab, var(--swatch-mark) 55%, transparent);
-}
-
-.swatch-bar {
-  background-color: var(--swatch-mark);
 }
 
 /* Identity disc — a person's initials, tinted by `UiAvatar` so a screen with

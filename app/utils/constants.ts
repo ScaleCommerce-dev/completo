@@ -1,18 +1,20 @@
-// Project accent colours — a decorative tint per project, so a fixed hex ramp is
-// fine as the *source*.
+// Project accent colours — a decorative tint per project or view, from a ramp
+// this file curates. Never user input, which is what separates it from
+// `COLOR_PALETTE`.
 //
-// This said the ramp "is rendered through the `.swatch` classes", which is what
-// it should do and not what it does: all six call sites build inline styles from
-// the raw hex instead (`projects/index.vue`, `projects/[slug]/index.vue`,
-// `ProfileActivity.vue`), and the alpha suffix has already drifted between them
-// — `+'14'` in two files, `+'12'` in the third. That is the bug the swatch
-// recipe was written to end, reintroduced by hand: a raw hex on a wash of its
-// own hue measures ~2.2:1 for the amber entry, and mixing cannot fix it because
-// the fix is to *set* the lightness (see the `.swatch` block in main.css).
+// How it is rendered depends on whether anything is drawn *on* the colour, and
+// getting that split wrong is a mistake this has already made in both
+// directions:
 //
-// `.swatch-bar` exists for exactly the accent-strip shape those sites hand-rolled
-// and had zero call sites. Both are settled now: `accentFor` below is the one
-// spelling, and every consumer renders it through `.swatch` / `UiAccentBar`.
+//   - The icon tile has an icon on its tint, so it goes through `.swatch`. Hand
+//     -rolled as `hex + '14'` it measured ~2.2:1 for the amber entry, and the
+//     alpha suffix had drifted between call sites (`'14'` twice, `'12'` once).
+//   - `UiAccentBar` has nothing on it, so it uses the hex as-is. Putting it on
+//     the swatch recipe forced every accent to L 0.62, which costs amber 0.149
+//     and cyan 0.095 — a curated ramp flattened to defend against user input
+//     that cannot occur here.
+//
+// `accentFor` below is the one spelling; there used to be three.
 export const ACCENT_COLORS = ['#6366f1', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981', '#ef4444', '#ec4899', '#06b6d4']
 
 /**
