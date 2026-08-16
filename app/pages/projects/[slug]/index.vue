@@ -116,25 +116,49 @@ const confirmDeleteTagId = ref<string | null>(null)
 let confirmDeleteTagTimeout: ReturnType<typeof setTimeout> | null = null
 const tagColorPopoverOpen = ref<Record<string, boolean>>({})
 
+/**
+ * All four tag mutations route through here.
+ *
+ * They were bare `await $fetch` with no catch, so a rejection was unhandled and
+ * silent — and a duplicate tag name is a 409, which is the most likely thing a
+ * user does here. The request failed, nothing was said, and the editor stayed
+ * open holding text that had not been saved. `deleteView` in this same file
+ * already had the right shape; these did not.
+ */
+async function tagMutation(op: () => Promise<unknown>, message: string): Promise<boolean> {
+  try {
+    await op()
+    await refresh()
+    return true
+  } catch (e) {
+    toast.add({ title: message, description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+    return false
+  }
+}
+
 async function updateTagColor(tagId: string, color: string) {
   tagColorPopoverOpen.value[tagId] = false
-  await $fetch(`/api/tags/${tagId}`, {
-    method: 'PUT',
-    body: { color }
-  })
-  await refresh()
+  await tagMutation(
+    () => $fetch(`/api/tags/${tagId}`, { method: 'PUT', body: { color } }),
+    'Failed to update tag colour'
+  )
 }
 
 async function addProjectTag() {
   if (!newTagName.value.trim() || !project.value) return
-  await $fetch(`/api/projects/${project.value.id}/tags`, {
-    method: 'POST',
-    body: { name: newTagName.value.trim(), color: newTagColor.value }
-  })
+  const ok = await tagMutation(
+    () => $fetch(`/api/projects/${project.value!.id}/tags`, {
+      method: 'POST',
+      body: { name: newTagName.value.trim(), color: newTagColor.value }
+    }),
+    'Failed to add tag'
+  )
+  // Only clear the form once the tag exists — on a duplicate name this used to
+  // throw away what was typed while leaving nothing to show for it.
+  if (!ok) return
   newTagName.value = ''
   newTagColor.value = '#6366f1'
   showAddTagPopover.value = false
-  await refresh()
 }
 
 function startEditTag(tag: { id: string, name: string }) {
@@ -144,13 +168,17 @@ function startEditTag(tag: { id: string, name: string }) {
 
 async function saveEditTag() {
   if (!editingTagId.value || !editingTagName.value.trim()) return
-  await $fetch(`/api/tags/${editingTagId.value}`, {
-    method: 'PUT',
-    body: { name: editingTagName.value.trim() }
-  })
+  const ok = await tagMutation(
+    () => $fetch(`/api/tags/${editingTagId.value}`, {
+      method: 'PUT',
+      body: { name: editingTagName.value.trim() }
+    }),
+    'Failed to rename tag'
+  )
+  // Stay in the editor on failure, with the text still there to correct.
+  if (!ok) return
   editingTagId.value = null
   editingTagName.value = ''
-  await refresh()
 }
 
 function cancelEditTag() {
@@ -169,8 +197,10 @@ function requestDeleteTag(tagId: string) {
 async function confirmDeleteTag(tagId: string) {
   if (confirmDeleteTagTimeout) clearTimeout(confirmDeleteTagTimeout)
   confirmDeleteTagId.value = null
-  await $fetch(`/api/tags/${tagId}`, { method: 'DELETE' })
-  await refresh()
+  await tagMutation(
+    () => $fetch(`/api/tags/${tagId}`, { method: 'DELETE' }),
+    'Failed to delete tag'
+  )
 }
 
 function cancelDeleteTag() {

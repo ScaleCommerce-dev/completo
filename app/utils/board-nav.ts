@@ -78,6 +78,64 @@ export function columnPosition(
 }
 
 /**
+ * Translate a drop index in the *visible* column into a position in the real one.
+ *
+ * vuedraggable reports `newIndex` against the list it was given, and the board
+ * gives it the filtered cards. Both the optimistic renumber and
+ * `cards/[id]/move.put.ts` then splice that number into the *unfiltered* column,
+ * so any card the view is hiding makes the two disagree and the card lands in
+ * the wrong slot.
+ *
+ * "Hidden" is not only the filter bar. A board GET drops done cards past their
+ * retention window, so a project with `doneRetentionDays` set has a Done column
+ * whose visible list is shorter than the stored one with no filter active at
+ * all — the case nobody would think to test.
+ *
+ * The fix is to stop treating the index as a number and treat it as a
+ * *neighbour*: whatever the user dropped the card after is what it must end up
+ * after. Anchoring on the card above is what preserves the gesture; falling back
+ * to the card below covers a drop at the very top, and an empty visible column
+ * appends, which is the only answer that cannot reorder something unseen.
+ *
+ * Positions are expressed the way both consumers already read them: an index
+ * into the target column *excluding* the moved card, which is what the server
+ * builds before splicing.
+ */
+export function dropPosition(opts: {
+  /** The target column as the user sees it, before the drop is applied. */
+  visible: ReadonlyArray<{ id: number }>
+  /** The target column as it is stored, before the drop is applied. */
+  all: ReadonlyArray<{ id: number }>
+  cardId: number
+  /** vuedraggable's `newIndex`, indexing the visible list after the drop. */
+  visibleIndex: number
+}): number {
+  const { cardId, visibleIndex } = opts
+  // Both lists minus the card in flight: a same-column move reports an index
+  // that already assumes the card has been lifted out.
+  const visible = opts.visible.filter(c => c.id !== cardId)
+  const all = opts.all.filter(c => c.id !== cardId)
+
+  const positionOf = (id: number) => all.findIndex(c => c.id === id)
+
+  const above = visibleIndex > 0 ? visible[visibleIndex - 1] : undefined
+  if (above) {
+    const at = positionOf(above.id)
+    if (at !== -1) return at + 1
+  }
+
+  const below = visible[visibleIndex]
+  if (below) {
+    const at = positionOf(below.id)
+    if (at !== -1) return at
+  }
+
+  // Dropped into a column with nothing visible to anchor to. Appending leaves
+  // every hidden card where it was; inserting at 0 would silently push them down.
+  return all.length
+}
+
+/**
  * Whether the arrow keys belong to something else on screen.
  *
  * They almost always do: a caret in the title, description or comment box moves

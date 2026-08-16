@@ -29,6 +29,13 @@ const props = defineProps<{
   hiddenCardFields?: string[]
   viewName?: string
   viewType?: 'board' | 'list'
+  /**
+   * Owned by the parent, because the parent is what does the deleting.
+   * `delete-view` is a fire-and-forget emit, so a pending flag kept in here had
+   * no way to learn that the request failed: it only ever reset on the next
+   * open, leaving the dialog sitting behind a spinner that would never stop.
+   */
+  deletingView?: boolean
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
@@ -236,19 +243,40 @@ watch(open, (isOpen) => {
     resetToProps()
     showDeleteConfirm.value = false
     deleteConfirmName.value = ''
-    deletingView.value = false
     showCloseWarning.value = false
     // Always open on Columns rather than wherever you were last time.
     configTab.value = 'columns'
   }
 })
 
-// Also sync when props change while open (e.g. after add/delete/link which are immediate)
+/**
+ * Re-sync when the columns change underneath us — add, delete, link and colour
+ * apply immediately and refresh the view, unlike order, filters and name, which
+ * buffer until Save. That split is the dialog's real awkwardness: the instant
+ * actions are the ones that need a server id back, and Save exists for the ones
+ * that don't.
+ *
+ * What made it a bug rather than an inconsistency is that this used to replace
+ * `localColumns` *and* `snapshotColumnOrder` wholesale. Reorder three columns,
+ * then recolour one — the recolour refreshed `props.columns`, this fired, and
+ * the reorder was gone with `isDirty` back to false, so Save was disabled and
+ * nothing said why.
+ *
+ * So the incoming set wins on *membership* and the local list keeps its
+ * *order*: ids the user has arranged stay arranged, ids that appeared are
+ * appended, ids that went away are dropped. The snapshot takes the server's
+ * order, which is what a pending reorder should be measured against.
+ */
 watch(() => props.columns, (cols) => {
-  if (open.value) {
-    localColumns.value = [...cols]
-    snapshotColumnOrder.value = cols.map(c => c.id)
-  }
+  if (!open.value) return
+  const incoming = cols.map(c => c.id)
+  const arranged = localColumns.value.map(c => c.id).filter(id => incoming.includes(id))
+  const appended = incoming.filter(id => !arranged.includes(id))
+
+  localColumns.value = [...arranged, ...appended]
+    .map(id => cols.find(c => c.id === id))
+    .filter((c): c is ColumnItem => !!c)
+  snapshotColumnOrder.value = incoming
 }, { immediate: true })
 
 function onDragEnd() {
@@ -348,6 +376,23 @@ function close() {
   open.value = false
 }
 
+/**
+ * Every way out of this dialog goes through `close()`.
+ *
+ * With `v-model:open` the footer button was the only one that did: Escape and a
+ * click on the overlay set the model straight to false, so the discard warning
+ * was a guard on one exit out of three, and the two that skipped it were the
+ * two you hit by accident. An unsaved reorder, filter set or rename went
+ * silently.
+ *
+ * Controlled rather than `dismissible: false`, because the goal is not to trap
+ * the dialog — a clean one still closes on the first Escape.
+ */
+function onOpenChange(next: boolean) {
+  if (next) open.value = true
+  else close()
+}
+
 function discardAndClose() {
   showCloseWarning.value = false
   open.value = false
@@ -356,7 +401,6 @@ function discardAndClose() {
 // ─── Delete view — inline confirmation ───
 const showDeleteConfirm = ref(false)
 const deleteConfirmName = ref('')
-const deletingView = ref(false)
 
 const deleteConfirmValid = computed(() =>
   deleteConfirmName.value.trim() === (props.viewName || '').trim()
@@ -364,15 +408,15 @@ const deleteConfirmValid = computed(() =>
 
 function handleDeleteView() {
   if (!deleteConfirmValid.value) return
-  deletingView.value = true
   emit('delete-view')
 }
 </script>
 
 <template>
   <UModal
-    v-model:open="open"
+    :open="open"
     :ui="{ header: 'hidden', body: 'pt-0 sm:pt-0', footer: 'p-0 sm:p-0' }"
+    @update:open="onOpenChange"
   >
     <template #body>
       <div class="flex flex-col gap-1">
@@ -728,8 +772,8 @@ function handleDeleteView() {
             color="error"
             icon="i-lucide-trash-2"
             label="Delete"
-            :loading="deletingView"
-            :disabled="!deleteConfirmValid || deletingView"
+            :loading="props.deletingView"
+            :disabled="!deleteConfirmValid || props.deletingView"
             @click="handleDeleteView"
           />
           <UButton

@@ -119,7 +119,7 @@ const countLabel = computed(() =>
   <section
     class="rise-in flex flex-col w-column shrink-0 max-h-full rounded-xl bg-muted border border-default transition-colors"
     :class="dragOver ? 'column-drop-active' : ''"
-    :style="{ animationDelay: `${(index ?? 0) * 45}ms` }"
+    :style="{ animationDelay: staggerDelay((index ?? 0) * 45) }"
     :aria-label="`${column.name}, ${countLabel}`"
     @dragenter="onDragEnter"
     @dragleave="onDragLeave"

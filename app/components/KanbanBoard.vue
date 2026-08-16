@@ -169,7 +169,13 @@ function revealColumn(columnId: string) {
 
   document.documentElement.style.setProperty('--card-panel-w', `${width}px`)
 
-  scrollBeforeReveal = el.scrollLeft
+  // Only the first reveal of a panel session records where the board was.
+  // ←/→ walks to the next column without closing the panel, and each crossing
+  // calls this again — capturing then would save a *revealed* offset, and one
+  // sampled mid-smooth-scroll at that, so Escape restored the board to wherever
+  // the animation happened to be. `restoreScroll` nulls this, which is what
+  // makes the next open capture again.
+  if (scrollBeforeReveal === null) scrollBeforeReveal = el.scrollLeft
   revealSpacerWidth.value = revealSpacer({
     columnOffset: columnStart,
     gutter,

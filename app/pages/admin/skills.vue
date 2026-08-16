@@ -94,6 +94,10 @@ async function confirmDelete() {
     showDeleteModal.value = false
     deleteTarget.value = null
     await refresh()
+  } catch (e) {
+    // try/finally with no catch left the rejection unhandled: the dialog stayed
+    // open with the skill still listed and nothing said why.
+    useToast().add({ title: 'Failed to delete skill', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
   } finally {
     deleting.value = false
   }

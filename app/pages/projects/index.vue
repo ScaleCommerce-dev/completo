@@ -190,7 +190,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         :key="project.id"
         :to="`/projects/${project.slug}`"
         class="group block rise-in"
-        :style="{ animationDelay: `${index * 40}ms` }"
+        :style="{ animationDelay: staggerDelay(index * 40) }"
       >
         <div
           class="rounded-xl border border-default p-4 h-full hover:border-primary/60 hover:shadow-float transition-colors"

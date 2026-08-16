@@ -198,8 +198,20 @@ function openCreateCard(statusId?: string) {
   showCreateCard.value = true
 }
 
-function handleCardMoved(cardId: number, toColumnId: string, toPosition: number) {
-  moveCard(cardId, toColumnId, toPosition)
+/**
+ * Translated here rather than in `KanbanBoard`, for the same reason the arrow
+ * keys are: this is the only place that holds both orderings. The board renders
+ * the filtered cards, so the index vuedraggable reports counts visible rows,
+ * while the optimistic renumber and the server both splice into the stored
+ * column. See `dropPosition`.
+ */
+function handleCardMoved(cardId: number, toColumnId: string, visibleIndex: number) {
+  moveCard(cardId, toColumnId, dropPosition({
+    visible: filteredCardsByColumn.value[toColumnId] || [],
+    all: cardsByColumn.value[toColumnId] || [],
+    cardId,
+    visibleIndex
+  }))
 }
 
 async function handleRenameBoard(name: string) {
@@ -215,13 +227,22 @@ async function handleRenameBoard(name: string) {
   }
 }
 
+// Owned here rather than in ViewConfigModal: the request is ours, so the
+// pending state has to be ours too, or a failure leaves its spinner running.
+const deletingBoard = ref(false)
+
 async function handleDeleteBoard() {
   if (!board.value) return
+  deletingBoard.value = true
   try {
     await $fetch(`/api/boards/${board.value.id}` as string, { method: 'DELETE' as const })
     await navigateTo(`/projects/${route.params.slug}`)
-  } catch {
-    // error already toasted
+  } catch (e) {
+    // Nothing else toasts this — it is a bare `$fetch`, not one of `useViewData`'s
+    // wrapped mutations, and the comment that used to sit here said otherwise.
+    useToast().add({ title: 'Failed to delete board', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+  } finally {
+    deletingBoard.value = false
   }
 }
 </script>
@@ -310,6 +331,7 @@ async function handleDeleteBoard() {
       :hidden-card-fields="hiddenCardFields"
       :view-name="board?.name || ''"
       :view-type="'board'"
+      :deleting-view="deletingBoard"
       @add="addColumn"
       @update="updateColumn"
       @delete="deleteColumn"

@@ -140,7 +140,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
                 ? 'bg-default hover:bg-muted'
                 : 'bg-primary/5 hover:bg-primary/15'
             ]"
-            :style="{ animationDelay: `${gi * 60 + ni * 40}ms` }"
+            :style="{ animationDelay: staggerDelay(gi * 60 + ni * 40) }"
             @click="handleClick(n)"
           >
             <!-- Unread indicator -->

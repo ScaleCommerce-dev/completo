@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { nextCard, arrowKeysAreClaimed, columnPosition } from '../../app/utils/board-nav'
+import { nextCard, arrowKeysAreClaimed, columnPosition, dropPosition } from '../../app/utils/board-nav'
 
 const ROOT = join(import.meta.dirname, '../..')
 const read = (p: string) => readFileSync(join(ROOT, p), 'utf8')
@@ -230,5 +230,63 @@ describe('the panel offers the same walk to the mouse', () => {
     expect(modal).toMatch(/v-if="nav"/)
     expect(read('app/pages/projects/[slug]/boards/[boardSlug]/index.vue')).toContain(':nav="cardNav"')
     expect(read('app/pages/projects/[slug]/lists/[listSlug]/index.vue')).not.toContain(':nav=')
+  })
+})
+
+/**
+ * The board drags a *filtered* column and the server splices into the stored
+ * one, so every case here is about a card the user could not see.
+ *
+ * Positions are indices into the target column with the moved card removed,
+ * which is what `move.put.ts` builds before splicing and what `useKanban`'s
+ * optimistic renumber assumes.
+ */
+describe('dropPosition', () => {
+  // Stored order: 1 [2 hidden] 3 [4 hidden] 5
+  const ALL = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }]
+  const VISIBLE = [{ id: 1 }, { id: 3 }, { id: 5 }]
+
+  const drop = (visibleIndex: number, cardId = 99) =>
+    dropPosition({ visible: VISIBLE, all: ALL, cardId, visibleIndex })
+
+  it('lands directly after the card it was dropped under', () => {
+    // Under visible card 3, which is stored at index 2 — not at index 1, which
+    // is what the raw visible index would have said.
+    expect(drop(2)).toBe(3)
+  })
+
+  it('keeps a hidden card between two visible ones on the hidden side', () => {
+    // Dropped under card 1: card 2 is hidden between 1 and 3 and must stay above.
+    expect(drop(1)).toBe(1)
+  })
+
+  it('anchors on the card below when dropped at the top', () => {
+    expect(drop(0)).toBe(0)
+  })
+
+  it('appends when dropped past the last visible card', () => {
+    expect(drop(VISIBLE.length)).toBe(ALL.length)
+  })
+
+  it('appends when nothing in the column is visible', () => {
+    // A Done column whose cards are all past the retention window: there is no
+    // neighbour to anchor to, and inserting at 0 would renumber cards the user
+    // never saw.
+    expect(dropPosition({ visible: [], all: ALL, cardId: 99, visibleIndex: 0 })).toBe(ALL.length)
+  })
+
+  it('ignores the moved card when it is already in this column', () => {
+    // Same-column reorder: vuedraggable's index already assumes the card is out.
+    const all = [{ id: 1 }, { id: 2 }, { id: 7 }, { id: 3 }]
+    const visible = [{ id: 1 }, { id: 7 }, { id: 3 }]
+    // Dropped under visible card 3, which sits at index 2 once 7 is removed.
+    expect(dropPosition({ visible, all, cardId: 7, visibleIndex: 2 })).toBe(3)
+  })
+
+  it('is the identity when nothing is hidden', () => {
+    // The property that makes this safe to apply unconditionally.
+    for (let i = 0; i <= VISIBLE.length; i++) {
+      expect(dropPosition({ visible: VISIBLE, all: VISIBLE, cardId: 99, visibleIndex: i })).toBe(i)
+    }
   })
 })

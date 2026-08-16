@@ -126,12 +126,19 @@ watch(card, (c) => {
  * divergence checks stay accurate without a refetch — and so a rejected save
  * snaps the control back to what the server actually holds.
  */
+const beginWrite = createWriteSequence<number>()
+
 async function persist(updates: Record<string, unknown>) {
   if (!card.value) return
   const id = card.value.id
+  const isLatest = beginWrite(id)
   try {
     const updated = await $fetch<Partial<CardDetail>>(`/api/cards/${id}`, { method: 'PUT', body: updates })
-    if (updated) cardData.value = { ...cardData.value, ...updated } as CardDetail
+    // Only the newest write may merge. This page is the one that showed the
+    // symptom: an out-of-order response repainted `cardData`, the sync watcher
+    // saw local and card disagree, and `syncProperties` pulled the control back
+    // to the value the *previous* edit set.
+    if (updated && isLatest()) cardData.value = { ...cardData.value, ...updated } as CardDetail
   } catch (e: unknown) {
     useToast().add({ title: 'Failed to save', description: getErrorMessage(e, 'Something went wrong'), color: 'error' })
     // Re-assign so the sync watcher fires and pulls the controls back.

@@ -42,15 +42,28 @@ if (!(globalThis as Record<string, unknown>)[_markedConfigured]) {
   ;(globalThis as Record<string, unknown>)[_markedConfigured] = true
 }
 
-// Force rel="noopener noreferrer" on all links
-DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-  if (node.tagName === 'A') {
-    node.setAttribute('rel', 'noopener noreferrer')
-    if (node.getAttribute('target') === '_blank' || node.getAttribute('href')?.startsWith('http')) {
-      node.setAttribute('target', '_blank')
+/**
+ * Force rel="noopener noreferrer" on all links.
+ *
+ * Guarded like the `marked` block above, and for a stronger reason than HMR:
+ * `addHook` registers on the DOMPurify *module*, and hooks are never removed.
+ * This runs in `<script setup>`, so it ran once per instance — a card with
+ * twenty comments installed twenty identical hooks, each one running on every
+ * sanitize for the rest of the session. The output stayed correct, which is why
+ * nothing caught it; the cost is the whole hook chain re-walking every node.
+ */
+const _linkHookInstalled = '__proseLinkHookInstalled'
+if (!(globalThis as Record<string, unknown>)[_linkHookInstalled]) {
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if (node.tagName === 'A') {
+      node.setAttribute('rel', 'noopener noreferrer')
+      if (node.getAttribute('target') === '_blank' || node.getAttribute('href')?.startsWith('http')) {
+        node.setAttribute('target', '_blank')
+      }
     }
-  }
-})
+  })
+  ;(globalThis as Record<string, unknown>)[_linkHookInstalled] = true
+}
 
 const rendered = computed(() => {
   if (!props.content) return ''

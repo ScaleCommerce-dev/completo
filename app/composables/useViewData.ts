@@ -143,6 +143,9 @@ export function useViewData<T extends ViewDataResponse>(
       : (data.value?.statuses || [])
   )
 
+  /** Guards the response merges below — see `write-sequence.ts`. */
+  const beginWrite = createWriteSequence<number>()
+
   function findCard(cardId: number) {
     const cards = cardList.value
     if (!cards) return null
@@ -169,6 +172,7 @@ export function useViewData<T extends ViewDataResponse>(
   async function updateCard(cardId: number, updates: Partial<BaseCard>) {
     const found = findCard(cardId)
     const snapshot = found ? { ...found.card } : null
+    const isLatest = beginWrite(cardId)
 
     if (found) {
       Object.assign(found.card, updates)
@@ -183,10 +187,13 @@ export function useViewData<T extends ViewDataResponse>(
       // The response carries the canonical row (updatedAt, and a resolved
       // assignee). It has no `tags` or `attachmentCount` key, so assigning it
       // leaves those intact rather than blanking them.
-      if (found && card) Object.assign(found.card, card)
+      //
+      // Skipped once a newer write has been issued for this card: merging then
+      // would repaint the row with the value the *previous* edit set.
+      if (found && card && isLatest()) Object.assign(found.card, card)
       return card
     } catch (e) {
-      if (found && snapshot) Object.assign(found.card, snapshot)
+      if (found && snapshot && isLatest()) Object.assign(found.card, snapshot)
       toast.add({ title: 'Failed to update card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
       throw e
     }

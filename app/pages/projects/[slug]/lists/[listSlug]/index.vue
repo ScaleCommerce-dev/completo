@@ -118,13 +118,22 @@ async function handleRenameList(name: string) {
   }
 }
 
+// Owned here rather than in ViewConfigModal: the request is ours, so the
+// pending state has to be ours too, or a failure leaves its spinner running.
+const deletingList = ref(false)
+
 async function handleDeleteList() {
   if (!list.value) return
+  deletingList.value = true
   try {
     await $fetch(`/api/lists/${list.value.id}` as string, { method: 'DELETE' as const })
     await navigateTo(`/projects/${route.params.slug}`)
-  } catch {
-    // error already toasted
+  } catch (e) {
+    // Nothing else toasts this — it is a bare `$fetch`, not one of `useViewData`'s
+    // wrapped mutations, and the comment that used to sit here said otherwise.
+    useToast().add({ title: 'Failed to delete list', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+  } finally {
+    deletingList.value = false
   }
 }
 </script>
@@ -206,6 +215,7 @@ async function handleDeleteList() {
       :active-priority-filters="[...priorityFilters]"
       :view-name="list?.name || ''"
       :view-type="'list'"
+      :deleting-view="deletingList"
       @add="addColumn"
       @delete="removeColumn"
       @reorder="reorderColumns"
