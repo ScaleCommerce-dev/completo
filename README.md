@@ -62,6 +62,7 @@ You didn't want that. You wanted a board with columns and cards. So that's what 
 - **Comments** — Discuss the work where the work is. Markdown, `@mentions`, notifications. No second tool.
 - **Projects** — Separate your work. Invite your team. Keep things tidy.
 - **My Tasks** — One checklist. Everything assigned to you. Across all projects. Check it off. Go home.
+- **Search** — `⌘K`. Title, description or ticket ID, across every project you're in. Type `TK-42` and you're there.
 - **SSO** — Sign in with your existing identity provider. No new password to forget and then reset and then forget again.
 
 ### What it doesn't do

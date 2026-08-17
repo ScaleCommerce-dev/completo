@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## v0.9.0 (2026-08-17)
+
+### Upgrading
+
+A straight upgrade — the migrations run themselves and nothing needs a decision first. Two notes for anyone driving Completo over the API:
+
+- **A board's card display moved from two booleans to one list.** `showDescription` and `showTags` are replaced by `hiddenCardFields`, an array naming the fields a board hides, since a card now has eight fields it can show rather than two. Migration `0009` folds the old values in before `0010` drops the columns, so existing boards keep what they were set to.
+- **`DELETE /api/statuses/{id}` refuses a status that holds cards.** It answers 409 unless the request names `moveToStatusId`, and it refuses a project's last status outright. It used to delete the cards along with the status.
 
 ### App
 
