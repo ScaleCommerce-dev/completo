@@ -61,24 +61,21 @@ async function onViewCreated(view: { type: 'board' | 'list', slug: string }) {
 const showDeleteView = ref(false)
 const deleteViewTarget = ref<{ id: string, name: string } | null>(null)
 const deleteViewType = ref<'board' | 'list'>('board')
-const deleteViewConfirmName = ref('')
 const deletingView = ref(false)
 
-const deleteViewConfirmValid = computed(() =>
-  deleteViewConfirmName.value.trim() === (deleteViewTarget.value?.name || '').trim()
-)
-
+// The typed name and its validation belong to `UiConfirmDialog`, which also
+// resets between openings — a copy here was a second place for the armed state to
+// live, and the one that could stay armed from a previous view.
 function openDeleteView(view: { id: string, name: string }, type: 'board' | 'list', e: Event) {
   e.preventDefault()
   e.stopPropagation()
   deleteViewTarget.value = view
   deleteViewType.value = type
-  deleteViewConfirmName.value = ''
   showDeleteView.value = true
 }
 
 async function deleteView() {
-  if (!deleteViewTarget.value || !deleteViewConfirmValid.value) return
+  if (!deleteViewTarget.value) return
   deletingView.value = true
   try {
     const endpoint = deleteViewType.value === 'board'
@@ -691,49 +688,22 @@ function cancelDeleteTag() {
         @created="onViewCreated"
       />
 
-      <!-- Delete View Modal (boards and lists) -->
-      <UModal
+      <!-- Type the name: a view cannot be recovered, and the thing being deleted
+           is one of a list of similarly-named siblings. Deleting it takes no cards
+           with it, which is what the description has to say — the core model puts
+           cards on the project, not the view. -->
+      <UiConfirmDialog
         v-model:open="showDeleteView"
-        :title="`Delete ${deleteViewType === 'board' ? 'Board' : 'List'}`"
-      >
-        <template #body>
-          <div class="flex flex-col gap-3">
-            <p class="text-base text-toned">
-              This will permanently delete <span class="font-bold text-highlighted">{{ deleteViewTarget?.name }}</span>.
-              <template v-if="deleteViewType === 'board'">
-                Columns will be unlinked.
-              </template>
-              Cards and statuses are preserved at the project level.
-            </p>
-            <p class="text-sm font-medium text-error">
-              Type <span class="font-bold">{{ deleteViewTarget?.name }}</span> to confirm.
-            </p>
-            <input
-              v-model="deleteViewConfirmName"
-              type="text"
-              :aria-label="`Type ${deleteViewTarget?.name} to confirm`"
-              :placeholder="deleteViewTarget?.name"
-              class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-3 py-2 focus:border-error/60 transition-colors"
-            >
-            <div class="flex items-center justify-end gap-2 pt-1">
-              <UButton
-                label="Cancel"
-                variant="ghost"
-                color="neutral"
-                @click="showDeleteView = false"
-              />
-              <UButton
-                color="error"
-                icon="i-lucide-trash-2"
-                :label="`Delete ${deleteViewType === 'board' ? 'Board' : 'List'}`"
-                :loading="deletingView"
-                :disabled="!deleteViewConfirmValid || deletingView"
-                @click="deleteView"
-              />
-            </div>
-          </div>
-        </template>
-      </UModal>
+        :title="`Delete ${deleteViewTarget?.name ?? deleteViewType}`"
+        :description="deleteViewType === 'board'
+          ? 'Its columns are unlinked. Every card and status stays on the project, and any other board or list still showing them is untouched.'
+          : 'Every card and status stays on the project, and any other board or list still showing them is untouched.'"
+        :confirm-text="deleteViewTarget?.name"
+        :confirm-label="`${deleteViewType} name`"
+        :action-label="`Delete ${deleteViewType}`"
+        :loading="deletingView"
+        @confirm="deleteView"
+      />
     </template>
   </UiPage>
 </template>

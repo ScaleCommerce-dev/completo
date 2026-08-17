@@ -18,13 +18,24 @@
  * The button order is fixed: safe action left, destructive right. Autofocus goes
  * to Cancel, never to the destructive action.
  *
- * Two of the four idioms are still live. `DeleteConfirmation.vue` — the one this
- * supersedes — is still rendered by `ProjectForm`, and the two-step inline
- * "Delete?" with a timeout survives in `StatusManager`, `CommentList`,
- * `ViewConfigModal`, `ProfileTokens` and `projects/[slug]/index`. Current
- * consumers are `AttachmentList` and `cards/[cardId]`. So the four idioms are
- * not yet one; what is settled is which one wins, and each of those files is a
- * migration owed rather than a variant with a reason.
+ * Consumers: `cards/[cardId]`, `ProjectMembers`, `admin/skills` and the delete-view
+ * confirmation on `projects/[slug]/index`.
+ *
+ * What is left is not a fifth idiom but a second *mount*, and the difference
+ * matters. A dialog cannot be raised from inside the card panel — a nested one
+ * renders behind it, see `CardModal`'s closing comment — so `CommentList` and
+ * `AttachmentList` confirm inline, and `AttachmentList` records the rest of the
+ * reason: these are dense repeated rows, and a row's confirmation has to match
+ * the row above it. `StatusManager`, the tag list on `projects/[slug]/index` and
+ * `ProfileTokens` are the same shape on a page. `DeleteConfirmation.vue` is the
+ * inline type-the-name, with one consumer — `ProjectForm`, which is itself
+ * sometimes inside a dialog and sometimes the whole of `projects/new`.
+ *
+ * So the target is one confirmation vocabulary with two placements — this dialog
+ * where a page raises it, inline where an overlay or a dense row does — sharing
+ * the copy, the button order and the typed-name rule. Five hand-rolled inline
+ * confirmations is still five, and that is the part that is owed. What is settled
+ * is the two levels above and which component owns the dialog mount.
  */
 const props = withDefaults(defineProps<{
   title: string

@@ -330,9 +330,16 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
       </NuxtLink>
     </div>
 
-    <!-- Edit Project Modal -->
-    <UModal v-model:open="showEditProject">
-      <template #content>
+    <!-- `flush`, because `ProjectForm` carries its own padding and its own action
+         row: it is also the whole of `projects/new`, so it cannot assume a dialog
+         around it. One component, two placements. -->
+    <UiModal
+      v-model:open="showEditProject"
+      icon="i-lucide-folder-pen"
+      title="Edit project"
+      flush
+    >
+      <template #body>
         <ProjectForm
           mode="edit"
           :initial-data="editProjectData"
@@ -346,6 +353,6 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
           @delete="deleteProject"
         />
       </template>
-    </UModal>
+    </UiModal>
   </UiPage>
 </template>

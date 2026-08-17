@@ -260,6 +260,17 @@ function roleMenuItems(m: ProjectMember): DropdownMenuItem[][] {
 const removing = ref<string | null>(null)
 const pendingRemove = ref<ProjectMember | null>(null)
 
+/**
+ * `UiConfirmDialog` takes a boolean, and what this actually has is the member it
+ * is asking about — the dialog needs the name, so the target has to outlive the
+ * flag. Writable so the dialog can close itself; clearing the target is what
+ * closes it, which keeps one source rather than a flag that can disagree.
+ */
+const confirmingRemove = computed({
+  get: () => !!pendingRemove.value,
+  set: (open: boolean) => { if (!open) pendingRemove.value = null }
+})
+
 function removeMember(m: ProjectMember) {
   pendingRemove.value = m
 }
@@ -515,52 +526,18 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
       No members
     </div>
 
-    <!-- Remove member confirmation modal -->
-    <UModal
-      :open="!!pendingRemove"
-      :ui="{ content: 'sm:max-w-[400px]' }"
-      @update:open="(val: boolean) => { if (!val) pendingRemove = null }"
-    >
-      <template #content>
-        <div class="rounded-xl bg-default overflow-hidden">
-          <div class="px-5 pt-5 pb-4">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="flex items-center justify-center w-10 h-10 rounded-full bg-error/10">
-                <UIcon
-                  name="i-lucide-alert-triangle"
-                  class="text-lg text-error"
-                />
-              </div>
-              <div>
-                <h2 class="text-base font-bold tracking-heading text-highlighted">
-                  Remove Member
-                </h2>
-                <p class="text-sm text-muted">
-                  This action cannot be undone
-                </p>
-              </div>
-            </div>
-            <p
-              v-if="pendingRemove"
-              class="text-sm text-muted leading-relaxed"
-            >
-              Are you sure you want to remove <strong class="text-default">{{ pendingRemove.name }}</strong> from this project?
-            </p>
-          </div>
-          <div class="px-5 pb-5 pt-2 border-t border-muted mt-2">
-            <UiSaveBar
-              submit-label="Remove"
-              submit-tone="error"
-              submit-icon="i-lucide-user-minus"
-              :loading="removing === pendingRemove?.id"
-              :disabled="removing === pendingRemove?.id"
-              :shortcut="false"
-              @cancel="pendingRemove = null"
-              @submit="confirmRemoveMember"
-            />
-          </div>
-        </div>
-      </template>
-    </UModal>
+    <!-- One click, no typed name: a membership is re-added from the field directly
+         above this list, so it is the cheapest destructive action on the page.
+         The glyph names the action rather than warning about it, for the same
+         reason. -->
+    <UiConfirmDialog
+      v-model:open="confirmingRemove"
+      icon="i-lucide-user-minus"
+      :title="`Remove ${pendingRemove?.name ?? 'member'}`"
+      description="They lose access to this project and are notified. Cards assigned to them keep their name."
+      action-label="Remove from project"
+      :loading="removing === pendingRemove?.id"
+      @confirm="confirmRemoveMember"
+    />
   </div>
 </template>

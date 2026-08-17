@@ -201,14 +201,20 @@ function confirmDelete() {
 
 <template>
   <!--
-    overflow-y-auto, not hidden: in edit mode UModal caps this form's height, and the form
-    already sits close to that cap, so opening the icon picker used to clip the bottom
-    ~440px with no way to scroll — the Save button included. On the create page the form
-    isn't height-constrained, so `auto` shows no scrollbar there.
+    The form does not own its own vertical scroll, and it used to: `overflow-y-auto`
+    here mattered while the edit dialog capped *this element*, because the form sits
+    close to that cap and opening the icon picker clipped the bottom ~440px, Save
+    included. Under `UiModal` the cap is on the dialog body instead — measured with
+    the picker open, the form runs to its full 743px and the body scrolls it (791
+    over a 635 viewport), so a second scroll container here would be an inert
+    declaration with a comment claiming it was load-bearing.
+
+    `overflow-x-hidden` stays: it is the icon grid and the slug row it protects, not
+    the height.
   -->
   <form
     :class="[
-      'rounded-xl bg-default overflow-x-hidden overflow-y-auto',
+      'rounded-xl bg-default overflow-x-hidden',
       mode === 'create' && 'border border-default shadow-raise'
     ]"
     @submit.prevent="onSubmit"

@@ -193,148 +193,110 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
     </div>
 
     <!-- Create/Edit Modal -->
-    <UModal
+    <!-- `secondary` is the AI tone, and the same glyph the skill cards carry —
+         two icons for one object would read as two kinds of thing. -->
+    <UiModal
       v-model:open="showModal"
-      :ui="{ content: 'sm:max-w-[520px]' }"
+      icon="i-lucide-wand-sparkles"
+      tone="secondary"
+      :title="isEdit ? 'Edit skill' : 'New skill'"
     >
-      <template #content>
-        <div class="rounded-xl bg-default overflow-hidden">
-          <div class="px-5 pt-5 pb-4">
-            <h2 class="text-base font-bold tracking-heading text-highlighted mb-4">
-              {{ isEdit ? 'Edit Skill' : 'New Skill' }}
-            </h2>
+      <template #body>
+        <div class="flex flex-col gap-3.5">
+          <!-- Name -->
+          <div>
+            <label
+              for="skill-name"
+              class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5"
+            >
+              Name
+            </label>
+            <input
+              id="skill-name"
+              v-model="modalName"
+              type="text"
+              placeholder="e.g. Generate Description"
+              class="w-full px-3 py-2 text-base text-default placeholder:text-dimmed bg-default border border-accented rounded-lg transition-colors"
+            >
+          </div>
 
-            <div class="flex flex-col gap-3.5">
-              <!-- Name -->
-              <div>
-                <label
-                  for="skill-name"
-                  class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5"
-                >
-                  Name
-                </label>
-                <input
-                  id="skill-name"
-                  v-model="modalName"
-                  type="text"
-                  placeholder="e.g. Generate Description"
-                  class="w-full px-3 py-2 text-base text-default placeholder:text-dimmed bg-default border border-accented rounded-lg transition-colors"
-                >
-              </div>
-
-              <!-- Scope -->
-              <div>
-                <label class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5">
-                  Scope
-                </label>
-                <div class="flex gap-2">
-                  <button
-                    v-for="s in (['card', 'board'] as const)"
-                    :key="s"
-                    type="button"
-                    class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
-                    :class="modalScope === s
-                      ? 'bg-primary/10 text-primary ring-1 ring-primary/30'
-                      : 'text-dimmed hover:text-toned hover:bg-elevated'"
-                    @click="modalScope = s"
-                  >
-                    {{ s.charAt(0).toUpperCase() + s.slice(1) }}
-                  </button>
-                </div>
-              </div>
-
-              <!-- Prompt -->
-              <div>
-                <label
-                  for="skill-prompt"
-                  class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5"
-                >
-                  Prompt Template
-                </label>
-                <textarea
-                  id="skill-prompt"
-                  v-model="modalPrompt"
-                  rows="6"
-                  placeholder="Write a prompt template..."
-                  class="w-full px-3 py-2 text-sm font-mono text-default placeholder:text-dimmed bg-default border border-accented rounded-lg transition-colors resize-y leading-relaxed"
-                />
-                <p class="text-xs text-dimmed mt-1">
-                  Variables: <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{title}</code>
-                  <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{description}</code>
-                  <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{tags}</code>
-                  <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{priority}</code>
-                </p>
-              </div>
+          <!-- Scope -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5">
+              Scope
+            </label>
+            <div class="flex gap-2">
+              <button
+                v-for="s in (['card', 'board'] as const)"
+                :key="s"
+                type="button"
+                class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
+                :class="modalScope === s
+                  ? 'bg-primary/10 text-primary ring-1 ring-primary/30'
+                  : 'text-dimmed hover:text-toned hover:bg-elevated'"
+                @click="modalScope = s"
+              >
+                {{ s.charAt(0).toUpperCase() + s.slice(1) }}
+              </button>
             </div>
           </div>
 
-          <!-- Error -->
+          <!-- Prompt -->
+          <div>
+            <label
+              for="skill-prompt"
+              class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5"
+            >
+              Prompt Template
+            </label>
+            <textarea
+              id="skill-prompt"
+              v-model="modalPrompt"
+              rows="6"
+              placeholder="Write a prompt template..."
+              class="w-full px-3 py-2 text-sm font-mono text-default placeholder:text-dimmed bg-default border border-accented rounded-lg transition-colors resize-y leading-relaxed"
+            />
+            <p class="text-xs text-dimmed mt-1">
+              Variables: <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{title}</code>
+              <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{description}</code>
+              <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{tags}</code>
+              <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{priority}</code>
+            </p>
+          </div>
+
           <UAlert
             v-if="modalError"
             color="error"
             variant="subtle"
             icon="i-lucide-alert-circle"
             :description="modalError"
-            class="mx-5 mb-3"
           />
-
-          <!-- Actions -->
-          <div class="px-5 pb-5 pt-2 border-t border-muted mt-2">
-            <UiSaveBar
-              :submit-label="isEdit ? 'Save' : 'Create'"
-              :submit-icon="isEdit ? undefined : 'i-lucide-plus'"
-              :loading="modalSaving"
-              :disabled="!modalName.trim() || !modalPrompt.trim()"
-              :shortcut="false"
-              @cancel="showModal = false"
-              @submit="saveSkill"
-            />
-          </div>
         </div>
       </template>
-    </UModal>
 
-    <!-- Delete Confirmation Modal -->
-    <UModal v-model:open="showDeleteModal">
-      <template #content>
-        <div class="rounded-xl bg-default overflow-hidden">
-          <div class="px-5 pt-5 pb-4">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="flex items-center justify-center w-10 h-10 rounded-full bg-error/10">
-                <UIcon
-                  name="i-lucide-alert-triangle"
-                  class="text-lg text-error"
-                />
-              </div>
-              <div>
-                <h2 class="text-base font-bold tracking-heading text-highlighted">
-                  Delete Skill
-                </h2>
-                <p class="text-sm text-muted">
-                  This action cannot be undone
-                </p>
-              </div>
-            </div>
-            <p
-              v-if="deleteTarget"
-              class="text-sm text-muted leading-relaxed"
-            >
-              Are you sure you want to delete <strong class="text-default">"{{ deleteTarget.name }}"</strong>?
-            </p>
-          </div>
-          <div class="px-5 pb-5 pt-2 border-t border-muted mt-2">
-            <UiSaveBar
-              submit-label="Delete"
-              submit-tone="error"
-              :loading="deleting"
-              :disabled="deleting"
-              :shortcut="false"
-              @cancel="showDeleteModal = false"
-              @submit="confirmDelete"
-            />
-          </div>
-        </div>
+      <template #footer>
+        <UiSaveBar
+          :submit-label="isEdit ? 'Save' : 'Create'"
+          :submit-icon="isEdit ? undefined : 'i-lucide-plus'"
+          :loading="modalSaving"
+          :disabled="!modalName.trim() || !modalPrompt.trim()"
+          :shortcut="false"
+          @cancel="showModal = false"
+          @submit="saveSkill"
+        />
       </template>
-    </UModal>
+    </UiModal>
+
+    <!-- No `confirm-text`: a skill is a prompt template, so it is retyped rather
+         than recovered, and deleting one cascades to nothing. See
+         `ui/ConfirmDialog` for which things ask you to type the name. -->
+    <UiConfirmDialog
+      v-model:open="showDeleteModal"
+      :title="`Delete ${deleteTarget?.name ?? 'skill'}`"
+      description="The AI writer loses this option. Descriptions it has already written are untouched."
+      action-label="Delete skill"
+      :loading="deleting"
+      @confirm="confirmDelete"
+    />
   </UiPage>
 </template>

@@ -102,29 +102,9 @@ const FORMS: Record<string, { host: string | null, why: string }> = {
  * is the whole argument for keeping the list somewhere that recomputes.
  */
 const MIGRATION_OWED: Record<string, { count: number, why: string }> = {
-  'app/components/CreateViewModal.vue': {
-    count: 1,
-    why: 'Overrides #content, so it re-declares the panel radius, background and overflow, and rebuilds the icon+title header underneath. A wizard: one commit, Cancel discards — `UiModal` with a footer.'
-  },
-  'app/components/ProjectMembers.vue': {
-    count: 1,
-    why: 'Remove-member confirmation with a hand-built 40px round icon header. Owed to the confirmation component, not to `UiModal` directly.'
-  },
   'app/components/ViewConfigModal.vue': {
     count: 1,
-    why: '`header: \'hidden\'` with no :title — the one dialog in the app with no accessible name. Gets a derived header (Board / List / My Tasks settings) when it moves to `UiModal`.'
-  },
-  'app/pages/admin/skills.vue': {
-    count: 2,
-    why: 'A skill editor and a delete confirmation, both overriding #content with hand-rebuilt icon+title headers — the 32px/8px icon container against the 40px round one two files over.'
-  },
-  'app/pages/projects/[slug]/index.vue': {
-    count: 1,
-    why: 'Delete-view confirmation, using UModal\'s own :title prop — the one site that does, which is the fourth of the four structures `ui/Modal.vue` was written to replace.'
-  },
-  'app/pages/projects/index.vue': {
-    count: 1,
-    why: 'Edit-project, overriding #content to host `ProjectForm`. `ProjectForm` is also a page (projects/new), so it is one component in two placements: `UiModal flush` here.'
+    why: '`header: \'hidden\'` with no :title — the one dialog in the app with no accessible name. Held back deliberately: it is being restructured (live-apply throughout, the staging apparatus deleted), and its header is a derived title across three view kinds, so migrating the shell first would be churn against that change rather than progress toward it.'
   }
 }
 
@@ -174,10 +154,11 @@ describe('overlay forms', () => {
     const owed = Object.values(MIGRATION_OWED).reduce((n, { count }) => n + count, 0)
     const total = Object.values(sites('UModal')).reduce((n, c) => n + c, 0)
 
-    // 7 of 8 dialogs still hand-roll their shell, which is why `ui/Modal.vue`
-    // calling itself "the one dialog shell" reads as done when it is not. This
-    // number only moves down.
-    expect(owed).toBeLessThanOrEqual(7)
+    // Was 7 of 8 when this file was written, which is why `ui/Modal.vue` calling
+    // itself "the one dialog shell" read as done when it was not. This number only
+    // moves down; raising the ceiling to admit a new hand-rolled dialog is the one
+    // edit that is never the fix.
+    expect(owed).toBeLessThanOrEqual(1)
     expect(owed).toBe(total - 1)
   })
 })

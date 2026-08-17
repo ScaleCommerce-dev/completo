@@ -203,170 +203,196 @@ async function createView() {
 }
 
 onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
+
+/**
+ * The dialog's own header, per step.
+ *
+ * It was a hand-built icon + title + subtitle row inside a `#content` override,
+ * which is how the wizard ended up with no accessible name at all — `UiModal`
+ * announces the title, so the header has to be props rather than markup. The glyph
+ * follows the choice you have made: the generic grid while you are still choosing,
+ * then the board's or the list's own glyph, which is the same one its card in the
+ * project's view list carries.
+ */
+const STEP_HEADINGS = computed(() => {
+  const kind = viewType.value === 'board' ? 'board' : 'list'
+
+  return {
+    1: {
+      icon: 'i-lucide-layout-grid',
+      title: 'New view',
+      description: `Two ways to look at ${props.projectName}'s cards`
+    },
+    2: {
+      icon: viewType.value === 'board' ? 'i-lucide-layout-dashboard' : 'i-lucide-list',
+      title: `New ${kind}`,
+      description: 'Name it, and pick the address it lives at'
+    },
+    3: {
+      icon: viewType.value === 'board' ? 'i-lucide-layout-dashboard' : 'i-lucide-list',
+      title: 'Choose what it shows',
+      description: viewType.value === 'board'
+        ? 'Statuses become columns. You can add and remove them later.'
+        : 'Fields become table columns. You can add and remove them later.'
+    }
+  }[viewStep.value]
+})
 </script>
 
 <template>
-  <UModal v-model:open="open">
-    <template #content>
+  <!--
+    `flush`, and no `#footer`: each step carries its own action row inside the
+    body, because step 2's Next is `type="submit"` on a form in the body — Enter in
+    the name field has to submit it, and a button in the modal's footer sits
+    outside that form where it would submit nothing.
+  -->
+  <UiModal
+    v-model:open="open"
+    :icon="STEP_HEADINGS.icon"
+    tone="primary"
+    :title="STEP_HEADINGS.title"
+    :description="STEP_HEADINGS.description"
+    flush
+  >
+    <template #body>
+      <!-- Step 1: Pick type -->
       <div
-        class="rounded-xl bg-default overflow-hidden"
+        v-if="viewStep === 1"
+        class="px-5 py-4"
       >
-        <!-- Header -->
-        <div class="flex items-center gap-3 px-5 pt-5 pb-2">
-          <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
-            <UIcon
-              :name="viewStep === 1 ? 'i-lucide-layout-grid' : viewType === 'board' ? 'i-lucide-layout-dashboard' : 'i-lucide-list'"
-              class="text-base text-primary"
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 border-default"
+            @click="selectViewType('board')"
+          >
+            <div class="flex items-center gap-3 mb-2">
+              <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary">
+                <UIcon
+                  name="i-lucide-layout-dashboard"
+                  class="text-xl"
+                />
+              </div>
+              <span class="text-base font-bold text-highlighted">Board</span>
+            </div>
+            <p class="text-xs text-muted leading-relaxed">
+              Kanban board with cards grouped by status columns
+            </p>
+          </button>
+          <button
+            type="button"
+            class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 border-default"
+            @click="selectViewType('list')"
+          >
+            <div class="flex items-center gap-3 mb-2">
+              <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-secondary/10 text-secondary">
+                <UIcon
+                  name="i-lucide-list"
+                  class="text-xl"
+                />
+              </div>
+              <span class="text-base font-bold text-highlighted">List</span>
+            </div>
+            <p class="text-xs text-muted leading-relaxed">
+              Table view showing all cards with configurable columns
+            </p>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Name + slug -->
+      <form
+        v-if="viewStep === 2"
+        @submit.prevent="goToStep3"
+      >
+        <div class="px-5 pt-2 pb-1">
+          <input
+            v-model="viewName"
+            type="text"
+            :aria-label="`${viewType === 'board' ? 'Board' : 'List'} name`"
+            :placeholder="`${viewType === 'board' ? 'Board' : 'List'} name...`"
+            autofocus
+            class="w-full text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent rounded-none tracking-name leading-snug py-2 transition-colors"
+          >
+        </div>
+
+        <div class="mx-5 mt-4 rounded-lg border border-accented divide-y divide-default overflow-hidden">
+          <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
+            <div class="flex items-center gap-2 w-28 shrink-0">
+              <UIcon
+                name="i-lucide-link"
+                class="text-sm text-dimmed"
+              />
+              <span class="text-sm font-medium text-muted">Slug</span>
+            </div>
+            <div class="flex-1 flex items-center gap-2.5">
+              <input
+                :value="viewSlug"
+                type="text"
+                aria-label="URL slug"
+                placeholder="my-view"
+                class="flex-1 min-w-0 text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border-0 tracking-wide"
+                @input="onSlugInput"
+              >
+              <UIcon
+                v-if="slugChecking"
+                name="i-lucide-loader-2"
+                class="text-base text-dimmed animate-spin shrink-0"
+              />
+              <UIcon
+                v-else-if="viewSlug && slugAvailable === true"
+                name="i-lucide-check"
+                class="text-base text-success shrink-0"
+              />
+              <UIcon
+                v-else-if="viewSlug && slugAvailable === false"
+                name="i-lucide-x"
+                class="text-base text-error shrink-0"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between px-5 pt-4 pb-5 mt-4 border-t border-muted">
+          <div class="flex items-center gap-1.5">
+            <span
+              v-if="viewSlug && slugAvailable === false"
+              class="text-xs font-medium text-error"
+            >Slug already taken</span>
+            <span
+              v-else-if="viewSlug && slugValid && slugAvailable === true"
+              class="flex items-center gap-1 text-xs font-medium text-success"
+            >
+              <UIcon
+                name="i-lucide-check"
+                class="text-xs"
+              />
+              {{ viewSlug }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <UButton
+              label="Back"
+              variant="ghost"
+              color="neutral"
+              @click="viewStep = 1"
+            />
+            <UButton
+              type="submit"
+              label="Next"
+              trailing-icon="i-lucide-arrow-right"
+              :disabled="!viewName.trim() || !slugValid || slugAvailable === false"
             />
           </div>
-          <div>
-            <h2 class="text-base font-bold tracking-heading text-highlighted">
-              {{ viewStep === 1 ? 'New View' : viewStep === 2 ? `New ${viewType === 'board' ? 'Board' : 'List'}` : 'Configure Columns' }}
-            </h2>
-            <p class="text-xs text-dimmed">
-              {{ viewStep === 1 ? 'Choose a view type' : viewStep === 2 ? `Add a ${viewType} to ${projectName}` : 'Configure view' }}
-            </p>
-          </div>
         </div>
+      </form>
 
-        <!-- Step 1: Pick type -->
-        <div
-          v-if="viewStep === 1"
-          class="px-5 py-4"
-        >
-          <div class="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 border-default"
-              @click="selectViewType('board')"
-            >
-              <div class="flex items-center gap-3 mb-2">
-                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary">
-                  <UIcon
-                    name="i-lucide-layout-dashboard"
-                    class="text-xl"
-                  />
-                </div>
-                <span class="text-base font-bold text-highlighted">Board</span>
-              </div>
-              <p class="text-xs text-muted leading-relaxed">
-                Kanban board with cards grouped by status columns
-              </p>
-            </button>
-            <button
-              type="button"
-              class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 border-default"
-              @click="selectViewType('list')"
-            >
-              <div class="flex items-center gap-3 mb-2">
-                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-secondary/10 text-secondary">
-                  <UIcon
-                    name="i-lucide-list"
-                    class="text-xl"
-                  />
-                </div>
-                <span class="text-base font-bold text-highlighted">List</span>
-              </div>
-              <p class="text-xs text-muted leading-relaxed">
-                Table view showing all cards with configurable columns
-              </p>
-            </button>
-          </div>
-        </div>
-
-        <!-- Step 2: Name + slug -->
-        <form
-          v-if="viewStep === 2"
-          @submit.prevent="goToStep3"
-        >
-          <div class="px-5 pt-2 pb-1">
-            <input
-              v-model="viewName"
-              type="text"
-              :aria-label="`${viewType === 'board' ? 'Board' : 'List'} name`"
-              :placeholder="`${viewType === 'board' ? 'Board' : 'List'} name...`"
-              autofocus
-              class="w-full text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent rounded-none tracking-name leading-snug py-2 transition-colors"
-            >
-          </div>
-
-          <div class="mx-5 mt-4 rounded-lg border border-accented divide-y divide-default overflow-hidden">
-            <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
-              <div class="flex items-center gap-2 w-28 shrink-0">
-                <UIcon
-                  name="i-lucide-link"
-                  class="text-sm text-dimmed"
-                />
-                <span class="text-sm font-medium text-muted">Slug</span>
-              </div>
-              <div class="flex-1 flex items-center gap-2.5">
-                <input
-                  :value="viewSlug"
-                  type="text"
-                  aria-label="URL slug"
-                  placeholder="my-view"
-                  class="flex-1 min-w-0 text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border-0 tracking-wide"
-                  @input="onSlugInput"
-                >
-                <UIcon
-                  v-if="slugChecking"
-                  name="i-lucide-loader-2"
-                  class="text-base text-dimmed animate-spin shrink-0"
-                />
-                <UIcon
-                  v-else-if="viewSlug && slugAvailable === true"
-                  name="i-lucide-check"
-                  class="text-base text-success shrink-0"
-                />
-                <UIcon
-                  v-else-if="viewSlug && slugAvailable === false"
-                  name="i-lucide-x"
-                  class="text-base text-error shrink-0"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between px-5 pt-4 pb-5 mt-4 border-t border-muted">
-            <div class="flex items-center gap-1.5">
-              <span
-                v-if="viewSlug && slugAvailable === false"
-                class="text-xs font-medium text-error"
-              >Slug already taken</span>
-              <span
-                v-else-if="viewSlug && slugValid && slugAvailable === true"
-                class="flex items-center gap-1 text-xs font-medium text-success"
-              >
-                <UIcon
-                  name="i-lucide-check"
-                  class="text-xs"
-                />
-                {{ viewSlug }}
-              </span>
-            </div>
-            <div class="flex items-center gap-2">
-              <UButton
-                label="Back"
-                variant="ghost"
-                color="neutral"
-                @click="viewStep = 1"
-              />
-              <UButton
-                type="submit"
-                label="Next"
-                trailing-icon="i-lucide-arrow-right"
-                :disabled="!viewName.trim() || !slugValid || slugAvailable === false"
-              />
-            </div>
-          </div>
-        </form>
-
-        <!-- Step 3: Configure columns -->
-        <div v-if="viewStep === 3">
-          <div class="px-5 py-4 max-h-[320px] overflow-y-auto">
-            <!-- Board: checkbox statuses -->
-            <template v-if="viewType === 'board'">
-              <!--
+      <!-- Step 3: Configure columns -->
+      <div v-if="viewStep === 3">
+        <div class="px-5 py-4 max-h-[320px] overflow-y-auto">
+          <!-- Board: checkbox statuses -->
+          <template v-if="viewType === 'board'">
+            <!--
                 A real control, not a clickable div. These rows are checkboxes in
                 everything but markup — they carry a checked state and toggle it —
                 so `role="checkbox"` with `aria-checked` is what makes the state
@@ -374,124 +400,123 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                 already buttons; these were the odd ones out, and a keyboard could
                 not choose a single column for a new board.
               -->
-              <button
-                v-for="status in statuses"
-                :key="status.id"
-                type="button"
-                role="checkbox"
-                :aria-checked="selectedBoardColumns.has(status.id)"
-                class="w-full text-left flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
-                @click="toggleBoardColumn(status.id)"
+            <button
+              v-for="status in statuses"
+              :key="status.id"
+              type="button"
+              role="checkbox"
+              :aria-checked="selectedBoardColumns.has(status.id)"
+              class="w-full text-left flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+              @click="toggleBoardColumn(status.id)"
+            >
+              <div
+                class="flex items-center justify-center w-5 h-5 rounded-md border-2 transition-colors shrink-0"
+                :class="selectedBoardColumns.has(status.id)
+                  ? 'bg-primary border-primary'
+                  : 'border-accented'"
               >
-                <div
-                  class="flex items-center justify-center w-5 h-5 rounded-md border-2 transition-colors shrink-0"
-                  :class="selectedBoardColumns.has(status.id)
-                    ? 'bg-primary border-primary'
-                    : 'border-accented'"
-                >
-                  <UIcon
-                    v-if="selectedBoardColumns.has(status.id)"
-                    name="i-lucide-check"
-                    class="text-white text-xs"
-                  />
-                </div>
-                <span
-                  class="w-2.5 h-2.5 rounded-full shrink-0"
-                  :style="{ backgroundColor: status.color || '#a1a1aa' }"
+                <UIcon
+                  v-if="selectedBoardColumns.has(status.id)"
+                  name="i-lucide-check"
+                  class="text-white text-xs"
                 />
-                <span class="text-base font-medium text-default">{{ status.name }}</span>
-              </button>
-            </template>
+              </div>
+              <span
+                class="w-2.5 h-2.5 rounded-full shrink-0"
+                :style="{ backgroundColor: status.color || '#a1a1aa' }"
+              />
+              <span class="text-base font-medium text-default">{{ status.name }}</span>
+            </button>
+          </template>
 
-            <!-- List: checkbox fields -->
-            <template v-else>
-              <button
-                v-for="f in LIST_FIELD_OPTIONS"
-                :key="f.field"
-                type="button"
-                role="checkbox"
-                :aria-checked="selectedListFields.has(f.field)"
-                class="w-full text-left flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
-                @click="toggleListField(f.field)"
+          <!-- List: checkbox fields -->
+          <template v-else>
+            <button
+              v-for="f in LIST_FIELD_OPTIONS"
+              :key="f.field"
+              type="button"
+              role="checkbox"
+              :aria-checked="selectedListFields.has(f.field)"
+              class="w-full text-left flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+              @click="toggleListField(f.field)"
+            >
+              <div
+                class="flex items-center justify-center w-5 h-5 rounded-md border-2 transition-colors shrink-0"
+                :class="selectedListFields.has(f.field)
+                  ? 'bg-primary border-primary'
+                  : 'border-accented'"
               >
-                <div
-                  class="flex items-center justify-center w-5 h-5 rounded-md border-2 transition-colors shrink-0"
-                  :class="selectedListFields.has(f.field)
-                    ? 'bg-primary border-primary'
-                    : 'border-accented'"
+                <UIcon
+                  v-if="selectedListFields.has(f.field)"
+                  name="i-lucide-check"
+                  class="text-white text-xs"
+                />
+              </div>
+              <span class="text-base font-medium text-default">{{ f.label }}</span>
+            </button>
+          </template>
+
+          <!-- Tag filters (both board and list) -->
+          <template v-if="tags.length">
+            <div class="mt-3 pt-3 border-t border-muted">
+              <div class="text-xs font-bold text-muted uppercase tracking-label mb-2">
+                Tag Filters
+              </div>
+              <p class="text-xs text-dimmed mb-2">
+                Only show cards matching selected tags
+              </p>
+              <div class="flex flex-wrap gap-1.5">
+                <button
+                  v-for="tag in tags"
+                  :key="tag.id"
+                  type="button"
+                  class="tag-toggle inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition duration-150 active:scale-95"
+                  :class="selectedTagFilters.has(tag.id)
+                    ? ''
+                    : 'bg-elevated text-dimmed hover:text-toned tag-toggle-inactive'"
+                  :style="selectedTagFilters.has(tag.id) ? {
+                    color: tag.color,
+                    backgroundColor: tag.color + '22',
+                    boxShadow: `inset 0 0 0 1.5px ${tag.color}`
+                  } : {}"
+                  @click="toggleCreateTagFilter(tag.id)"
                 >
                   <UIcon
-                    v-if="selectedListFields.has(f.field)"
-                    name="i-lucide-check"
-                    class="text-white text-xs"
+                    :name="selectedTagFilters.has(tag.id) ? 'i-lucide-check' : 'i-lucide-circle'"
+                    class="text-2xs"
+                    :style="selectedTagFilters.has(tag.id) ? {} : { color: tag.color }"
                   />
-                </div>
-                <span class="text-base font-medium text-default">{{ f.label }}</span>
-              </button>
-            </template>
-
-            <!-- Tag filters (both board and list) -->
-            <template v-if="tags.length">
-              <div class="mt-3 pt-3 border-t border-muted">
-                <div class="text-xs font-bold text-muted uppercase tracking-label mb-2">
-                  Tag Filters
-                </div>
-                <p class="text-xs text-dimmed mb-2">
-                  Only show cards matching selected tags
-                </p>
-                <div class="flex flex-wrap gap-1.5">
-                  <button
-                    v-for="tag in tags"
-                    :key="tag.id"
-                    type="button"
-                    class="tag-toggle inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition duration-150 active:scale-95"
-                    :class="selectedTagFilters.has(tag.id)
-                      ? ''
-                      : 'bg-elevated text-dimmed hover:text-toned tag-toggle-inactive'"
-                    :style="selectedTagFilters.has(tag.id) ? {
-                      color: tag.color,
-                      backgroundColor: tag.color + '22',
-                      boxShadow: `inset 0 0 0 1.5px ${tag.color}`
-                    } : {}"
-                    @click="toggleCreateTagFilter(tag.id)"
-                  >
-                    <UIcon
-                      :name="selectedTagFilters.has(tag.id) ? 'i-lucide-check' : 'i-lucide-circle'"
-                      class="text-2xs"
-                      :style="selectedTagFilters.has(tag.id) ? {} : { color: tag.color }"
-                    />
-                    {{ tag.name }}
-                  </button>
-                </div>
+                  {{ tag.name }}
+                </button>
               </div>
-            </template>
-          </div>
+            </div>
+          </template>
+        </div>
 
-          <!-- Error -->
-          <UAlert
-            v-if="createError"
-            color="error"
-            variant="subtle"
-            icon="i-lucide-alert-circle"
-            :description="createError"
-            class="mx-5 mt-1"
-          />
+        <!-- Error -->
+        <UAlert
+          v-if="createError"
+          color="error"
+          variant="subtle"
+          icon="i-lucide-alert-circle"
+          :description="createError"
+          class="mx-5 mt-1"
+        />
 
-          <!-- The selection count is the bar's `status` slot: left-aligned
+        <!-- The selection count is the bar's `status` slot: left-aligned
                validation-or-summary text is exactly what it is for. -->
-          <div class="px-5 pt-4 pb-5 border-t border-muted">
-            <UiSaveBar
-              :status="selectionSummary"
-              cancel-label="Back"
-              submit-label="Create"
-              submit-icon="i-lucide-plus"
-              :loading="creatingView"
-              @cancel="viewStep = 2"
-              @submit="createView"
-            />
-          </div>
+        <div class="px-5 pt-4 pb-5 border-t border-muted">
+          <UiSaveBar
+            :status="selectionSummary"
+            cancel-label="Back"
+            submit-label="Create"
+            submit-icon="i-lucide-plus"
+            :loading="creatingView"
+            @cancel="viewStep = 2"
+            @submit="createView"
+          />
         </div>
       </div>
     </template>
-  </UModal>
+  </UiModal>
 </template>
