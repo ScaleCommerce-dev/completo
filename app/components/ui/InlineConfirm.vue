@@ -17,8 +17,11 @@
  * Two levels, selected by `confirmText` exactly as `UiConfirmDialog` selects
  * them, so the level means the same thing whichever mount it appears in:
  *
- *   confirmText absent — the compact row. Comments, attachments, tokens,
- *                        statuses, tags: cheap to recreate.
+ *   confirmText absent — the compact row. Comments, attachments, tokens, tags, and
+ *                        an *empty* status: cheap to recreate. A status holding
+ *                        cards is asked in a dialog instead — not a heavier tier
+ *                        for the same question, but a different question, since
+ *                        `StatusManager` needs a destination for the cards.
  *   confirmText set    — the banner, with the name to type. Reached from a form
  *                        whose own destructive action cascades: `ProjectForm`
  *                        deletes a project with every board and card in it, and

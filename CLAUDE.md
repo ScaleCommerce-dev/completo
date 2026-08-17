@@ -53,7 +53,7 @@ Two integration-suite traps: use `fetch(url('/path'))` when you need to inspect 
 
 ## Core model
 
-**Statuses and cards belong to projects, not views.** Boards and lists are views; cards have a `projectId` + `statusId` and reach a board through the `boardColumns` junction. Removing a column unlinks it — cards survive. Deleting a status cascades.
+**Statuses and cards belong to projects, not views.** Boards and lists are views; cards have a `projectId` + `statusId` and reach a board through the `boardColumns` junction. Removing a column unlinks it — cards survive. **Deleting a status reassigns its cards rather than cascading:** `statuses/[id].delete.ts` refuses a non-empty status with 409 unless `moveToStatusId` names another status in the project, and refuses the project's last status outright. The FK cascade on `cards.statusId` stays, because project deletion reaches cards through both `projectId` and `statusId` and SQLite orders neither — so the handler is the *only* guard, and `tests/integration/statuses/delete.test.ts` counts cards after the fact rather than reading it.
 
 Two different things are called "column": a **board column** is how a status appears on a board (`boardColumns`), a **field column** is which card field shows in a list table (`listColumns`).
 

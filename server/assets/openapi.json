@@ -1274,7 +1274,7 @@
           "Statuses"
         ],
         "summary": "Delete status",
-        "description": "Permanently deletes a project-level status. Cascades to board links and cards.",
+        "description": "Deletes a project-level status and its board links. Cards are never deleted: a status holding cards is refused with 409 unless `moveToStatusId` names another status in the same project, in which case its cards move there first. The project's last remaining status cannot be deleted.",
         "operationId": "deleteStatus",
         "parameters": [
           {
@@ -1284,18 +1284,63 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "moveToStatusId",
+            "in": "query",
+            "required": false,
+            "description": "Where the status's cards go. Required only when it holds any; may also be sent in the request body.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "moveToStatusId": {
+                    "type": "string",
+                    "description": "Another status in the same project. Its cards are appended after that status's existing cards."
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Status deleted",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Success"
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "movedCards": {
+                      "type": "integer",
+                      "description": "How many cards were reassigned."
+                    },
+                    "movedToStatusId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Where they went, or null when the status was empty."
+                    }
+                  }
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -1305,6 +1350,16 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "The status holds cards and no destination was given (`data.cardCount` says how many), or it is the project's last status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
