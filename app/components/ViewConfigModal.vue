@@ -14,7 +14,16 @@ interface ColumnItem {
 }
 
 const props = defineProps<{
-  mode: 'board' | 'list'
+  /**
+   * Which of the three views this is configuring.
+   *
+   * Replaces a `mode` / `viewType` pair plus two load-bearing *absences*: My Tasks
+   * used to identify itself by passing no `viewName` (dropping rename and delete)
+   * and no `active*Filters` (dropping the Filters tab), and the old comments called
+   * those omissions load-bearing — which is the tell that the third case wanted a
+   * name. A named member cannot be arrived at by forgetting a prop.
+   */
+  kind: 'board' | 'list' | 'my-tasks'
   columns: ColumnItem[]
   availableColumns?: ColumnItem[]
   canAddColumns?: boolean
@@ -28,7 +37,6 @@ const props = defineProps<{
   /** Board mode only — whether cards show a description excerpt. */
   hiddenCardFields?: string[]
   viewName?: string
-  viewType?: 'board' | 'list'
   /**
    * Owned by the parent, because the parent is what does the deleting.
    * `delete-view` is a fire-and-forget emit, so a pending flag kept in here had
@@ -51,6 +59,36 @@ const emit = defineEmits<{
   'rename': [name: string]
   'delete-view': []
 }>()
+
+/**
+ * What each view can be told to do, derived from `kind` in one place.
+ *
+ * A board arranges statuses into columns and can hide fields on its cards; a list
+ * arranges which card fields its table shows. My Tasks arranges the same table
+ * columns but is one-per-user and always exists, so it has no name to change, no
+ * row to delete, and — the reason it never had filters — nowhere to persist one:
+ * a filter here would belong to the viewer, not to a shared view.
+ */
+const isBoard = computed(() => props.kind === 'board')
+const isView = computed(() => props.kind !== 'my-tasks')
+
+const KIND = computed(() => ({
+  'board': { noun: 'board', title: 'Board settings', icon: 'i-lucide-layout-dashboard' },
+  'list': { noun: 'list', title: 'List settings', icon: 'i-lucide-list' },
+  'my-tasks': { noun: 'view', title: 'My Tasks settings', icon: 'i-lucide-circle-check' }
+}[props.kind]))
+
+/**
+ * What the dialog says it is for, under the title.
+ *
+ * The board's and the list's settings are shared — they are columns on the view's
+ * own row, so changing a filter changes the board for everyone who opens it. My
+ * Tasks' are the viewer's. That difference is worth stating, because nothing else
+ * on screen distinguishes a setting that only affects you from one that does not.
+ */
+const KIND_DESCRIPTION = computed(() => isView.value
+  ? `Everyone who opens this ${KIND.value.noun} sees these settings`
+  : 'Only you see these settings')
 
 // ─── List-mode field metadata (shared/utils/list-fields.ts) ───
 const ALL_FIELDS = LIST_FIELDS
@@ -101,25 +139,27 @@ function togglePriorityFilter(value: string) {
 }
 
 /**
- * Filtering is a capability of the surface, not a section of this dialog.
+ * Filtering is a capability of the view, and My Tasks is the one without it: its
+ * settings are per-user, and a filter here would have nowhere shared to live.
  *
- * The priority chips need no props to render, so the Filters tab drew itself on
- * every consumer — including My Tasks, which has nowhere to persist a filter and
- * does not listen for `update-filters`. Toggling "Urgent" there enabled Save,
- * and Save closed the dialog having emitted into nothing: no filter, no error.
- *
- * Keyed on the filter state itself, the same device `viewName` uses for rename
- * and delete. It is not arbitrary — a surface that passes no `active*Filters`
- * has nothing to seed the local refs from, so the tab could not work even if it
- * were wired. Pass any one of them and the tab returns.
+ * This used to be keyed on whether any `active*Filters` prop was passed, which
+ * worked but meant the tab appeared or vanished according to what a host
+ * remembered to bind. It is `kind` now, like everything else.
  */
-const filterable = computed(() =>
-  props.activeTagFilters !== undefined
-  || props.activeStatusFilters !== undefined
-  || props.activeAssigneeFilters !== undefined
-  || props.activePriorityFilters !== undefined)
+const filterable = computed(() => isView.value)
 
-// ─── Local state — buffered until Save ───
+/**
+ * Local state, and *props are the snapshot*.
+ *
+ * There used to be a parallel `snapshot*` ref for every one of these, taken on
+ * open, so that `isDirty` could light a Save button. Live-apply removes the Save
+ * button and the snapshots with it — but not the comparison, which is still needed
+ * to avoid writing a value the server already has. It compares against `props`
+ * instead, which is the server's own answer flowing back. One copy fewer, and the
+ * copy that is gone is the one that could drift: a colour change refreshed
+ * `props.columns` mid-session and used to wipe a pending reorder along with its
+ * snapshot, leaving Save disabled with nothing to say why.
+ */
 const localColumns = ref<ColumnItem[]>([])
 const localTagFilters = ref<string[]>([])
 const localStatusFilters = ref<string[]>([])
@@ -128,13 +168,9 @@ const localPriorityFilters = ref<string[]>([])
 const localHiddenFields = ref<string[]>([])
 const editName = ref('')
 
-// Snapshot on open to detect changes
-const snapshotColumnOrder = ref<string[]>([])
-const snapshotTagFilters = ref<string[]>([])
-const snapshotStatusFilters = ref<string[]>([])
-const snapshotAssigneeFilters = ref<string[]>([])
-const snapshotPriorityFilters = ref<string[]>([])
-const snapshotHiddenFields = ref<string[]>([])
+/** Order-insensitive: a set toggled off and on again is not a change to write. */
+const sameSet = (a: string[] = [], b: string[] = []) =>
+  a.length === b.length && [...a].sort().join(',') === [...b].sort().join(',')
 
 /**
  * The switches read as "show X", so they are the inverse of what is stored —
@@ -150,13 +186,6 @@ function setFieldShown(key: CardField, shown: boolean) {
     : [...localHiddenFields.value, key]
 }
 
-// Order-insensitive: toggling a field off and on again is not a change to save.
-const hiddenFieldsChanged = computed(() => {
-  const before = [...snapshotHiddenFields.value].sort().join(',')
-  return before !== [...localHiddenFields.value].sort().join(',')
-})
-const snapshotName = ref('')
-
 function resetToProps() {
   localColumns.value = [...props.columns]
   localTagFilters.value = [...(props.activeTagFilters || [])]
@@ -165,14 +194,63 @@ function resetToProps() {
   localPriorityFilters.value = [...(props.activePriorityFilters || [])]
   localHiddenFields.value = [...(props.hiddenCardFields || [])]
   editName.value = props.viewName || ''
-  snapshotColumnOrder.value = props.columns.map(c => c.id)
-  snapshotTagFilters.value = [...(props.activeTagFilters || [])]
-  snapshotStatusFilters.value = [...(props.activeStatusFilters || [])]
-  snapshotAssigneeFilters.value = [...(props.activeAssigneeFilters || [])]
-  snapshotPriorityFilters.value = [...(props.activePriorityFilters || [])]
-  snapshotHiddenFields.value = [...(props.hiddenCardFields || [])]
-  snapshotName.value = props.viewName || ''
 }
+
+/**
+ * Filters and display write themselves, on a short delay.
+ *
+ * Live-apply, because these are the view's own configuration and there is no Save
+ * to stage them behind any more. Delayed, because `updateFilters` PUTs *and*
+ * refetches the whole view (`useViewData`), so a run of eight tag chips would be
+ * eight round trips and eight refetches of every card — the exact cost CLAUDE.md
+ * records for card edits. 400ms turns a burst of toggles into one write while
+ * still feeling immediate, since the chips paint from local state.
+ *
+ * Flushed when the dialog closes, or a toggle made inside the last 400ms would be
+ * shown as applied and never sent.
+ */
+const FILTER_WRITE_DELAY = 400
+let writeTimer: ReturnType<typeof setTimeout> | null = null
+
+function changedFilters() {
+  const payload: { tagFilters?: string[], statusFilters?: string[], assigneeFilters?: string[], priorityFilters?: string[] } = {}
+  if (!sameSet(localTagFilters.value, props.activeTagFilters)) payload.tagFilters = [...localTagFilters.value]
+  if (!sameSet(localStatusFilters.value, props.activeStatusFilters)) payload.statusFilters = [...localStatusFilters.value]
+  if (!sameSet(localAssigneeFilters.value, props.activeAssigneeFilters)) payload.assigneeFilters = [...localAssigneeFilters.value]
+  if (!sameSet(localPriorityFilters.value, props.activePriorityFilters)) payload.priorityFilters = [...localPriorityFilters.value]
+
+  return payload
+}
+
+function flushWrites() {
+  if (writeTimer) clearTimeout(writeTimer)
+  writeTimer = null
+
+  const filters = changedFilters()
+  if (Object.keys(filters).length) emit('update-filters', filters)
+
+  if (isBoard.value && !sameSet(localHiddenFields.value, props.hiddenCardFields)) {
+    emit('update-display', { hiddenCardFields: [...localHiddenFields.value] })
+  }
+}
+
+function scheduleWrite() {
+  if (!open.value) return
+  if (writeTimer) clearTimeout(writeTimer)
+  writeTimer = setTimeout(flushWrites, FILTER_WRITE_DELAY)
+}
+
+// One watcher for every filter control: the status and priority chips go through
+// their own toggles, tags and assignees are `v-model` on a USelectMenu. Watching
+// the state rather than wiring each control is what keeps those in step.
+watch(
+  [localTagFilters, localStatusFilters, localAssigneeFilters, localPriorityFilters, localHiddenFields],
+  scheduleWrite
+)
+
+onUnmounted(() => {
+  if (writeTimer) clearTimeout(writeTimer)
+})
 
 /**
  * Columns and filters are two jobs, not one scroll.
@@ -210,7 +288,7 @@ const activeFilterCount = computed(() =>
 const tabItems = computed(() => [
   {
     // A board reorders statuses; a list reorders which card fields it shows.
-    label: props.mode === 'board' ? 'Columns' : 'Fields',
+    label: isBoard.value ? 'Columns' : 'Fields',
     value: 'columns' as const,
     slot: 'columns' as const,
     icon: 'i-lucide-columns-3',
@@ -225,7 +303,7 @@ const tabItems = computed(() => [
         count: activeFilterCount.value
       }]
     : []),
-  ...(props.mode === 'board'
+  ...(isBoard.value
     ? [{
         label: 'Display',
         value: 'display' as const,
@@ -242,30 +320,28 @@ watch(open, (isOpen) => {
   if (isOpen) {
     resetToProps()
     showDeleteConfirm.value = false
-    deleteConfirmName.value = ''
-    showCloseWarning.value = false
     // Always open on Columns rather than wherever you were last time.
     configTab.value = 'columns'
+  } else {
+    // Nothing is staged any more, but a toggle inside the last delay still is.
+    flushWrites()
   }
 })
 
 /**
- * Re-sync when the columns change underneath us — add, delete, link and colour
- * apply immediately and refresh the view, unlike order, filters and name, which
- * buffer until Save. That split is the dialog's real awkwardness: the instant
- * actions are the ones that need a server id back, and Save exists for the ones
- * that don't.
+ * Re-sync when the columns change underneath us.
  *
- * What made it a bug rather than an inconsistency is that this used to replace
- * `localColumns` *and* `snapshotColumnOrder` wholesale. Reorder three columns,
- * then recolour one — the recolour refreshed `props.columns`, this fired, and
- * the reorder was gone with `isDirty` back to false, so Save was disabled and
- * nothing said why.
+ * Everything on this tab now writes on the action — add, delete, link, colour and
+ * order alike — so this fires after each of them, and the local list must survive
+ * its own round trip. The incoming set wins on *membership* and the local list
+ * keeps its *order*: ids the user has arranged stay arranged, ids that appeared are
+ * appended, ids that went away are dropped.
  *
- * So the incoming set wins on *membership* and the local list keeps its
- * *order*: ids the user has arranged stay arranged, ids that appeared are
- * appended, ids that went away are dropped. The snapshot takes the server's
- * order, which is what a pending reorder should be measured against.
+ * That mattered more when order was staged: this used to overwrite `localColumns`
+ * and its snapshot together, so recolouring a column after reordering three threw
+ * the reorder away and disabled Save with nothing to say why. Order is written on
+ * drop now, but keeping the arrangement is still what stops a refresh mid-drag
+ * from shuffling the list under the pointer.
  */
 watch(() => props.columns, (cols) => {
   if (!open.value) return
@@ -276,11 +352,19 @@ watch(() => props.columns, (cols) => {
   localColumns.value = [...arranged, ...appended]
     .map(id => cols.find(c => c.id === id))
     .filter((c): c is ColumnItem => !!c)
-  snapshotColumnOrder.value = incoming
 }, { immediate: true })
 
+/**
+ * The one action here that cannot be undone by repeating it, and the asterisk on
+ * "view config is non-destructive": unlinking a column re-links from the list
+ * below, but nothing recorded the order five columns were in before the drag.
+ * Written on drop because a drag is already a deliberate, completed gesture —
+ * every kanban commits one this way and none of them offers an undo.
+ */
 function onDragEnd() {
-  // Just reorder locally — emitted on save
+  const order = localColumns.value.map(c => c.id)
+  if (order.join(',') === props.columns.map(c => c.id).join(',')) return
+  emit('reorder', localColumns.value.map((c, i) => ({ id: c.id, position: i })))
 }
 
 // ─── Board-mode: new column ───
@@ -303,146 +387,76 @@ function pickColor(colId: string, color: string) {
   emit('update', colId, { color })
 }
 
-// ─── Dirty detection ───
-function filtersChanged(current: string[], snapshot: string[]) {
-  const a = [...current].sort()
-  const b = [...snapshot].sort()
-  return a.length !== b.length || a.some((id, i) => id !== b[i])
-}
-
-/** A rename to nothing is not a rename — `save` skips it, so it cannot count. */
+/**
+ * The name commits from its own button, like the add-column row two rows below it.
+ *
+ * A text field cannot live-apply per keystroke, so the two honest options are commit
+ * on blur — which the card panel's title uses — or a button. A button here, because
+ * this field sits in a column of rows that all end in one, and matching the row you
+ * can see beats matching a field on another surface. Enter submits, which is what
+ * the form element is for.
+ *
+ * A rename to nothing is not a rename: the field goes back to the name the view
+ * actually has, so the dialog never sits showing one it does not.
+ */
 const nameChanged = computed(() => {
   const trimmed = editName.value.trim()
-  return !!trimmed && trimmed !== snapshotName.value
+  return !!trimmed && trimmed !== (props.viewName || '')
 })
 
-const isDirty = computed(() => {
-  if (nameChanged.value) return true
-  const currentOrder = localColumns.value.map(c => c.id)
-  if (currentOrder.length !== snapshotColumnOrder.value.length
-    || currentOrder.some((id, i) => id !== snapshotColumnOrder.value[i])) return true
-  if (filtersChanged(localTagFilters.value, snapshotTagFilters.value)) return true
-  if (filtersChanged(localStatusFilters.value, snapshotStatusFilters.value)) return true
-  if (filtersChanged(localAssigneeFilters.value, snapshotAssigneeFilters.value)) return true
-  if (filtersChanged(localPriorityFilters.value, snapshotPriorityFilters.value)) return true
-  if (hiddenFieldsChanged.value) return true
-  return false
-})
-
-// ─── Save — emit only what changed ───
-function save() {
-  if (!isDirty.value) {
-    open.value = false
+function commitName() {
+  if (!nameChanged.value) {
+    editName.value = props.viewName || ''
     return
   }
-
-  // Emptying the field used to enable Save, and Save then closed the dialog
-  // having skipped the rename — no view renamed, nothing said. It no longer
-  // counts as a change, and the field goes back to the name the view actually
-  // has so the dialog never closes showing one it does not.
-  if (nameChanged.value) emit('rename', editName.value.trim())
-  else editName.value = snapshotName.value
-
-  const currentOrder = localColumns.value.map(c => c.id)
-  const orderChanged = currentOrder.length !== snapshotColumnOrder.value.length
-    || currentOrder.some((id, i) => id !== snapshotColumnOrder.value[i])
-  if (orderChanged) {
-    emit('reorder', localColumns.value.map((c, i) => ({ id: c.id, position: i })))
-  }
-
-  const filterUpdates: { tagFilters?: string[], statusFilters?: string[], assigneeFilters?: string[], priorityFilters?: string[] } = {}
-  if (filtersChanged(localTagFilters.value, snapshotTagFilters.value)) {
-    filterUpdates.tagFilters = [...localTagFilters.value]
-  }
-  if (filtersChanged(localStatusFilters.value, snapshotStatusFilters.value)) {
-    filterUpdates.statusFilters = [...localStatusFilters.value]
-  }
-  if (filtersChanged(localAssigneeFilters.value, snapshotAssigneeFilters.value)) {
-    filterUpdates.assigneeFilters = [...localAssigneeFilters.value]
-  }
-  if (filtersChanged(localPriorityFilters.value, snapshotPriorityFilters.value)) {
-    filterUpdates.priorityFilters = [...localPriorityFilters.value]
-  }
-  if (Object.keys(filterUpdates).length) {
-    emit('update-filters', filterUpdates)
-  }
-
-  if (hiddenFieldsChanged.value) {
-    emit('update-display', { hiddenCardFields: [...localHiddenFields.value] })
-  }
-
-  open.value = false
-}
-
-const showCloseWarning = ref(false)
-
-function close() {
-  if (isDirty.value) {
-    showCloseWarning.value = true
-    return
-  }
-  open.value = false
+  emit('rename', editName.value.trim())
 }
 
 /**
- * Every way out of this dialog goes through `close()`.
- *
- * With `v-model:open` the footer button was the only one that did: Escape and a
- * click on the overlay set the model straight to false, so the discard warning
- * was a guard on one exit out of three, and the two that skipped it were the
- * two you hit by accident. An unsaved reorder, filter set or rename went
- * silently.
- *
- * Controlled rather than `dismissible: false`, because the goal is not to trap
- * the dialog — a clean one still closes on the first Escape.
+ * Deleting the view is the one thing here that is not live, and the only thing left
+ * in the footer. Inline rather than a dialog because this *is* a dialog — see
+ * `ui/InlineConfirm`, which owns the typed name and the validation.
  */
-function onOpenChange(next: boolean) {
-  if (next) open.value = true
-  else close()
-}
-
-function discardAndClose() {
-  showCloseWarning.value = false
-  open.value = false
-}
-
-// ─── Delete view — inline confirmation ───
 const showDeleteConfirm = ref(false)
-const deleteConfirmName = ref('')
-
-const deleteConfirmValid = computed(() =>
-  deleteConfirmName.value.trim() === (props.viewName || '').trim()
-)
-
-function handleDeleteView() {
-  if (!deleteConfirmValid.value) return
-  emit('delete-view')
-}
 </script>
 
 <template>
-  <UModal
-    :open="open"
-    :ui="{ header: 'hidden', body: 'pt-0 sm:pt-0', footer: 'p-0 sm:p-0' }"
-    @update:open="onOpenChange"
+  <!--
+    A real header at last. This carried `header: 'hidden'` with no `:title`, which
+    made it the one dialog in the app with no accessible name — the view it
+    configures was announced as nothing at all. The title comes from `kind`, so it
+    cannot disagree with the tabs below it.
+  -->
+  <UiModal
+    v-model:open="open"
+    :icon="KIND.icon"
+    :title="KIND.title"
+    :description="KIND_DESCRIPTION"
+    :ui="{ body: 'pt-0 sm:pt-0', footer: 'p-0 sm:p-0' }"
   >
     <template #body>
       <div class="flex flex-col gap-1">
-        <!-- Name -->
-        <template v-if="viewName !== undefined">
-          <UiSectionLabel
-            icon="i-lucide-type"
-            label="Name"
-            class="mb-1 pt-5"
-          />
+        <!-- Name, committed by its own button — see `commitName`. -->
+        <form
+          v-if="isView"
+          class="flex items-center gap-2 pt-5 pb-1"
+          @submit.prevent="commitName"
+        >
           <UInput
             v-model="editName"
-            :placeholder="mode === 'board' ? 'Board name...' : 'List name...'"
+            :placeholder="`${KIND.noun} name...`"
+            :aria-label="`${KIND.noun} name`"
             size="sm"
-            class="mb-1"
-            @keydown.enter="($event.target as HTMLInputElement).blur()"
+            class="flex-1"
           />
-        </template>
+          <UButton
+            type="submit"
+            icon="i-lucide-check"
+            label="Rename"
+            size="sm"
+            :disabled="!nameChanged"
+          />
+        </form>
 
         <UTabs
           v-model="configTab"
@@ -456,7 +470,7 @@ function handleDeleteView() {
             trigger: 'grow-0',
             content: 'pt-3 pb-1'
           }"
-          :class="viewName === undefined ? 'pt-5' : 'pt-2'"
+          :class="isView ? 'pt-2' : 'pt-5'"
         >
           <!-- A count beside each tab: how many columns this view shows, and whether
                anything is being filtered out — the latter was previously invisible
@@ -489,7 +503,7 @@ function handleDeleteView() {
                       class="drag-handle text-dimmed hover:text-muted cursor-grab active:cursor-grabbing text-base shrink-0 transition-colors"
                     />
                     <!-- Board mode: color dot (editable if canAddColumns) -->
-                    <template v-if="mode === 'board'">
+                    <template v-if="isBoard">
                       <UPopover
                         v-if="canAddColumns"
                         v-model:open="colorPopoverOpen[col.id]"
@@ -516,12 +530,12 @@ function handleDeleteView() {
                     </template>
                     <!-- List mode: field icon -->
                     <UIcon
-                      v-if="mode === 'list'"
+                      v-if="!isBoard"
                       :name="fieldIcon(col.field || '')"
                       class="text-base text-dimmed shrink-0"
                     />
                     <span class="text-base font-medium flex-1">
-                      {{ mode === 'board' ? col.name : fieldLabel(col.field || '') }}
+                      {{ isBoard ? col.name : fieldLabel(col.field || '') }}
                     </span>
                     <div class="flex items-center gap-0.5 opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 transition-opacity">
                       <UTooltip text="Remove column">
@@ -541,7 +555,7 @@ function handleDeleteView() {
 
             <!-- Board mode: add new column -->
             <form
-              v-if="mode === 'board' && canAddColumns"
+              v-if="isBoard && canAddColumns"
               class="flex items-center gap-2"
               @submit.prevent="addBoardColumn"
             >
@@ -572,7 +586,7 @@ function handleDeleteView() {
             </form>
 
             <!-- Board mode: available columns to link -->
-            <template v-if="mode === 'board' && availableColumns?.length">
+            <template v-if="isBoard && availableColumns?.length">
               <UiSectionLabel
                 icon="i-lucide-plus-circle"
                 label="Available columns"
@@ -599,7 +613,7 @@ function handleDeleteView() {
             </template>
 
             <!-- List mode: available fields -->
-            <template v-if="mode === 'list' && availableFields.length">
+            <template v-if="!isBoard && availableFields.length">
               <UiSectionLabel
                 icon="i-lucide-plus-circle"
                 label="Available fields"
@@ -759,79 +773,45 @@ function handleDeleteView() {
       </div>
     </template>
 
-    <template #footer>
-      <!-- Delete confirmation replaces footer -->
-      <div
-        v-if="showDeleteConfirm"
-        class="w-full px-5 pt-4 pb-5 border-t border-error/30 bg-error/5"
-      >
-        <p class="text-sm font-medium text-error mb-2">
-          This will permanently delete this {{ viewType || 'view' }}. Type <span class="font-bold">{{ viewName }}</span> to confirm.
-        </p>
-        <div class="flex items-center gap-2">
-          <input
-            v-model="deleteConfirmName"
-            type="text"
-            :placeholder="viewName"
-            aria-label="Type the view name to confirm deletion"
-            class="flex-1 min-w-0 text-base text-highlighted placeholder:text-dimmed bg-default border border-error/40 rounded-lg px-2.5 py-1.5 focus:border-error transition-colors"
-          >
-          <UButton
-            color="error"
-            icon="i-lucide-trash-2"
-            label="Delete"
-            :loading="props.deletingView"
-            :disabled="!deleteConfirmValid || props.deletingView"
-            @click="handleDeleteView"
-          />
-          <UButton
-            color="neutral"
-            variant="ghost"
-            label="Cancel"
-            @click="showDeleteConfirm = false; deleteConfirmName = ''"
-          />
-        </div>
-      </div>
+    <!--
+      No Save, no Cancel. Every setting above writes itself — columns and filters on
+      the action, the name from its own button — so the footer holds the one thing
+      that is still a transaction, and Close is the dialog's own ✕. That is the same
+      conclusion the card panel reached: edit mode has no footer because a pinned
+      action bar would hold nothing but Delete.
 
-      <!-- Close warning replaces footer -->
-      <div
-        v-else-if="showCloseWarning"
-        class="w-full flex items-center justify-between px-5 pt-4 pb-5 border-t border-warning/30 bg-warning/5"
-      >
-        <p class="text-sm font-medium text-warning">
-          Discard unsaved changes?
-        </p>
-        <div class="flex items-center gap-2">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            label="Keep editing"
-            @click="showCloseWarning = false"
-          />
-          <UButton
-            color="warning"
-            variant="ghost"
-            label="Discard"
-            @click="discardAndClose"
-          />
-        </div>
-      </div>
-
-      <!-- Normal footer -->
-      <div
-        v-else
-        class="w-full px-5 pt-4 pb-5 border-t border-muted"
-      >
-        <UiSaveBar
-          :destructive-label="viewName !== undefined ? 'Delete' : undefined"
-          cancel-label="Close"
-          :disabled="!isDirty"
-          :shortcut="false"
-          @destructive="showDeleteConfirm = true; deleteConfirmName = ''"
-          @cancel="close"
-          @submit="save"
+      A footer that offered Save also had to offer "discard unsaved changes", and
+      that warning was lying: column adds, deletes and colour changes had already
+      committed, so Discard threw away the rename and kept the three columns you had
+      just removed.
+    -->
+    <template
+      v-if="isView"
+      #footer
+    >
+      <div class="w-full px-5 pt-4 pb-5 border-t border-muted">
+        <UiInlineConfirm
+          v-if="showDeleteConfirm"
+          :label="`this ${KIND.noun}`"
+          :confirm-text="viewName"
+          :message="`This will permanently delete the ${KIND.noun}. Every card and status stays on the project.`"
+          :loading="deletingView"
+          @confirm="emit('delete-view')"
+          @cancel="showDeleteConfirm = false"
+        />
+        <!-- Not `UiSaveBar`: that row always renders a submit, and the whole point
+             of this change is that there is nothing left to submit. What it keeps
+             is the bar's vocabulary for a destructive action — ghost, error,
+             `trash-2`, pinned to the row's left. -->
+        <UButton
+          v-else
+          icon="i-lucide-trash-2"
+          :label="`Delete ${KIND.noun}`"
+          color="error"
+          variant="ghost"
+          @click="showDeleteConfirm = true"
         />
       </div>
     </template>
-  </UModal>
+  </UiModal>
 </template>

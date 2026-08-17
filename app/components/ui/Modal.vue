@@ -16,18 +16,18 @@
  * This uses UModal's real `#header` slot, so the title is announced, Esc and
  * focus trapping behave, and the panel styling comes from app.config.
  *
- * The migration is nearly done rather than done: ten of the eleven now go
- * through here, six of them via `ui/ConfirmDialog`, and one raw `<UModal>` is
- * left. Reading this as "the one dialog shell" while that number is above zero is
- * how the last one stays put, so the number lives where it is checked —
- * `MIGRATION_OWED` in `overlay-forms.test.ts`, which also carries why the
- * remaining site is held back.
+ * It is now actually the one dialog shell: every dialog in the app goes through
+ * here, six of them via `ui/ConfirmDialog`, and the only `<UModal>` left is the
+ * one below. That took two passes after the claim was first made, and the claim
+ * standing unearned in the meantime is what let seven sites go on hand-rolling the
+ * structures above — so the count is not restated here. `overlay-forms.test.ts`
+ * derives it, fails on a `<UModal>` outside this file, and keeps `MIGRATION_OWED`
+ * empty rather than deleted so the next hand-rolled dialog has somewhere to be
+ * recorded as owed.
  *
- * Not a list here, and that is the point: this comment used to enumerate the
- * sites by file and line, and every one of its seven line references had gone
- * stale, by 1 to 51 lines, while still reading as current. A debt list has to
- * fail when it does that, which a comment cannot — that one asserts both
- * directions, so a migrated file with its entry left behind breaks the suite.
+ * Why the count is not in this comment: it used to enumerate the sites by file and
+ * line, and every one of its seven references had gone stale, by 1 to 51 lines,
+ * while still reading as current. A comment cannot fail when it goes out of date.
  */
 const props = withDefaults(defineProps<{
   /** Leading icon. Omit for dialogs whose title carries enough meaning. */

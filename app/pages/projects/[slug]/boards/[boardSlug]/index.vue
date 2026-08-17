@@ -317,7 +317,7 @@ async function handleDeleteBoard() {
     <ViewConfigModal
       v-if="canConfigureColumns"
       v-model:open="showColumnConfig"
-      mode="board"
+      kind="board"
       :columns="columnsData"
       :available-columns="availableColumns"
       :can-add-columns="canAddColumns"
@@ -330,7 +330,6 @@ async function handleDeleteBoard() {
       :active-priority-filters="[...priorityFilters]"
       :hidden-card-fields="hiddenCardFields"
       :view-name="board?.name || ''"
-      :view-type="'board'"
       :deleting-view="deletingBoard"
       @add="addColumn"
       @update="updateColumn"

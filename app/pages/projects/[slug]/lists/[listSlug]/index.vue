@@ -227,7 +227,7 @@ async function handleDeleteList() {
     <ViewConfigModal
       v-if="canConfigureColumns"
       v-model:open="showColumnConfig"
-      mode="list"
+      kind="list"
       :columns="columnsData"
       :tags="tagsData"
       :statuses="statusesData"
@@ -237,7 +237,6 @@ async function handleDeleteList() {
       :active-assignee-filters="[...assigneeFilters]"
       :active-priority-filters="[...priorityFilters]"
       :view-name="list?.name || ''"
-      :view-type="'list'"
       :deleting-view="deletingList"
       @add="addColumn"
       @delete="removeColumn"

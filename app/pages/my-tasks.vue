@@ -206,7 +206,7 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
          does not listen. -->
     <ViewConfigModal
       v-model:open="showColumnConfig"
-      mode="list"
+      kind="my-tasks"
       :columns="columns"
       @add="addColumn"
       @delete="removeColumn"

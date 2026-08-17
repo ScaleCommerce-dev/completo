@@ -89,24 +89,25 @@ const FORMS: Record<string, { host: string | null, why: string }> = {
 }
 
 /**
- * Raw `<UModal>` sites predating `ui/Modal.vue`, with what each owes.
+ * Raw `<UModal>` sites predating `ui/Modal.vue`. **Empty, and that is the point.**
  *
- * A debt list, not an exemption list — every entry is a defect with a date, and
- * the value is the number of dialogs in that file so a *new* one cannot hide
- * inside an already-listed offender. The assertion runs both ways: migrating a
- * file and leaving its entry here fails too, which is what stops this list
- * outliving the problem it records.
+ * It held seven across six files when this file was written: `ui/Modal.vue` had
+ * been built to end four incompatible dialog structures, reached three call sites,
+ * and the other seven went on hand-rolling the structures it documents. The list
+ * emptied in two passes — five shells, then `ViewConfigModal` once its rebuild
+ * landed — and it emptied *because* the assertion runs both ways: each migration
+ * broke the suite by naming its own stale entry.
  *
- * `ui/Modal.vue` used to carry this enumeration in prose, by file and line. It
- * had already drifted — two of its line numbers were 20-plus lines stale — which
- * is the whole argument for keeping the list somewhere that recomputes.
+ * Keep the mechanism. Refilling it is how a hand-rolled dialog gets recorded as
+ * owed rather than argued for, and an empty debt list still fails on a new one:
+ * `each form has exactly one host` is what catches that, and this only decides
+ * whether the site is a known defect or a surprise.
+ *
+ * `ui/Modal.vue` used to carry the enumeration in prose, by file and line, and all
+ * seven references had gone stale by 1 to 51 lines while still reading as current.
+ * That is the argument for the list living somewhere that recomputes.
  */
-const MIGRATION_OWED: Record<string, { count: number, why: string }> = {
-  'app/components/ViewConfigModal.vue': {
-    count: 1,
-    why: '`header: \'hidden\'` with no :title — the one dialog in the app with no accessible name. Held back deliberately: it is being restructured (live-apply throughout, the staging apparatus deleted), and its header is a derived title across three view kinds, so migrating the shell first would be churn against that change rather than progress toward it.'
-  }
-}
+const MIGRATION_OWED: Record<string, { count: number, why: string }> = {}
 
 describe('overlay forms', () => {
   it('each form has exactly one host', () => {
@@ -155,10 +156,10 @@ describe('overlay forms', () => {
     const total = Object.values(sites('UModal')).reduce((n, c) => n + c, 0)
 
     // Was 7 of 8 when this file was written, which is why `ui/Modal.vue` calling
-    // itself "the one dialog shell" read as done when it was not. This number only
-    // moves down; raising the ceiling to admit a new hand-rolled dialog is the one
-    // edit that is never the fix.
-    expect(owed).toBeLessThanOrEqual(1)
-    expect(owed).toBe(total - 1)
+    // itself "the one dialog shell" read as done when it was not. Zero now, so the
+    // shell is the only `<UModal>` in the app. Raising this ceiling to admit a new
+    // hand-rolled dialog is the one edit that is never the fix.
+    expect(owed).toBe(0)
+    expect(total, 'the shell itself, and nothing else').toBe(1)
   })
 })

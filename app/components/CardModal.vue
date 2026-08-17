@@ -608,6 +608,24 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
     Enter in the title field and the Save button call `submit()` directly. Cmd+Enter was
     never the form's anyway: it is a global capture-phase listener, because portalled
     popovers break @keydown on a form (see CLAUDE.md).
+
+    **It stays modal, and the board beside it stays inert.** `USlideover` forwards
+    `modal` and `overlay` to Reka, so a live board is two props away — and those two
+    props are not what it would cost. Four things here are built on the board being
+    frozen: `restoreScroll` is unconditional *because* the board cannot have moved
+    (see KanbanBoard), the arrow-key walker claims the arrows on the same grounds
+    (see board-nav), a confirmation raised from this panel has to be inline because a
+    dialog would portal behind it (see the note at the foot of this file), and below
+    `sm` the panel is the whole screen so it must stay modal there regardless.
+
+    What inertness buys is the thing the panel was built for: the reveal puts the
+    card's column beside it, and reading a card next to where it sits is the benefit.
+    What it does not buy is dragging while a card is open — and the honest version of
+    that is not this panel with `modal` flipped, it is a real layout column with the
+    board reflowing and selection driving the contents, which is a different design
+    that would replace the reveal rather than extend it. The cost of inertness worth
+    knowing: Reka sets `aria-hidden` on the app root, so a screen reader gets none of
+    the context this panel exists to provide.
   -->
   <USlideover
     v-model:open="open"
