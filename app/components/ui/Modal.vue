@@ -17,15 +17,18 @@
  * focus trapping behave, and the panel styling comes from app.config.
  *
  * The eleven are not all migrated, and reading this as "the one dialog shell"
- * is how that goes unnoticed. Two consumers so far — `admin/users.vue` and
+ * is how that goes unnoticed. Three usages so far — `admin/users.vue` twice and
  * `ui/ConfirmDialog` — against seven raw `<UModal>` sites still hand-rolling the
- * structures above: `CreateViewModal:200`, `ProjectMembers:518`,
- * `ViewConfigModal:373`, `projects/index:317`, `projects/[slug]/index:654` and
- * `admin/skills:192,290`. Several re-commit the exact defects this documents —
- * hand-rebuilt icon+title headers at `admin/skills:192,290` and
- * `ProjectMembers:518`, and `header: 'hidden'` with no accessible name at
- * `ViewConfigModal:373`. That migration is owed; this component is where it
- * lands, not a record that it happened.
+ * structures above, several re-committing the exact defects this documents. That
+ * migration is owed; this component is where it lands, not a record that it
+ * happened.
+ *
+ * Which seven, and what each owes, is `MIGRATION_OWED` in
+ * `overlay-forms.test.ts` — not a list here. This comment used to enumerate them
+ * by file and line, and every one of its seven line references had gone stale,
+ * by 1 to 51 lines, while still reading as current. A debt list has to fail when
+ * it does that, which a comment cannot: that one asserts both directions, so a
+ * migrated file with its entry left behind breaks the suite.
  */
 const props = withDefaults(defineProps<{
   /** Leading icon. Omit for dialogs whose title carries enough meaning. */
