@@ -17,12 +17,27 @@ const props = defineProps<{
    * opens this same panel with nothing to step through, and that absence is what
    * hides the controls there.
    */
+  /**
+   * Set by a host that can walk a set of cards. Two shapes:
+   *
+   *  - a **grid** — the board — supplies the column flags, and gets the
+   *    horizontal pair of chevrons plus a readout scoped to the column.
+   *  - a **sequence** — a list view, My Tasks — omits them, and gets the
+   *    vertical pair alone.
+   *
+   * `undefined` and `false` mean different things on the column flags, which is
+   * why they are optional rather than defaulted: `false` is a grid with nowhere
+   * to go that way (a one-column board), and renders the control disabled.
+   * `undefined` is "this host has no columns" and renders nothing at all — a
+   * permanently dead chevron is worse than no chevron, and on a list there is no
+   * second axis to hint at.
+   */
   nav?: {
     hasPrev: boolean
     hasNext: boolean
-    hasPrevColumn: boolean
-    hasNextColumn: boolean
-    /** Where this card sits in its (filtered) column — the walker's "2/7". */
+    hasPrevColumn?: boolean
+    hasNextColumn?: boolean
+    /** Where this card sits in the walked ordering — the walker's "2/7". */
     position?: { index: number, count: number } | null
   }
   onEnsureCard?: (data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) => Promise<number>
@@ -453,11 +468,32 @@ function submit() {
  * number sits between the chevrons that change it, the way a pager reads.
  */
 const NAV_CONTROLS = [
-  { dir: 'prevColumn', flag: 'hasPrevColumn', icon: 'i-lucide-chevron-left', tip: 'Previous column', kbd: 'arrowleft', aria: 'First card of the previous column', before: null },
-  { dir: 'prev', flag: 'hasPrev', icon: 'i-lucide-chevron-up', tip: 'Previous card', kbd: 'arrowup', aria: 'Previous card in this column', before: 'rule' },
-  { dir: 'next', flag: 'hasNext', icon: 'i-lucide-chevron-down', tip: 'Next card', kbd: 'arrowdown', aria: 'Next card in this column', before: 'count' },
-  { dir: 'nextColumn', flag: 'hasNextColumn', icon: 'i-lucide-chevron-right', tip: 'Next column', kbd: 'arrowright', aria: 'First card of the next column', before: 'rule' }
+  { dir: 'prevColumn', flag: 'hasPrevColumn', icon: 'i-lucide-chevron-left', tip: 'Previous column', kbd: 'arrowleft', before: null },
+  { dir: 'prev', flag: 'hasPrev', icon: 'i-lucide-chevron-up', tip: 'Previous card', kbd: 'arrowup', before: 'rule' },
+  { dir: 'next', flag: 'hasNext', icon: 'i-lucide-chevron-down', tip: 'Next card', kbd: 'arrowdown', before: 'count' },
+  { dir: 'nextColumn', flag: 'hasNextColumn', icon: 'i-lucide-chevron-right', tip: 'Next column', kbd: 'arrowright', before: 'rule' }
 ] as const
+
+/**
+ * Whether this host walks a grid. Read off the column flags rather than taken as
+ * its own prop, so the two cannot be set to disagree.
+ */
+const navIsGrid = computed(() => props.nav?.hasPrevColumn !== undefined)
+
+/**
+ * "in this column" only where there *are* columns. On a list or My Tasks the
+ * walked set is the whole view, so the qualifier would name a thing the surface
+ * doesn't have — and the readout is announced, so it has to be true rather than
+ * merely consistent with the board.
+ */
+const navAria = computed(() => ({
+  prevColumn: 'First card of the previous column',
+  prev: navIsGrid.value ? 'Previous card in this column' : 'Previous card',
+  next: navIsGrid.value ? 'Next card in this column' : 'Next card',
+  nextColumn: 'First card of the next column',
+  count: (index: number, count: number) =>
+    navIsGrid.value ? `Card ${index} of ${count} in this column` : `Card ${index} of ${count}`
+}))
 
 /**
  * The panel's `⋯` menu is gone, and with it the only delete on this surface.
@@ -666,20 +702,20 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                and hide it from everyone else. The tooltips carry the keys, so
                the visible control and the invisible one arrive together.
 
-               All four directions: a card panel gives no hint that columns can
-               be stepped through, and arrow keys in list-shaped apps are
-               usually vertical only, so nothing would have carried the
-               horizontal half.
+               On a board, all four directions: a card panel gives no hint that
+               columns can be stepped through, and arrow keys in list-shaped apps
+               are usually vertical only, so nothing else would have carried the
+               horizontal half. On a list and on My Tasks the horizontal pair is
+               absent rather than disabled — see the `nav` prop for why those are
+               different states.
 
-               One recessed tray rather than four loose buttons: the walker is a
+               One recessed tray rather than loose buttons: the walker is a
                single instrument, and rendered as separate ghost icons its
                leading chevron read as a "back" control. The hairline rules
                split its two axes, and the readout between ˄ and ˅ is where you
-               are in the column — counted over the filtered ordering the
-               chevrons walk.
-
-               Only where a host offers navigation — a list view opens this same
-               panel with no column to walk. -->
+               are in the set — counted over the same ordering the chevrons
+               walk, which on a list is the order the table actually rendered
+               (`ListView`'s `@order`). -->
           <div
             v-if="nav"
             class="flex items-center rounded-md border border-default bg-muted/50 mr-1.5"
@@ -692,17 +728,23 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
               v-for="control in NAV_CONTROLS"
               :key="control.dir"
             >
+              <!-- The rules separate the two axes, so on a sequence — where
+                   there is only one — they would be a stray hairline at each end
+                   of the tray. -->
               <div
-                v-if="control.before === 'rule'"
+                v-if="control.before === 'rule' && navIsGrid"
                 class="w-px h-3.5 bg-accented"
                 aria-hidden="true"
               />
               <span
                 v-else-if="control.before === 'count' && nav.position"
                 class="px-1 font-mono tabular-nums text-2xs text-muted select-none"
-                :aria-label="`Card ${nav.position.index} of ${nav.position.count} in this column`"
+                :aria-label="navAria.count(nav.position.index, nav.position.count)"
               >{{ nav.position.index }}/{{ nav.position.count }}</span>
-              <UTooltip :text="control.tip">
+              <UTooltip
+                v-if="nav[control.flag] !== undefined"
+                :text="control.tip"
+              >
                 <template #content="{ ui }">
                   <span :class="ui.text()">{{ control.tip }}</span>
                   <span :class="ui.kbds()">
@@ -716,7 +758,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                   color="neutral"
                   variant="ghost"
                   size="xs"
-                  :aria-label="control.aria"
+                  :aria-label="navAria[control.dir]"
                   :disabled="!nav[control.flag]"
                   @click="emit('navigate', control.dir)"
                 />

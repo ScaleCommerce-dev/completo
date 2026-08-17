@@ -8,6 +8,8 @@ interface MyTasksGroup {
     doneStatusId: string | null
     doneRetentionDays: number | null
   }
+  /** The viewer's role in *this* project — see my-tasks.get.ts for why it is never synthetic. */
+  role: string
   statuses: Array<{ id: string, name: string, color: string | null }>
   tags: Array<{ id: string, name: string, color: string }>
   members: Array<{ id: string, name: string, avatarUrl: string | null }>
@@ -23,10 +25,19 @@ interface MyTasksGroup {
     status: { id: string, name: string, color: string | null } | null
     tags: Array<{ id: string, name: string, color: string }>
     dueDate: string | null
+    // Returned by the endpoint since it started sharing `fetchCardMetadata` and
+    // `fetchCardCreators` with the project views, and undeclared here until the
+    // card panel needed them — the table only ever read the fields above. An
+    // interface narrower than its endpoint is invisible until something asks.
+    creator: { id: string, name: string, avatarUrl: string | null } | null
+    attachmentCount: number
+    commentCount: number
     createdAt: string
     updatedAt: string
   }>
 }
+
+export type MyTasksCard = MyTasksGroup['cards'][number]
 
 interface MyTasksData {
   columns: Array<{ id: string, field: string, position: number }>
@@ -200,6 +211,12 @@ export function useMyTasks() {
     reorderColumns,
     toggleCollapse,
     updateCard,
-    updateCardTags
+    updateCardTags,
+    // Exposed for the card panel, which needs the *live* row plus the group that
+    // owns its lookups — a status or member only means anything within the group
+    // a card sits in. Resolving through this on every render rather than holding
+    // the card object is what keeps the open panel in step with the in-place
+    // patches `updateCard` makes.
+    findCard
   }
 }

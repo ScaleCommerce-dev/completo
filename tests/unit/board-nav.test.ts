@@ -1,10 +1,30 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { nextCard, arrowKeysAreClaimed, columnPosition, dropPosition } from '../../app/utils/board-nav'
+import {
+  nextCard,
+  arrowKeysAreClaimed,
+  columnPosition,
+  dropPosition,
+  nextInSequence,
+  sequencePosition,
+  groupedSequence
+} from '../../app/utils/board-nav'
 
 const ROOT = join(import.meta.dirname, '../..')
 const read = (p: string) => readFileSync(join(ROOT, p), 'utf8')
+
+/**
+ * Source with its comments blanked — for the assertions that ban an identifier
+ * rather than requiring one. `useCardWalk`'s prose names `hasPrevColumn` while
+ * explaining why it never sets it, which is exactly the sentence a raw substring
+ * ban reads as the violation. Blanked rather than stripped so a failure's line
+ * numbers still point at the source.
+ */
+const code = (p: string) => read(p)
+  .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ''))
+  .replace(/\/\/[^\n]*/g, m => m.replace(/[^\n]/g, ''))
+  .replace(/<!--[\s\S]*?-->/g, m => m.replace(/[^\n]/g, ''))
 
 const COLUMNS = [
   { id: 'backlog' },
@@ -161,23 +181,50 @@ describe('the panel offers the same walk to the mouse', () => {
   const entries = [...controls.matchAll(/\{([^}]*)\}/g)]
     .map(m => Object.fromEntries([...m[1]!.matchAll(/(\w+): '([^']*)'/g)].map(f => [f[1]!, f[2]!])))
 
+  /**
+   * The labels moved out of `NAV_CONTROLS` into a computed, because two of them
+   * now depend on the shape: on a sequence there is no column to be "in". Parsed
+   * per branch of the ternary, so both wordings answer for themselves.
+   */
+  const navAria = modal.slice(modal.indexOf('const navAria'), modal.indexOf('}))', modal.indexOf('const navAria')))
+  const ariaStrings = [...navAria.matchAll(/'([^']*)'|`([^`]*)`/g)].map(m => m[1] ?? m[2]!)
+
   it('declares a control for all four directions, named for screen readers', () => {
     // All four, not just the vertical pair: a card panel gives no hint that
     // columns can be stepped through, and arrow keys in list-shaped apps are
     // usually vertical only, so there is no analogy to carry the horizontal.
     //
     // The labels are checked for saying which way they go and for being distinct;
-    // the four sentences themselves are copy, and pinning them verbatim — which is
+    // the sentences themselves are copy, and pinning them verbatim — which is
     // what this did — made rewording one of them a test failure.
     expect(entries.map(e => e.dir).sort()).toEqual(['next', 'nextColumn', 'prev', 'prevColumn'])
 
     for (const control of entries) {
-      expect(control.aria, control.dir).toBeTruthy()
-      expect(control.aria!.toLowerCase(), control.dir).toContain(control.dir!.startsWith('prev') ? 'previous' : 'next')
-      if (control.dir!.endsWith('Column')) expect(control.aria!.toLowerCase(), control.dir).toContain('column')
+      const labels = ariaStrings.filter(s =>
+        s.toLowerCase().includes(control.dir!.startsWith('prev') ? 'previous' : 'next'))
+      expect(labels.length, control.dir).toBeGreaterThan(0)
     }
 
-    expect(new Set(entries.map(e => e.aria)).size).toBe(entries.length)
+    // Every column label names the column; the readouts stay distinguishable.
+    for (const label of ariaStrings.filter(s => /column/i.test(s))) {
+      expect(label.toLowerCase()).toMatch(/previous|next|this column/)
+    }
+    expect(new Set(ariaStrings).size, 'two controls announcing the same thing').toBe(ariaStrings.length)
+  })
+
+  it('says "in this column" only where there are columns', () => {
+    // The readout is announced, so it has to be true rather than merely
+    // consistent with the board: on a list and on My Tasks the walked set is the
+    // whole view, and naming a column there names something the surface has not
+    // got. Both branches exist, and the shape is read off the column flags rather
+    // than taken as a second prop that could be set to disagree with them.
+    expect(navAria).toContain('navIsGrid')
+    expect(ariaStrings.some(s => /in this column/i.test(s)), 'no column-scoped wording').toBe(true)
+    expect(
+      ariaStrings.some(s => /^(previous|next) card$/i.test(s)),
+      'no unscoped wording for a sequence host'
+    ).toBe(true)
+    expect(modal).toMatch(/const navIsGrid = computed\(\(\) => props\.nav\?\.hasPrevColumn !== undefined\)/)
   })
 
   it('teaches every shortcut from its tooltip', () => {
@@ -225,11 +272,179 @@ describe('the panel offers the same walk to the mouse', () => {
   })
 
   it('shows them only where there is a set to walk', () => {
-    // The board passes `nav`; the list view opens this same panel and has no
-    // column to step through, so the absence of the prop is what hides them.
+    // The absence of the prop is what hides the tray. Every host that opens the
+    // panel over a set it can walk passes one; the create-card panel does not,
+    // because a card being made is not in any set yet.
     expect(modal).toMatch(/v-if="nav"/)
-    expect(read('app/pages/projects/[slug]/boards/[boardSlug]/index.vue')).toContain(':nav="cardNav"')
-    expect(read('app/pages/projects/[slug]/lists/[listSlug]/index.vue')).not.toContain(':nav=')
+    for (const page of [
+      'app/pages/projects/[slug]/boards/[boardSlug]/index.vue',
+      'app/pages/projects/[slug]/lists/[listSlug]/index.vue',
+      'app/pages/my-tasks.vue'
+    ]) {
+      expect(read(page), page).toContain(':nav="cardNav"')
+    }
+  })
+
+  it('omits the horizontal pair on a sequence rather than greying it out', () => {
+    // A permanently dead chevron is worse than no chevron: it claims a second
+    // axis the surface has not got. `undefined` and `false` therefore mean
+    // different things on the column flags — `false` is a one-column board, which
+    // still shows the control disabled — so the render is gated on presence, not
+    // on truth, and the hairline rules that separate the two axes go with them.
+    expect(modal).toContain('v-if="nav[control.flag] !== undefined"')
+    expect(modal).toContain(':disabled="!nav[control.flag]"')
+    expect(modal).toContain(`v-if="control.before === 'rule' && navIsGrid"`)
+
+    // Only the board builds the column flags. `useCardWalk` is what the other two
+    // hosts get their `nav` from, and it returns the vertical pair alone.
+    const walk = code('app/composables/useCardWalk.ts')
+    expect(walk).toContain('hasPrev:')
+    expect(walk).toContain('hasNext:')
+    expect(walk, 'the sequence walker must not claim a horizontal axis').not.toContain('hasPrevColumn')
+    expect(walk).not.toContain('hasNextColumn')
+  })
+
+  it('binds only the vertical arrows on a sequence', () => {
+    // ←/→ mean nothing on this shape, and swallowing them would break caret
+    // movement that nothing else claims. The claim check is the board's, so the
+    // two shapes stand down from a text field or an open picker identically.
+    const walk = code('app/composables/useCardWalk.ts')
+    expect(walk).toMatch(/ArrowUp: 'prev'/)
+    expect(walk).toMatch(/ArrowDown: 'next'/)
+    expect(walk).not.toContain('ArrowLeft')
+    expect(walk).not.toContain('ArrowRight')
+    expect(walk).toContain('arrowKeysAreClaimed(document)')
+  })
+
+  it('walks the order the table drew, not one the page recomputed', () => {
+    // `ListView.sortedCards` is not a function of its props: `userSortField`
+    // overrides `sortField` from the first header click, and `@sort` only reaches
+    // the page when the viewer may persist one. So a page-side sort agrees with
+    // the rows until somebody without permission clicks a column header.
+    const listView = read('app/components/ListView.vue')
+    expect(listView).toMatch(/'order': \[cardIds: number\[\]\]/)
+
+    for (const page of ['app/pages/projects/[slug]/lists/[listSlug]/index.vue', 'app/pages/my-tasks.vue']) {
+      expect(read(page), page).toContain('@order=')
+    }
+  })
+
+  it('reports the order by value, and never from an effect over the array', () => {
+    // The regression this exists for, because it presented as something else
+    // entirely: every overlay in the app stopped opening, the profile menu
+    // included, with no error logged.
+    //
+    // `sortedCards` returns a fresh array each evaluation, so emitting from a
+    // `watchEffect` over it re-fires on renders where the ordering has not moved.
+    // The host stores what it receives, that invalidates a computed the host
+    // renders, and the render brings us back here. With one ListView per project
+    // group on My Tasks, the loop kept Vue's post-flush queue saturated and no
+    // teleported subtree ever finished mounting — a jammed scheduler reads exactly
+    // like a z-index or portal bug, and nothing in the console says otherwise.
+    //
+    // Comparing the joined ids is what makes a same-order re-render a no-op.
+    const source = code('app/components/ListView.vue')
+    const emitStmt = source.match(/watch\(\s*orderKey[\s\S]*?\)\n/)?.[0] ?? ''
+
+    expect(source, 'orderKey is what makes the emit value-compared').toMatch(/const orderKey = computed\(\(\) => orderedIds\.value\.join\(/)
+    expect(emitStmt, 'the emit must be driven by the key, not the array').toContain(`emit('order'`)
+    expect(emitStmt, 'later emits belong behind the DOM patch').toContain(`flush: 'post'`)
+    expect(emitStmt, 'an immediate callback runs during the host render').not.toContain('immediate')
+    expect(source, 'the first emit belongs in onMounted, not an immediate watcher').toMatch(/onMounted\(\(\) => emit\('order'/)
+
+    // The shape that caused it, banned by name in either spelling.
+    expect(source).not.toMatch(/watchEffect\([^)]*emit\(\s*'order'/s)
+    expect(source, 'watching the array itself compares identity, which never settles')
+      .not.toMatch(/watch\(\s*(?:sortedCards|orderedIds)\s*,[^)]*emit\(\s*'order'/s)
+  })
+})
+
+/**
+ * The shape-independent half. The grid's own walk is expressed over these — the
+ * suite above exercises it through `nextCard`, which is what keeps the two shapes
+ * from disagreeing about where the ends are.
+ */
+describe('walking a flat sequence', () => {
+  const SEQ = [7, 3, 9, 1]
+
+  it('steps forward and back', () => {
+    expect(nextInSequence(SEQ, 3, 'next')).toBe(9)
+    expect(nextInSequence(SEQ, 3, 'prev')).toBe(7)
+  })
+
+  it('stops at both ends rather than wrapping', () => {
+    expect(nextInSequence(SEQ, 7, 'prev')).toBeNull()
+    expect(nextInSequence(SEQ, 1, 'next')).toBeNull()
+  })
+
+  it('is reversible, unlike crossing a column', () => {
+    const there = nextInSequence(SEQ, 3, 'next')!
+    expect(nextInSequence(SEQ, there, 'prev')).toBe(3)
+  })
+
+  it('does nothing for a card outside the set', () => {
+    // A filter can hide the open card. Stepping from somewhere that is not in the
+    // list has no defined answer, so it has none.
+    expect(nextInSequence(SEQ, 42, 'next')).toBeNull()
+    expect(sequencePosition(SEQ, 42)).toBeNull()
+  })
+
+  it('reads the position one-based over the same ordering', () => {
+    expect(sequencePosition(SEQ, 7)).toEqual({ index: 1, count: 4 })
+    expect(sequencePosition(SEQ, 1)).toEqual({ index: 4, count: 4 })
+  })
+
+  it('is empty-safe', () => {
+    expect(nextInSequence([], 1, 'next')).toBeNull()
+    expect(sequencePosition([], 1)).toBeNull()
+  })
+})
+
+/**
+ * My Tasks: several tables, one walk. Each group is its own `ListView` with its
+ * own sortable headers, so the sequence is assembled from what each reported.
+ */
+describe('one sequence across project groups', () => {
+  const ORDER = new Map([
+    ['alpha', [1, 2]],
+    ['beta', [10]],
+    ['gamma', [20, 21]]
+  ])
+  const GROUPS = ['alpha', 'beta', 'gamma']
+  const none = () => false
+
+  it('concatenates the groups in the order the page lists them', () => {
+    expect(groupedSequence(GROUPS, ORDER, none)).toEqual([1, 2, 10, 20, 21])
+  })
+
+  it('crosses a project boundary like any other step', () => {
+    // The panel's props follow the card rather than the group: the page resolves
+    // the id through `findCard`, so stepping from beta into gamma swaps the
+    // statuses, members and project key it is handed. That is the whole
+    // mechanism, and it means the walk needs no notion of groups at all.
+    const seq = groupedSequence(GROUPS, ORDER, none)
+    expect(nextInSequence(seq, 10, 'next')).toBe(20)
+    expect(nextInSequence(seq, 20, 'prev')).toBe(10)
+    expect(sequencePosition(seq, 20)).toEqual({ index: 4, count: 5 })
+  })
+
+  it('skips a collapsed group', () => {
+    // Its table is unmounted, so its last reported order is stale and its cards
+    // are not on the page. Walking into them would open a card the user cannot
+    // see behind the panel.
+    const seq = groupedSequence(GROUPS, ORDER, id => id === 'beta')
+    expect(seq).toEqual([1, 2, 20, 21])
+    expect(nextInSequence(seq, 2, 'next')).toBe(20)
+  })
+
+  it('skips a group that has reported no order', () => {
+    // Never rendered is not the same as rendered empty, and falling back to the
+    // group's card array would be guessing at a sort nobody applied.
+    expect(groupedSequence([...GROUPS, 'delta'], ORDER, none)).toEqual([1, 2, 10, 20, 21])
+  })
+
+  it('is empty when everything is collapsed', () => {
+    expect(groupedSequence(GROUPS, ORDER, () => true)).toEqual([])
   })
 })
 

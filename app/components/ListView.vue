@@ -32,6 +32,19 @@ const emit = defineEmits<{
   'update': [cardId: number, updates: Record<string, unknown>]
   'update-tags': [cardId: number, tagIds: string[]]
   'sort': [field: string | null, direction: 'asc' | 'desc' | null]
+  /**
+   * The ids of the rows as drawn, in order — what the card panel's ↑/↓ walker
+   * steps through.
+   *
+   * The order has to come from here rather than being recomputed by the host,
+   * because `sortedCards` is not a function of the props alone: `userSortField`
+   * overrides `sortField` from the first header click onward, and `@sort` is only
+   * *persisted* when the viewer may save one. So a host that sorted the same
+   * cards itself would agree with these rows until somebody without permission
+   * clicked a column header, and then the chevrons would walk a different list
+   * than the eye reads.
+   */
+  'order': [cardIds: number[]]
 }>()
 
 // Inline editing popover state
@@ -214,6 +227,28 @@ const sortedCards = computed(() => {
     return (cmp * mul) || (a.id - b.id)
   })
 })
+
+/**
+ * Reported when the order *changes*, compared by value.
+ *
+ * `sortedCards` returns a fresh array on every evaluation, so watching it — or
+ * emitting from a `watchEffect` over it — re-fires on renders where nothing about
+ * the ordering moved. The host stores what it receives, which invalidates a
+ * computed the host also renders, which brings us back here: on My Tasks, with one
+ * of these per project group, that ping-pong is enough to keep Vue's post-flush
+ * queue busy indefinitely and no overlay ever finishes mounting. Comparing the
+ * joined ids is what makes a re-render with the same ordering a no-op.
+ *
+ * First emit from `onMounted` rather than an immediate watcher: an immediate
+ * callback runs synchronously during setup, which is the host's render, and
+ * writing a parent ref there is the mid-render mutation this ordering exists to
+ * avoid. `flush: 'post'` keeps every later emit behind the DOM patch.
+ */
+const orderedIds = computed(() => sortedCards.value.map(c => c.id))
+const orderKey = computed(() => orderedIds.value.join(','))
+
+watch(orderKey, () => emit('order', [...orderedIds.value]), { flush: 'post' })
+onMounted(() => emit('order', [...orderedIds.value]))
 
 // ─── Horizontal scroll affordance ───────────────────────────────────────────
 // The same `.board-scroll` mask the board uses, for the same reason and a worse

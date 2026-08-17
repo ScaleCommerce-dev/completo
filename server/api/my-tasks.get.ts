@@ -33,6 +33,17 @@ export default defineEventHandler(async (event) => {
     ))
     .all()
   const memberProjectIds = new Set(memberships.map(m => m.projectId))
+  /**
+   * The viewer's real membership role, per project — what the card panel needs to
+   * decide whether comment moderation is offered.
+   *
+   * Deliberately not the synthetic `{ role: 'owner' }` an instance admin gets
+   * elsewhere: this view is filtered to projects the viewer *belongs to*
+   * (`memberProjectIds` above), so there is no non-member case to elevate, and
+   * My Tasks is not admin-elevated. An admin who is a member gets the role they
+   * actually hold; one who is not sees no group at all.
+   */
+  const roleByProject = new Map(memberships.map(m => [m.projectId, m.role]))
 
   const visibleCards = myCards.filter(c => memberProjectIds.has(c.projectId))
 
@@ -106,6 +117,7 @@ export default defineEventHandler(async (event) => {
         doneStatusId: project.doneStatusId,
         doneRetentionDays: project.doneRetentionDays
       },
+      role: roleByProject.get(project.id) ?? 'member',
       statuses: projectStatuses.map(s => ({ id: s.id, name: s.name, color: s.color })),
       tags: allTags.filter(t => t.projectId === project.id).map(t => ({ id: t.id, name: t.name, color: t.color })),
       members: allMembers.filter(m => m.projectId === project.id).map(m => ({ id: m.id, name: m.name, avatarUrl: m.avatarUrl })),

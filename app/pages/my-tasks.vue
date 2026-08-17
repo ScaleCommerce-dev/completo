@@ -11,14 +11,101 @@ const {
   reorderColumns,
   toggleCollapse,
   updateCard,
-  updateCardTags
+  updateCardTags,
+  findCard
 } = useMyTasks()
 
 const showColumnConfig = ref(false)
 
-function handleCardClick(card: { id: number }, projectSlug: string, projectKey: string) {
-  navigateTo(`/projects/${projectSlug}/cards/${formatTicketId(projectKey, card.id)}`)
+/**
+ * A card opens in the panel here, exactly as it does on a board and a list.
+ *
+ * It used to `navigateTo` the card's full page, which made My Tasks the one
+ * surface where clicking a card left the surface — a card is a panel, and the
+ * rule is per object, not per host (see CLAUDE.md). Nothing was standing in the
+ * way: `CardModal` already names My Tasks as a host it renders without a board
+ * to reveal a column in, and `/api/my-tasks` already returns the statuses, tags
+ * and members the panel needs, per project, because the table's own cells need
+ * the same ones.
+ *
+ * There is no `nav` prop, so the ←/→ walker stays hidden — the walker's "2/7"
+ * and its column crossings are board geometry. Cards here are grouped by
+ * project, which is a set worth stepping through, but not this one.
+ */
+const selectedCardId = ref<number | null>(null)
+const showCardDetail = ref(false)
+
+/**
+ * Resolved on every render rather than captured on click, so the open panel sees
+ * the in-place patches `updateCard` makes. `findCard` hands back the owning group
+ * too, and that is the part My Tasks needs that a project view does not: statuses,
+ * members and tags are only meaningful within the group the card sits in.
+ */
+const selected = computed(() =>
+  selectedCardId.value === null ? null : findCard(selectedCardId.value)
+)
+
+/** Owners may delete others' comments. Never an admin's synthetic role — see my-tasks.get.ts. */
+const canModerateComments = computed(() => selected.value?.group.role === 'owner')
+
+function handleCardClick(card: { id: number }) {
+  selectedCardId.value = card.id
+  showCardDetail.value = true
 }
+
+/**
+ * ↑/↓ walk every card on the page, across project boundaries — one sequence, not
+ * one per project.
+ *
+ * That is the whole reason this works without extra plumbing: `selected` resolves
+ * the id through `findCard`, so stepping onto a card in another project swaps the
+ * statuses, members, tags and project key the panel is handed, because they come
+ * from whichever group holds the card. The walker sets an id; the group follows.
+ *
+ * Order per group is `ListView`'s, keyed by project — each group is its own table
+ * with its own sortable headers, so there is no single sort to ask for. Collapsed
+ * groups are skipped: their table is unmounted, so a stale entry would otherwise
+ * walk into cards that are not on screen. Every card the page shows, in the order
+ * it shows them, and nothing else.
+ */
+const rowOrder = ref(new Map<string, number[]>())
+
+const walkSequence = computed(() => groupedSequence(
+  groups.value.map(g => g.project.id),
+  rowOrder.value,
+  id => collapsedProjectIds.value.has(id)
+))
+
+const { nav: cardNav, step: cardWalk } = useCardWalk({
+  open: () => showCardDetail.value,
+  sequence: () => walkSequence.value,
+  currentId: () => selectedCardId.value,
+  select: (cardId) => { selectedCardId.value = cardId }
+})
+
+function setRowOrder(projectId: string, cardIds: number[]) {
+  // A new Map, not a mutation: `rowOrder` holds one, and Vue does not track
+  // `Map.set` on a plain `ref` — the sequence would go stale exactly when a sort
+  // changed it.
+  rowOrder.value = new Map(rowOrder.value).set(projectId, cardIds)
+}
+
+/**
+ * Reassigning the open card to somebody else closes the panel.
+ *
+ * This view *is* "cards assigned to me", so `updateCard` drops the row from the
+ * data the moment its assignee stops being you (`useMyTasks.dropCard`). The panel
+ * would then be left with no `card` prop — and `CardModal` treats an absent card
+ * as *create* mode, so it would not empty, it would turn into a create form still
+ * holding the old card's title. Closing is both correct and the only coherent
+ * option: the card is no longer yours, and the toast already said what happened.
+ */
+watch(selected, (found) => {
+  if (!found) {
+    showCardDetail.value = false
+    selectedCardId.value = null
+  }
+})
 
 async function handleInlineUpdate(cardId: number, updates: Record<string, unknown>) {
   await updateCard(cardId, updates)
@@ -36,13 +123,7 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
     variant="surface"
   >
     <template #actions>
-      <UButton
-        icon="i-lucide-columns-3"
-        label="Fields"
-        variant="ghost"
-        color="neutral"
-        @click="showColumnConfig = true"
-      />
+      <UiSettingsButton @click="showColumnConfig = true" />
     </template>
 
     <div class="flex-1 overflow-auto p-4 flex flex-col gap-4 thin-scroll">
@@ -88,9 +169,10 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
             :done-status-id="group.project.doneStatusId"
             :tags="group.tags"
             :members="group.members"
-            @card-click="(card) => handleCardClick(card, group.project.slug, group.project.key)"
+            @card-click="handleCardClick"
             @update="handleInlineUpdate"
             @update-tags="handleInlineTagUpdate"
+            @order="(ids) => setRowOrder(group.project.id, ids)"
           />
         </div>
       </div>
@@ -129,6 +211,27 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
       @add="addColumn"
       @delete="removeColumn"
       @reorder="reorderColumns"
+    />
+
+    <!-- The card panel, with the lookups of the group the card belongs to rather
+         than a single project's — this is the one host where those differ per
+         card. `v-if` on the group, not on the card: a null group would hand the
+         panel empty status and member lists and turn its pickers into dead
+         controls. -->
+    <CardModal
+      v-if="selected"
+      v-model:open="showCardDetail"
+      :card="selected.card"
+      :statuses="selected.group.statuses"
+      :members="selected.group.members"
+      :tags="selected.group.tags"
+      :project-key="selected.group.project.key"
+      :project-slug="selected.group.project.slug"
+      :can-moderate="canModerateComments"
+      :nav="cardNav"
+      @update="handleInlineUpdate"
+      @update-tags="handleInlineTagUpdate"
+      @navigate="cardWalk"
     />
   </UiPage>
 </template>

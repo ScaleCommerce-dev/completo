@@ -87,6 +87,26 @@ const {
 
 const showColumnConfig = ref(false)
 
+/**
+ * ↑/↓ through the table from inside the card panel, the vertical half of what the
+ * board offers. There is no horizontal half to offer: a list is one sequence, so
+ * `useCardWalk` hands the panel no column flags and the panel drops those
+ * chevrons rather than showing two that can never fire.
+ *
+ * `rowOrder` is reported by `ListView`, not derived from `filteredCards` here. Its
+ * sort has a local override that only reaches this page when the viewer may
+ * *persist* a sort (`canSaveSort`), so sorting a column as a viewer who cannot
+ * would leave a page-side ordering silently disagreeing with the rows.
+ */
+const rowOrder = ref<number[]>([])
+
+const { nav: cardNav, step: cardWalk } = useCardWalk({
+  open: () => showCardDetail.value,
+  sequence: () => rowOrder.value,
+  currentId: () => selectedCard.value?.id ?? null,
+  select: cardId => openCardDetail({ id: cardId })
+})
+
 function openCreateCard() {
   showCreateCard.value = true
 }
@@ -186,6 +206,7 @@ async function handleDeleteList() {
       @update="handleInlineUpdate"
       @update-tags="handleInlineTagUpdate"
       @sort="handleSort"
+      @order="rowOrder = $event"
     />
 
     <CardModal
@@ -197,8 +218,10 @@ async function handleDeleteList() {
       :project-key="projectKey"
       :project-slug="(route.params.slug as string)"
       :can-moderate="canModerateComments"
+      :nav="cardNav"
       @update="handleUpdateCard"
       @update-tags="updateCardTags"
+      @navigate="(d) => cardWalk(d)"
     />
 
     <ViewConfigModal

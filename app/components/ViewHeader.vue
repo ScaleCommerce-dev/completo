@@ -155,20 +155,13 @@ const viewOptions = computed<FieldMenuOption[]>(() => [
 
     <template #actions>
       <slot name="actions" />
-      <!-- Icon-only below `sm`, where a labelled button would crowd the
-           breadcrumb off the navbar entirely. -->
-      <UTooltip text="View settings">
-        <UButton
-          v-if="canConfigure"
-          icon="i-lucide-settings"
-          variant="ghost"
-          color="neutral"
-          aria-label="View settings"
-          :ui="{ label: 'max-sm:hidden' }"
-          label="Settings"
-          @click="$emit('open-settings')"
-        />
-      </UTooltip>
+      <!-- Shared with `my-tasks.vue`, which configures the same dialog — see
+           `UiSettingsButton` for why the button is the shared piece and this
+           component is not. -->
+      <UiSettingsButton
+        v-if="canConfigure"
+        @click="$emit('open-settings')"
+      />
     </template>
 
     <slot />

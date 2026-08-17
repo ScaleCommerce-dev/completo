@@ -1,11 +1,18 @@
 /**
- * Walking a board's cards from the card panel.
+ * Walking a card set from the card panel.
  *
- * The panel makes the board inert, so while it is open the arrow keys have
+ * Two shapes, one set of rules. A **grid** — the board — walks ↑/↓ within a
+ * column and ←/→ across columns. A **sequence** — a list view, My Tasks — walks
+ * ↑/↓ only, and has no horizontal half to offer. `nextInSequence` and
+ * `sequencePosition` are the shape-independent half; `nextCard` and
+ * `columnPosition` are the grid expressed over them, so the two shapes cannot
+ * disagree about where the ends are or how a position is counted.
+ *
+ * The panel makes the page inert, so while it is open the arrow keys have
  * nothing else to do — and the board is a grid, so mapping them to it is the
- * obvious thing. ↑/↓ walk the column you are in; ←/→ cross to the next column.
- * Linear's peek does the vertical half of this, and the same "arrow through a
- * list with the preview open" pattern is in Gmail, Finder and Quick Look.
+ * obvious thing. Linear's peek does the vertical half of this, and the same
+ * "arrow through a list with the preview open" pattern is in Gmail, Finder and
+ * Quick Look.
  *
  * Two rules that are decisions rather than details:
  *
@@ -23,9 +30,74 @@
  */
 export type NavDirection = 'up' | 'down' | 'left' | 'right'
 
+/** The vertical half, named as the panel's chevrons name it. */
+export type SequenceDirection = 'prev' | 'next'
+
 export interface NavTarget {
   cardId: number
   columnId: string
+}
+
+/**
+ * The card before or after this one in an ordered set, or null at either end.
+ *
+ * Takes ids rather than cards because the two sequence hosts have only ids to
+ * give: the order that matters is the one `ListView` *rendered*, which it owns
+ * (its sort has a local override the page never sees when the viewer cannot
+ * persist a sort), so it reports the order rather than the page reconstructing
+ * it. Reconstructing is the version that looks right until someone sorts a
+ * column and the chevrons start disagreeing with the rows.
+ *
+ * No wrapping, for the reason in the header: a dead end is how you learn you are
+ * at the end.
+ */
+export function nextInSequence(
+  cardIds: ReadonlyArray<number>,
+  currentCardId: number,
+  direction: SequenceDirection
+): number | null {
+  const at = cardIds.indexOf(currentCardId)
+  if (at === -1) return null
+
+  return cardIds[at + (direction === 'next' ? 1 : -1)] ?? null
+}
+
+/**
+ * One sequence out of several tables — My Tasks, where each project group is its
+ * own `ListView` with its own sortable headers, so there is no single ordering to
+ * ask for.
+ *
+ * A collapsed group contributes nothing, and that is the rule worth stating: its
+ * table is unmounted, so its last reported order is stale, and walking it would
+ * step onto cards that are not on the page. Groups with no reported order are
+ * skipped for the same reason rather than falling back to their card array — an
+ * order that was never rendered is a guess.
+ */
+export function groupedSequence(
+  groupIds: ReadonlyArray<string>,
+  orderByGroup: ReadonlyMap<string, ReadonlyArray<number>>,
+  isCollapsed: (groupId: string) => boolean
+): number[] {
+  return groupIds
+    .filter(id => !isCollapsed(id))
+    .flatMap(id => [...(orderByGroup.get(id) ?? [])])
+}
+
+/**
+ * Where a card sits in an ordered set — the "2/7" on the panel's walker.
+ *
+ * Counted over the same ordering the chevrons walk, so the readout agrees with
+ * what stepping actually does. Null when the card isn't in the set — a filter can
+ * hide the open card — which hides the readout rather than naming a position in a
+ * list the user can't see.
+ */
+export function sequencePosition(
+  cardIds: ReadonlyArray<number>,
+  cardId: number
+): { index: number, count: number } | null {
+  const at = cardIds.indexOf(cardId)
+
+  return at === -1 ? null : { index: at + 1, count: cardIds.length }
 }
 
 export function nextCard(opts: {
@@ -40,11 +112,12 @@ export function nextCard(opts: {
   const { columns, cardsByColumn, currentColumnId, currentCardId, direction } = opts
 
   if (direction === 'up' || direction === 'down') {
-    const cards = cardsByColumn[currentColumnId] ?? []
-    const at = cards.findIndex(c => c.id === currentCardId)
-    if (at === -1) return null
-    const target = cards[at + (direction === 'down' ? 1 : -1)]
-    return target ? { cardId: target.id, columnId: currentColumnId } : null
+    const cardId = nextInSequence(
+      (cardsByColumn[currentColumnId] ?? []).map(c => c.id),
+      currentCardId,
+      direction === 'down' ? 'next' : 'prev'
+    )
+    return cardId === null ? null : { cardId, columnId: currentColumnId }
   }
 
   const at = columns.findIndex(c => c.id === currentColumnId)
@@ -59,22 +132,13 @@ export function nextCard(opts: {
   return null
 }
 
-/**
- * Where the open card sits in its column — the "2/7" on the panel's walker.
- *
- * Counted over the same filtered ordering the chevrons walk, so the readout
- * agrees with what stepping actually does. Null when the card isn't in the
- * visible set — a filter can hide the open card — which hides the readout
- * rather than naming a position in a list the user can't see.
- */
+/** Where the open card sits in its column. `sequencePosition` scoped to one. */
 export function columnPosition(
   cardsByColumn: Readonly<Record<string, ReadonlyArray<{ id: number }>>>,
   columnId: string,
   cardId: number
 ): { index: number, count: number } | null {
-  const cards = cardsByColumn[columnId] ?? []
-  const at = cards.findIndex(c => c.id === cardId)
-  return at === -1 ? null : { index: at + 1, count: cards.length }
+  return sequencePosition((cardsByColumn[columnId] ?? []).map(c => c.id), cardId)
 }
 
 /**
