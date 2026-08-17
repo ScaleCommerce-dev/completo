@@ -112,27 +112,10 @@ watch(cardIdRef, () => {
   composerOpen.value = !!draft.value.trim()
 }, { immediate: true })
 
-// Two-step inline confirm with a timeout, matching StatusManager — cards use a
-// simple confirm rather than type-name-to-confirm (see CLAUDE.md).
-const confirmDeleteId = ref<string | null>(null)
-let confirmTimeout: ReturnType<typeof setTimeout> | null = null
-
-function requestDelete(id: string) {
-  if (confirmTimeout) clearTimeout(confirmTimeout)
-  confirmDeleteId.value = id
-  confirmTimeout = setTimeout(() => {
-    confirmDeleteId.value = null
-  }, 5000)
-}
-
-function cancelDelete() {
-  if (confirmTimeout) clearTimeout(confirmTimeout)
-  confirmDeleteId.value = null
-}
-
-onBeforeUnmount(() => {
-  if (confirmTimeout) clearTimeout(confirmTimeout)
-})
+// Inline rather than a dialog, and no typed name — see `ui/InlineConfirm` for both
+// halves of the reason. This list is inside the card panel, where a dialog would
+// portal behind it.
+const { armedId: confirmDeleteId, arm: requestDelete, disarm: cancelDelete } = useArmedDelete()
 
 function isOwn(comment: Comment): boolean {
   return !!comment.authorId && comment.authorId === currentUser.value?.id
@@ -402,23 +385,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
                 ? 'opacity-100'
                 : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100 max-sm:opacity-60'"
             >
-              <template v-if="confirmDeleteId === comment.id">
-                <span class="text-xs font-medium text-error">Delete?</span>
-                <UButton
-                  icon="i-lucide-check"
-                  variant="ghost"
-                  color="error"
-                  size="xs"
-                  @click="confirmRemove(comment.id)"
-                />
-                <UButton
-                  icon="i-lucide-x"
-                  variant="ghost"
-                  color="neutral"
-                  size="xs"
-                  @click="cancelDelete"
-                />
-              </template>
+              <UiInlineConfirm
+                v-if="confirmDeleteId === comment.id"
+                label="this comment"
+                @confirm="confirmRemove(comment.id)"
+                @cancel="cancelDelete"
+              />
               <template v-else>
                 <UTooltip
                   v-if="isOwn(comment)"

@@ -30,8 +30,15 @@ watch(showAddColPopover, (open) => {
 })
 const editingColId = ref<string | null>(null)
 const editingColName = ref('')
-const confirmDeleteColId = ref<string | null>(null)
-let confirmDeleteTimeout: ReturnType<typeof setTimeout> | null = null
+/**
+ * One click, and that is very likely too weak for what this does: `cards.statusId`
+ * cascades (schema.ts), so deleting a status deletes every card in it, and
+ * `ui/ConfirmDialog` names statuses in its type-the-name tier for exactly that
+ * reason. This surface is on a page, so it *can* raise a dialog — unlike the
+ * comment and attachment rows. Left as it was rather than changed under cover of
+ * an extraction; it is a decision to take on its own.
+ */
+const { armedId: confirmDeleteColId, arm: requestDeleteStatus, disarm: cancelDeleteStatus } = useArmedDelete()
 const colColorPopoverOpen = ref<Record<string, boolean>>({})
 
 async function updateStatusColor(colId: string, color: string) {
@@ -75,24 +82,10 @@ function cancelEditStatus() {
   editingColName.value = ''
 }
 
-function requestDeleteStatus(colId: string) {
-  if (confirmDeleteTimeout) clearTimeout(confirmDeleteTimeout)
-  confirmDeleteColId.value = colId
-  confirmDeleteTimeout = setTimeout(() => {
-    confirmDeleteColId.value = null
-  }, 5000)
-}
-
 async function deleteProjectStatus(colId: string) {
-  if (confirmDeleteTimeout) clearTimeout(confirmDeleteTimeout)
-  confirmDeleteColId.value = null
+  cancelDeleteStatus()
   await $fetch(`/api/statuses/${colId}`, { method: 'DELETE' })
   emit('refresh')
-}
-
-function cancelDeleteStatus() {
-  if (confirmDeleteTimeout) clearTimeout(confirmDeleteTimeout)
-  confirmDeleteColId.value = null
 }
 
 async function setDoneStatus(statusId: string | null) {
@@ -222,25 +215,13 @@ async function setDoneStatus(statusId: string | null) {
                 />
                 Set as Done
               </button>
-              <template v-if="confirmDeleteColId === col.id">
-                <div class="flex items-center gap-1 px-2 py-1.5">
-                  <span class="text-xs font-medium text-error">Delete?</span>
-                  <UButton
-                    icon="i-lucide-check"
-                    variant="ghost"
-                    color="error"
-                    size="xs"
-                    @click="deleteProjectStatus(col.id); colColorPopoverOpen[col.id] = false"
-                  />
-                  <UButton
-                    icon="i-lucide-x"
-                    variant="ghost"
-                    color="neutral"
-                    size="xs"
-                    @click="cancelDeleteStatus"
-                  />
-                </div>
-              </template>
+              <UiInlineConfirm
+                v-if="confirmDeleteColId === col.id"
+                label="this status"
+                class="px-2 py-1.5"
+                @confirm="deleteProjectStatus(col.id); colColorPopoverOpen[col.id] = false"
+                @cancel="cancelDeleteStatus"
+              />
               <button
                 v-else-if="col.id !== doneStatusId"
                 type="button"

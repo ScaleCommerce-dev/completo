@@ -68,35 +68,17 @@ function isImage(mimeType: string): boolean {
  * with no confirmation at all — one mis-click on the hover-only trash icon and a
  * screenshot nobody else had a copy of was gone.
  *
- * The two-step inline confirm rather than `UiConfirmDialog`, matching the comment
- * rows directly below it: these are dense repeated rows in a list, and the pattern
- * has to be the one its neighbour uses or a card grows two answers to the same
- * question. Neither takes a `confirmText` — see CLAUDE.md on which things do.
+ * Inline rather than `UiConfirmDialog`, for both of the reasons `ui/InlineConfirm`
+ * records: this list is inside the card panel, where a dialog portals behind it,
+ * and it is dense repeated rows whose confirmation has to match the comment rows
+ * directly below. No `confirmText` — an attachment is re-uploaded, not recovered.
  */
-const confirmRemoveId = ref<string | null>(null)
-let confirmTimeout: ReturnType<typeof setTimeout> | null = null
-
-function requestRemove(id: string) {
-  if (confirmTimeout) clearTimeout(confirmTimeout)
-  confirmRemoveId.value = id
-  confirmTimeout = setTimeout(() => {
-    confirmRemoveId.value = null
-  }, 5000)
-}
-
-function cancelRemove() {
-  if (confirmTimeout) clearTimeout(confirmTimeout)
-  confirmRemoveId.value = null
-}
+const { armedId: confirmRemoveId, arm: requestRemove, disarm: cancelRemove } = useArmedDelete()
 
 async function confirmRemove(id: string) {
   cancelRemove()
   await remove(id)
 }
-
-onBeforeUnmount(() => {
-  if (confirmTimeout) clearTimeout(confirmTimeout)
-})
 
 /**
  * What the drop row says. Four states in one control, so the thing you aim at and
@@ -188,25 +170,12 @@ defineExpose({ upload, uploadFiles, uploading })
             ? 'opacity-100'
             : 'opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 max-sm:opacity-60'"
         >
-          <template v-if="confirmRemoveId === attachment.id">
-            <span class="text-xs font-medium text-error">Delete?</span>
-            <UButton
-              icon="i-lucide-check"
-              variant="ghost"
-              color="error"
-              size="xs"
-              aria-label="Confirm removing this file"
-              @click="confirmRemove(attachment.id)"
-            />
-            <UButton
-              icon="i-lucide-x"
-              variant="ghost"
-              color="neutral"
-              size="xs"
-              aria-label="Keep this file"
-              @click="cancelRemove"
-            />
-          </template>
+          <UiInlineConfirm
+            v-if="confirmRemoveId === attachment.id"
+            label="this file"
+            @confirm="confirmRemove(attachment.id)"
+            @cancel="cancelRemove"
+          />
           <template v-else>
             <UTooltip text="Download">
               <!-- `external`, or NuxtLink treats `/api/attachments/…` as an app

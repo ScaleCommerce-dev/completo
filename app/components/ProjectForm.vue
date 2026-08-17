@@ -444,15 +444,19 @@ function confirmDelete() {
       class="mx-5 mt-3"
     />
 
-    <!-- Delete confirmation (edit mode only) -->
-    <DeleteConfirmation
-      v-if="mode === 'edit'"
-      v-model:show="showDeleteConfirm"
-      :name="formName"
+    <!-- Inline, not a dialog: in edit mode this form *is* the dialog's body, and a
+         second one would portal behind it. `confirm-text` is what makes it the
+         type-the-name level — a project takes every board, status and card with
+         it. `v-if` rather than a model, so the typed name resets by remounting. -->
+    <UiInlineConfirm
+      v-if="mode === 'edit' && showDeleteConfirm"
+      label="this project"
+      :confirm-text="formName"
       message="This will permanently delete the project, all boards, statuses, and cards."
       :loading="deleting"
       class="mx-5 mt-3"
       @confirm="confirmDelete"
+      @cancel="showDeleteConfirm = false"
     />
 
     <!-- Actions -->

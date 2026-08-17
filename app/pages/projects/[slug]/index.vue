@@ -109,8 +109,7 @@ watch(showAddTagPopover, (open) => {
 })
 const editingTagId = ref<string | null>(null)
 const editingTagName = ref('')
-const confirmDeleteTagId = ref<string | null>(null)
-let confirmDeleteTagTimeout: ReturnType<typeof setTimeout> | null = null
+const { armedId: confirmDeleteTagId, arm: requestDeleteTag, disarm: cancelDeleteTag } = useArmedDelete()
 const tagColorPopoverOpen = ref<Record<string, boolean>>({})
 
 /**
@@ -186,26 +185,12 @@ function cancelEditTag() {
   editingTagName.value = ''
 }
 
-function requestDeleteTag(tagId: string) {
-  if (confirmDeleteTagTimeout) clearTimeout(confirmDeleteTagTimeout)
-  confirmDeleteTagId.value = tagId
-  confirmDeleteTagTimeout = setTimeout(() => {
-    confirmDeleteTagId.value = null
-  }, 5000)
-}
-
 async function confirmDeleteTag(tagId: string) {
-  if (confirmDeleteTagTimeout) clearTimeout(confirmDeleteTagTimeout)
-  confirmDeleteTagId.value = null
+  cancelDeleteTag()
   await tagMutation(
     () => $fetch(`/api/tags/${tagId}`, { method: 'DELETE' }),
     'Failed to delete tag'
   )
-}
-
-function cancelDeleteTag() {
-  if (confirmDeleteTagTimeout) clearTimeout(confirmDeleteTagTimeout)
-  confirmDeleteTagId.value = null
 }
 </script>
 
@@ -435,25 +420,13 @@ function cancelDeleteTag() {
                         />
                         Rename
                       </button>
-                      <template v-if="confirmDeleteTagId === tag.id">
-                        <div class="flex items-center gap-1 px-2 py-1.5">
-                          <span class="text-xs font-medium text-error">Delete?</span>
-                          <UButton
-                            icon="i-lucide-check"
-                            variant="ghost"
-                            color="error"
-                            size="xs"
-                            @click="confirmDeleteTag(tag.id); tagColorPopoverOpen[tag.id] = false"
-                          />
-                          <UButton
-                            icon="i-lucide-x"
-                            variant="ghost"
-                            color="neutral"
-                            size="xs"
-                            @click="cancelDeleteTag"
-                          />
-                        </div>
-                      </template>
+                      <UiInlineConfirm
+                        v-if="confirmDeleteTagId === tag.id"
+                        label="this tag"
+                        class="px-2 py-1.5"
+                        @confirm="confirmDeleteTag(tag.id); tagColorPopoverOpen[tag.id] = false"
+                        @cancel="cancelDeleteTag"
+                      />
                       <button
                         v-else
                         type="button"

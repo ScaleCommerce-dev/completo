@@ -17,8 +17,16 @@ export function useApiTokens() {
   const createdToken = ref<string | null>(null)
   const createdTokenName = ref('')
   const tokenCopied = ref(false)
-  const deletingTokenId = ref<string | null>(null)
-  const deleteTokenTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+  /**
+   * The armed row, from the shared two-step (`useArmedDelete`).
+   *
+   * This used to hand-roll it, and got the timer backwards: `setTimeout(() =>
+   * confirmDeleteToken(id), 5000)` *revoked the token* five seconds after you
+   * armed the row, so arming a delete and then leaving the tab alone destroyed a
+   * live API credential without a second click. Every other two-step in the app
+   * used its timer to disarm. Present since the first commit and in every release.
+   */
+  const { armedId: deletingTokenId, arm: startDeleteToken, disarm: cancelDeleteToken } = useArmedDelete()
 
   async function fetchTokens() {
     try {
@@ -65,29 +73,13 @@ export function useApiTokens() {
     }, 3000)
   }
 
-  function startDeleteToken(id: string) {
-    deletingTokenId.value = id
-    deleteTokenTimer.value = setTimeout(() => {
-      confirmDeleteToken(id)
-    }, 5000)
-  }
-
-  function cancelDeleteToken() {
-    if (deleteTokenTimer.value) clearTimeout(deleteTokenTimer.value)
-    deletingTokenId.value = null
-    deleteTokenTimer.value = null
-  }
-
   async function confirmDeleteToken(id: string) {
-    if (deleteTokenTimer.value) clearTimeout(deleteTokenTimer.value)
+    cancelDeleteToken()
     try {
       await $fetch(`/api/user/tokens/${id}`, { method: 'DELETE' })
       await fetchTokens()
     } catch {
       toast.add({ title: 'Failed to delete token', color: 'error' })
-    } finally {
-      deletingTokenId.value = null
-      deleteTokenTimer.value = null
     }
   }
 

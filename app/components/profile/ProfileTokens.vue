@@ -169,25 +169,14 @@ const {
               @click="startDeleteToken(token.id)"
             />
           </UTooltip>
-          <div
+          <!-- The one row list that spelled this with labelled buttons rather than
+               the compact "Delete?" the other four used. -->
+          <UiInlineConfirm
             v-else
-            class="flex items-center gap-1.5"
-          >
-            <UButton
-              label="Delete"
-              variant="ghost"
-              color="error"
-              size="xs"
-              @click="confirmDeleteToken(token.id)"
-            />
-            <UButton
-              label="Cancel"
-              variant="ghost"
-              color="neutral"
-              size="xs"
-              @click="cancelDeleteToken"
-            />
-          </div>
+            label="this token"
+            @confirm="confirmDeleteToken(token.id)"
+            @cancel="cancelDeleteToken"
+          />
         </div>
       </div>
     </div>
