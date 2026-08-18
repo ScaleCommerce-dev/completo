@@ -76,6 +76,24 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2025-01-15',
 
+  vite: {
+    server: {
+      // The dev server sits behind zdev's router, which forwards the original
+      // Host — so Vite's host check sees `completo.0ploy.dev` rather than the
+      // container. Left to its default the check passed, and then one morning it
+      // did not: every request came back "Blocked request. This host is not
+      // allowed" until the dev server was restarted. What put it in that state is
+      // still unknown — a full `pnpm test` and `pnpm lint` both failed to
+      // reproduce it — so this states the answer rather than relying on the
+      // default arriving at it.
+      //
+      // Dev only. `nuxt build` runs Vite in build mode, where `server` is inert,
+      // and the runtime image copies `.output` without Vite or this file:
+      // verified by building with this set and grepping the output for it.
+      allowedHosts: ['.0ploy.dev']
+    }
+  },
+
   eslint: {
     config: {
       stylistic: {
