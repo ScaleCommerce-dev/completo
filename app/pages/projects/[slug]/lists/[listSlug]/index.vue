@@ -57,6 +57,7 @@ const projectViews = computed(() => {
 
 const {
   activeTagFilters,
+  filterState,
   isFiltered,
   filteredCards,
   visibleCardCount,
@@ -248,6 +249,8 @@ async function handleDeleteList() {
 
     <CardModal
       v-model:open="showCreateCard"
+      :view-filters="filterState"
+      view-kind="list"
       :statuses="statusesData"
       :members="membersData"
       :tags="tagsData"

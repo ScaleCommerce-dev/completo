@@ -69,6 +69,7 @@ const allCards = computed(() => {
 const {
   activeTagFilters,
   applyFilters,
+  filterState,
   visibleCardCount,
   activeFilterCount,
   filterSummary,
@@ -344,6 +345,8 @@ async function handleDeleteBoard() {
 
     <CardModal
       v-model:open="showCreateCard"
+      :view-filters="filterState"
+      view-kind="board"
       :statuses="columnsData"
       :members="membersData"
       :tags="tagsData"

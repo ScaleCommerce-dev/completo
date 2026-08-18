@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { BaseCard, CardStatus, Member, Tag } from '~/types/card'
+import type { CardFilterState } from '~/utils/card-filters'
 
 const props = defineProps<{
   card?: Pick<BaseCard, 'id' | 'title' | 'description' | 'priority' | 'statusId' | 'assigneeId' | 'dueDate' | 'creator'> & { tags?: Tag[] }
@@ -41,6 +42,14 @@ const props = defineProps<{
     position?: { index: number, count: number } | null
   }
   onEnsureCard?: (data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) => Promise<number>
+  /**
+   * The host view's filters, so a card being created here can say up front that
+   * it will not appear here. Absent on My Tasks and on the card's own page,
+   * neither of which is a filtered view. See `unmetFilters`.
+   */
+  viewFilters?: CardFilterState
+  /** Names the host in that warning — "this board", "this list". */
+  viewKind?: 'board' | 'list'
 }>()
 
 const openModel = defineModel<boolean>('open', { default: false })
@@ -229,6 +238,43 @@ function restoreFocusAfterConfirm() {
 }
 
 const selectedTagNames = computed(() => (props.tags || []).filter(t => selectedTagIds.value.includes(t.id)).map(t => t.name))
+
+/**
+ * What this card still needs before the view it is being created on will show it.
+ *
+ * A view filters client-side, so a card that does not match its filters is
+ * created correctly and then simply is not drawn — the card was in My Tasks and
+ * in search, and absent from the board that made it, with nothing said and the
+ * header's card count unmoved because that count is the filtered one (CF-434).
+ *
+ * Tested against the live form rather than the saved card, so the list shrinks
+ * as each filter is met and is gone before Create is pressed. That is the whole
+ * mechanism: there is nothing to dismiss and nothing to act on, because every
+ * field a filter can test is in the properties row directly above this.
+ *
+ * Deliberately no "fix it" action. Filters are *all types, any value*, so a
+ * board filtering tags and priority would need one control per value with at
+ * least one from each group — a truth table rendered as buttons, next to a
+ * properties row that already edits all of it. And nothing here may touch the
+ * filters themselves: they are the view's, shared with everyone on it, and a
+ * member without rights to the view cannot change them at all.
+ *
+ * Create only. An existing card that fails the filters is one you reached
+ * through the view that is hiding it, so it plainly exists; the warning would be
+ * telling you about a card you are already looking at.
+ */
+const unmetFilters = computed(() => {
+  if (isEdit.value || !props.viewFilters) return []
+  return describeUnmatchedFilters(
+    unmatchedFilters({
+      statusId: selectedStatusId.value,
+      priority: priority.value,
+      assigneeId: selectedAssigneeId.value === UNASSIGNED ? null : selectedAssigneeId.value,
+      tags: selectedTagIds.value.map(id => ({ id }))
+    }, props.viewFilters),
+    { statuses: props.statuses, members: props.members || [], tags: props.tags || [] }
+  )
+})
 
 const attachmentCardId = computed(() => draftCardId.value ?? props.card?.id ?? null)
 
@@ -853,6 +899,42 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           layout="compact"
         />
       </div>
+
+      <!--
+        Sits with the properties rather than in the body, for both of the
+        reasons the body would be wrong: it is about the row directly above it,
+        and the header is pinned, so it cannot scroll away behind a long
+        description while the fields it names stay on screen.
+
+        `warning`, not `error`: nothing is broken and Create is not blocked. The
+        card will be made, and made correctly — it just will not be drawn here.
+      -->
+      <UAlert
+        v-if="unmetFilters.length"
+        color="warning"
+        variant="subtle"
+        icon="i-lucide-filter"
+        class="mt-2"
+        :title="`Won't appear on this ${viewKind || 'view'}`"
+        :ui="{ description: 'mt-1' }"
+      >
+        <template #description>
+          <template v-if="unmetFilters.length === 1">
+            This {{ viewKind || 'view' }}'s filters need {{ unmetFilters[0] }}.
+          </template>
+          <template v-else>
+            This {{ viewKind || 'view' }}'s filters need:
+            <ul class="mt-1 list-disc ps-4 space-y-0.5">
+              <li
+                v-for="line in unmetFilters"
+                :key="line"
+              >
+                {{ line }}
+              </li>
+            </ul>
+          </template>
+        </template>
+      </UAlert>
     </template>
 
     <template #body>

@@ -127,6 +127,11 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
    */
   return {
     activeTagFilters,
+    /**
+     * Handed to the card panel, which tests the *form* against it so a card
+     * being created on a filtered view can say it will not show up there.
+     */
+    filterState,
     isFiltered,
     applyFilters,
     filteredCards,

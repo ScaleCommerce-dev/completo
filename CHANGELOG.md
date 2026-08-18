@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **A card you create on a filtered board or list now says so before you save it.** Creating a card that doesn't match the view's filters used to save it and then simply not draw it — it was in My Tasks and in search, missing from the board that made it, with nothing said and the header's card count unmoved. The panel now names what the card is short of, in the properties row it is about — *"This board's filters need a tag of Website"* — and each line clears itself as you set it. Creating the card anyway still works and always will: a card belongs to the project, not to the view you happened to be standing on.
+
 ## v0.9.1 (2026-08-18)
 
 ### App
