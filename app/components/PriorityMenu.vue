@@ -11,8 +11,8 @@ const open = defineModel<boolean | undefined>('open')
 
 const emit = defineEmits<{ select: [priority: string] }>()
 
-/** See StatusMenu — one definition per field, exposed through the slot. */
-const ariaLabel = computed(() => `Priority: ${priorityLabel(props.priority || 'medium')}. Change priority`)
+/** See `app/utils/field-labels.ts` — one definition per field, exposed through the slot. */
+const ariaLabel = computed(() => priorityFieldLabel(props.priority))
 
 // Reversed: urgent first, because a menu you open to escalate should not make
 // you travel past Low to reach Urgent.

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **Boards with a lot of cards appear about six times faster.** A board of ninety cards spent roughly three quarters of a second drawing itself *after* its data had arrived, and held the page still while it did. Every card was building the pickers behind its four field controls up front, for menus nobody had opened yet; they are now built the moment you reach for a card, which is the first moment any of them can be used. Nothing on a card looks or behaves differently.
+
 ## v0.9.0 (2026-08-17)
 
 ### Upgrading

@@ -241,7 +241,7 @@ function row(label: string, icon: string, align?: 'start') {
         <button
           type="button"
           :class="[TRIGGER, dueDate ? dueDateTextClass(getDueDateStatus(dueDate)) : 'text-dimmed']"
-          :aria-label="dueDate ? `Due ${formatDueDate(dueDate)}. Change due date` : 'Set a due date'"
+          :aria-label="dueDateFieldLabel(dueDate)"
         >
           <UIcon
             :name="dueDate ? dueDateIcon(getDueDateStatus(dueDate)) : 'i-lucide-calendar'"

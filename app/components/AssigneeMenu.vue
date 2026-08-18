@@ -12,11 +12,8 @@ const open = defineModel<boolean | undefined>('open')
 
 const emit = defineEmits<{ select: [assigneeId: string | null] }>()
 
-/** See StatusMenu — one definition per field, exposed through the slot. */
-const selected = computed(() => (props.members || []).find(m => m.id === props.assigneeId))
-const ariaLabel = computed(() => selected.value
-  ? `Assigned to ${selected.value.name}. Change assignee`
-  : 'Assign someone')
+/** See `app/utils/field-labels.ts` — one definition per field, exposed through the slot. */
+const ariaLabel = computed(() => assigneeFieldLabel(props.members, props.assigneeId))
 
 const options = computed<FieldMenuOption[]>(() => [
   {

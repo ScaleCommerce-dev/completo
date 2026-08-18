@@ -1,6 +1,15 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
 import type { BoardCard } from '~/types/card'
 import type { CardField } from '#shared/utils/card-fields'
+/**
+ * Named imports, not the usual auto-import: Nuxt resolves `<TagMenu>` to an
+ * import at compile time by reading the *template*, so a `<component :is>` given
+ * the string `'TagMenu'` resolves against nothing and renders a literal
+ * `<tagmenu>` element — silently, with the card looking almost right. `wrap()`
+ * hands `:is` the component itself instead. See `armed`.
+ */
+import { AssigneeMenu, DueDatePicker, PriorityMenu, TagMenu, UTooltip, UiPassthrough } from '#components'
 
 /**
  * A card on the board.
@@ -214,6 +223,48 @@ type Control = 'tags' | 'priority' | 'due' | 'assignee'
  */
 const openControl = ref<Control | null>(null)
 
+/**
+ * Whether this card's four field controls have their real menus behind them yet.
+ *
+ * They are the most expensive thing on the board by a wide margin. Each is a
+ * Reka overlay root — three `UDropdownMenu` through `FieldMenu`, plus the due
+ * date's `UPopover` — and each costs about 2ms to instantiate while rendering no
+ * DOM at all until it opens. Measured on a 93-column-spanning board of 93 cards:
+ * 757ms of unbroken blocked main thread after the request landed, of which the
+ * four controls were 83%. Stripping them took the same board to ~120ms. The
+ * tooltips around them were a further 10% and are gated on the same flag; the
+ * rest of the card — title, tags, ticket ID, content marks — is the remaining
+ * ~15%, and is not worth chasing.
+ *
+ * Nothing is lost by waiting, because the controls are hover-only ink already
+ * (`REVEAL`): a menu you cannot see is a menu you cannot open. So the trigger
+ * markup renders against `UiPassthrough` until the pointer or focus reaches the
+ * card, and against the real menu after.
+ *
+ * `pointerenter` fires on touch too, immediately before `pointerdown`, and Vue
+ * flushes between the two — so a tap normally finds the real trigger already
+ * mounted. `armFor` is the guarantee rather than the normal path: a click that
+ * still lands on a stand-in arms the card *and* names the control, which the
+ * menu reads as `:open` on the way in. Hence the `armed` guard in it — once the
+ * real trigger is there, opening is Reka's job and doing it here too would
+ * toggle the menu straight back shut.
+ *
+ * Deliberately not reset. A card that has been reached for once stays armed:
+ * re-entering it is the common case, and tearing four overlay roots down on
+ * every `pointerleave` would pay the cost twice to save memory nobody is short
+ * of.
+ */
+const armed = ref(false)
+
+function armFor(control: Control) {
+  if (armed.value) return
+  armed.value = true
+  openControl.value = control
+}
+
+/** The real overlay once armed, the stand-in before. See `armed`. */
+const wrap = (component: Component) => armed.value ? component : UiPassthrough
+
 // The due date is a popover rather than a FieldMenu, so it needs the same
 // focus-return rule wired by hand. See `useMenuFocusReturn`.
 const dueOpen = computed(() => openControl.value === 'due')
@@ -283,6 +334,8 @@ function toggleTag(tagId: string) {
   <div
     class="kanban-card lift group relative cursor-pointer overflow-hidden rounded-lg bg-default border border-default shadow-raise hover:border-accented"
     @click="$emit('click')"
+    @pointerenter="armed = true"
+    @focusin="armed = true"
   >
     <!-- Priority edge bar. High and urgent only. -->
     <span
@@ -308,7 +361,14 @@ function toggleTag(tagId: string) {
       read as floating rather than as being in the corner. At `1` it lands on the
       padding line, and the hit box stays 24px.
     -->
-    <UTooltip text="Open full page">
+    <!-- Tooltip gated on `armed` with the field controls, and for the same
+         reason: the link is hover-only ink, so nothing can want its tooltip
+         before the pointer has reached the card. The link itself is not gated —
+         ⌘-click and "copy link address" have to work without a hover. -->
+    <component
+      :is="wrap(UTooltip)"
+      text="Open full page"
+    >
       <NuxtLink
         v-if="detailUrl"
         :to="detailUrl"
@@ -322,7 +382,7 @@ function toggleTag(tagId: string) {
           class="text-xs"
         />
       </NuxtLink>
-    </UTooltip>
+    </component>
 
     <div class="p-2.5 pl-3">
       <!-- The object. Nothing above it. -->
@@ -359,9 +419,17 @@ function toggleTag(tagId: string) {
           class="absolute top-0 h-4 flex items-center pl-1 bg-default"
           :style="{ left: `${badgeLeft}px` }"
         >
-          <UTooltip :text="allTagNames">
+          <!-- Deferred with the rest — see `armed`. This one is per *overflowing*
+               card rather than per card, so it costs nothing on a board with few
+               tags and as much as a field control on a board with many. The
+               badge itself is never gated: it is a readout, and a `+3` that
+               appeared on hover would read as three tags arriving. -->
+          <component
+            :is="wrap(UTooltip)"
+            :text="allTagNames"
+          >
             <span class="text-2xs font-medium text-dimmed">+{{ hiddenTagCount }}</span>
-          </UTooltip>
+          </component>
         </div>
       </div>
 
@@ -405,36 +473,36 @@ function toggleTag(tagId: string) {
           @pointerdown.capture="anchorToStrip"
           @keydown.capture="anchorToStrip"
         >
-          <TagMenu
+          <component
+            :is="wrap(TagMenu)"
             :tags="kanbanContext.tags.value || []"
             :selected-ids="selectedTagIds"
             :open="openControl === 'tags'"
             :content="menuPlacement"
-            @update:open="v => setOpen('tags', !!v)"
+            @update:open="(v: boolean) => setOpen('tags', !!v)"
             @toggle="toggleTag"
           >
-            <template #default="{ label }">
-              <UTooltip
-                text="Tags"
-                :disabled="tipOff('tags')"
+            <component
+              :is="wrap(UTooltip)"
+              text="Tags"
+              :disabled="tipOff('tags')"
+            >
+              <button
+                v-if="kanbanContext.tags.value?.length"
+                type="button"
+                :class="[SLOT, reveal, 'rounded-md text-dimmed']"
+                :aria-label="tagsFieldLabel(kanbanContext.tags.value || [], selectedTagIds)"
+                @blur="releaseTip('tags')"
+                @pointerleave="releaseTip('tags')"
+                @click.stop="armFor('tags')"
               >
-                <button
-                  v-if="kanbanContext.tags.value?.length"
-                  type="button"
-                  :class="[SLOT, reveal, 'rounded-md text-dimmed']"
-                  :aria-label="label"
-                  @blur="releaseTip('tags')"
-                  @pointerleave="releaseTip('tags')"
-                  @click.stop
-                >
-                  <UIcon
-                    name="i-lucide-tag"
-                    class="text-xs"
-                  />
-                </button>
-              </UTooltip>
-            </template>
-          </TagMenu>
+                <UIcon
+                  name="i-lucide-tag"
+                  class="text-xs"
+                />
+              </button>
+            </component>
+          </component>
 
           <!--
             The edge bar is the readout; this is only the control.
@@ -453,43 +521,45 @@ function toggleTag(tagId: string) {
             slot already does for the one other field whose control can't spell
             out its own value.
           -->
-          <PriorityMenu
+          <component
+            :is="wrap(PriorityMenu)"
             :priority="card.priority"
             :open="openControl === 'priority'"
             :content="menuPlacement"
-            @update:open="v => setOpen('priority', !!v)"
-            @select="p => emit('update', card.id, { priority: p })"
+            @update:open="(v: boolean) => setOpen('priority', !!v)"
+            @select="(p: string) => emit('update', card.id, { priority: p })"
           >
-            <template #default="{ label }">
-              <UTooltip
-                :text="`Priority: ${priorityLabel(card.priority)}`"
-                :disabled="tipOff('priority')"
+            <component
+              :is="wrap(UTooltip)"
+              :text="`Priority: ${priorityLabel(card.priority)}`"
+              :disabled="tipOff('priority')"
+            >
+              <button
+                type="button"
+                :class="[SLOT, reveal, 'rounded-md text-dimmed']"
+                :aria-label="priorityFieldLabel(card.priority)"
+                @blur="releaseTip('priority')"
+                @pointerleave="releaseTip('priority')"
+                @click.stop="armFor('priority')"
               >
-                <button
-                  type="button"
-                  :class="[SLOT, reveal, 'rounded-md text-dimmed']"
-                  :aria-label="label"
-                  @blur="releaseTip('priority')"
-                  @pointerleave="releaseTip('priority')"
-                  @click.stop
-                >
-                  <UIcon
-                    name="i-lucide-signal"
-                    class="text-xs"
-                  />
-                </button>
-              </UTooltip>
-            </template>
-          </PriorityMenu>
+                <UIcon
+                  name="i-lucide-signal"
+                  class="text-xs"
+                />
+              </button>
+            </component>
+          </component>
 
-          <DueDatePicker
+          <component
+            :is="wrap(DueDatePicker)"
             :open="openControl === 'due'"
             :popover-options="{ ...menuPlacement, onCloseAutoFocus }"
             :model-value="card.dueDate"
-            @update:open="v => setOpen('due', v)"
-            @update:model-value="val => emit('update', card.id, { dueDate: val })"
+            @update:open="(v: boolean) => setOpen('due', v)"
+            @update:model-value="(val: string | null) => emit('update', card.id, { dueDate: val })"
           >
-            <UTooltip
+            <component
+              :is="wrap(UTooltip)"
               :text="card.dueDate ? `Due ${formatDueDate(card.dueDate)}` : 'Due date'"
               :disabled="tipOff('due')"
             >
@@ -499,10 +569,10 @@ function toggleTag(tagId: string) {
                 :class="paintDue
                   ? [SLOT_TEXT, dueDateTextClass(dueStatus)]
                   : [SLOT, reveal, 'text-dimmed']"
-                :aria-label="card.dueDate ? `Due ${formatDueDate(card.dueDate)}. Change due date` : 'Set a due date'"
+                :aria-label="dueDateFieldLabel(card.dueDate)"
                 @blur="releaseTip('due')"
                 @pointerleave="releaseTip('due')"
-                @click.stop
+                @click.stop="armFor('due')"
               >
                 <UIcon
                   :name="paintDue ? dueDateIcon(dueStatus) : 'i-lucide-calendar-plus'"
@@ -513,54 +583,54 @@ function toggleTag(tagId: string) {
                   class="select-none"
                 >{{ formatDueDate(card.dueDate!) }}</span>
               </button>
-            </UTooltip>
-          </DueDatePicker>
+            </component>
+          </component>
 
           <!-- Assignee: a real avatar, and absent when unassigned — the assign
                control takes its place on hover rather than an "N/A" pill. -->
-          <AssigneeMenu
+          <component
+            :is="wrap(AssigneeMenu)"
             :members="kanbanContext.members.value"
             :assignee-id="card.assignee?.id"
             :open="openControl === 'assignee'"
             :content="menuPlacement"
-            @update:open="v => setOpen('assignee', !!v)"
-            @select="id => emit('update', card.id, { assigneeId: id })"
+            @update:open="(v: boolean) => setOpen('assignee', !!v)"
+            @select="(id: string | null) => emit('update', card.id, { assigneeId: id })"
           >
-            <template #default="{ label }">
-              <!-- The one tooltip that isn't just the slot's name. An avatar is the
+            <!-- The one tooltip that isn't just the field's name. An avatar is the
                  only value here rendered as a picture rather than as text or
                  colour, so naming the person is the only one that adds anything
                  the card isn't already showing. -->
-              <UTooltip
-                :text="card.assignee ? `Assigned to ${card.assignee.name}` : 'Assignee'"
-                :disabled="tipOff('assignee')"
+            <component
+              :is="wrap(UTooltip)"
+              :text="card.assignee ? `Assigned to ${card.assignee.name}` : 'Assignee'"
+              :disabled="tipOff('assignee')"
+            >
+              <button
+                type="button"
+                :class="[
+                  SLOT,
+                  paintAssignee ? 'rounded-full' : ['rounded-md text-dimmed', reveal]
+                ]"
+                :aria-label="assigneeFieldLabel(kanbanContext.members.value, card.assignee?.id)"
+                @blur="releaseTip('assignee')"
+                @pointerleave="releaseTip('assignee')"
+                @click.stop="armFor('assignee')"
               >
-                <button
-                  type="button"
-                  :class="[
-                    SLOT,
-                    paintAssignee ? 'rounded-full' : ['rounded-md text-dimmed', reveal]
-                  ]"
-                  :aria-label="label"
-                  @blur="releaseTip('assignee')"
-                  @pointerleave="releaseTip('assignee')"
-                  @click.stop
-                >
-                  <UiAvatar
-                    v-if="paintAssignee"
-                    :src="card.assignee!.avatarUrl || undefined"
-                    :alt="card.assignee!.name"
-                    size="2xs"
-                  />
-                  <UIcon
-                    v-else
-                    :name="card.assignee ? 'i-lucide-user' : 'i-lucide-user-plus'"
-                    class="text-xs"
-                  />
-                </button>
-              </UTooltip>
-            </template>
-          </AssigneeMenu>
+                <UiAvatar
+                  v-if="paintAssignee"
+                  :src="card.assignee!.avatarUrl || undefined"
+                  :alt="card.assignee!.name"
+                  size="2xs"
+                />
+                <UIcon
+                  v-else
+                  :name="card.assignee ? 'i-lucide-user' : 'i-lucide-user-plus'"
+                  class="text-xs"
+                />
+              </button>
+            </component>
+          </component>
         </div>
       </div>
     </div>

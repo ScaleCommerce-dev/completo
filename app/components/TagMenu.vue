@@ -21,12 +21,8 @@ const open = defineModel<boolean | undefined>('open')
 
 const emit = defineEmits<{ toggle: [tagId: string] }>()
 
-/** See StatusMenu — one definition per field, exposed through the slot. */
-const selectedNames = computed(() =>
-  props.tags.filter(t => props.selectedIds.includes(t.id)).map(t => t.name))
-const ariaLabel = computed(() => selectedNames.value.length
-  ? `Tags: ${selectedNames.value.join(', ')}. Change tags`
-  : 'Add tags')
+/** See `app/utils/field-labels.ts` — one definition per field, exposed through the slot. */
+const ariaLabel = computed(() => tagsFieldLabel(props.tags, props.selectedIds))
 
 const options = computed<FieldMenuOption[]>(() => props.tags.map(t => ({
   key: t.id,

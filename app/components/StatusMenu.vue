@@ -16,14 +16,12 @@ const emit = defineEmits<{ select: [statusId: string] }>()
 /**
  * The trigger's accessible name, handed to the call site through the slot.
  *
- * It lives here because it was written three times otherwise — and had already
- * drifted: an unset status read "none" in the card panel and "Set a status" in
- * the list. One definition per field, next to the menu that owns the field.
+ * Defined in `app/utils/field-labels.ts`, with the other four, rather than here:
+ * a name written at each call site had already drifted (an unset status read
+ * "none" in the card panel and "Set a status" in the list), and the board card
+ * now needs the name without mounting the menu that owns the field.
  */
-const selected = computed(() => props.statuses.find(s => s.id === props.statusId))
-const ariaLabel = computed(() => selected.value
-  ? `Status: ${selected.value.name}. Change status`
-  : 'Set a status')
+const ariaLabel = computed(() => statusFieldLabel(props.statuses, props.statusId))
 
 const options = computed<FieldMenuOption[]>(() => props.statuses.map(s => ({
   label: s.name,

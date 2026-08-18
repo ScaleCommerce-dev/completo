@@ -20,7 +20,7 @@ const status = computed(() => getDueDateStatus(props.dueDate))
     @update:model-value="emit('select', $event)"
   >
     <ListCellTrigger
-      :label="dueDate ? `Due ${formatDueDate(dueDate)}. Change due date` : 'Set a due date'"
+      :label="dueDateFieldLabel(dueDate)"
       class="gap-1 text-sm font-mono tabular-nums"
       :class="dueDate ? dueDateTextClass(status) : ''"
     >
