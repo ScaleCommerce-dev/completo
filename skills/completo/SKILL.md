@@ -4,11 +4,12 @@ description: |
   Manage Completo kanban board cards and projects from the command line. Use this skill whenever the
   user asks to fetch a ticket, get the next task, pick up work, work on a card, move a card between
   statuses, create a new card or ticket, create a new project, update a card's description or
-  checklist, list or filter cards, assign work, or interact with their Completo board programmatically.
+  checklist, list or filter cards, assign work, tag a card, comment on a card, or interact with
+  their Completo board programmatically.
   Also trigger when the user says things like "grab the next ticket", "work on TK-27", "pull from
   backlog", "what's next", "start on the next card", "move this to review", "update the card",
   "create a ticket for this", "add a card", "file a bug", "list the backlog", "create a project",
-  or "set up a new board".
+  "set up a new board", "tag it as a bug", "add a note to the ticket", or "leave a comment".
   This skill requires the `completo` CLI to be installed and configured.
 ---
 
@@ -26,8 +27,9 @@ common mistakes:
   numeric part auto-increments per project.
 - **Boards and lists are *views*, not owners.** Moving or removing a card from a view doesn't delete
   it. You never manipulate views from the CLI — you move cards between *statuses*.
-- **Statuses are per-project and case-sensitive.** `"In Progress"` ≠ `"in progress"`. When unsure,
-  run `completo statuses` — never guess a status name.
+- **Statuses and tags are per-project and case-sensitive.** `"In Progress"` ≠ `"in progress"`. When
+  unsure, run `completo statuses` or `completo tags` — never guess a name. Guessing a status name
+  fails loudly; guessing a tag name quietly creates a duplicate tag.
 - **"Done" cards get filtered out after a retention window**, not deleted. So `next`/`list` won't
   surface old completed cards; that's expected, not a bug.
 - **The workflow is a pipeline**, typically: `Backlog → To Do → In Progress → Review → Done`. Your
@@ -177,6 +179,43 @@ Defaults to `TODO_STATUS` (or the first status). Flags: `--status`, `--descripti
 `--description-file`, `--priority low|medium|high|urgent`, `--due YYYY-MM-DD`, `--assign-me`,
 `--project`. Use `--description-file` for multi-line markdown.
 
+## Tagging cards
+
+```bash
+completo tags                             # every tag the project has
+completo tag TK-42                        # just this card's tags
+completo tag TK-42 add frontend backend   # add one or more
+completo tag TK-42 remove backend         # remove one or more
+completo tag TK-42 set bug                # replace the whole list
+completo tag TK-42 set                    # clear every tag
+```
+
+**Tag names are case-sensitive and `add`/`set` create a name the project doesn't have** — so `Bug`
+on a project whose tag is `BUG` makes a second, near-duplicate tag rather than reusing it. The CLI
+says so when it happens, but **run `completo tags` first and copy the existing spelling**, the same
+way you'd run `completo statuses` rather than guessing a status name. Creating a tag needs the
+project owner role; adding one that already exists does not.
+
+`remove` fails if a named tag isn't on the card, rather than silently doing nothing — so a typo is
+visible.
+
+## Commenting on cards
+
+```bash
+completo comment TK-42                       # list comments, with IDs
+completo comment TK-42 add "Shipped in 4f2a1"
+completo comment TK-42 add --file notes.md   # multi-line markdown
+completo comment TK-42 edit 3f2a1b9c "Fixed typo"
+completo comment TK-42 delete 3f2a1b9c
+```
+
+`edit` and `delete` take a comment ID as printed by the list — the short 8-character form, or any
+unambiguous prefix. You can only edit your own comments; a project owner may delete anyone's.
+
+Comments are the right place for a progress note, a link to a commit, or a question for the user —
+prefer them over rewriting the description, which is the ticket's *specification* and should keep
+saying what the work is.
+
 ## Creating projects
 
 ```bash
@@ -204,6 +243,9 @@ Run `completo <command> --help` for full, always-current flag lists. The essenti
 | `completo update <ticket-id> [flags]` | Edit `--title` / `--description[-file]` / `--priority` / `--due` (`--due none` clears it) |
 | `completo move <ticket-id> "Status"` | Move a card to a status (to the top of the column) |
 | `completo assign <ticket-id> --me` | Assign to yourself, or `completo assign <ticket-id> someone@example.com` for another member |
+| `completo tags [project]` | List a project's tags (names are exact) |
+| `completo tag <ticket-id> [add\|remove\|set] [tags...]` | Show or change a card's tags (no action lists them) |
+| `completo comment <ticket-id> [add\|edit\|delete] [args...]` | Show or manage a card's comments (no action lists them) |
 | `completo my-tasks` | Cards assigned to you |
 | `completo search <query>` | Search cards in the project |
 | `completo project-create <name> [flags]` | Create a project (see above) |
@@ -211,14 +253,15 @@ Run `completo <command> --help` for full, always-current flag lists. The essenti
 | `completo config` / `version` / `self-update` | Configure credentials / print version / update the CLI |
 
 Read commands (`get`, `list`, `next`, `search`, `my-tasks`, `statuses`, `projects`, `create`,
-`project-create`, `briefing`) accept `--json` for machine-readable output; `--env-file` overrides
-config on any command.
+`project-create`, `briefing`, `tags`) accept `--json` for machine-readable output, as do `tag` and
+`comment` — which print the card's resulting tag or comment list after every change, so a mutation
+doubles as a read. `--env-file` overrides config on any command.
 
 ## Notes
 
-- `update` can only change title/description/priority/due. Use `move` for status and `assign` for
-  assignee — not `update`.
-- `next`, `list`, and `briefing` take an optional positional project slug if you're not relying on
-  `.completo`.
+- `update` can only change title/description/priority/due. Use `move` for status, `assign` for
+  assignee, `tag` for tags and `comment` for comments — not `update`.
+- `next`, `list`, `briefing`, `statuses` and `tags` take an optional positional project slug if
+  you're not relying on `.completo`.
 - To scope work to a project without a `.completo` file, pass `--project` (on `create`) or the
   positional slug (elsewhere).

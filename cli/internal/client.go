@@ -30,6 +30,18 @@ func NewClient(cfg *Config) (*Client, error) {
 	}, nil
 }
 
+// APIError is a non-2xx response from the server. It carries the status code so
+// callers can distinguish a permission problem from a bad request without
+// matching on the message; Error() renders exactly what it always has.
+type APIError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *APIError) Error() string {
+	return fmt.Sprintf("API error %d: %s", e.StatusCode, e.Message)
+}
+
 func (c *Client) do(method, path string, body io.Reader) (*http.Response, error) {
 	// Don't use url.JoinPath - it escapes query parameters
 	u := c.BaseURL + path
@@ -56,9 +68,9 @@ func (c *Client) do(method, path string, body io.Reader) (*http.Response, error)
 			Message string `json:"message"`
 		}
 		if json.Unmarshal(b, &apiErr) == nil && apiErr.Message != "" {
-			return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, apiErr.Message)
+			return nil, &APIError{StatusCode: resp.StatusCode, Message: apiErr.Message}
 		}
-		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(b))
+		return nil, &APIError{StatusCode: resp.StatusCode, Message: string(b)}
 	}
 
 	return resp, nil
@@ -100,6 +112,19 @@ func (c *Client) Post(path string, payload any) (json.RawMessage, error) {
 		return nil, err
 	}
 	resp, err := c.do("POST", path, body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return json.RawMessage(b), nil
+}
+
+func (c *Client) Delete(path string) (json.RawMessage, error) {
+	resp, err := c.do("DELETE", path, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -26,12 +26,8 @@ type card struct {
 		ID   string `json:"id"`
 		Name string `json:"name"`
 	} `json:"assignee"`
-	Tags []struct {
-		ID    string  `json:"id"`
-		Name  string  `json:"name"`
-		Color *string `json:"color"`
-	} `json:"tags"`
-	AttachmentCount int `json:"attachmentCount"`
+	Tags            []tag `json:"tags"`
+	AttachmentCount int   `json:"attachmentCount"`
 }
 
 type projectInfo struct {
@@ -59,28 +55,52 @@ func (c *cardResponse) resolveStatus() string {
 	return ""
 }
 
+// fetchCard resolves a ticket reference ("TK-42") or numeric ID to the full card.
+// Every mutation starts here: only `/api/cards/[id].get` accepts a ticket key —
+// the nested card endpoints resolve their param with `Number()`, so a key has to
+// be exchanged for the numeric `c.ID` first.
+func fetchCard(client *internal.Client, ref string) (*cardResponse, error) {
+	data, err := client.Get("/api/cards/" + ref)
+	if err != nil {
+		return nil, err
+	}
+	var c cardResponse
+	if err := json.Unmarshal(data, &c); err != nil {
+		return nil, fmt.Errorf("failed to parse card: %w", err)
+	}
+	return &c, nil
+}
+
+// ticket renders the card's display reference, falling back to the bare numeric
+// ID when the response carried no project key.
+func (c *cardResponse) ticket() string {
+	if c.Project != nil && c.Project.Key != "" {
+		return fmt.Sprintf("%s-%d", c.Project.Key, c.ID)
+	}
+	return fmt.Sprintf("%d", c.ID)
+}
+
 var getCmd = &cobra.Command{
 	Use:   "get <ticket-id>",
 	Short: "Fetch a card by ticket ID (e.g., TK-27) or numeric ID",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := mustClient()
-		data, err := client.Get("/api/cards/" + args[0])
-		if err != nil {
-			return err
-		}
-
 		if jsonOutput {
+			data, err := client.Get("/api/cards/" + args[0])
+			if err != nil {
+				return err
+			}
 			fmt.Println(string(data))
 			return nil
 		}
 
-		var c cardResponse
-		if err := json.Unmarshal(data, &c); err != nil {
-			return fmt.Errorf("failed to parse card: %w", err)
+		c, err := fetchCard(client, args[0])
+		if err != nil {
+			return err
 		}
 
-		fmt.Print(formatCard(&c))
+		fmt.Print(formatCard(c))
 		return nil
 	},
 }
@@ -90,11 +110,6 @@ func init() {
 }
 
 func formatCard(c *cardResponse) string {
-	ticket := fmt.Sprintf("%d", c.ID)
-	if c.Project != nil && c.Project.Key != "" {
-		ticket = fmt.Sprintf("%s-%d", c.Project.Key, c.ID)
-	}
-
 	statusName := c.resolveStatus()
 
 	assignee := "none"
@@ -122,7 +137,7 @@ func formatCard(c *cardResponse) string {
 	}
 
 	fields := []internal.Field{
-		{Key: "ticket", Value: ticket},
+		{Key: "ticket", Value: c.ticket()},
 		{Key: "title", Value: c.Title},
 		{Key: "status", Value: statusName},
 		{Key: "priority", Value: priority},

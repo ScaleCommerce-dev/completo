@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### CLI
+
+- **Tags and comments are now manageable from the CLI**, not just visible on a card. `completo tag <card> add|remove|set <names...>` changes a card's tags — `add` and `set` create a tag the project doesn't have yet, which needs the project owner role — and `completo tags` lists a project's existing tag names, because tag names are matched case-sensitively and `Bug` on a project that spells it `BUG` would otherwise quietly become a second tag. The CLI now says so when it is about to make one. `completo comment <card> add|edit|delete` manages comments, with `--file` for a multi-line markdown body; `completo comment <card>` lists them with the short IDs that `edit` and `delete` take. Both commands print the card's resulting list after every change and support `--json`.
+
 ## v0.9.2 (2026-08-18)
 
 ### App

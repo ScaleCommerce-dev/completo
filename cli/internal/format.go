@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 )
 
 type Field struct {
@@ -85,4 +86,16 @@ func FormatTable(headers []string, rows [][]string) string {
 		sb.WriteString("\n")
 	}
 	return sb.String()
+}
+
+// FormatTimestamp renders an API timestamp (ISO 8601, as Drizzle serialises a
+// `mode: 'timestamp'` column) in the reader's local time. An unparseable value is
+// passed through rather than swallowed — a changed API format should be visible,
+// not silently rendered as the zero time.
+func FormatTimestamp(iso string) string {
+	t, err := time.Parse(time.RFC3339, iso)
+	if err != nil {
+		return iso
+	}
+	return t.Local().Format("2006-01-02 15:04")
 }

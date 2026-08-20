@@ -3,6 +3,7 @@ package internal
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestFormatFields(t *testing.T) {
@@ -107,4 +108,35 @@ func TestFormatTableAlignment(t *testing.T) {
 	if headerBPos != row1BPos || headerBPos != row2BPos {
 		t.Errorf("columns not aligned: header=%d, row1=%d, row2=%d", headerBPos, row1BPos, row2BPos)
 	}
+}
+
+func TestFormatTimestamp(t *testing.T) {
+	t.Run("passes an unparseable value through", func(t *testing.T) {
+		for _, in := range []string{"", "not a date", "2026-08-20"} {
+			if got := FormatTimestamp(in); got != in {
+				t.Errorf("FormatTimestamp(%q) = %q, want it unchanged", in, got)
+			}
+		}
+	})
+
+	t.Run("renders the same instant identically whatever offset it arrives in", func(t *testing.T) {
+		// The API sends UTC today. If it ever sends an offset instead, the rendered
+		// wall clock must not shift — that is what normalising to local time buys.
+		utc := FormatTimestamp("2026-08-20T12:32:00.000Z")
+		offset := FormatTimestamp("2026-08-20T14:32:00.000+02:00")
+		if utc != offset {
+			t.Errorf("same instant rendered as %q and %q", utc, offset)
+		}
+	})
+
+	t.Run("renders a minute-precision wall clock", func(t *testing.T) {
+		got := FormatTimestamp("2026-08-20T12:32:09.000Z")
+		want := time.Date(2026, 8, 20, 12, 32, 9, 0, time.UTC).Local().Format("2006-01-02 15:04")
+		if got != want {
+			t.Errorf("FormatTimestamp = %q, want %q", got, want)
+		}
+		if strings.Contains(got, ":09") {
+			t.Errorf("seconds should not print: %q", got)
+		}
+	})
 }
