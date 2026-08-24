@@ -21,5 +21,7 @@ export default defineEventHandler(async (event) => {
   await storage.delete(attachment.storageKey)
   db.delete(schema.attachments).where(eq(schema.attachments.id, id)).run()
 
+  emitCardChange(attachment.cardId, attachment.projectId)
+
   return { ok: true }
 })

@@ -81,6 +81,8 @@ export default defineEventHandler(async (event) => {
     .where(eq(schema.cards.id, existingCard.id))
     .get()
 
+  emitCardChange(existingCard.id, existingCard.projectId)
+
   return {
     ...card!.cards,
     assignee: card!.users ? { id: card!.users.id, name: card!.users.name, avatarUrl: card!.users.avatarUrl } : null

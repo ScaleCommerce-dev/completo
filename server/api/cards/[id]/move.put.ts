@@ -62,5 +62,11 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  // A move renumbers siblings in both columns, but the card that changed columns
+  // is the only one an observer needs pushed: its new statusId regroups it and
+  // its new position sorts it. The sibling renumbering is cosmetic drift that the
+  // next event or refetch settles, so one upsert beats an invalidate storm.
+  emitCardChange(card.id, card.projectId)
+
   return { ok: true }
 })

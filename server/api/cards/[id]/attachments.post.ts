@@ -35,6 +35,9 @@ export default defineEventHandler(async (event) => {
     uploadedById: user.id
   }).returning().get()
 
+  // attachmentCount is a card face badge, so an upload is a view change.
+  emitCardChange(card.id, card.projectId)
+
   setResponseStatus(event, 201)
   return attachment
 })

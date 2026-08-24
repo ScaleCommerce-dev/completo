@@ -39,6 +39,8 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
     refresh,
     toast,
     mutate,
+    markCardPending,
+    clearCardPending,
     membersData,
     tagsData,
     tagFilters,
@@ -101,6 +103,10 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
         .forEach((c, i) => { c.position = i })
     }
 
+    // Gate live events for this card while the move is in flight, so the server's
+    // `card.upsert` echo doesn't repaint the row mid-drag and fight the optimistic
+    // renumbering above.
+    markCardPending(cardId)
     try {
       await $fetch(`/api/cards/${cardId}/move`, {
         method: 'PUT',
@@ -131,6 +137,11 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
       // about the success path, where local state already matches what the
       // server accepted and refetching only re-runs the entrance animations.
       await refresh()
+    } finally {
+      // The move settled one way or the other; let live events touch this card
+      // again. The success echo (a `card.upsert` from this same PUT) only re-sets
+      // the values already on screen, so a late one is harmless.
+      clearCardPending(cardId)
     }
   }
 

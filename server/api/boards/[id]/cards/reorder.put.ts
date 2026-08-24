@@ -44,5 +44,9 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  // A bulk reorder renumbers many cards at once; one invalidate settles every
+  // observer's ordering rather than a burst of per-card upserts.
+  emitViewChange(board.projectId)
+
   return { ok: true }
 })

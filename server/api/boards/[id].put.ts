@@ -71,6 +71,10 @@ export default defineEventHandler(async (event) => {
   }
 
   db.update(schema.boards).set(updates).where(eq(schema.boards.id, board.id)).run()
+
+  // Filters, hidden fields, name and slug all change what this board shows.
+  emitViewChange(board.projectId)
+
   const updated = db.select().from(schema.boards).where(eq(schema.boards.id, board.id)).get()
   return updated ? { ...updated, hiddenCardFields: normalizeHiddenCardFields(safeParseJson(updated.hiddenCardFields, [])) } : updated
 })

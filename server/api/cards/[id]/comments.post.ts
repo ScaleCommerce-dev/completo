@@ -34,6 +34,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // commentCount is a card face badge, so a new comment is a view change.
+  emitCardChange(card.id, card.projectId)
+
   setResponseStatus(event, 201)
   return {
     ...comment,

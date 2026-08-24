@@ -13,5 +13,8 @@ export default defineEventHandler(async (event) => {
     ...(color !== undefined && { color })
   }).where(eq(schema.statuses.id, status.id)).run()
 
+  // A renamed or recoloured status repaints every column and pill that shows it.
+  emitViewChange(status.projectId)
+
   return db.select().from(schema.statuses).where(eq(schema.statuses.id, status.id)).get()
 })

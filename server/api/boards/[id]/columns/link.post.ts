@@ -38,5 +38,7 @@ export default defineEventHandler(async (event) => {
     position: newPosition
   }).run()
 
+  emitViewChange(board.projectId)
+
   return { ...status, position: newPosition }
 })

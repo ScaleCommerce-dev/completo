@@ -22,5 +22,7 @@ export default defineEventHandler(async (event) => {
     ))
     .run()
 
+  emitViewChange(board.projectId)
+
   return { ok: true }
 })

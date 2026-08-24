@@ -38,5 +38,7 @@ export default defineEventHandler(async (event) => {
     .all()
     .find(r => r.boardId === board.id)
 
+  emitViewChange(board.projectId)
+
   return { ...col, position: bc?.position ?? 0 }
 })

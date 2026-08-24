@@ -19,5 +19,7 @@ export default defineEventHandler(async (event) => {
     .where(eq(schema.listColumns.id, columnId!))
     .run()
 
+  emitViewChange(list.projectId)
+
   return { ok: true }
 })

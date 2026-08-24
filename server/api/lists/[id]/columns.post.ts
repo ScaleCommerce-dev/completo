@@ -32,5 +32,7 @@ export default defineEventHandler(async (event) => {
     position: maxPos + 1
   }).returning().get()
 
+  emitViewChange(list.projectId)
+
   return column
 })

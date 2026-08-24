@@ -12,6 +12,8 @@ export default defineEventHandler(async (event) => {
 
   db.delete(schema.cards).where(eq(schema.cards.id, card.id)).run()
 
+  emitCardRemoved(card.id, card.projectId)
+
   // Clean up files on disk (best effort)
   if (attachmentKeys.length > 0) {
     storage.deleteMany(attachmentKeys).catch((err) => {

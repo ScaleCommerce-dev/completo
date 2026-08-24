@@ -20,6 +20,8 @@ export default defineEventHandler(async (event) => {
     color: color || '#6366f1'
   }).run()
 
+  emitViewChange(project.id)
+
   setResponseStatus(event, 201)
   return db.select().from(schema.tags).where(eq(schema.tags.id, tagId)).get()
 })

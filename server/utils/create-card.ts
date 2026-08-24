@@ -97,6 +97,10 @@ export function createCard({ projectId, userId, userName, body }: CreateCardPara
     .where(eq(schema.cards.id, inserted.id))
     .get()
 
+  // Live-update every open board/list of this project. The single choke point:
+  // both card-create endpoints go through here, so neither has to remember to.
+  emitCardChange(inserted.id, projectId)
+
   return {
     ...card!.cards,
     assignee: card!.users ? { id: card!.users.id, name: card!.users.name, avatarUrl: card!.users.avatarUrl } : null

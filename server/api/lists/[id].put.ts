@@ -73,5 +73,9 @@ export default defineEventHandler(async (event) => {
   }
 
   db.update(schema.lists).set(updates).where(eq(schema.lists.id, list.id)).run()
+
+  // Sort, filters, name and slug all change what this list shows.
+  emitViewChange(list.projectId)
+
   return db.select().from(schema.lists).where(eq(schema.lists.id, list.id)).get()
 })

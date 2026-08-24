@@ -13,5 +13,8 @@ export default defineEventHandler(async (event) => {
     ...(color !== undefined && { color })
   }).where(eq(schema.tags.id, tag.id)).run()
 
+  // A renamed or recoloured tag repaints every pill that carries it.
+  emitViewChange(tag.projectId)
+
   return db.select().from(schema.tags).where(eq(schema.tags.id, tag.id)).get()
 })

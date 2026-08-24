@@ -146,6 +146,16 @@ export function useViewData<T extends ViewDataResponse>(
   /** Guards the response merges below — see `write-sequence.ts`. */
   const beginWrite = createWriteSequence<number>()
 
+  // Cards with a local write in flight. A live `card.upsert`/`card.delete` for one
+  // of these is ignored: the optimistic patch already shows the intended state and
+  // the write's own response is the authority for it (ordered by `beginWrite`).
+  // Without this, an event echoing an *earlier* value — this client's own change
+  // bouncing back, or a concurrent edit — could repaint the row mid-edit. It is a
+  // plain Set, not reactive: nothing renders from it, it only gates the handlers.
+  const pendingCards = new Set<number>()
+  function markCardPending(id: number) { pendingCards.add(id) }
+  function clearCardPending(id: number) { pendingCards.delete(id) }
+
   function findCard(cardId: number) {
     const cards = cardList.value
     if (!cards) return null
@@ -173,6 +183,7 @@ export function useViewData<T extends ViewDataResponse>(
     const found = findCard(cardId)
     const snapshot = found ? { ...found.card } : null
     const isLatest = beginWrite(cardId)
+    markCardPending(cardId)
 
     if (found) {
       Object.assign(found.card, updates)
@@ -196,12 +207,17 @@ export function useViewData<T extends ViewDataResponse>(
       if (found && snapshot && isLatest()) Object.assign(found.card, snapshot)
       toast.add({ title: 'Failed to update card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
       throw e
+    } finally {
+      // Only the newest write clears the gate — an older write settling first must
+      // not reopen the row to events while a newer edit is still in flight.
+      if (isLatest()) clearCardPending(cardId)
     }
   }
 
   async function deleteCard(cardId: number) {
     const found = findCard(cardId)
     const removed = found ? found.cards.splice(found.index, 1)[0] : null
+    markCardPending(cardId)
 
     try {
       await $fetch(`/api/cards/${cardId}`, { method: 'DELETE' })
@@ -209,12 +225,15 @@ export function useViewData<T extends ViewDataResponse>(
       if (found && removed) found.cards.splice(found.index, 0, removed)
       toast.add({ title: 'Failed to delete card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
       throw e
+    } finally {
+      clearCardPending(cardId)
     }
   }
 
   async function updateCardTags(cardId: number, tagIds: string[]) {
     const found = findCard(cardId)
     const snapshot = found ? found.card.tags : undefined
+    markCardPending(cardId)
 
     if (found) {
       found.card.tags = tagsData.value.filter(t => tagIds.includes(t.id))
@@ -226,6 +245,8 @@ export function useViewData<T extends ViewDataResponse>(
       if (found) found.card.tags = snapshot
       toast.add({ title: 'Failed to update tags', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
       throw e
+    } finally {
+      clearCardPending(cardId)
     }
   }
 
@@ -258,12 +279,53 @@ export function useViewData<T extends ViewDataResponse>(
     await refresh()
   }
 
+  // ─── Live updates (SSE) ─────────────────────────────────────────────────────
+  //
+  // Everything above keeps *this* client's own edits on screen; this keeps it in
+  // step with changes made anywhere else — another person, the CLI, an AI agent.
+  // Card lifecycle events patch the local rows exactly as the optimistic mutations
+  // do (no wholesale refetch, no animation replay); structural changes it cannot
+  // express as a row patch trigger a debounced refetch instead.
+
+  // Coalesce a burst of structural events (a drag that renumbers every column
+  // emits many) into one refetch. refresh() replaces the view wholesale, so it is
+  // the expensive path and the one worth debouncing.
+  let invalidateTimer: ReturnType<typeof setTimeout> | null = null
+  function scheduleRefresh() {
+    if (invalidateTimer) clearTimeout(invalidateTimer)
+    invalidateTimer = setTimeout(() => {
+      invalidateTimer = null
+      void refresh()
+    }, 300)
+  }
+  onScopeDispose(() => {
+    if (invalidateTimer) clearTimeout(invalidateTimer)
+  })
+
+  useProjectEvents(() => data.value?.project?.id ?? null, {
+    onCardUpsert(card) {
+      if (pendingCards.has(card.id)) return
+      const cards = cardList.value
+      if (!cards) return
+      const belongs = cardBelongsToView(viewType, statusList.value.map(s => s.id), card)
+      applyCardUpsert(cards as unknown as BaseCard[], card, belongs)
+    },
+    onCardDelete(id) {
+      if (pendingCards.has(id)) return
+      const cards = cardList.value
+      if (cards) applyCardDelete(cards, id)
+    },
+    onViewInvalidate: scheduleRefresh
+  })
+
   return {
     data,
     error,
     viewId,
     status,
     refresh,
+    markCardPending,
+    clearCardPending,
     toast,
     user,
     mutate,

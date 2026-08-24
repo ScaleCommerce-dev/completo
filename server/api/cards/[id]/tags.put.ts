@@ -36,5 +36,7 @@ export default defineEventHandler(async (event) => {
     ? db.select().from(schema.tags).where(inArray(schema.tags.id, tagIds)).all()
     : []
 
+  emitCardChange(card.id, card.projectId)
+
   return { tags }
 })

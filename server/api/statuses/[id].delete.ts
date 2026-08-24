@@ -49,6 +49,7 @@ export default defineEventHandler(async (event) => {
 
   if (cards.length === 0) {
     db.delete(schema.statuses).where(eq(schema.statuses.id, status.id)).run()
+    emitViewChange(status.projectId)
     return { ok: true, movedCards: 0, movedToStatusId: null }
   }
 
@@ -83,6 +84,10 @@ export default defineEventHandler(async (event) => {
 
     db.delete(schema.statuses).where(eq(schema.statuses.id, status.id)).run()
   })
+
+  // The column vanishes and its cards resurface under the target — a whole-view
+  // change no per-card patch expresses, so observers refetch.
+  emitViewChange(status.projectId)
 
   return { ok: true, movedCards: cards.length, movedToStatusId: target.id }
 })
