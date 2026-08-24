@@ -153,8 +153,12 @@ export function useViewData<T extends ViewDataResponse>(
   // bouncing back, or a concurrent edit — could repaint the row mid-edit. It is a
   // plain Set, not reactive: nothing renders from it, it only gates the handlers.
   const pendingCards = new Set<number>()
-  function markCardPending(id: number) { pendingCards.add(id) }
-  function clearCardPending(id: number) { pendingCards.delete(id) }
+  function markCardPending(id: number) {
+    pendingCards.add(id)
+  }
+  function clearCardPending(id: number) {
+    pendingCards.delete(id)
+  }
 
   function findCard(cardId: number) {
     const cards = cardList.value
