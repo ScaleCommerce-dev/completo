@@ -17,12 +17,11 @@ import { EventEmitter } from 'node:events'
  * signed-in tab for notifications), so a field compare per event is cheaper than
  * churning listener sets, and it keeps `setMaxListeners` in one place.
  */
-export type AppEventType =
-  | 'card.upsert' // a card's row changed (view stream)
-  | 'card.delete' // a card was removed (view stream)
-  | 'card.activity' // a foreign comment landed — drives the unread dot (view stream)
-  | 'view.invalidate' // a structural change a row patch can't express (view stream)
-  | 'notification' // a new notification for one user (user stream)
+// View-stream events (scoped by projectId): `card.upsert` (a card's row changed),
+// `card.delete` (a card was removed), `card.activity` (a foreign comment landed,
+// which drives the unread dot), `view.invalidate` (a structural change a row patch
+// cannot express). User-stream event (scoped by userId): `notification`.
+export type AppEventType = 'card.upsert' | 'card.delete' | 'card.activity' | 'view.invalidate' | 'notification'
 
 export interface AppEvent {
   type: AppEventType
