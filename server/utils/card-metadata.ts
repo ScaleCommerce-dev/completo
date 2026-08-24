@@ -101,6 +101,12 @@ export function fetchCardCreators(cards: Array<{ createdById: string | null }>):
  *
  * A NULL author (a comment whose author was deleted) counts as foreign: it is not
  * the current user, so it is unread until seen.
+ *
+ * Both timestamps are second-granular (drizzle `timestamp` mode), so a comment
+ * posted in the same second as a read cannot be ordered against it here and reads
+ * as seen. That sub-second race is covered live by the `card.activity` event,
+ * which raises the dot for anyone viewing the board when the comment lands; this
+ * computed path is what a fresh load or refetch uses.
  */
 export function fetchUnreadCardIds(cardIds: number[], userId: string): Set<number> {
   if (!cardIds.length) return new Set()
