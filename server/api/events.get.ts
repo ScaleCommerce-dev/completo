@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
 
   const stream = createEventStream(event)
 
-  const unsubscribe = subscribeProjectEvents((evt) => {
+  const unsubscribe = subscribeAppEvents((evt) => {
     if (evt.projectId !== projectId) return
     stream.push({ event: evt.type, data: JSON.stringify(evt.payload ?? null) }).catch(() => {
       // A push after the socket dropped but before onClosed ran throws; the

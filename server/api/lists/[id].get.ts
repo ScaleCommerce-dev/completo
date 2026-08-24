@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user: _user, list, membership } = await resolveList(event, { columnAccess: false })
+  const { user, list, membership } = await resolveList(event, { columnAccess: false })
 
   // Fetch list creator info
   const createdBy = list.createdById
@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const cardsWithTags = enrichCardsWithMetadata(cards)
+  const cardsWithTags = enrichCardsWithMetadata(cards, { userId: user.id })
 
   // Fetch project-level tags
   const projectTags = db.select().from(schema.tags)

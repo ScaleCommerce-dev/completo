@@ -38,6 +38,17 @@ export function emitCardRemoved(cardId: number, projectId: string): void {
 }
 
 /**
+ * Emit `card.activity` when a comment lands, carrying the commenter's id. Every
+ * board/list viewer of the project receives it and raises the card's unread dot
+ * unless they wrote the comment themselves. This is the live counterpart to the
+ * server-computed `hasUnread`, which only refreshes on a full fetch — the dot
+ * has to appear the moment the comment does, not on the next reload.
+ */
+export function emitCardActivity(cardId: number, projectId: string, actorId: string): void {
+  emitProjectEvent({ type: 'card.activity', projectId, payload: { id: cardId, actorId } })
+}
+
+/**
  * Emit a `view.invalidate` for structural changes a per-card patch cannot express
  * — a status added or renamed, a column linked or reordered, a tag's colour
  * changed, board settings saved. The client answers with a debounced refetch, so

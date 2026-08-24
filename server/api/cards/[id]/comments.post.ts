@@ -34,8 +34,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // commentCount is a card face badge, so a new comment is a view change.
+  // commentCount is a card face badge, so a new comment is a view change; the
+  // activity event additionally raises the unread dot for everyone but the author.
   emitCardChange(card.id, card.projectId)
+  emitCardActivity(card.id, card.projectId, user.id)
 
   setResponseStatus(event, 201)
   return {

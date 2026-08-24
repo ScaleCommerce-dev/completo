@@ -19,6 +19,10 @@ const { navSections } = useNavigation()
 const router = useRouter()
 const colorMode = useColorMode()
 
+// Live notifications for the whole session — opened here (persistent across
+// navigations) rather than in NotificationBell, which remounts per page.
+useNotificationStream()
+
 /** The three states `UColorModeButton` cycles, as command-palette rows. */
 const COLOR_MODES = [
   { value: 'system', label: 'System theme', icon: 'i-lucide-monitor' },

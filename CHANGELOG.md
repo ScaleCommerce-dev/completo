@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **Cards flag unread discussion.** A card with a comment you have not seen yet, posted by someone else, now shows a dot on the board, in lists and in My Tasks; it clears the moment you open the card. New comments light the dot as they arrive, without a reload.
+- **Notifications arrive live.** The bell count updates and a toast appears the moment you are mentioned, assigned, or replied to, instead of on a timer. If the live connection drops it still catches up within the old polling interval.
+- **A card's whole discussion stays in the loop.** A new comment now notifies everyone who has commented on the card, not only its assignee, so a conversation you joined keeps reaching you even when the card was never assigned to you.
+
 ## v0.9.4 (2026-08-24)
 
 ### App

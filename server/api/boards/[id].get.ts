@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const cardsWithTags = enrichCardsWithMetadata(boardCards)
+  const cardsWithTags = enrichCardsWithMetadata(boardCards, { userId: user.id })
 
   // Fetch project-level tags for the picker
   const projectTags = db.select().from(schema.tags)

@@ -361,6 +361,21 @@ function toggleTag(tagId: string) {
       read as floating rather than as being in the corner. At `1` it lands on the
       padding line, and the hit box stays 24px.
     -->
+    <!--
+      Unread-activity dot. Sits in the same top-right corner the maximize link
+      uses and fades out on hover so the two never stack: at rest the corner
+      carries the unread signal, on hover it carries the action. `pr-6` on the
+      title already reserves this space, so neither overlays the title. Cleared
+      the moment the card is opened (`useViewPage.openCardDetail`).
+    -->
+    <span
+      v-if="card.hasUnread"
+      class="absolute top-1 right-1 z-[5] flex items-center justify-center size-6 pointer-events-none sm:group-hover:opacity-0 transition-opacity"
+      aria-label="Unread comments"
+    >
+      <span class="size-2 rounded-full bg-primary ring-2 ring-bg" />
+    </span>
+
     <!-- Tooltip gated on `armed` with the field controls, and for the same
          reason: the link is hover-only ink, so nothing can want its tooltip
          before the pointer has reached the card. The link itself is not gated —

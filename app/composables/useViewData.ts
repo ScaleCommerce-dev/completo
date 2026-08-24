@@ -19,6 +19,7 @@ interface ViewCard {
   status?: StatusLike | null
   assignee?: Member | null
   tags?: Tag[]
+  hasUnread?: boolean
 }
 
 /** Shared fields present in both Board and ListView API responses. */
@@ -318,6 +319,13 @@ export function useViewData<T extends ViewDataResponse>(
       if (pendingCards.has(id)) return
       const cards = cardList.value
       if (cards) applyCardDelete(cards, id)
+    },
+    onCardActivity({ id, actorId }) {
+      // Your own comment is not unread to you; the server-computed hasUnread on
+      // the next fetch agrees. Opening the card clears it again (useViewPage).
+      if (actorId === user.value?.id) return
+      const found = cardList.value?.find(c => c.id === id)
+      if (found) found.hasUnread = true
     },
     onViewInvalidate: scheduleRefresh
   })

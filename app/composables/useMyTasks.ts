@@ -32,6 +32,7 @@ interface MyTasksGroup {
     creator: { id: string, name: string, avatarUrl: string | null } | null
     attachmentCount: number
     commentCount: number
+    hasUnread: boolean
     createdAt: string
     updatedAt: string
   }>

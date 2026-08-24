@@ -32,6 +32,8 @@ export interface BaseCard {
   tags?: Tag[]
   attachmentCount?: number
   commentCount?: number
+  /** Whether this card has comment activity the current user has not read yet. */
+  hasUnread?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -41,4 +43,4 @@ export interface CardWithStatus extends BaseCard {
 }
 
 /** Lightweight card shape used in board views (no status/timestamps needed) */
-export type BoardCard = Pick<BaseCard, 'id' | 'title' | 'description' | 'priority' | 'assignee' | 'tags' | 'attachmentCount' | 'commentCount' | 'dueDate'>
+export type BoardCard = Pick<BaseCard, 'id' | 'title' | 'description' | 'priority' | 'assignee' | 'tags' | 'attachmentCount' | 'commentCount' | 'dueDate' | 'hasUnread'>

@@ -1,49 +1,63 @@
 import { EventEmitter } from 'node:events'
 
 /**
- * In-process fan-out bus for live view updates.
+ * In-process fan-out bus for live updates: board/list view changes (scoped by
+ * `projectId`) and per-user notifications (scoped by `userId`).
  *
  * Completo is a single Nitro process over one SQLite file, so a plain
- * `EventEmitter` is the whole message broker: a mutation calls `emitProjectEvent`
- * and every open `/api/events` stream for that project pushes it to its browser.
- * There is deliberately no queue, no persistence and no cross-process transport —
- * a client that was disconnected when an event fired reconciles by refetching on
+ * `EventEmitter` is the whole message broker: a mutation emits, and every open
+ * SSE stream that matches the scope pushes it to its browser. There is
+ * deliberately no queue, no persistence and no cross-process transport — a
+ * client that was disconnected when an event fired reconciles by refetching on
  * reconnect, not by replaying a log. If Completo ever runs more than one process,
  * this is the seam to swap for a real pub/sub, and nothing above it changes.
  *
- * One channel, filtered per subscriber by `projectId`, rather than a channel per
- * project: the connected-client count is small (one per open board/list tab), so
- * a string compare per event is cheaper than churning listener sets as projects
- * come and go, and it keeps `setMaxListeners` in one place.
+ * One channel, filtered per subscriber, rather than a channel per project/user:
+ * the connected-client count is small (one per open board/list tab, one per
+ * signed-in tab for notifications), so a field compare per event is cheaper than
+ * churning listener sets, and it keeps `setMaxListeners` in one place.
  */
-export type ProjectEventType = 'card.upsert' | 'card.delete' | 'view.invalidate'
+export type AppEventType =
+  | 'card.upsert' // a card's row changed (view stream)
+  | 'card.delete' // a card was removed (view stream)
+  | 'card.activity' // a foreign comment landed — drives the unread dot (view stream)
+  | 'view.invalidate' // a structural change a row patch can't express (view stream)
+  | 'notification' // a new notification for one user (user stream)
 
-export interface ProjectEvent {
-  type: ProjectEventType
-  projectId: string
-  /** Present for `card.upsert` (the enriched card) and `card.delete` (`{ id }`). */
+export interface AppEvent {
+  type: AppEventType
+  /** Set on view-stream events; the SSE view endpoint matches on it. */
+  projectId?: string
+  /** Set on user-stream events; the notification endpoint matches on it. */
+  userId?: string
   payload?: unknown
 }
 
-const CHANNEL = 'project'
+const CHANNEL = 'app'
 
 // The listener cap is a leak-detector tuned for a handful of route handlers, not
 // for one-per-open-tab SSE subscribers. Disable it so a genuinely busy instance
 // does not spew MaxListenersExceededWarning; leaks are caught by the onClosed
-// cleanup in the endpoint instead.
+// cleanup in the endpoints instead.
 const emitter = new EventEmitter()
 emitter.setMaxListeners(0)
 
-export function emitProjectEvent(evt: ProjectEvent): void {
-  emitter.emit(CHANNEL, evt)
+/** Emit a view-stream event, scoped to a project. */
+export function emitProjectEvent(evt: { type: AppEventType, projectId: string, payload?: unknown }): void {
+  emitter.emit(CHANNEL, evt as AppEvent)
+}
+
+/** Emit a user-stream event (a notification), scoped to one user. */
+export function emitUserEvent(userId: string, type: AppEventType, payload?: unknown): void {
+  emitter.emit(CHANNEL, { type, userId, payload } as AppEvent)
 }
 
 /**
- * Subscribe to every project event. Returns an unsubscribe function — the SSE
- * endpoint calls it from `onClosed`, which is the only thing keeping the listener
+ * Subscribe to every app event. Returns an unsubscribe function — the SSE
+ * endpoints call it from `onClosed`, which is the only thing keeping the listener
  * set from growing without bound as tabs open and close.
  */
-export function subscribeProjectEvents(handler: (evt: ProjectEvent) => void): () => void {
+export function subscribeAppEvents(handler: (evt: AppEvent) => void): () => void {
   emitter.on(CHANNEL, handler)
   return () => emitter.off(CHANNEL, handler)
 }

@@ -233,3 +233,23 @@ export const projectInvitations = sqliteTable('project_invitations', {
   expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })
+
+// When a user last read a card's comments — the state behind the "unread activity"
+// dot on a card. One row per (user, card), stamped whenever the user fetches a
+// card's comment list. A card reads as unread for a user when it has a comment
+// newer than this timestamp that they did not write; with no row, everything not
+// authored by them counts as unread. Deliberately per-user and separate from
+// `notifications`: a notification is a one-off event that gets cleared, whereas
+// this is durable "have I seen this card's discussion" state that has to survive
+// the notification being dismissed.
+export const cardReads = sqliteTable('card_reads', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  cardId: integer('card_id').notNull().references(() => cards.id, { onDelete: 'cascade' }),
+  lastReadAt: integer('last_read_at', { mode: 'timestamp' }).notNull()
+}, table => [
+  // The upsert target: one read-state row per user per card. Mirrors the users
+  // table's use of a unique index rather than a composite PK, keeping the uuid
+  // `id` every other table has.
+  uniqueIndex('card_reads_user_card_unique').on(table.userId, table.cardId)
+])

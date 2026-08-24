@@ -73,6 +73,9 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
     const fullCard = allCards.value.find(c => c.id === card.id)
     if (fullCard) {
       selectedCard.value = fullCard
+      // Opening the card is reading its discussion: clear the unread dot now.
+      // The comment-list fetch stamps read-state server-side so a refetch agrees.
+      fullCard.hasUnread = false
     }
     showCardDetail.value = true
   }

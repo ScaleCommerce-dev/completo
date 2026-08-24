@@ -15,7 +15,7 @@ export function createNotification(params: {
   // Never notify yourself
   if (params.actorId && params.actorId === params.userId) return
 
-  db.insert(schema.notifications).values({
+  const row = db.insert(schema.notifications).values({
     userId: params.userId,
     type: params.type,
     title: params.title,
@@ -24,7 +24,19 @@ export function createNotification(params: {
     projectId: params.projectId || null,
     cardId: params.cardId || null,
     actorId: params.actorId || null
-  }).run()
+  }).returning().get()
+
+  // Push it live to that user's notification stream, so the bell count and a
+  // toast appear at once instead of on the next 30s poll. Payload is enough to
+  // render the toast without a round-trip; the bell still refetches the count so
+  // it stays authoritative if several land together.
+  emitUserEvent(params.userId, 'notification', {
+    id: row.id,
+    notificationType: params.type,
+    title: params.title,
+    message: params.message,
+    linkUrl: params.linkUrl || null
+  })
 }
 
 /**
@@ -156,17 +168,35 @@ export function notifyCommentActivity(params: {
     source: 'comment'
   })
 
-  if (!params.isNew || !params.assigneeId || mentioned.has(params.assigneeId)) return
+  // Editing a comment only notifies its newly added mentions (handled above);
+  // it must not re-ping the thread.
+  if (!params.isNew) return
+
+  // Everyone with a stake in the thread hears about a new comment: the assignee,
+  // plus anyone who has previously commented on this card (thread participants).
+  // A person already told via a mention is skipped so one comment is one
+  // notification per person, and the actor is skipped inside createNotification.
+  const recipients = new Set<string>()
+  if (params.assigneeId) recipients.add(params.assigneeId)
+  for (const row of db.select({ authorId: schema.comments.authorId })
+    .from(schema.comments)
+    .where(eq(schema.comments.cardId, params.cardId))
+    .all()) {
+    if (row.authorId) recipients.add(row.authorId)
+  }
 
   const ticketId = `${params.projectKey}-${params.cardId}`
-  createNotification({
-    userId: params.assigneeId,
-    type: 'comment_added',
-    title: 'New comment',
-    message: `${params.actorName} commented on ${ticketId}: ${params.cardTitle}`,
-    linkUrl: `/projects/${params.projectSlug}/cards/${ticketId}`,
-    projectId: params.projectId,
-    cardId: params.cardId,
-    actorId: params.actorId
-  })
+  for (const userId of recipients) {
+    if (mentioned.has(userId)) continue
+    createNotification({
+      userId,
+      type: 'comment_added',
+      title: 'New comment',
+      message: `${params.actorName} commented on ${ticketId}: ${params.cardTitle}`,
+      linkUrl: `/projects/${params.projectSlug}/cards/${ticketId}`,
+      projectId: params.projectId,
+      cardId: params.cardId,
+      actorId: params.actorId
+    })
+  }
 }

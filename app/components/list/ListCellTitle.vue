@@ -3,11 +3,19 @@ defineProps<{
   title: string
   isDone: boolean
   detailUrl: string | null
+  hasUnread?: boolean
 }>()
 </script>
 
 <template>
   <div class="flex items-center gap-1.5 min-w-0">
+    <!-- Unread-activity dot, leading the title — the row's equivalent of the
+         board card's corner dot. Cleared when the card is opened. -->
+    <span
+      v-if="hasUnread"
+      class="shrink-0 size-2 rounded-full bg-primary"
+      aria-label="Unread comments"
+    />
     <span
       class="font-semibold truncate"
       :class="isDone

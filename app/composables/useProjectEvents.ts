@@ -3,6 +3,8 @@ import type { BaseCard } from '~/types/card'
 interface ProjectEventHandlers {
   onCardUpsert: (card: BaseCard) => void
   onCardDelete: (id: number) => void
+  /** A comment landed on a card: `{ id, actorId }`, for the live unread dot. */
+  onCardActivity: (activity: { id: number, actorId: string }) => void
   /** Structural change (statuses, columns, filters, tags): refetch to catch up. */
   onViewInvalidate: () => void
 }
@@ -60,6 +62,15 @@ export function useProjectEvents(
       try {
         const { id: cardId } = JSON.parse((e as MessageEvent).data) as { id: number }
         if (typeof cardId === 'number') handlers.onCardDelete(cardId)
+      } catch {
+        // ignore
+      }
+    })
+
+    es.addEventListener('card.activity', (e) => {
+      try {
+        const a = JSON.parse((e as MessageEvent).data) as { id: number, actorId: string }
+        if (typeof a?.id === 'number' && typeof a?.actorId === 'string') handlers.onCardActivity(a)
       } catch {
         // ignore
       }

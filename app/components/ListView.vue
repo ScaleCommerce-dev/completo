@@ -386,6 +386,7 @@ const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.le
               :title="card.title"
               :is-done="isDone(card)"
               :detail-url="detailUrl(card)"
+              :has-unread="card.hasUnread"
             />
 
             <ListCellStatus
