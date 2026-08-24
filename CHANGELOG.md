@@ -1,10 +1,12 @@
 # Changelog
 
-## Unreleased
+## v0.9.4 (2026-08-24)
 
 ### App
 
 - **The board and your lists keep themselves up to date.** A card someone else creates, moves, edits or deletes - or one changed from the CLI or by an agent - now appears on your board or list as it happens, with no reload. Cards slide between columns, tags and comment and attachment counts change in place, and a card that moves off a board leaves it, all without the view flickering or losing your scroll position. Changes you cannot express as a single card - a renamed status, a new column, a filter - refresh the view quietly. If the connection drops, the view catches up the moment it reconnects.
+
+## v0.9.3 (2026-08-20)
 
 ### CLI
 
