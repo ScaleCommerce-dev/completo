@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.9.6 (2026-08-31)
 
 ### App
 
