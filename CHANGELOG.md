@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **Dropping a card anywhere in a column now works.** The drop target used to be only the strip of cards at the top of the column: releasing a card over the empty space below them - including, in an empty column, directly on the "Drop a card here" hint - silently did nothing. The whole column now accepts the drop, matching the highlight shown while dragging.
+
 ## v0.9.5 (2026-08-24)
 
 ### App

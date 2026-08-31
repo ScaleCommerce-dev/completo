@@ -155,13 +155,17 @@ const countLabel = computed(() =>
     </header>
 
     <!-- Cards -->
-    <div class="flex-1 overflow-y-auto thin-scroll px-2 min-h-0">
+    <div class="relative flex-1 overflow-y-auto thin-scroll px-2 min-h-0">
       <ClientOnly>
+        <!-- `min-h-full`, not a fixed floor: the sortable container is the only
+             element SortableJS accepts drops on, and columns stretch to board
+             height — with a 4rem floor the tray below the last card (and the
+             whole dashed hint in an empty column) was dead to drops. -->
         <draggable
           :list="localCards"
           group="cards"
           item-key="id"
-          class="flex flex-col gap-1.5 min-h-[4rem]"
+          class="flex flex-col gap-1.5 min-h-full pb-2"
           ghost-class="sortable-ghost"
           chosen-class="sortable-chosen"
           drag-class="sortable-drag"
@@ -180,11 +184,13 @@ const countLabel = computed(() =>
         </draggable>
       </ClientOnly>
 
-      <!-- Empty columns get a real target. This was `min-h-[3rem]` — a 48px strip
-           at the top of an otherwise blank column. -->
+      <!-- An overlay, not a flow sibling: in flow it sat *below* the sortable
+           list, so the pixels that said "Drop a card here" were exactly the
+           pixels that couldn't take a drop. Absolute (with pointer-events-none)
+           it paints over the full-height list without adding content height. -->
       <div
         v-if="!localCards.length && !composing"
-        class="pointer-events-none flex items-center justify-center rounded-lg border border-dashed border-accented/70 py-8 mt-1 text-xs text-dimmed"
+        class="pointer-events-none absolute inset-x-2 top-0 bottom-2 flex items-center justify-center rounded-lg border border-dashed border-accented/70 text-xs text-dimmed"
       >
         Drop a card here
       </div>
