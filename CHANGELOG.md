@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.10.0 (2026-09-13)
+
+### Upgrading
+
+A straight upgrade — the migrations run themselves and nothing needs a decision first. Two notes:
+
+- **If you build from source, delete `node_modules` and reinstall.** `nuxt` and `@nuxt/ui` disagreed about which major version of `@unhead/vue` to use and both ended up in the lockfile, so a fresh install could resolve the pair that leaves every page blank with `undefined is not an object (evaluating 'head.hooks')` in the console. Both are bumped so they agree and the lockfile is regenerated; a tree that predates this release can still be holding the broken combination.
+- **Editing a description tidies its Markdown once.** Saving a card through the new editor normalises the stored text — `*` bullets become `-`, table cells pad to an even width, and underscores inside a word are escaped, so `file_name_here` is stored as `file\_name\_here`. It renders identically and the card reads the same; it is only visible if you read the raw Markdown over the API or in the CLI. It happens once per card, not on every save.
+
+### App
+
+- **Card descriptions are written in a formatting editor now.** Headings, bold, lists and checkboxes appear as you type them rather than as the characters you typed, so what is on screen while you write is what the card looks like when you save — the Write and Preview tabs are gone because there is nothing left to preview. A toolbar carries headings, bold, italic, inline code and code blocks, bullet, numbered and task lists, quotes, tables, links, images and mentions, each with its keyboard shortcut in the tooltip. Markdown pasted from a terminal or another card arrives formatted instead of as literal asterisks, and a link pasted over a selected word turns that word into the link. A table gains and loses rows and columns from a small toolbar that appears when the cursor is inside one. **Descriptions are still stored as Markdown**, so the CLI, the API and anything else reading a card see exactly what they did before.
+- **A table or a checklist in a saved description now looks like one.** A Markdown table rendered with no borders at all — columns of text with nothing separating them — and a checklist drew a bullet in front of every checkbox, with a ticked item reading exactly like an unticked one. Tables have their grid and a shaded header row, ticked items are struck through, and both now match what the editor shows while you are writing them.
+- **The AI writes formatting the card can keep.** It could produce HTML — a collapsible section, a `<kbd>` key, a subscript — that the card then rendered as nothing, and a footnote arrived as a stray `[^1]`. It is now told what the editor can store, uses tables where they help, and is told to copy mentions and card links through untouched so that improving a description does not quietly break a notification.
+
+### Dev
+
+- **Nuxt 4.5.2 and Nuxt UI 4.11.0**, which agree on `@unhead/vue` where the previous pair did not. `dependency-singletons.test.ts` now also fails on a second resolved version of any `@tiptap/*` package, or on a caret in our own pins that could drift off Nuxt UI's range. That guard only sees the lockfile: Vite will hand out two module instances of a *single* resolved version, which ProseMirror rejects with `Adding different instances of a keyed plugin` and which otherwise appears as an editor that renders nothing at all with no error — so `nuxt.config.ts` keeps the Tiptap family out of `optimizeDeps`. Both traps are written up in CLAUDE.md.
+- **The editor is themed by Nuxt UI's `editor` slots in `app.config.ts`, never by Tailwind Typography.** `prose` on the editable element stacks a second content stylesheet on one that already exists, which is what put a bullet beside every checkbox and stripped the borders off tables. `prose-markdown.test.ts` round-trips every Markdown shape the app writes through a real editor and asserts the result is stable on a second pass, so a construct that stops surviving fails the suite rather than a card.
+
 ## v0.9.6 (2026-08-31)
 
 ### App
