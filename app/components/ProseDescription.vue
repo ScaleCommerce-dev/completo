@@ -412,8 +412,101 @@ onUnmounted(() => {
 :deep(img) {
   border-radius: 8px;
 }
+
+/*
+ * Tables, drawn to match the editor that writes them.
+ *
+ * Typography ships table styling, but it hangs the rules off
+ * `--tw-prose-th-borders`/`--tw-prose-td-borders` as *colours* and the app's reset
+ * has already zeroed every border width — so a saved table rendered here with no
+ * borders, no header and no outline at all, while the same table in `ProseEditor`
+ * had all three. Measured on a card: `th`/`td` border widths were 0px against the
+ * editor's 1px.
+ *
+ * The values mirror `ui.editor.slots.base` in `app.config.ts`, because the two
+ * surfaces are showing one table and a difference between them is a bug by
+ * definition. They cannot literally share a declaration — that one is Tailwind
+ * classes on ProseMirror's DOM, this is CSS on `marked`'s — so they share the
+ * semantic tokens instead, and a change to either is owed to both.
+ *
+ * `border-separate` with zero spacing so the rounded corners have something to clip
+ * and adjacent cells share one hairline rather than doubling it.
+ */
+:deep(table) {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 6px;
+  font-size: var(--text-sm);
+  margin: 1.15em 0;
+}
+:deep(th),
+:deep(td) {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--ui-border);
+  border-right: 1px solid var(--ui-border);
+}
+:deep(th) {
+  font-weight: 600;
+  background: var(--ui-bg-muted);
+  border-top: 1px solid var(--ui-border);
+}
+:deep(th:first-child),
+:deep(td:first-child) {
+  border-left: 1px solid var(--ui-border);
+}
+:deep(tr:first-child th:first-child) {
+  border-top-left-radius: 6px;
+}
+:deep(tr:first-child th:last-child) {
+  border-top-right-radius: 6px;
+}
+:deep(tr:last-child td:first-child) {
+  border-bottom-left-radius: 6px;
+}
+:deep(tr:last-child td:last-child) {
+  border-bottom-right-radius: 6px;
+}
+/* A cell's paragraph is a block like any other and would otherwise inherit the
+   prose block rhythm inside a single table row. */
+:deep(th > p),
+:deep(td > p) {
+  margin: 0;
+}
+/*
+ * Task lists, drawn to match the editor for the same reason the tables above are.
+ *
+ * `marked` emits a GFM task item as a plain `<li>` with an `<input>` in it, so
+ * typography puts its bullet in front of the checkbox — two markers for one item —
+ * and a completed task read exactly like an open one, while the editor already
+ * struck it through. Both were visible on the same card at the same time.
+ *
+ * Selected with `:has()` rather than a class, because the renderer has no hook to
+ * hang one on: the markup is whatever `marked` produced. It matches only a list item
+ * that actually contains a checkbox, so ordinary bullets are untouched.
+ */
+:deep(ul:has(> li > input[type="checkbox"])) {
+  list-style: none;
+  padding-left: 0.25rem;
+}
+:deep(li:has(> input[type="checkbox"])) {
+  display: flex;
+  align-items: flex-start;
+  padding-left: 0;
+}
+:deep(li:has(> input[type="checkbox"]:checked)) {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
 :deep(input[type="checkbox"]) {
-  margin-right: 0.35em;
+  /* Sized and nudged to sit on the first line of the label rather than on the
+     text baseline, which is where a 16px box in 23.8px leading lands. */
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.22em;
+  margin-right: 0.6em;
+  flex-shrink: 0;
   accent-color: var(--ui-primary);
 }
 

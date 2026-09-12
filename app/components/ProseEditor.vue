@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Editor } from '@tiptap/core'
+import { TextSelection } from '@tiptap/pm/state'
 import { PROSE_EXTENSIONS } from '~/utils/prose-extensions'
 
 /**
@@ -268,18 +269,54 @@ const editorProps = {
   /**
    * Ticking a checkbox must leave a caret behind.
    *
-   * The task item renders a real `<input>`, and clicking it moves focus to the input
-   * rather than into the editable text — so the box toggles but the editor has no
-   * visible caret until the next keystroke drags focus back. Returning focus on the
-   * next frame (after ProseMirror has finished its own click handling) restores the
-   * selection the click implied.
+   * The task item renders a real `<input>`, so clicking it moves focus to the input
+   * rather than into the editable text: the box toggles and the editor has no caret
+   * until the next keystroke drags focus back.
+   *
+   * Two things had to be right. It hangs off `handleDOMEvents` rather than
+   * `handleClick`, because the checkbox sits in the item's non-editable label and
+   * ProseMirror never reports a click there as a document click at all — the
+   * `handleClick` version of this simply never ran. And focusing the editor is not
+   * enough by itself: that restores focus without restoring a *selection*, so there
+   * is still nothing to draw. The position comes from the checkbox via `posAtDOM`,
+   * and `TextSelection.near` walks from there to the closest place text can go, which
+   * is the item's own text.
+   *
+   * On the next frame, so the task item finishes its own toggle first.
    */
-  handleClick: (_view: unknown, _pos: number, event: MouseEvent) => {
-    const target = event.target as HTMLElement | null
-    if (target?.tagName !== 'INPUT') return false
+  handleDOMEvents: {
+    click: (_view: unknown, event: Event) => {
+      const target = event.target as HTMLElement | null
+      if (target?.tagName !== 'INPUT') return false
 
-    requestAnimationFrame(() => editor.value?.commands.focus())
-    return false
+      // The checkbox itself has no document position — it lives in the item's
+      // non-editable label, and `posAtDOM` throws on it. The item's paragraph is
+      // real content, so that is what gets asked.
+      const text = target.closest('li')?.querySelector('p')
+      if (!text) return false
+
+      requestAnimationFrame(() => {
+        const current = editor.value
+        if (!current) return
+
+        let at: number
+        try {
+          at = current.view.posAtDOM(text, 0)
+        } catch {
+          return // Detached mid-teardown; leave the selection alone.
+        }
+
+        const { state } = current
+        const size = state.doc.content.size
+        // End of that line rather than its start: ticking a box and typing should
+        // continue the item, not push the caret in front of what is already there.
+        const end = state.doc.resolve(Math.min(Math.max(at, 0), size)).end()
+        current.view.dispatch(state.tr.setSelection(TextSelection.near(state.doc.resolve(Math.min(end, size)), -1)))
+        current.view.focus()
+      })
+
+      return false
+    }
   },
 
   /**
