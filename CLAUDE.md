@@ -51,6 +51,16 @@ The suite **cannot see the client**. Upgrading nuxt 4.4.6 → 4.5.1 split the tr
 
 Two integration-suite traps: use `fetch(url('/path'))` when you need to inspect a non-2xx response, because the shared `$fetch` is ofetch and throws on one; and **`process.env.NODE_ENV` is inlined at build**, so runtime gating needs a custom env var.
 
+## Dependencies
+
+**One resolved version is not one bundled instance, and only the first is testable.** Nuxt UI *bundles* Tiptap — `UEditor` imports `@tiptap/core`, `@tiptap/pm`, `@tiptap/vue-3` and a dozen extensions from inside its own package, none of it hoisted — so our own mention node forces those packages into `dependencies` as well. `dependency-singletons.test.ts` guards the lockfile half: one resolved version per `@tiptap/*` and per stateful Vue package, and no range on our side that could drift off Nuxt UI's. Hence exact pins, never carets.
+
+It **cannot see the bundler half.** With a single resolved version, Vite still pre-bundles our direct imports separately from Nuxt UI's internal ones and hands out two module instances. ProseMirror says so when it notices — `Adding different instances of a keyed plugin` — but `useEditor` builds its editor inside `onMounted`, so the usual symptom is an editor-shaped box containing nothing, with **no error anywhere**. That is why `nuxt.config.ts` keeps the Tiptap family out of `optimizeDeps`; a bare `<UEditor>` on a scratch page is the fastest way to tell this apart from a bug in our own code.
+
+**`nuxt` and `@nuxt/ui` must agree on the `@unhead/vue` major.** They declare it independently, and when they disagree `@nuxt/ui`'s colors plugin injects a head nobody provided: every route 500s with `undefined is not an object (evaluating 'head.hooks')` before the app mounts, which looks nothing like a dependency problem. Measured: nuxt 4.5.1 wanted `^3.2.3` while @nuxt/ui 4.10.0 wanted `^2.1.15`, and the committed lockfile carried both — so the app kept working only until someone reinstalled. Check both sides before bumping either.
+
+**`pnpm update` does not re-resolve a transitive range it thinks is already satisfied.** After that bump it left ten `@tiptap/*` packages on the old version and `@tiptap/vue-3` present twice under two different cores, while reporting "Already up to date". Deleting `pnpm-lock.yaml` and reinstalling is what actually re-resolves. Note also that a `minimumReleaseAge` policy refuses packages published within the last few days.
+
 ## Core model
 
 **Statuses and cards belong to projects, not views.** Boards and lists are views; cards have a `projectId` + `statusId` and reach a board through the `boardColumns` junction. Removing a column unlinks it — cards survive. **Deleting a status reassigns its cards rather than cascading:** `statuses/[id].delete.ts` refuses a non-empty status with 409 unless `moveToStatusId` names another status in the project, and refuses the project's last status outright. The FK cascade on `cards.statusId` stays, because project deletion reaches cards through both `projectId` and `statusId` and SQLite orders neither — so the handler is the *only* guard, and `tests/integration/statuses/delete.test.ts` counts cards after the fact rather than reading it.

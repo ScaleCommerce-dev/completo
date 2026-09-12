@@ -71,11 +71,11 @@ async function register() {
 </script>
 
 <template>
-  <!-- Check your email confirmation -->
   <div
     v-if="registrationComplete"
     class="auth-glass"
   >
+    <!-- Check your email confirmation -->
     <div class="px-7 py-7 flex flex-col items-center gap-4 text-center">
       <div class="w-12 h-12 rounded-full bg-success/15 flex items-center justify-center">
         <UIcon
@@ -102,11 +102,11 @@ async function register() {
     </div>
   </div>
 
-  <!-- Registration form -->
   <div
     v-else
     class="auth-glass"
   >
+    <!-- Registration form -->
     <div class="px-7 pt-7 pb-2">
       <h2 class="text-base font-bold text-center tracking-heading">
         Create your account

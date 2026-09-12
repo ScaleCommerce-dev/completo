@@ -91,6 +91,30 @@ export default defineNuxtConfig({
       // and the runtime image copies `.output` without Vite or this file:
       // verified by building with this set and grepping the output for it.
       allowedHosts: ['.0ploy.dev']
+    },
+
+    /**
+     * Keep Tiptap's Vue bindings out of Vite's dependency pre-bundle.
+     *
+     * `useEditor` builds the editor inside `onMounted`. Pre-bundled, `@tiptap/vue-3`
+     * links against the optimizer's copy of Vue rather than the app's, so that hook
+     * registers on an instance nobody mounts — it never fires, `editor` stays null,
+     * and `UEditor` renders its empty `v-if` branch. No error, no warning: the card
+     * simply shows an editor-shaped box with nothing in it.
+     *
+     * Excluding it makes Vite resolve it through the normal module graph, where Vue
+     * is already deduped, so both halves agree on one Vue.
+     */
+    optimizeDeps: {
+      exclude: [
+        '@tiptap/core',
+        '@tiptap/pm',
+        '@tiptap/vue-3',
+        '@tiptap/extension-list',
+        '@tiptap/extension-table',
+        '@tiptap/markdown',
+        '@tiptap/starter-kit'
+      ]
     }
   },
 
