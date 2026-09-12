@@ -105,12 +105,34 @@ function onEditorUpdate({ transaction }: { transaction: { docChanged: boolean } 
   maybeOpenMention()
 }
 
+/**
+ * A counter that ticks on every transaction, so the toolbar can be reactive.
+ *
+ * `useEditor` hands back a `shallowRef` whose *identity* never changes — a
+ * ProseMirror transaction mutates the editor in place. Vue therefore sees nothing
+ * when the caret moves, and anything derived from `editor.state` is computed once
+ * and then frozen: `UEditorToolbar` asks its handlers `isActive`/`isDisabled` during
+ * render, so bold stays unlit inside bold text and the link button stays disabled
+ * over a selection. Reading this counter in `toolbarItems` gives the toolbar a new
+ * array per transaction, which is what makes it re-render and ask again.
+ */
+const revision = ref(0)
+
+function onEditorTransaction() {
+  revision.value++
+}
+
 watch(editor, (instance, previous) => {
   previous?.off('update', onEditorUpdate)
+  previous?.off('transaction', onEditorTransaction)
   instance?.on('update', onEditorUpdate)
+  instance?.on('transaction', onEditorTransaction)
 }, { immediate: true })
 
-onBeforeUnmount(() => editor.value?.off('update', onEditorUpdate))
+onBeforeUnmount(() => {
+  editor.value?.off('update', onEditorUpdate)
+  editor.value?.off('transaction', onEditorTransaction)
+})
 
 // ─── AI ──────────────────────────────────────────────────────────────────────
 
@@ -244,6 +266,23 @@ const editorProps = {
   },
 
   /**
+   * Ticking a checkbox must leave a caret behind.
+   *
+   * The task item renders a real `<input>`, and clicking it moves focus to the input
+   * rather than into the editable text — so the box toggles but the editor has no
+   * visible caret until the next keystroke drags focus back. Returning focus on the
+   * next frame (after ProseMirror has finished its own click handling) restores the
+   * selection the click implied.
+   */
+  handleClick: (_view: unknown, _pos: number, event: MouseEvent) => {
+    const target = event.target as HTMLElement | null
+    if (target?.tagName !== 'INPUT') return false
+
+    requestAnimationFrame(() => editor.value?.commands.focus())
+    return false
+  },
+
+  /**
    * Pasted Markdown arrives rendered, not as literal asterisks.
    *
    * Tiptap's markdown package ships no paste handling at all — typing `## ` becomes
@@ -251,10 +290,15 @@ const editorProps = {
    * Given where this text comes from (a terminal, a README, another card, an agent)
    * that is the more common of the two.
    *
-   * Two cases are deliberately left to Tiptap. Clipboard HTML means the source was
-   * rich text and already carries its structure — reparsing its plain-text
-   * flattening would lose more than it gained. And inside a code block the point of
-   * pasting is that the characters survive.
+   * Two cases are left to Tiptap. Clipboard HTML means the source was rich text and
+   * already carries its structure — reparsing its plain-text flattening would lose
+   * more than it gained. Inside a code block the point of pasting is that the
+   * characters survive.
+   *
+   * A URL pasted over a selection is handled here rather than delegated. The Link
+   * extension's own `linkOnPaste` was tried and replaces the selected words with the
+   * address instead of wrapping them, which is the opposite of what pasting a link
+   * onto a word is for.
    */
   handlePaste: (_view: unknown, event: ClipboardEvent) => {
     const text = event.clipboardData?.getData('text/plain')
@@ -263,11 +307,21 @@ const editorProps = {
 
     const current = editor.value
     if (!current || current.isActive('codeBlock') || current.isActive('code')) return false
+    if (!current.state.selection.empty && isBareUrl(text)) {
+      event.preventDefault()
+      current.chain().focus().setLink({ href: text.trim() }).run()
+      return true
+    }
 
     event.preventDefault()
     current.commands.insertContent(text, { contentType: 'markdown' })
     return true
   }
+}
+
+/** A clipboard payload that is nothing but a link, so it can wrap a selection. */
+function isBareUrl(text: string): boolean {
+  return /^https?:\/\/\S+$/.test(text.trim())
 }
 
 // ─── Toolbar ─────────────────────────────────────────────────────────────────
@@ -290,7 +344,7 @@ interface ToolbarItem {
   onClick?: (e: Event) => void
 }
 
-const toolbarItems = computed<ToolbarItem[][]>(() => [
+const toolbarItems = computed<ToolbarItem[][]>(() => (revision.value, [
   [
     { kind: 'heading', level: 1, icon: 'i-lucide-heading-1', label: 'Heading 1', keys: ['meta', 'alt', '1'] },
     { kind: 'heading', level: 2, icon: 'i-lucide-heading-2', label: 'Heading 2', keys: ['meta', 'alt', '2'] },
@@ -309,14 +363,83 @@ const toolbarItems = computed<ToolbarItem[][]>(() => [
     { kind: 'blockquote', icon: 'i-lucide-text-quote', label: 'Quote' }
   ],
   [
-    { kind: 'table', icon: 'i-lucide-table', label: 'Table' },
-    // No `kind`: these open a picker of ours rather than running an editor command.
-    // `UEditor`'s own image handler is a `prompt()`, which is not a surface this app
-    // has anywhere else — and neither one can be expressed as a command anyway.
-    { icon: 'i-lucide-image', label: 'Insert image', onClick: () => openImagePicker() },
-    { icon: 'i-lucide-at-sign', label: 'Mention someone or link a card', onClick: () => openMention(false) }
+    { kind: 'table', icon: 'i-lucide-table', label: 'Insert table' }
+  ]
+]))
+
+/**
+ * Row and column controls, on a bubble that appears only inside a table.
+ *
+ * They cannot live on the main toolbar: every one of them acts on the cell the caret
+ * is in, so out of a table they would be seven permanently disabled buttons. A table
+ * also has no other way to shrink — `Backspace` in an empty row deletes the text, not
+ * the row — so without these an accidental extra row is unremovable from the editor.
+ */
+const tableToolbarItems = computed<ToolbarItem[][]>(() => [
+  [
+    { icon: 'i-lucide-between-vertical-start', label: 'Add row above', onClick: () => editor.value?.chain().focus().addRowBefore().run() },
+    { icon: 'i-lucide-between-vertical-end', label: 'Add row below', onClick: () => editor.value?.chain().focus().addRowAfter().run() },
+    { icon: 'i-lucide-between-horizontal-start', label: 'Add column before', onClick: () => editor.value?.chain().focus().addColumnBefore().run() },
+    { icon: 'i-lucide-between-horizontal-end', label: 'Add column after', onClick: () => editor.value?.chain().focus().addColumnAfter().run() }
+  ],
+  [
+    { icon: 'i-lucide-rows-3', label: 'Delete row', onClick: () => editor.value?.chain().focus().deleteRow().run() },
+    { icon: 'i-lucide-columns-3', label: 'Delete column', onClick: () => editor.value?.chain().focus().deleteColumn().run() },
+    { icon: 'i-lucide-trash-2', label: 'Delete table', onClick: () => editor.value?.chain().focus().deleteTable().run() }
   ]
 ])
+
+/** The bubble follows the caret, so it only makes sense while the caret is in a cell. */
+function inTable(): boolean {
+  return !!editor.value?.isActive('table')
+}
+
+/** Same staleness, same fix — the bubble's own buttons are plain `onClick` items. */
+const tableItems = computed(() => (revision.value, tableToolbarItems.value))
+
+// ─── Links ───────────────────────────────────────────────────────────────────
+
+/**
+ * Links get a popover rather than `UEditor`'s own handler, which is a `window.prompt`.
+ * The app has no other `prompt()` anywhere, and a prompt cannot show the address a
+ * link already has — which is most of what you open this for.
+ */
+const linkOpen = ref(false)
+const linkUrl = ref('')
+
+const linkActive = computed(() => (revision.value, !!editor.value?.isActive('link')))
+
+/** Nothing to link: no selection to wrap and no existing link to edit. */
+const linkDisabled = computed(() => {
+  void revision.value
+  const current = editor.value
+  if (!current) return true
+  return current.state.selection.empty && !current.isActive('link')
+})
+
+function openLinkPopover() {
+  linkUrl.value = (editor.value?.getAttributes('link').href as string | undefined) || ''
+  linkOpen.value = true
+}
+
+function applyLink() {
+  const href = linkUrl.value.trim()
+  const current = editor.value
+  if (!href || !current) return
+
+  // `extendMarkRange` so editing an existing link rewrites the whole thing rather
+  // than splitting it at the caret.
+  current.chain().focus().extendMarkRange('link').setLink({ href }).run()
+  linkOpen.value = false
+}
+
+function removeLink() {
+  // `preventAutolink` so the text left behind is not immediately relinked by the
+  // autolink rule that would otherwise see a bare URL and put the mark straight back.
+  editor.value?.chain().focus().extendMarkRange('link').unsetLink().setMeta('preventAutolink', true).run()
+  linkUrl.value = ''
+  linkOpen.value = false
+}
 
 // ─── Mentions ────────────────────────────────────────────────────────────────
 
@@ -511,6 +634,140 @@ defineExpose({
             </template>
           </UEditorToolbar>
 
+          <!-- Controls that open a surface instead of running a command, so they
+               anchor their own popover rather than living inside the toolbar. -->
+          <div class="shrink-0 flex items-center gap-0.5">
+            <UPopover
+              v-model:open="linkOpen"
+              :ui="{ content: 'w-80' }"
+            >
+              <UTooltip :text="linkActive ? 'Edit link' : 'Add link'">
+                <UButton
+                  icon="i-lucide-link"
+                  :active="linkActive"
+                  :disabled="linkDisabled"
+                  :aria-label="linkActive ? 'Edit link' : 'Add link'"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  @mousedown.prevent
+                  @click="openLinkPopover"
+                />
+              </UTooltip>
+              <template #content>
+                <div class="p-2 flex items-center gap-1.5">
+                  <input
+                    v-model="linkUrl"
+                    type="text"
+                    aria-label="Link address"
+                    placeholder="https://..."
+                    class="flex-1 min-w-0 text-sm text-default placeholder:text-dimmed bg-muted border border-accented rounded-md px-2 py-1.5 transition-colors"
+                    @keydown.enter.prevent="applyLink"
+                    @keydown.escape.prevent="linkOpen = false"
+                  >
+                  <UButton
+                    label="Apply"
+                    size="xs"
+                    class="shrink-0"
+                    :disabled="!linkUrl.trim()"
+                    @click="applyLink"
+                  />
+                  <UTooltip
+                    v-if="linkActive"
+                    text="Remove link"
+                  >
+                    <UButton
+                      icon="i-lucide-unlink"
+                      color="neutral"
+                      variant="ghost"
+                      size="xs"
+                      aria-label="Remove link"
+                      class="shrink-0"
+                      @click="removeLink"
+                    />
+                  </UTooltip>
+                </div>
+              </template>
+            </UPopover>
+
+            <UPopover
+              v-model:open="imagePickerOpen"
+              :ui="{ content: 'w-72' }"
+            >
+              <UTooltip text="Insert image">
+                <UButton
+                  icon="i-lucide-image"
+                  aria-label="Insert image"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  @mousedown.prevent
+                  @click="openImagePicker"
+                />
+              </UTooltip>
+              <template #content>
+                <div class="p-2">
+                  <template v-if="imageAttachments.length > 0">
+                    <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-label text-dimmed">
+                      Card Attachments
+                    </div>
+                    <div class="grid grid-cols-3 gap-1.5 mb-2">
+                      <button
+                        v-for="att in imageAttachments"
+                        :key="att.id"
+                        type="button"
+                        class="aspect-square rounded-md overflow-hidden border border-accented hover:border-primary hover:ring-1 hover:ring-primary/30 transition-colors"
+                        :title="att.originalName"
+                        @click="insertImage(att.originalName, `/api/attachments/${att.id}/download`)"
+                      >
+                        <img
+                          :src="`/api/attachments/${att.id}/download`"
+                          :alt="att.originalName"
+                          class="w-full h-full object-cover"
+                        >
+                      </button>
+                    </div>
+                    <div class="border-t border-default mb-2" />
+                  </template>
+
+                  <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-label text-dimmed">
+                    External URL
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <input
+                      v-model="imageUrlInput"
+                      type="text"
+                      aria-label="Image URL"
+                      placeholder="https://..."
+                      class="flex-1 min-w-0 text-sm text-default placeholder:text-dimmed bg-muted border border-accented rounded-md px-2 py-1.5 transition-colors"
+                      @keydown.enter.prevent="insertUrlImage"
+                      @keydown.escape.prevent="closeImagePicker"
+                    >
+                    <UButton
+                      label="Insert"
+                      size="xs"
+                      class="shrink-0"
+                      :disabled="!imageUrlInput.trim()"
+                      @click="insertUrlImage"
+                    />
+                  </div>
+                </div>
+              </template>
+            </UPopover>
+
+            <UTooltip text="Mention someone or link a card">
+              <UButton
+                icon="i-lucide-at-sign"
+                aria-label="Mention someone or link a card"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                @mousedown.prevent
+                @click="openMention(false)"
+              />
+            </UTooltip>
+          </div>
+
           <!-- The AI's own controls, in the toolbar's vocabulary rather than beside it. -->
           <div class="shrink-0 flex items-center gap-1 pl-1">
             <template v-if="aiPendingReview">
@@ -548,6 +805,29 @@ defineExpose({
             />
           </div>
         </div>
+
+        <!-- Row and column controls, only while the caret is in a cell. -->
+        <UEditorToolbar
+          :editor="instance"
+          :items="tableItems"
+          layout="bubble"
+          :should-show="inTable"
+          class="rounded-lg border border-default bg-default shadow-float p-1"
+        >
+          <template #item="{ item, onClick }">
+            <UTooltip :text="item.label">
+              <UButton
+                :icon="item.icon"
+                :aria-label="item.label"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                @mousedown.prevent
+                @click="onClick($event, item)"
+              />
+            </UTooltip>
+          </template>
+        </UEditorToolbar>
 
         <!--
           The suggestion, while it is only a suggestion.
@@ -591,61 +871,6 @@ defineExpose({
       @select="onMentionSelect"
       @close="closeMention"
     />
-
-    <UPopover
-      v-model:open="imagePickerOpen"
-      :ui="{ content: 'w-72' }"
-    >
-      <span class="absolute right-2 top-2 w-0 h-0" />
-      <template #content>
-        <div class="p-2">
-          <template v-if="imageAttachments.length > 0">
-            <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-label text-dimmed">
-              Card Attachments
-            </div>
-            <div class="grid grid-cols-3 gap-1.5 mb-2">
-              <button
-                v-for="att in imageAttachments"
-                :key="att.id"
-                type="button"
-                class="aspect-square rounded-md overflow-hidden border border-accented hover:border-primary hover:ring-1 hover:ring-primary/30 transition-colors"
-                :title="att.originalName"
-                @click="insertImage(att.originalName, `/api/attachments/${att.id}/download`)"
-              >
-                <img
-                  :src="`/api/attachments/${att.id}/download`"
-                  :alt="att.originalName"
-                  class="w-full h-full object-cover"
-                >
-              </button>
-            </div>
-            <div class="border-t border-default mb-2" />
-          </template>
-
-          <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-label text-dimmed">
-            External URL
-          </div>
-          <div class="flex items-center gap-1.5">
-            <input
-              v-model="imageUrlInput"
-              type="text"
-              aria-label="Image URL"
-              placeholder="https://..."
-              class="flex-1 min-w-0 text-sm text-default placeholder:text-dimmed bg-muted border border-accented rounded-md px-2 py-1.5 transition-colors"
-              @keydown.enter.prevent="insertUrlImage"
-              @keydown.escape.prevent="closeImagePicker"
-            >
-            <UButton
-              label="Insert"
-              size="xs"
-              class="shrink-0"
-              :disabled="!imageUrlInput.trim()"
-              @click="insertUrlImage"
-            />
-          </div>
-        </div>
-      </template>
-    </UPopover>
   </div>
 </template>
 
