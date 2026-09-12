@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
+import { execSync } from 'node:child_process'
 import { join } from 'node:path'
 import { Editor } from '@tiptap/core'
 import { Markdown } from '@tiptap/markdown'
@@ -175,5 +176,57 @@ describe('the test fixture tracks the real editor', () => {
     const names = makeEditor().extensionManager.extensions.map(e => e.name)
 
     expect(names).toEqual(expect.arrayContaining(['table', 'taskList', 'taskItem', 'completoMention']))
+  })
+})
+
+/**
+ * The AI writes into this field, so the prompts have to describe this editor.
+ *
+ * Anything the editor cannot represent is discarded the *next* time someone opens
+ * the card, not when the text is generated — so an AI-written `<details>` block
+ * renders fine, ships, and vanishes a week later during an unrelated typo fix. The
+ * system prompts carry a formatting contract to stop that at the source
+ * (`MARKDOWN_CONTRACT` in `server/utils/ai-prompts.ts`).
+ *
+ * A prompt rule nobody checks is a guess with a long shelf life. These tests hold it
+ * to the editor: every construct the contract bans has to actually fail here, so if a
+ * future Tiptap starts supporting one, this fails and the rule gets relaxed rather
+ * than quietly outliving its reason.
+ */
+describe('the AI formatting contract is earned', () => {
+  /** Each entry is a construct the contract tells the model never to emit. */
+  const BANNED: Array<[string, string]> = [
+    ['an HTML element', 'press <kbd>Esc</kbd> to close'],
+    ['a subscript', 'the formula H<sub>2</sub>O'],
+    ['a details block', '<details><summary>More</summary>\n\nhidden\n\n</details>'],
+    ['an underline', 'some <u>underlined</u> words'],
+    ['an HTML comment', '<!-- note to self -->\n\nvisible text'],
+    ['a footnote', 'text with a footnote[^1]\n\n[^1]: the note']
+  ]
+
+  it.each(BANNED)('%s does not survive, which is why the contract forbids it', (_name, markdown) => {
+    const editor = makeEditor()
+    editor.commands.setContent(markdown, { contentType: 'markdown' })
+
+    expect(normalise(editor.getMarkdown())).not.toBe(normalise(markdown))
+  })
+
+  it('is carried by every AI endpoint that builds a system prompt', () => {
+    // Derived from the filesystem rather than listed, so an endpoint added later is
+    // covered the day it arrives instead of the day someone notices its output
+    // losing tables.
+    const endpoints = execSync(`find ${ROOT}/server/api -path '*/ai/*' -name '*.post.ts'`, { encoding: 'utf8' })
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .filter(file => readFileSync(file, 'utf8').includes('role: \'system\''))
+
+    expect(endpoints.length, 'no AI endpoints found — this guard would pass on nothing').toBeGreaterThan(0)
+
+    const missing = endpoints
+      .filter(file => !readFileSync(file, 'utf8').includes('${MARKDOWN_CONTRACT}'))
+      .map(file => file.replace(`${ROOT}/`, ''))
+
+    expect(missing, 'an AI surface writing Markdown without telling the model what the editor keeps').toEqual([])
   })
 })

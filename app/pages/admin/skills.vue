@@ -262,6 +262,13 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
               <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{tags}</code>
               <code class="px-1 py-0.5 rounded-md bg-elevated text-2xs">{priority}</code>
             </p>
+            <!-- Skills are the *user* half of the request; the system prompt is
+                 always applied and already states what Markdown the editor can
+                 store. Saying so here stops a skill from restating those rules —
+                 or contradicting them, which is the version that loses tables. -->
+            <p class="text-xs text-dimmed mt-1">
+              Formatting rules are added automatically. A skill only has to say what to write.
+            </p>
           </div>
 
           <UAlert
