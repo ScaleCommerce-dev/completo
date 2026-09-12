@@ -1393,9 +1393,10 @@ describe('one button vocabulary', () => {
     /** Each entry is an argument, not a suppression. */
     const HAND_ROLLED: Record<string, string> = {
       'app/components/DescriptionEditor.vue':
-        'the AI decline button, inside the editor toolbar — the whole editor is '
-        + 'being replaced by the WYSIWYG rewrite (CF-7), which owns its toolbar '
-        + 'vocabulary. Re-theming it here would be work thrown away twice.'
+        'the AI decline button, inside the editor toolbar. CF-7 replaced the '
+        + 'description editor with ProseEditor, whose toolbar is UButton '
+        + 'throughout; this file is now only the *comment* composer, and CF-526 '
+        + 'deletes it. Re-theming it here would be work thrown away twice.'
     }
 
     const ramp = sizeRamp()

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { marked } from 'marked'
+import { Marked } from 'marked'
 import DOMPurify from 'dompurify'
 
 const props = defineProps<{
@@ -7,15 +7,31 @@ const props = defineProps<{
   class?: string
 }>()
 
-// Guard against duplicate extension registration (HMR)
-const _markedConfigured = '__markedMentionConfigured'
-if (!(globalThis as Record<string, unknown>)[_markedConfigured]) {
-  marked.setOptions({
-    breaks: true,
-    gfm: true
-  })
+/**
+ * A `marked` instance of our own, never the module singleton.
+ *
+ * `marked`'s default export is shared process-wide, and `marked.use()` mutates it
+ * permanently. That was fine while this component was the only thing in the app that
+ * parsed Markdown. It stopped being fine when the editor arrived: `@tiptap/markdown`
+ * also defaults to the singleton, and registers a renderer extension for every node
+ * type it knows — `taskList` among them. Once a `ProseEditor` had been created
+ * anywhere on the page, this component's `parse()` walked into Tiptap's registry and
+ * threw `Token with "taskList" type was not found`, so *rendering a card that
+ * contained a checklist* failed — after an edit had been opened and closed, never
+ * before, which is about as confusing as a bug gets.
+ *
+ * `ProseEditor` passes Tiptap its own instance for the same reason, from the other
+ * side. Neither of them has any business reaching into shared global state, and with
+ * both isolated the collision cannot come back through a third caller either.
+ *
+ * Being per-module also retires the `globalThis` HMR flag this block used to carry:
+ * a reload builds a fresh instance instead of stacking another extension onto a
+ * singleton that never resets.
+ */
+const renderer = new Marked({ breaks: true, gfm: true })
 
-  const mentionExtension = {
+renderer.use({
+  extensions: [{
     name: 'mention',
     level: 'inline' as const,
     start(src: string) { return src.indexOf('@') },
@@ -32,15 +48,15 @@ if (!(globalThis as Record<string, unknown>)[_markedConfigured]) {
         }
       }
     },
-    renderer(token: { name: string }) {
-      const escaped = token.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    renderer(token) {
+      // `Marked`'s own types hand the renderer a generic token, unlike the loosely
+      // typed module singleton this used to register against.
+      const name = String((token as { name?: string }).name ?? '')
+      const escaped = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       return `<span class="mention">@${escaped}</span>`
     }
-  }
-
-  marked.use({ extensions: [mentionExtension] })
-  ;(globalThis as Record<string, unknown>)[_markedConfigured] = true
-}
+  }]
+})
 
 /**
  * Force rel="noopener noreferrer" on all links.
@@ -100,7 +116,7 @@ if (!(globalThis as Record<string, unknown>)[_linkHookInstalled]) {
 
 const rendered = computed(() => {
   if (!props.content) return ''
-  const raw = marked.parse(props.content) as string
+  const raw = renderer.parse(props.content) as string
   return DOMPurify.sanitize(raw, {
     ALLOWED_TAGS: [
       'p', 'br', 'strong', 'em', 'del', 'a', 'code', 'pre', 'span',

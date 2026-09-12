@@ -895,3 +895,23 @@
   .group:hover > .lift { transform: none; }
   .sortable-drag { transform: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE EDITOR'S BODY
+
+   `ProseEditor` needs its height from props — the card panel caps the editor at
+   360px because it sits in a scrolling column beside other sections, the card
+   page gives it 240px of floor and no ceiling — and Tailwind cannot compile a
+   utility from a runtime value. `UEditor` renders the editable element itself and
+   takes a class, not a style, so the numbers arrive as custom properties set on
+   the shell and are read here.
+
+   On the editable element rather than a wrapper: it is the thing that grows with
+   the text, so it has to be the thing that scrolls.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.prose-editor-body {
+  min-height: var(--prose-editor-min, 7.5rem);
+  max-height: var(--prose-editor-max, none);
+  overflow-y: auto;
+}

@@ -147,6 +147,70 @@ export default defineAppConfig({
       }
     },
 
+    // The editor's content styling, which Nuxt UI's `editor` theme deliberately
+    // leaves incomplete: it styles what its own extensions render, and tables and
+    // task lists arrive with extensions we add ourselves (`PROSE_EXTENSIONS`). So
+    // without this block a GFM table has no borders and a checklist draws a bullet
+    // beside every checkbox with the text on the next line.
+    //
+    // Adapted from the official Nuxt UI editor template, which puts the same rules
+    // in the same place, with its raw palette swapped for our semantic tokens.
+    //
+    // Do **not** add Tailwind Typography's `prose` to this element instead. It was
+    // tried: two complete stylesheets on one element is what produced the bulleted
+    // checkboxes and the borderless tables in the first place. See `ProseEditor`.
+    editor: {
+      slots: {
+        base: [
+          // Tables. `border-separate` with zero spacing, so the rounded corners
+          // below have something to clip and adjacent cells share one hairline.
+          '[&_table]:w-full [&_table]:border-separate [&_table]:border-spacing-0 [&_table]:rounded-md [&_table]:my-5',
+          '[&_th]:py-2 [&_th]:px-3 [&_th]:font-semibold [&_th]:text-sm [&_th]:text-left [&_th]:bg-muted [&_th]:border-t [&_th]:border-b [&_th]:border-e [&_th]:first:border-s [&_th]:border-default',
+          '[&_td]:py-2 [&_td]:px-3 [&_td]:text-sm [&_td]:text-left [&_td]:border-b [&_td]:border-e [&_td]:first:border-s [&_td]:border-default',
+          // A cell's paragraph is a block like any other and would otherwise
+          // inherit the editor's 20px block rhythm inside a 32px row.
+          '[&_th_p]:my-0 [&_th_p]:leading-5 [&_td_p]:my-0 [&_td_p]:leading-5',
+          '[&_td_ul]:my-0 [&_td_ol]:my-0 [&_td_li]:my-0.5',
+          '[&_tr:first-child_th:first-child]:rounded-tl-md [&_tr:first-child_th:last-child]:rounded-tr-md [&_tr:last-child_td:first-child]:rounded-bl-md [&_tr:last-child_td:last-child]:rounded-br-md',
+          // ProseMirror's own cell selection, which is invisible without this and
+          // is why clicking across a table felt like landing somewhere unmarked.
+          '[&_.selectedCell]:bg-primary/10 [&_.selectedCell]:ring-2 [&_.selectedCell]:ring-primary [&_.selectedCell]:ring-inset',
+
+          // Task lists. The bullet has to go explicitly: the theme's `[&_ul]:list-disc`
+          // has no idea this `ul` is a checklist.
+          '[&_ul[data-type=taskList]]:list-none [&_ul[data-type=taskList]]:ps-1',
+          '[&_ul[data-type=taskList]_li]:flex [&_ul[data-type=taskList]_li]:items-start [&_ul[data-type=taskList]_li]:ps-0',
+          '[&_ul[data-type=taskList]_li>div>p]:my-0',
+          '[&_ul[data-type=taskList]_li_label]:inline-flex [&_ul[data-type=taskList]_li_label]:pr-2.5 [&_ul[data-type=taskList]_li_label]:pt-1',
+          '[&_ul[data-type=taskList]_li_label_input]:appearance-none [&_ul[data-type=taskList]_li_label_input]:size-4 [&_ul[data-type=taskList]_li_label_input]:rounded-sm [&_ul[data-type=taskList]_li_label_input]:ring [&_ul[data-type=taskList]_li_label_input]:ring-inset [&_ul[data-type=taskList]_li_label_input]:ring-accented [&_ul[data-type=taskList]_li_label_input]:bg-center',
+          '[&_ul[data-type=taskList]_li_label_input:checked]:bg-primary [&_ul[data-type=taskList]_li_label_input:checked]:ring-primary [&_ul[data-type=taskList]_li_label_input:checked]:bg-[url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTIwIDZMOSAxN2wtNS01Ii8+PC9zdmc+)] dark:[&_ul[data-type=taskList]_li_label_input:checked]:bg-[url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTIwIDZMOSAxN2wtNS01Ii8+PC9zdmc+)]',
+          '[&_ul[data-type=taskList]_li[data-checked=true]>div>p]:line-through [&_ul[data-type=taskList]_li[data-checked=true]>div>p]:opacity-50',
+
+          // Headings, matched to what the *renderer* draws rather than left at the
+          // theme's defaults. Nuxt UI sizes them `text-3xl`/`text-2xl`/`text-xl`, and
+          // this app has overridden `--text-2xl` and `--text-3xl` into the display
+          // tier (26/32/38, `font-display`) — which is banned on the card panel, and
+          // which put a 26px h2 in a 360px-tall editor. The renderer runs Tailwind
+          // Typography at `prose-sm` on a 14px body, giving 30 / 20 / 18 / 14; those
+          // are the numbers to hit, because an editor whose heading changes size on
+          // save is not showing you what you get.
+          //
+          // 30px and 18px are off the app's closed working scale on purpose: prose has
+          // its own scale, set by typography and already shipped by `ProseDescription`.
+          // Mirroring it here is what keeps the two surfaces agreeing.
+          '[&_h1]:text-[1.875rem] [&_h2]:text-xl [&_h3]:text-[1.125rem] [&_h4]:text-base [&_h5]:text-base [&_h6]:text-base',
+
+          // The toolbar wraps rather than clipping: the card panel is narrower than
+          // the button row, and the AI control sits after it.
+          // (see ProseEditor for the row itself)
+
+          // The mention pill, so a mention looks the same being written as it does
+          // once saved — `ProseDescription` paints the same shape for the renderer.
+          '[&_.mention]:text-primary [&_.mention]:font-semibold [&_.mention]:bg-primary/8 [&_.mention]:rounded-full [&_.mention]:px-1.5 [&_.mention]:py-0.5 [&_.mention]:whitespace-nowrap'
+        ]
+      }
+    },
+
     // Menus and popovers share one floating surface.
     dropdownMenu: {
       slots: {

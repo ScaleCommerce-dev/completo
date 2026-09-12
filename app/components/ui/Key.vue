@@ -39,6 +39,18 @@ withDefaults(defineProps<{
 /** Only the keys whose glyph the fonts lack. Anything else keeps its character. */
 const KEY_ICONS: Record<string, string> = {
   meta: 'i-lucide-command',
+  /**
+   * ⌥ (U+2325) is the same class of technical symbol as ⌘ (U+2318) — a Mac
+   * modifier glyph, not a letter — and neither font ships it. It arrived with the
+   * editor's heading shortcuts (⌘⌥1/2/3), which are the app's first chord to use
+   * Option at all.
+   *
+   * Like `meta`, this draws the Mac glyph on every platform, where `UKbd` would
+   * spell out "Alt" off the Mac. That is the existing trade rather than a new one:
+   * the app states its chords in Mac notation throughout, and a chip that says ⌘
+   * beside one that says "Alt" would be the inconsistency worth avoiding.
+   */
+  alt: 'i-lucide-option',
   enter: 'i-lucide-corner-down-left',
   arrowup: 'i-lucide-arrow-up',
   arrowdown: 'i-lucide-arrow-down',

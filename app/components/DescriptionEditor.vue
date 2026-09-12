@@ -95,67 +95,15 @@ watch(description, (value) => {
 })
 
 // ─── Mention ───
+/**
+ * The picker itself is `MentionPicker` — search, debounce, keyboard nav and the
+ * results list all live there, because `ProseEditor` needs the same box and a
+ * second copy of it would drift. What stays here is the half that is specific to a
+ * textarea: where the `@` was, and how to splice markdown around it.
+ */
 const mentionActive = ref(false)
 const mentionAnchorPos = ref(-1)
 const mentionCursorPos = ref(0)
-const mentionSearchQuery = ref('')
-const mentionSearchInput = ref<HTMLInputElement>()
-const mentionIndex = ref(0)
-const mentionUserResults = ref<Array<{ id: string, name: string, email?: string }>>([])
-const mentionCardResults = ref<Array<{ id: number, title: string }>>([])
-
-let mentionSearchTimeout: ReturnType<typeof setTimeout> | null = null
-
-/**
- * Every path that *ends* a mention already clears this — picking a result,
- * closing the menu, typing past the trigger. Unmount was the one that did not,
- * and it is the likeliest: the editor closes on Escape or Cancel while a search
- * typed 300ms ago is still pending, and the callback then fetches and assigns
- * into a component that is gone.
- */
-onBeforeUnmount(() => {
-  if (mentionSearchTimeout) clearTimeout(mentionSearchTimeout)
-})
-
-const mentionAllResults = computed(() => [
-  ...mentionUserResults.value.map(u => ({ ...u, _type: 'user' as const })),
-  ...mentionCardResults.value.map(c => ({ ...c, _type: 'card' as const }))
-])
-
-watch(mentionSearchQuery, (q) => {
-  if (mentionSearchTimeout) clearTimeout(mentionSearchTimeout)
-  const trimmed = q.trim()
-  const members = props.members || []
-
-  if (trimmed.length === 0) {
-    mentionUserResults.value = members.slice(0, 5)
-    mentionCardResults.value = []
-    mentionIndex.value = 0
-    return
-  }
-
-  if (trimmed.length === 1) {
-    const lower = trimmed.toLowerCase()
-    mentionUserResults.value = members
-      .filter(m => m.name.toLowerCase().includes(lower) || m.email?.toLowerCase().includes(lower))
-      .slice(0, 5)
-    mentionCardResults.value = []
-    mentionIndex.value = 0
-    return
-  }
-
-  mentionSearchTimeout = setTimeout(async () => {
-    const [users, cards] = await Promise.all([
-      $fetch<Array<{ id: string, name: string, email?: string }>>('/api/users/search', { params: { q: trimmed } }).catch(() => [] as Array<{ id: string, name: string, email?: string }>),
-      props.projectSlug
-        ? $fetch<Array<{ id: number, title: string }>>(`/api/projects/${props.projectSlug}/cards/search`, { params: { q: trimmed } }).catch(() => [] as Array<{ id: number, title: string }>)
-        : Promise.resolve([] as Array<{ id: number, title: string }>)
-    ])
-    mentionUserResults.value = users
-    mentionCardResults.value = cards
-    mentionIndex.value = 0
-  }, 200)
-})
 
 function openMention(fromTyping = false) {
   const el = editorRef.value?.textareaEl
@@ -166,22 +114,12 @@ function openMention(fromTyping = false) {
     mentionAnchorPos.value = -1
     mentionCursorPos.value = el.selectionStart
   }
-  mentionSearchQuery.value = ''
-  mentionIndex.value = 0
-  mentionUserResults.value = (props.members || []).slice(0, 5)
-  mentionCardResults.value = []
   mentionActive.value = true
-  nextTick(() => mentionSearchInput.value?.focus())
 }
 
 function closeMention() {
-  if (mentionSearchTimeout) clearTimeout(mentionSearchTimeout)
   editorRef.value?.textareaEl?.focus()
   mentionActive.value = false
-  mentionSearchQuery.value = ''
-  mentionUserResults.value = []
-  mentionCardResults.value = []
-  mentionIndex.value = 0
 }
 
 /**
@@ -223,51 +161,11 @@ function selectMention(item: { _type: 'user' | 'card', id: string | number, name
 
   description.value = before + mentionText + after
   const newPos = before.length + mentionText.length
-  if (mentionSearchTimeout) clearTimeout(mentionSearchTimeout)
   el.focus()
   mentionActive.value = false
-  mentionSearchQuery.value = ''
-  mentionUserResults.value = []
-  mentionCardResults.value = []
-  mentionIndex.value = 0
   nextTick(() => {
     el.setSelectionRange(newPos, newPos)
   })
-}
-
-function onMentionKeydown(e: KeyboardEvent) {
-  const results = mentionAllResults.value
-  if (e.key === 'Escape') {
-    // Same contract as onTextareaKeydown: Esc dismisses only this popover and must not
-    // travel on to the dialog. preventDefault carries it today; stopPropagation is the
-    // belt to that braces.
-    e.preventDefault()
-    e.stopPropagation()
-    closeMention()
-    return
-  }
-  if (e.key === 'ArrowDown') {
-    e.preventDefault()
-    if (results.length > 0) {
-      mentionIndex.value = (mentionIndex.value + 1) % results.length
-    }
-    return
-  }
-  if (e.key === 'ArrowUp') {
-    e.preventDefault()
-    if (results.length > 0) {
-      mentionIndex.value = (mentionIndex.value - 1 + results.length) % results.length
-    }
-    return
-  }
-  if (e.key === 'Enter') {
-    e.preventDefault()
-    const selected = results[mentionIndex.value]
-    if (results.length > 0 && selected) {
-      selectMention(selected)
-    }
-    return
-  }
 }
 
 /**
@@ -529,77 +427,15 @@ defineExpose({
       </p>
     </template>
     <template #after-textarea>
-      <div
+      <MentionPicker
         v-if="mentionActive"
-        class="absolute top-1 left-2 right-2 z-20 rounded-lg border border-default bg-default shadow-float overflow-hidden"
-      >
-        <div class="relative border-b border-default focus-within:border-primary">
-          <UIcon
-            name="i-lucide-search"
-            class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-dimmed"
-          />
-          <input
-            ref="mentionSearchInput"
-            v-model="mentionSearchQuery"
-            aria-label="Search members or cards to mention"
-            placeholder="Search members or cards..."
-            class="w-full pl-8 pr-3 py-2.5 text-sm text-default placeholder:text-dimmed bg-transparent border-0"
-            @keydown="onMentionKeydown"
-          >
-        </div>
-        <div class="max-h-[240px] overflow-y-auto">
-          <div v-if="mentionUserResults.length > 0">
-            <div class="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-label text-dimmed">
-              Members
-            </div>
-            <button
-              v-for="(user, i) in mentionUserResults"
-              :key="'u-' + user.id"
-              type="button"
-              class="w-full flex items-center gap-2.5 px-3 py-1.5 text-left text-sm transition-colors"
-              :class="i === mentionIndex
-                ? 'bg-primary/10 text-primary'
-                : 'text-default hover:bg-elevated'"
-              @mousedown.prevent
-              @click="selectMention({ ...user, _type: 'user' })"
-            >
-              <UiAvatar
-                :alt="user.name"
-                size="2xs"
-              />
-              <span class="font-medium truncate">{{ user.name }}</span>
-              <span class="ml-auto text-xs text-dimmed truncate">{{ user.email }}</span>
-            </button>
-          </div>
-          <div v-if="mentionCardResults.length > 0">
-            <div class="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-label text-dimmed">
-              Cards
-            </div>
-            <button
-              v-for="(c, i) in mentionCardResults"
-              :key="'c-' + c.id"
-              type="button"
-              class="w-full flex items-center gap-2.5 px-3 py-1.5 text-left text-sm transition-colors"
-              :class="(mentionUserResults.length + i) === mentionIndex
-                ? 'bg-primary/10 text-primary'
-                : 'text-default hover:bg-elevated'"
-              @mousedown.prevent
-              @click="selectMention({ ...c, _type: 'card' })"
-            >
-              <span class="font-mono text-xs font-semibold text-dimmed bg-elevated px-1.5 py-0.5 rounded-md shrink-0">
-                {{ projectKey }}-{{ c.id }}
-              </span>
-              <span class="truncate">{{ c.title }}</span>
-            </button>
-          </div>
-          <div
-            v-if="mentionUserResults.length === 0 && mentionCardResults.length === 0 && mentionSearchQuery.trim().length >= 2"
-            class="px-3 py-3 text-xs text-dimmed italic text-center"
-          >
-            No matches found
-          </div>
-        </div>
-      </div>
+        class="absolute top-1 left-2 right-2 z-20"
+        :members="members"
+        :project-slug="projectSlug"
+        :project-key="projectKey"
+        @select="selectMention"
+        @close="closeMention"
+      />
     </template>
   </MarkdownEditor>
 </template>

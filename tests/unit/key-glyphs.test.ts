@@ -35,8 +35,10 @@ const SURFACES = [...vueFiles('app/components'), ...vueFiles('app/pages'), ...vu
  * smudge, and each browser drew a different thing. No font stack fixed it
  * either: `system-ui` covers ⌘ and the arrows but still misses ↵.
  *
- * So every key goes through `UiKey`, which substitutes an icon for the six the
- * fonts lack and leaves letters as letters.
+ * So every key goes through `UiKey`, which substitutes an icon for the ones the
+ * fonts lack and leaves letters as letters. (⌥ joined them with the editor's
+ * heading shortcuts — added by analogy with ⌘ rather than by its own measurement,
+ * which the note in `UiKey` says out loud.)
  */
 describe('every keyboard key is drawn rather than typed', () => {
   /**
@@ -65,7 +67,7 @@ describe('every keyboard key is drawn rather than typed', () => {
   it('substitutes an icon for exactly the keys the fonts lack', () => {
     const key = readFileSync(join(ROOT, KEY_COMPONENT), 'utf8')
 
-    for (const name of ['meta', 'enter', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright']) {
+    for (const name of ['meta', 'alt', 'enter', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright']) {
       expect(key, name).toMatch(new RegExp(`${name}: 'i-lucide-`))
     }
   })
@@ -79,8 +81,8 @@ describe('every keyboard key is drawn rather than typed', () => {
    * press and the return key inserts a newline — while `UiSaveBar` hid it. That
    * split was not a decision, it was the age of each call site.
    *
-   * Only the meta+enter pair is claimed. `MarkdownEditor` draws ⌘B / ⌘I / ⌘E in
-   * tooltips, which is a different statement — the key a *format* is bound to,
+   * Only the meta+enter pair is claimed. The editors draw ⌘B / ⌘I / ⌘E and ⌘⌥1/2/3
+   * in tooltips, which is a different statement — the key a *format* is bound to,
    * not the chord that commits a form.
    */
   it('assembles the commit chord in exactly one place', () => {

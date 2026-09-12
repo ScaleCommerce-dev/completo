@@ -946,7 +946,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
       >
         <!-- Create mode: always show editor -->
         <template v-if="!isEdit">
-          <DescriptionEditor
+          <ProseEditor
             ref="descriptionEditorRef"
             v-model="description"
             :title="title"

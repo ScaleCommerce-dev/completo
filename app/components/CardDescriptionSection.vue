@@ -71,7 +71,7 @@ defineExpose({ startEditing: () => editorRef.value?.startEditing() })
       @discard="emit('cancel')"
     />
 
-    <DescriptionEditor
+    <ProseEditor
       ref="editorRef"
       v-model="description"
       :title="title"

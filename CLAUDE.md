@@ -115,6 +115,8 @@ Each of these was a live vulnerability, and none has a code-level signal:
 
 `overlay-forms.test.ts` derives the host of every overlay form from `app/**/*.vue`, and fails on a second `USlideover`, any `UDrawer`, or a raw `<UModal>` outside `ui/Modal.vue`. Its `MIGRATION_OWED` list is a debt list, not an exemption list: it asserts both directions, so migrating a file and leaving its entry behind fails too. Menus (`UPopover`, `UDropdownMenu`) are a separate vocabulary and deliberately unguarded — they attach to their trigger, carry no title, and commit nothing.
 
+**The editor is styled by Nuxt UI's `editor` theme, never by `prose`.** `UEditor` ships a complete content stylesheet for ProseMirror's DOM — headings, lists, code, quotes, images, selection — so adding Tailwind Typography on top puts two rulesets on one element: measured, that gives task lists a bullet beside the checkbox with the label on the next line, and tables no borders. Tables and task lists are the gap, because they arrive with extensions Nuxt UI does not bundle; they are themed in `app.config.ts` under `ui.editor.slots.base`, which is where the official template puts them too. Heading sizes are pinned there as well: the theme reaches for `text-2xl`/`text-3xl`, which this app has redefined as the display tier that the panel bans, so they are matched to what `ProseDescription` renders instead — an editor whose heading changes size on save is not WYSIWYG.
+
 Reach for `app/components/ui/*` and `FieldMenu` before hand-rolling; Nuxt UI v4 is fully MIT, so `UEmpty`, `UUser`, `UAlert`, `UKbd` and the `UDashboard*` family are all available.
 
 ## CSS traps
