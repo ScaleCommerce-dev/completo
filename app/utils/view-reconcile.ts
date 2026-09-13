@@ -43,6 +43,16 @@ export function cardBelongsToView(
  * `Object.assign` over the existing row rather than replacing it keeps object
  * identity stable, so Vue patches the existing card component instead of tearing
  * it down and replaying its entrance animation.
+ *
+ * It is also the only thing stopping a live update from destroying text someone is
+ * mid-way through typing, which is a second reason this has to stay an assignment.
+ * `CardModal` watches `props.card` shallowly and repopulates every field from it,
+ * the description included — so replacing the row here would fire that watcher and
+ * overwrite an open editor mid-sentence. Verified across two browsers: with the row
+ * mutated, an unsaved description survives another session's write to the same card
+ * while the panel's other fields still update live. Nothing in the suite covers it,
+ * because neither half can see the other — the unit project cannot mount the panel
+ * and the integration suite never renders a client.
  */
 export function applyCardUpsert<T extends ReconcileCard>(
   cards: T[],
