@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.11.0 (2026-10-13)
+
+### App
+
+- **Claude can work your board without a terminal.** Completo is now an MCP server at `/mcp`. Add it to Claude on the web, in the desktop app or on your phone as a custom connector with an API token in the request header, or to Claude Code and any other MCP client with the same URL and header, and Claude can list, search, read, create, update, move, assign, tag and comment on cards, see your tasks and create projects. Statuses, tags, members and projects go by name, a card by its ticket id, and a tag that does not exist yet is created when added. Everything runs with the token owner's permissions. Creating a token on your profile page now also shows the connector's three fields and the Claude Code command filled in, each with a copy button, for as long as the token is on screen. The README has the setup too.
+- **The board scrolls under a finger.** On an iPad or a phone, touching a card picked it up at once, so a swipe across the board or down a column moved nothing: the board could be seen but not scrolled. A card is now picked up by holding it for a moment; a swipe scrolls as it should, and a tap still opens the card. Mouse drag is unchanged.
+
 ## v0.10.0 (2026-09-13)
 
 ### Upgrading
