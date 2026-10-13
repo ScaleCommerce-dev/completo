@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 export default defineEventHandler(async (event) => {
   // Only check API/auth routes, skip static assets
   const path = getRequestURL(event).pathname
-  if (!path.startsWith('/api/') && !path.startsWith('/auth/')) return
+  if (!path.startsWith('/api/') && !path.startsWith('/auth/') && path !== '/mcp') return
 
   // Skip login/register/logout — suspension is checked at login time
   if (path === '/auth/login' || path === '/auth/register' || path === '/auth/logout'

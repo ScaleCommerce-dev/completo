@@ -180,6 +180,29 @@ COMPLETO_TOKEN=<your-dev-api-token>
 
 This overrides the global credentials in `~/.completo/.env` without modifying them. You can also use `--env-file path/to/env` for one-off overrides. Full precedence: `~/.completo/.env` → `.completo` → `.completo.local` → `--env-file` → environment variables.
 
+### Claude without a terminal (MCP)
+
+Completo is also an MCP server, so Claude on the web, in the desktop app or on your phone can read and move cards with no CLI and no code session. The endpoint is `/mcp` on your instance and it authenticates with the same API tokens as everything else.
+
+**1. Create a token** on your profile page (API Tokens).
+
+**2. Add the connector.** In Claude, open Customize > Connectors > Add custom connector:
+
+- URL: `https://completo.example.com/mcp`
+- Authentication: No sign in
+- Request headers: `Authorization` = `Bearer <your token>`
+
+On a Team or Enterprise plan an owner adds it under Organization settings > Connectors; the header there is shared by everyone who uses it, so use a token from an account whose access fits.
+
+**Claude Code and other MCP clients** take the same URL with the same header:
+
+```bash
+claude mcp add --transport http completo https://completo.example.com/mcp \
+  --header "Authorization: Bearer <your token>"
+```
+
+The tools mirror the CLI: list and search cards, read a card with its comments, create, update, move, assign and tag cards, comment, see your own tasks, and create a project. Every call runs with the token owner's permissions, exactly as the API does.
+
 ### The philosophy
 
 Your board should be empty at the end of the week. That's it. That's the philosophy. Every feature in Completo exists to help you get there faster. Everything that doesn't was never added in the first place.
