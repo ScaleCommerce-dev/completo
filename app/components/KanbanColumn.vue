@@ -160,17 +160,42 @@ const countLabel = computed(() =>
         <!-- `min-h-full`, not a fixed floor: the sortable container is the only
              element SortableJS accepts drops on, and columns stretch to board
              height — with a 4rem floor the tray below the last card (and the
-             whole dashed hint in an empty column) was dead to drops. -->
+             whole dashed hint in an empty column) was dead to drops.
+
+             On a touch screen the drag must wait for a hold. SortableJS takes
+             every touch through its own fallback path (iOS has no native touch
+             DnD, and a `touches` list routes there on any UA), and with no
+             delay that path listens to the first `touchmove` and calls
+             `preventDefault()` on it — the finger has picked the card up, and
+             the browser never gets to scroll. Cards cover nearly all of a
+             column, so on an iPad the board could not be scrolled on either
+             axis (reported 2026-10-13). With `delay` on touch only, a finger
+             that moves more than `touchStartThreshold` before the delay ends
+             cancels the pending drag and the browser scrolls as normal; a
+             finger that holds still picks the card up. The mouse is untouched.
+
+             200ms sits between a tap (~100ms, stays a click that opens the
+             card) and iOS's own long-press at ~500ms, which would otherwise
+             claim the hold for text selection. The threshold is 8 CSS px:
+             SortableJS divides it by `devicePixelRatio` on a UA it treats as
+             native (an iPad reports itself as a Mac), so it is 4px there and
+             8px on a phone; the default is `devicePixelRatio` itself, i.e.
+             2px, which a resting finger drifts past before 200ms are up.
+             `select-none` is for the same hold: without it iOS opens text
+             selection on the card title once the press reaches ~500ms. -->
         <draggable
           :list="localCards"
           group="cards"
           item-key="id"
-          class="flex flex-col gap-1.5 min-h-full pb-2"
+          class="flex flex-col gap-1.5 min-h-full pb-2 select-none"
           ghost-class="sortable-ghost"
           chosen-class="sortable-chosen"
           drag-class="sortable-drag"
           :scroll-sensitivity="120"
           :force-fallback="false"
+          :delay="200"
+          :delay-on-touch-only="true"
+          :touch-start-threshold="8"
           @change="(evt: Record<string, unknown>) => emit('card-change', evt)"
         >
           <template #item="{ element: card }">
