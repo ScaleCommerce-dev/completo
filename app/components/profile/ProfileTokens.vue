@@ -29,7 +29,7 @@ const {
 
     <div class="px-5 pb-3">
       <p class="text-sm text-dimmed leading-relaxed">
-        Create personal access tokens to authenticate with the API. Tokens have the same permissions as your account.
+        Create personal access tokens to authenticate with the API, or to connect Claude through MCP at <code class="text-xs">/mcp</code>. Tokens have the same permissions as your account.
       </p>
     </div>
 
@@ -112,6 +112,7 @@ const {
           Dismiss
         </button>
       </div>
+      <ProfileConnectClaude :token="createdToken" />
     </div>
 
     <!-- Token list -->
