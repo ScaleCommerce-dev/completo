@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.12.0 (2026-10-13)
+
+### App
+
+- **Sign in to Claude's connector with your own Completo account.** The connector no longer needs a token pasted into a request header: leave sign-in on, and the first time you use it Completo asks whether to allow Claude, then every call runs as you. On a Team or Enterprise plan an owner adds the connector once and each member signs in as themselves, so a card moved from Claude carries the name of the person who moved it. Sign-ins appear under Connected apps on your profile page, each with a Disconnect button. The fixed-token header still works for Claude Code and for a connector that should act as one account.
+
 ## v0.11.0 (2026-10-13)
 
 ### App
