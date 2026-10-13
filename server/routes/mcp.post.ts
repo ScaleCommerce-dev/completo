@@ -10,7 +10,9 @@
  *
  * Authentication is the API's own: `Authorization: Bearer dzo_...` from the
  * profile page, which claude.ai sends as a fixed request header on a custom
- * connector. A signed-in browser session works too. There is no OAuth.
+ * connector, or an OAuth access token from the sign-in flow in
+ * `server/utils/oauth-server.ts`, which is how a Team connector gives every
+ * member their own identity. A signed-in browser session works too.
  *
  * The tools live in `server/mcp/tools.ts`; this file only speaks the protocol.
  */
@@ -44,10 +46,18 @@ export default defineEventHandler(async (event) => {
   try {
     userId = (await resolveAuth(event)).user.id
   } catch (err) {
-    const e = err as { statusCode?: number, message?: string }
+    const e = err as { statusCode?: number, message?: string, data?: { oauth?: string } }
     setResponseStatus(event, e.statusCode === 403 ? 403 : 401)
-    setResponseHeader(event, 'www-authenticate', 'Bearer realm="completo"')
-    return fail(null, INVALID_REQUEST, e.statusCode === 403 ? (e.message || 'Forbidden') : 'Unauthorized: send an API token as "Authorization: Bearer <token>"')
+    // RFC 9728: the challenge names where the OAuth metadata is, which is how a
+    // client that has never seen this server finds the sign-in. An expired or
+    // revoked OAuth token additionally says so, which tells it to refresh.
+    const challenge = [
+      'Bearer realm="completo"',
+      `resource_metadata="${publicOrigin(event)}/.well-known/oauth-protected-resource/mcp"`,
+      ...(e.data?.oauth ? [`error="${e.data.oauth}"`, `error_description="${e.message}"`] : [])
+    ].join(', ')
+    setResponseHeader(event, 'www-authenticate', challenge)
+    return fail(null, INVALID_REQUEST, e.statusCode === 403 ? (e.message || 'Forbidden') : 'Unauthorized: sign in through OAuth, or send an API token as "Authorization: Bearer <token>"')
   }
 
   let parsed: unknown

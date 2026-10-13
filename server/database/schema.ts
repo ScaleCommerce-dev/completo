@@ -253,3 +253,57 @@ export const cardReads = sqliteTable('card_reads', {
   // `id` every other table has.
   uniqueIndex('card_reads_user_card_unique').on(table.userId, table.cardId)
 ])
+
+// ─── OAuth for MCP clients ───────────────────────────────────────────────────
+//
+// Completo is an OAuth 2.1 authorization server for exactly one resource: its
+// own MCP endpoint. A Team-plan Claude connector is added once by an owner and
+// every member signs in with their own account, so each member's calls carry
+// their own identity — which a shared API token in a request header cannot
+// give. The three tables below are the whole state: who may ask (clients),
+// a ten-minute code between consent and token (codes), and the live
+// access/refresh pair per sign-in (grants). Raw tokens are never stored; the
+// columns hold SHA-256 hashes, as `api_tokens` does.
+
+// Clients registered through the dynamic registration endpoint. A client that
+// identifies itself by a metadata URL (Claude's "published identity") has no
+// row here — it is fetched and validated on use — so grants and codes reference
+// clients by id string without a foreign key.
+export const oauthClients = sqliteTable('oauth_clients', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  /** JSON array of exact redirect URIs. */
+  redirectUris: text('redirect_uris').notNull(),
+  tokenEndpointAuthMethod: text('token_endpoint_auth_method').notNull().default('none'),
+  clientSecretHash: text('client_secret_hash'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+})
+
+// Issued by consent, spent by the token endpoint: the row is deleted on first
+// read, so a replayed code is simply unknown.
+export const oauthCodes = sqliteTable('oauth_codes', {
+  codeHash: text('code_hash').primaryKey(),
+  clientId: text('client_id').notNull(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  redirectUri: text('redirect_uri').notNull(),
+  codeChallenge: text('code_challenge').notNull(),
+  resource: text('resource'),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+})
+
+// One row per sign-in, rotated in place on refresh. This is what the profile
+// page lists as a connected app and what revoking deletes.
+export const oauthGrants = sqliteTable('oauth_grants', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  clientId: text('client_id').notNull(),
+  clientName: text('client_name').notNull(),
+  accessTokenHash: text('access_token_hash').notNull().unique(),
+  accessExpiresAt: integer('access_expires_at', { mode: 'timestamp' }).notNull(),
+  refreshTokenHash: text('refresh_token_hash').notNull().unique(),
+  refreshExpiresAt: integer('refresh_expires_at', { mode: 'timestamp' }).notNull(),
+  resource: text('resource'),
+  lastUsedAt: integer('last_used_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+})

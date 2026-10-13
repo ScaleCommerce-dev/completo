@@ -78,6 +78,10 @@
     {
       "name": "MCP",
       "description": "Model Context Protocol endpoint for Claude and other MCP clients. JSON-RPC 2.0 over POST (Streamable HTTP, stateless). Tools mirror the CLI: list_projects, get_project, list_cards, search_cards, get_card, create_card, update_card, move_card, assign_card, tag_card, list_comments, add_comment, my_tasks, create_project."
+    },
+    {
+      "name": "OAuth",
+      "description": "OAuth 2.1 authorization server for the MCP endpoint: authorization code with PKCE (S256), refresh token rotation, dynamic client registration (RFC 7591), client ID metadata documents, and discovery (RFC 8414, RFC 9728). The consent page is /oauth/authorize in the app."
     }
   ],
   "paths": {
@@ -4814,7 +4818,7 @@
           "MCP"
         ],
         "summary": "MCP endpoint (JSON-RPC 2.0)",
-        "description": "One JSON-RPC message or a batch per request, answered with JSON. Supported methods: initialize, ping, tools/list, tools/call; notifications are accepted with 202. Authenticate with a Bearer token in the Authorization header. GET and DELETE answer 405: the server is stateless and issues no session id.",
+        "description": "One JSON-RPC message or a batch per request, answered with JSON. Supported methods: initialize, ping, tools/list, tools/call; notifications are accepted with 202. Authenticate with a Bearer token in the Authorization header: an API token, or an OAuth access token from the sign-in flow (see the OAuth tag); a 401 carries WWW-Authenticate with resource_metadata. GET and DELETE answer 405: the server is stateless and issues no session id.",
         "operationId": "mcp",
         "requestBody": {
           "required": true,
@@ -4913,6 +4917,283 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-authorization-server": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "summary": "Authorization server metadata (RFC 8414)",
+        "operationId": "oauthServerMetadata",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Endpoints and capabilities"
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource/mcp": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "summary": "Protected resource metadata for /mcp (RFC 9728)",
+        "description": "Also served at /.well-known/oauth-protected-resource.",
+        "operationId": "oauthResourceMetadata",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "The resource and its authorization server"
+          }
+        }
+      }
+    },
+    "/oauth/register": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "summary": "Register a client (RFC 7591)",
+        "operationId": "oauthRegister",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "client_name": {
+                    "type": "string"
+                  },
+                  "redirect_uris": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "https URLs, or http on localhost"
+                  },
+                  "token_endpoint_auth_method": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "client_secret_post",
+                      "client_secret_basic"
+                    ],
+                    "default": "none"
+                  }
+                },
+                "required": [
+                  "redirect_uris"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "client_id, and client_secret for a confidential client"
+          },
+          "400": {
+            "description": "Invalid metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/token": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "summary": "Token endpoint",
+        "description": "grant_type=authorization_code (code, redirect_uri, code_verifier, client_id, optional resource) or grant_type=refresh_token (refresh_token, client_id). Form-encoded or JSON. Confidential clients authenticate with client_secret in the body or HTTP Basic. Refresh rotates both tokens.",
+        "operationId": "oauthToken",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "grant_type": {
+                    "type": "string",
+                    "enum": [
+                      "authorization_code",
+                      "refresh_token"
+                    ]
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "redirect_uri": {
+                    "type": "string"
+                  },
+                  "code_verifier": {
+                    "type": "string"
+                  },
+                  "refresh_token": {
+                    "type": "string"
+                  },
+                  "client_id": {
+                    "type": "string"
+                  },
+                  "client_secret": {
+                    "type": "string"
+                  },
+                  "resource": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "grant_type"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "access_token (1 hour), refresh_token (30 days), token_type Bearer"
+          },
+          "400": {
+            "description": "invalid_grant, invalid_request, invalid_target, unsupported_grant_type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "invalid_client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/revoke": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "summary": "Revoke an access or refresh token (RFC 7009)",
+        "operationId": "oauthRevoke",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "client_id": {
+                    "type": "string"
+                  },
+                  "client_secret": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token",
+                  "client_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Always, whether or not the token existed"
+          }
+        }
+      }
+    },
+    "/api/user/oauth-grants": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "List connected apps (OAuth sign-ins)",
+        "operationId": "listOauthGrants",
+        "responses": {
+          "200": {
+            "description": "Array of grants: id, clientName, createdAt, lastUsedAt, refreshExpiresAt"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/user/oauth-grants/{id}": {
+      "delete": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Disconnect an app",
+        "operationId": "deleteOauthGrant",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disconnected"
+          },
+          "404": {
+            "description": "Not found"
           }
         }
       }

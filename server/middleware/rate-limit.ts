@@ -17,6 +17,18 @@ export default defineEventHandler((event) => {
     return
   }
 
+  // OAuth: registration is open to anyone, and the token endpoint takes guesses
+  // at codes and refresh tokens. Both are per-IP; a real client registers once
+  // and refreshes hourly.
+  if (method === 'POST' && path === '/oauth/register') {
+    checkRateLimit(event, { name: 'oauth-register', max: 10, windowSeconds: 300 })
+    return
+  }
+  if (method === 'POST' && (path === '/oauth/token' || path === '/oauth/revoke')) {
+    checkRateLimit(event, { name: 'oauth-token', max: 60, windowSeconds: 60 })
+    return
+  }
+
   // Only rate-limit POST auth endpoints (login, register, forgot-password, etc.)
   if (method !== 'POST' || !path.startsWith('/auth/')) return
 

@@ -38,7 +38,10 @@ async function login() {
       body: { email: email.value, password: password.value }
     })
     await refreshSession()
-    await navigateTo('/projects')
+    // Only the consent page may be returned to: anything else in `redirect`
+    // would make this an open redirect off a sign-in form.
+    const back = route.query.redirect
+    await navigateTo(typeof back === 'string' && back.startsWith('/oauth/authorize') ? back : '/projects')
   } catch (e: unknown) {
     const msg = getErrorMessage(e, 'Login failed')
     error.value = msg

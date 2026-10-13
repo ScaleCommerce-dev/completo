@@ -34,6 +34,7 @@ const { data: profileData } = useFetch<{
     />
     <ProfileSecurity />
     <ProfileTokens />
+    <ProfileConnections />
     <ProfileDangerZone />
 
     <div

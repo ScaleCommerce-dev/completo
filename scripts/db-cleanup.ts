@@ -39,6 +39,9 @@ const orphanMembers = db.prepare(`SELECT COUNT(*) as cnt FROM project_members WH
 
 const expiredInvitations = db.prepare(`SELECT COUNT(*) as cnt FROM project_invitations WHERE expires_at < unixepoch() * 1000`).get() as CountRow
 const expiredVerifTokens = db.prepare(`SELECT COUNT(*) as cnt FROM email_verification_tokens WHERE expires_at < unixepoch() * 1000`).get() as CountRow
+// The OAuth tables store seconds (drizzle `mode: 'timestamp'`), hence no `* 1000`.
+const expiredOauthCodes = db.prepare(`SELECT COUNT(*) as cnt FROM oauth_codes WHERE expires_at < unixepoch()`).get() as CountRow
+const expiredOauthGrants = db.prepare(`SELECT COUNT(*) as cnt FROM oauth_grants WHERE refresh_expires_at < unixepoch()`).get() as CountRow
 
 const totalOrphans = orphanCards.cnt + orphanStatuses.cnt + orphanBoards.cnt + orphanBoardCols.cnt + orphanMembers.cnt
 
@@ -63,15 +66,19 @@ if (totalOrphans > 0) {
 }
 
 // Expired tokens and invitations
-const totalExpired = (expiredInvitations?.cnt || 0) + (expiredVerifTokens?.cnt || 0)
+const totalExpired = (expiredInvitations?.cnt || 0) + (expiredVerifTokens?.cnt || 0) + (expiredOauthCodes?.cnt || 0) + (expiredOauthGrants?.cnt || 0)
 if (totalExpired > 0) {
   console.log(`\nExpired records found:`)
   if (expiredInvitations.cnt) console.log(`  project_invitations: ${expiredInvitations.cnt}`)
   if (expiredVerifTokens.cnt) console.log(`  email_verification_tokens: ${expiredVerifTokens.cnt}`)
+  if (expiredOauthCodes.cnt) console.log(`  oauth_codes: ${expiredOauthCodes.cnt}`)
+  if (expiredOauthGrants.cnt) console.log(`  oauth_grants: ${expiredOauthGrants.cnt}`)
 
   db.exec(`
     DELETE FROM project_invitations WHERE expires_at < unixepoch() * 1000;
     DELETE FROM email_verification_tokens WHERE expires_at < unixepoch() * 1000;
+    DELETE FROM oauth_codes WHERE expires_at < unixepoch();
+    DELETE FROM oauth_grants WHERE refresh_expires_at < unixepoch();
   `)
   console.log(`Removed ${totalExpired} expired records`)
 } else {

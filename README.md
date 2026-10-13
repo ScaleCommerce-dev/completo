@@ -186,13 +186,12 @@ Completo is also an MCP server, so Claude on the web, in the desktop app or on y
 
 **1. Create a token** on your profile page (API Tokens).
 
-**2. Add the connector.** In Claude, open Customize > Connectors > Add custom connector:
+**2. Add the connector.** In Claude, open Customize > Connectors > Add custom connector and enter `https://completo.example.com/mcp`. Two ways to sign in:
 
-- URL: `https://completo.example.com/mcp`
-- Authentication: No sign in
-- Request headers: `Authorization` = `Bearer <your token>`
+- **Sign in with your Completo account (recommended).** Leave Authentication on sign-in. Claude discovers Completo's OAuth endpoints, registers itself, and the first time you use the connector you land on a Completo page that asks whether to allow it. Each person who connects signs in as themselves. The sign-in appears under Connected apps on your profile page, where you can disconnect it at any time.
+- **A fixed token.** Choose No sign in and add a request header `Authorization` = `Bearer <your token>`. Everything then runs as the token's owner.
 
-On a Team or Enterprise plan an owner adds it under Organization settings > Connectors; the header there is shared by everyone who uses it, so use a token from an account whose access fits.
+**Team and Enterprise plans:** an owner adds the connector once under Organization settings > Connectors, with sign-in on. Every member then clicks Connect and signs in with their own Completo account, so cards, moves and comments carry the right name and the right project access. A request header there would be one shared credential for the whole team, which is why sign-in is the default.
 
 **Claude Code and other MCP clients** take the same URL with the same header:
 
@@ -201,7 +200,7 @@ claude mcp add --transport http completo https://completo.example.com/mcp \
   --header "Authorization: Bearer <your token>"
 ```
 
-The tools mirror the CLI: list and search cards, read a card with its comments, create, update, move, assign and tag cards, comment, see your own tasks, and create a project. Every call runs with the token owner's permissions, exactly as the API does.
+The tools mirror the CLI: list and search cards, read a card with its comments, create, update, move, assign and tag cards, comment, see your own tasks, and create a project. Every call runs with the permissions of whoever signed in or owns the token, exactly as the API does.
 
 ### The philosophy
 

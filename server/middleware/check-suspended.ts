@@ -9,9 +9,10 @@ export default defineEventHandler(async (event) => {
   if (path === '/auth/login' || path === '/auth/register' || path === '/auth/logout'
     || path === '/auth/verify-email' || path === '/auth/resend-verification') return
 
-  // Skip Bearer token auth — suspension is checked inside resolveAuth()
+  // Skip Bearer token auth (API tokens `dzo_` and OAuth access tokens `dzoa_`):
+  // suspension is checked inside resolveAuth()
   const authHeader = getRequestHeader(event, 'authorization')
-  if (authHeader?.startsWith('Bearer dzo_')) return
+  if (authHeader?.startsWith('Bearer dzo')) return
 
   let session
   try {
