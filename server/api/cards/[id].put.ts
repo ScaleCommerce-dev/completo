@@ -60,19 +60,31 @@ export default defineEventHandler(async (event) => {
           actorId: user.id
         })
       }
-      if (needsMentionNotify) {
-        notifyMentionedUsers({
-          text: body.description!,
-          oldText: existingCard.description,
-          projectId: project.id,
-          cardId: existingCard.id,
-          actorId: user.id,
-          actorName: user.name,
-          cardTitle: body.title || existingCard.title,
-          projectSlug: project.slug,
-          projectKey: project.key || 'TK'
-        })
-      }
+      const mentioned = needsMentionNotify
+        ? notifyMentionedUsers({
+            text: body.description!,
+            oldText: existingCard.description,
+            projectId: project.id,
+            cardId: existingCard.id,
+            actorId: user.id,
+            actorName: user.name,
+            cardTitle: body.title || existingCard.title,
+            projectSlug: project.slug,
+            projectKey: project.key || 'TK'
+          })
+        : new Set<string>()
+
+      sendCardActivityEmails({
+        actorId: user.id,
+        actorName: user.name,
+        projectId: project.id,
+        cardId: existingCard.id,
+        cardTitle: body.title || existingCard.title,
+        assignedUserId: needsAssignNotify ? body.assigneeId : null,
+        mentionedUserIds: mentioned,
+        mentionText: body.description,
+        mentionSource: 'description'
+      })
     }
   }
 

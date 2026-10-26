@@ -168,6 +168,20 @@ export function notifyCommentActivity(params: {
     source: 'comment'
   })
 
+  // Mentions also go out by email; `mentioned` already holds only the newly added
+  // ones, so editing a comment does not re-mail anyone. A plain new comment is
+  // in-app only — email is reserved for being assigned or addressed directly.
+  sendCardActivityEmails({
+    actorId: params.actorId,
+    actorName: params.actorName,
+    projectId: params.projectId,
+    cardId: params.cardId,
+    cardTitle: params.cardTitle,
+    mentionedUserIds: mentioned,
+    mentionText: params.body,
+    mentionSource: 'comment'
+  })
+
   // Editing a comment only notifies its newly added mentions (handled above);
   // it must not re-ping the thread.
   if (!params.isNew) return

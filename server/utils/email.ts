@@ -190,6 +190,114 @@ function buildEmailHtml(options: {
 </html>`
 }
 
+/**
+ * Escape user-controlled text for the HTML part of an email.
+ *
+ * Card titles, project names, display names and comment text are all typed by
+ * users. Interpolated raw, a title like `<a href="https://evil">Log in</a>` would
+ * arrive as a live link inside a mail that looks like it came from Completo.
+ */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/** A subject is one header line: collapse any whitespace a title smuggles in. */
+function oneLine(value: string): string {
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * A short plain-text excerpt of a description or comment for a mention email.
+ * Mentions are stored as `@[Name](ref)` and read as `@Name`; light markdown is
+ * flattened so the excerpt reads as prose in any mail client.
+ */
+export function mentionExcerpt(text: string, max = 200): string {
+  const flat = text
+    .replace(/@\[([^\]]+)\]\([^)\s]+\)/g, '@$1')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+/gm, '')
+    .replace(/[*_`~]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return flat.length > max ? `${flat.slice(0, max).trimEnd()}…` : flat
+}
+
+interface CardEmailParams {
+  actorName: string
+  projectName: string
+  ticketId: string
+  cardTitle: string
+  cardUrl: string
+}
+
+export interface BuiltEmail {
+  subject: string
+  text: string
+  html: string
+}
+
+export function buildCardAssignedEmail(p: CardEmailParams): BuiltEmail {
+  const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+  const actor = escapeHtml(p.actorName)
+  const project = escapeHtml(p.projectName)
+  const ticket = `${escapeHtml(p.ticketId)}: ${escapeHtml(p.cardTitle)}`
+
+  return {
+    subject: oneLine(`[Completo] ${p.actorName} hat dir ein Ticket zugewiesen: ${p.cardTitle}`),
+    text: `${p.actorName} hat dir im Projekt ${p.projectName} ein Ticket zugewiesen:\n\n${p.ticketId}: ${p.cardTitle}\n\nTicket öffnen: ${p.cardUrl}`,
+    html: buildEmailHtml({
+      preheader: `${actor} hat dir ${escapeHtml(p.ticketId)} zugewiesen.`,
+      heading: 'Neues Ticket für dich',
+      body: `${actor} hat dir im Projekt <strong style="color:#4f46e5;">${project}</strong> ein Ticket zugewiesen:<br /><br /><strong style="color:#18181b;">${ticket}</strong>`,
+      ctaUrl: p.cardUrl,
+      ctaLabel: 'Ticket öffnen',
+      footnote: 'Du bekommst diese E-Mail, weil dir in Completo ein Ticket zugewiesen wurde.',
+      baseUrl
+    })
+  }
+}
+
+export function buildMentionEmail(p: CardEmailParams & { excerpt: string, source: 'description' | 'comment' }): BuiltEmail {
+  const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+  const actor = escapeHtml(p.actorName)
+  const project = escapeHtml(p.projectName)
+  const ticket = `${escapeHtml(p.ticketId)}: ${escapeHtml(p.cardTitle)}`
+  const where = p.source === 'comment' ? 'in einem Kommentar zum Ticket' : 'in der Beschreibung des Tickets'
+  const quote = p.excerpt
+    ? `<br /><br /><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td style="border-left:3px solid #4f46e5;background-color:#f4f4f5;padding:12px 16px;font-family:${FONT};font-size:14px;line-height:22px;color:#3f3f46;">${escapeHtml(p.excerpt)}</td></tr></table>`
+    : ''
+
+  return {
+    subject: oneLine(`[Completo] ${p.actorName} hat dich erwähnt: ${p.cardTitle}`),
+    text: `${p.actorName} hat dich im Projekt ${p.projectName} ${where} ${p.ticketId}: ${p.cardTitle} erwähnt.${p.excerpt ? `\n\n„${p.excerpt}“` : ''}\n\nTicket öffnen: ${p.cardUrl}`,
+    html: buildEmailHtml({
+      preheader: `${actor} hat dich in ${escapeHtml(p.ticketId)} erwähnt.`,
+      heading: 'Du wurdest erwähnt',
+      body: `${actor} hat dich im Projekt <strong style="color:#4f46e5;">${project}</strong> ${where} <strong style="color:#18181b;">${ticket}</strong> erwähnt.${quote}`,
+      ctaUrl: p.cardUrl,
+      ctaLabel: 'Ticket öffnen',
+      footnote: 'Du bekommst diese E-Mail, weil du in Completo erwähnt wurdest.',
+      baseUrl
+    })
+  }
+}
+
+export async function sendBuiltEmail(to: string, email: BuiltEmail): Promise<void> {
+  await getTransporter().sendMail({
+    from: process.env.SMTP_FROM || 'Completo <noreply@completo.local>',
+    to,
+    subject: email.subject,
+    text: email.text,
+    html: email.html
+  })
+}
+
 export async function sendProjectNotificationEmail(to: string, inviterName: string, projectName: string, projectSlug: string): Promise<void> {
   const baseUrl = process.env.APP_URL || 'http://localhost:3000'
   const projectUrl = `${baseUrl}/projects/${projectSlug}`
