@@ -5,9 +5,10 @@ export function useProfileForm() {
   const profileAvatarUrl = ref(user.value?.avatarUrl || '')
   const profileColorMode = ref(user.value?.colorMode || 'system')
   // Not part of the session user, so the profile page seeds it from
-  // GET /api/user/profile (see ProfileSettings). On until we know otherwise,
-  // matching the column default.
-  const profileEmailNotifications = ref(true)
+  // GET /api/user/profile (see ProfileSettings). Unknown until then, and an
+  // unknown value is left out of the save (JSON drops `undefined`): a default of
+  // `true` would silently undo an opt-out if Save landed before the fetch.
+  const profileEmailNotifications = ref<boolean>()
   const profileLoading = ref(false)
   const profileError = ref('')
   const profileSuccess = ref(false)

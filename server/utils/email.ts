@@ -228,6 +228,8 @@ function oneLine(value: string): string {
 }
 
 const MENTION = /@\[([^\]]+)\]\(([^)\s]+)\)/g
+// Marks the recipient's mention through flattening; any NUL already in the text is stripped first.
+const SENTINEL = '\u0000'
 
 /**
  * A short plain-text excerpt of a description or comment for a mention email.
@@ -241,28 +243,40 @@ const MENTION = /@\[([^\]]+)\]\(([^)\s]+)\)/g
  */
 export function mentionExcerpt(text: string, options: { max?: number, aroundUserId?: string } = {}): string {
   const max = options.max ?? 200
-  let start = 0
-  if (options.aroundUserId) {
-    for (const match of text.matchAll(MENTION)) {
-      if (options.aroundUserId.toLowerCase().startsWith(match[2]!.toLowerCase())) {
-        start = Math.max(0, match.index! - 80)
-        // Don't open mid-word: move to the next whitespace if we cut into one.
-        if (start > 0) {
-          const space = text.slice(start, match.index).search(/\s/)
-          start = space >= 0 ? start + space : match.index!
-        }
-        break
+  // The window is cut on the *flattened* text: cutting the raw markdown can open
+  // inside an earlier `@[Name](ref)` or link and leak its syntax. So the
+  // recipient's first mention is tagged with a sentinel, flattened along with
+  // everything else, and located afterwards.
+  const target = options.aroundUserId?.toLowerCase()
+  let tagged = false
+  let flat = text
+    .replaceAll(SENTINEL, '')
+    .replace(MENTION, (_, name: string, ref: string) => {
+      if (target && !tagged && target.startsWith(ref.toLowerCase())) {
+        tagged = true
+        return `${SENTINEL}@${name}`
       }
-    }
-  }
-  const flat = text.slice(start)
-    .replace(MENTION, '@$1')
+      return `@${name}`
+    })
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
     .replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+/gm, '')
     .replace(/[*_`~]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
+
+  let start = 0
+  const at = flat.indexOf(SENTINEL)
+  if (at >= 0) {
+    flat = flat.slice(0, at) + flat.slice(at + 1)
+    start = Math.max(0, at - 80)
+    // Don't open mid-word: move to the next whitespace if we cut into one.
+    if (start > 0) {
+      const space = flat.slice(start, at).search(/\s/)
+      start = space >= 0 ? start + space : at
+    }
+    flat = flat.slice(start).trim()
+  }
   const body = flat.length > max ? `${flat.slice(0, max).trimEnd()}…` : flat
   return start > 0 && body ? `…${body}` : body
 }
@@ -384,13 +398,15 @@ export async function sendProjectNotificationEmail(to: string, inviterName: stri
   const projectUrl = `${baseUrl}/projects/${projectSlug}`
   const from = process.env.SMTP_FROM || 'Completo <noreply@completo.local>'
 
+  const inviter = escapeEmailHtml(inviterName)
+  const project = escapeEmailHtml(projectName)
   const html = buildEmailHtml({
-    preheader: `${inviterName} just added you to the crew.`,
+    preheader: `${inviter} just added you to the crew.`,
     heading: 'You\'re on the board!',
-    body: `${inviterName} added you to <strong style="color:#4f46e5;">${projectName}</strong>. Everything's ready to start: Drap. Drop. Get Stuff Completo.`,
+    body: `${inviter} added you to <strong style="color:#4f46e5;">${project}</strong>. Everything's ready to start: Drag. Drop. Get Stuff Completo.`,
     ctaUrl: projectUrl,
-    ctaLabel: `Open ${projectName}`,
-    footnote: `You're receiving this because ${inviterName} added you to a project on Completo.`,
+    ctaLabel: `Open ${project}`,
+    footnote: `You're receiving this because ${inviter} added you to a project on Completo.`,
     baseUrl
   })
 
@@ -407,13 +423,14 @@ export async function sendAccountInviteEmail(to: string, inviterName: string, pr
   const baseUrl = process.env.APP_URL || 'http://localhost:3000'
   const from = process.env.SMTP_FROM || 'Completo <noreply@completo.local>'
 
+  const inviter = escapeEmailHtml(inviterName)
   const html = buildEmailHtml({
     preheader: 'Your seat at the table is waiting.',
     heading: 'You\'ve been invited!',
-    body: `${inviterName} wants you on <strong style="color:#4f46e5;">${projectName}</strong>. Create your account and you'll land right in the project - cards piled high, toppings included.`,
+    body: `${inviter} wants you on <strong style="color:#4f46e5;">${escapeEmailHtml(projectName)}</strong>. Create your account and you'll land right in the project - cards piled high, toppings included.`,
     ctaUrl: registerUrl,
     ctaLabel: 'Create Account &amp; Join',
-    footnote: `This invitation expires in 7 days. If you don't know ${inviterName}, you can safely ignore this.`,
+    footnote: `This invitation expires in 7 days. If you don't know ${inviter}, you can safely ignore this.`,
     baseUrl
   })
 
@@ -430,10 +447,11 @@ export async function sendAccountSetupEmail(to: string, adminName: string, setup
   const baseUrl = process.env.APP_URL || 'http://localhost:3000'
   const from = process.env.SMTP_FROM || 'Completo <noreply@completo.local>'
 
+  const admin = escapeEmailHtml(adminName)
   const html = buildEmailHtml({
-    preheader: `${adminName} set you up. Time to make it yours.`,
+    preheader: `${admin} set you up. Time to make it yours.`,
     heading: 'Welcome to the crew!',
-    body: `${adminName} created a Completo account for you. One quick step - set your password and you're in: Drag, drop, get stuff Completo.`,
+    body: `${admin} created a Completo account for you. One quick step - set your password and you're in: Drag, drop, get stuff Completo.`,
     ctaUrl: setupUrl,
     ctaLabel: 'Set Your Password',
     footnote: 'This link expires in 24 hours. If you didn\'t expect this, you can safely ignore it.',

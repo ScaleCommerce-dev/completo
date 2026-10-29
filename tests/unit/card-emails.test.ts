@@ -173,4 +173,13 @@ describe('mentionExcerpt', () => {
     const text = `@[Ada](aaaaaaaa) intro. ${'x '.repeat(200)}@[Bob](bbbbbbbb) this part is for Bob.`
     expect(mentionExcerpt(text, { aroundUserId: 'bbbbbbbb-1111' })).toContain('@Bob this part is for Bob.')
   })
+
+  it('never opens inside the markup of an earlier mention or link', () => {
+    // The window used to be cut on the raw text, which could start inside
+    // `@[Ada Lovelace](aaaaaaaa)` and leak `Lovelace](aaaaaaaa)` into the email.
+    const text = `${'x'.repeat(300)} Please sync with @[Ada Lovelace](aaaaaaaa) and [the spec](https://example.com/a/b) before @[Bob Builder](bbbbbbbb) reviews.`
+    const excerpt = mentionExcerpt(text, { aroundUserId: 'bbbbbbbb-1111' })
+    expect(excerpt).toContain('@Bob Builder reviews.')
+    expect(excerpt).not.toMatch(/[[\]()]/)
+  })
 })
