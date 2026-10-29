@@ -2967,6 +2967,92 @@
         }
       }
     },
+    "/api/cards/{id}/duplicate": {
+      "post": {
+        "tags": [
+          "Cards"
+        ],
+        "summary": "Duplicate a card into a board",
+        "description": "Copies the title (as given) and the description, with every task-list item unchecked, into a board of the card's project or of another project the caller is a member of. The copy goes to the first board column its status filter admits, gets `tagIds` (default: the board's tag filters; they must belong to the board's project) and a priority the board's priority filter admits. Tags, assignee, priority, due date, attachments and comments are not copied. A board in a project the caller is not a member of is a 404.",
+        "operationId": "duplicateCard",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "boardId"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "boardId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "tagIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new card",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Card"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "tagIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid"
+                          }
+                        },
+                        "boardId": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
     "/api/cards/{id}/tags": {
       "put": {
         "tags": [
