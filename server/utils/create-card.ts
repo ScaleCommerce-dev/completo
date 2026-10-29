@@ -93,7 +93,7 @@ export function createCard({ projectId, userId, userName, body }: CreateCardPara
       sendCardActivityEmails({
         actorId: userId,
         actorName: userName,
-        projectId: project.id,
+        project,
         cardId: inserted.id,
         cardTitle: title,
         assignedUserId: needsAssignNotify ? assigneeId : null,

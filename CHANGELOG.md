@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **Assignments and mentions now arrive by email.** When someone assigns you a card, or mentions you in a card's description or a comment, Completo sends you an email with the project, the card and — for a mention — the passage you were mentioned in, plus a button straight to the card. Nothing is sent about your own actions, one save never sends you two emails, re-saving a mention does not repeat it, and the same email for the same card is sent at most once every 15 minutes. Only project members are ever emailed. You can turn these emails off under Preferences on your profile page. They are English by default; set `EMAIL_LOCALE=de` for German. Like every Completo email, they need `SMTP_HOST` to be set.
+
+### Upgrading
+
+- A migration adds the profile setting; it runs on its own. Everyone starts with the emails switched on.
+
 ## v0.12.0 (2026-10-13)
 
 ### App

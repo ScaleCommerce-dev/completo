@@ -150,6 +150,7 @@ export function notifyCommentActivity(params: {
   assigneeId?: string | null
   actorId: string
   actorName: string
+  projectName: string
   projectSlug: string
   projectKey: string
   /** Only a newly created comment notifies the assignee; an edit just notifies new mentions. */
@@ -174,7 +175,7 @@ export function notifyCommentActivity(params: {
   sendCardActivityEmails({
     actorId: params.actorId,
     actorName: params.actorName,
-    projectId: params.projectId,
+    project: { id: params.projectId, name: params.projectName, slug: params.projectSlug, key: params.projectKey },
     cardId: params.cardId,
     cardTitle: params.cardTitle,
     mentionedUserIds: mentioned,

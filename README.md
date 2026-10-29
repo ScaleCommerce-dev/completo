@@ -81,10 +81,11 @@ The only required environment variable is `NUXT_SESSION_PASSWORD` (min 32 charac
 | `NUXT_SESSION_COOKIE_SECURE` | Send the session cookie with `Secure`. Set to `false` only when serving over plain HTTP from a non-`localhost` address, or sign-in won't stick. `localhost` and TLS-terminating proxies both need the default | `true` |
 | `DATABASE_URL` | SQLite database path | `sqlite.db` |
 | `UPLOAD_DIR` | File attachment storage | `data/uploads` |
-| `SMTP_HOST` | SMTP server for email (empty = email disabled) | — |
+| `SMTP_HOST` | SMTP server for email: verification, invitations, password reset, and card assignment / mention notifications (empty = email disabled) | — |
 | `SMTP_PORT` | SMTP port | `1025` |
 | `SMTP_FROM` | Sender address | — |
 | `APP_URL` | Public URL (used in emails) | — |
+| `EMAIL_LOCALE` | Language of the assignment / mention emails: `en` or `de`. Each user can turn these emails off on their profile page | `en` |
 | `AI_PROVIDER` | `anthropic`, `openai`, or `openrouter` (empty = AI disabled) | — |
 | `NUXT_OAUTH_GITHUB_CLIENT_ID/SECRET` | GitHub OAuth (empty = disabled) | — |
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID/SECRET` | Google OAuth (empty = disabled) | — |

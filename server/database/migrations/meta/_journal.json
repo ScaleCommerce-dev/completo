@@ -92,6 +92,13 @@
       "when": 1791924259210,
       "tag": "0012_oauth",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1793280039303,
+      "tag": "0013_card_email_notifications",
+      "breakpoints": true
     }
   ]
 }

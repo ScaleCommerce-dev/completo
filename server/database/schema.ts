@@ -12,6 +12,9 @@ export const users = sqliteTable('users', {
   suspendedAt: integer('suspended_at', { mode: 'timestamp' }),
   emailVerifiedAt: integer('email_verified_at', { mode: 'timestamp' }),
   lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }),
+  // Opt-out for card-activity emails (assigned / mentioned). On by default, so
+  // existing users start receiving them; the profile page turns them off.
+  emailNotifications: integer('email_notifications').notNull().default(1),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 }, table => [
   // The `.unique()` above is case-sensitive (no COLLATE NOCASE), which let one person hold

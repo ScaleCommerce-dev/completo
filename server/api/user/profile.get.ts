@@ -6,7 +6,8 @@ export default defineEventHandler(async (event) => {
 
   const userRecord = db.select({
     createdAt: schema.users.createdAt,
-    lastSeenAt: schema.users.lastSeenAt
+    lastSeenAt: schema.users.lastSeenAt,
+    emailNotifications: schema.users.emailNotifications
   }).from(schema.users).where(eq(schema.users.id, userId)).get()
 
   if (!userRecord) {
@@ -73,6 +74,7 @@ export default defineEventHandler(async (event) => {
   return {
     createdAt: userRecord.createdAt?.toISOString() ?? null,
     lastSeenAt: userRecord.lastSeenAt?.toISOString() ?? null,
+    emailNotifications: !!userRecord.emailNotifications,
     priorityCounts,
     totalOpen,
     projects: projects.map(p => ({

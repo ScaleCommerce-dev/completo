@@ -3230,6 +3230,10 @@
                       "format": "date-time",
                       "nullable": true
                     },
+                    "emailNotifications": {
+                      "type": "boolean",
+                      "description": "Whether the user receives card-activity emails (assigned / mentioned)."
+                    },
                     "priorityCounts": {
                       "type": "object",
                       "properties": {
@@ -3318,6 +3322,10 @@
                       "dark"
                     ],
                     "nullable": true
+                  },
+                  "emailNotifications": {
+                    "type": "boolean",
+                    "description": "Turn card-activity emails (assigned / mentioned) on or off."
                   }
                 }
               }
@@ -3354,6 +3362,9 @@
                         "dark"
                       ],
                       "nullable": true
+                    },
+                    "emailNotifications": {
+                      "type": "boolean"
                     }
                   }
                 }

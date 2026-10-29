@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
       sendCardActivityEmails({
         actorId: user.id,
         actorName: user.name,
-        projectId: project.id,
+        project,
         cardId: existingCard.id,
         cardTitle: body.title || existingCard.title,
         assignedUserId: needsAssignNotify ? body.assigneeId : null,
