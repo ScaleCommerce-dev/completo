@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **Duplicate a card into any board — the way to run template cards.** Keep a card with a recurring checklist (tag it "Template", say), and when the next event comes round, Duplicate it from the card's header or from the row above Delete on its full page. Pick a title, a project you're a member of and one of its boards: the copy lands in that board's first column with the board's tags (editable), so it shows up there straight away, and opens for you to fill in. Only the title and the description come along, with every to-do unchecked — tags, assignee, priority, due date, attachments and comments stay with the original.
+
 ## v0.13.0 (2026-10-29)
 
 ### App

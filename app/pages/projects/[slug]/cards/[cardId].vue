@@ -56,6 +56,7 @@ const selectedDueDate = ref<string | null>(null)
 const saving = ref(false)
 const editingDescription = ref(false)
 const showDeleteConfirm = ref(false)
+const showDuplicate = ref(false)
 const deletingCard = ref(false)
 const descriptionEditorRef = ref<{ startEditing: () => void }>()
 const titleInput = ref<HTMLTextAreaElement>()
@@ -424,6 +425,20 @@ async function confirmDelete() {
             </UiFieldRow>
           </div>
 
+          <!-- Same row geometry as Delete below, without the red: duplicating
+               creates, it destroys nothing. Opens CardDuplicateDialog. -->
+          <button
+            type="button"
+            class="group w-full flex items-center gap-1.5 px-4 py-2.5 min-h-row text-sm font-medium text-muted hover:text-highlighted hover:bg-elevated transition-colors cursor-pointer"
+            @click="showDuplicate = true"
+          >
+            <UIcon
+              name="i-lucide-copy-plus"
+              class="text-sm shrink-0 text-dimmed group-hover:text-toned transition-colors"
+            />
+            Duplicate card
+          </button>
+
           <!--
             The last row of the stack, not a button floating under the card.
 
@@ -542,6 +557,15 @@ async function confirmDelete() {
       action-label="Delete card"
       :loading="deletingCard"
       @confirm="confirmDelete"
+    />
+
+    <CardDuplicateDialog
+      v-if="card"
+      v-model:open="showDuplicate"
+      :card-id="card.id"
+      :card-title="card.title"
+      :project-slug="projectSlug"
+      @duplicated="(copy) => navigateTo(`/projects/${copy.projectSlug}/cards/${formatTicketId(copy.projectKey, copy.id)}`)"
     />
   </UiPage>
 </template>

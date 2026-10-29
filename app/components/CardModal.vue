@@ -102,6 +102,15 @@ const emit = defineEmits<{
 
 const isEdit = computed(() => !!props.card)
 
+// Duplicate (template cards): the dialog is a sibling after </USlideover>, see
+// the note at the end of the template. On success the copy opens as a full page,
+// where it is renamed and filled in.
+const showDuplicate = ref(false)
+function onDuplicated(copy: { id: number, projectKey: string, projectSlug: string }) {
+  open.value = false
+  navigateTo(`/projects/${copy.projectSlug}/cards/${formatTicketId(copy.projectKey, copy.id)}`)
+}
+
 const title = ref('')
 const description = ref('')
 const priority = ref('medium')
@@ -835,6 +844,20 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
                a reader wonder what the difference is. -->
           <UTooltip
             v-if="isEdit && projectSlug"
+            text="Duplicate card"
+          >
+            <UButton
+              icon="i-lucide-copy-plus"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              aria-label="Duplicate this card"
+              @click="showDuplicate = true"
+            />
+          </UTooltip>
+
+          <UTooltip
+            v-if="isEdit && projectSlug"
             text="Open full page"
           >
             <UButton
@@ -1067,8 +1090,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
     </template>
   </USlideover>
 
-  <!-- Nothing else belongs here, and the reason is worth keeping now that the one
-       thing that did has gone with the `⋯` menu.
+  <CardDuplicateDialog
+    v-if="isEdit && projectSlug"
+    v-model:open="showDuplicate"
+    :card-id="card!.id"
+    :card-title="card!.title"
+    :project-slug="projectSlug"
+    @duplicated="onDuplicated"
+  />
+
+  <!-- Only dialogs belong here, and the reason is worth keeping.
 
        USlideover's default slot is its *trigger*. Anything rendered into it lands
        in the page *behind* the panel — the delete confirmation used to appear
