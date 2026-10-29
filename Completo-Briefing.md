@@ -68,8 +68,8 @@ Cards move between statuses via drag-and-drop on boards, dropdown selection in l
 - **Done retention:** Projects can set `doneStatusId` + `doneRetentionDays`. Views filter out old done cards (they're not deleted). `null` retention = keep forever.
 - **Soft delete:** Not used. Deletes are hard deletes with cascade.
 - **Card descriptions:** Markdown. AI can generate or improve descriptions using project briefing as context.
-- **Notifications:** In-app only. Types: card_assigned, member_added, role_changed, member_removed, mentioned.
-- **Email:** Optional (SMTP). Used for verification, invitations, password reset. Disabled if `SMTP_HOST` is empty.
+- **Notifications:** In-app for all types: card_assigned, member_added, role_changed, member_removed, mentioned, comment_added. Assignments and mentions are also emailed (see Email).
+- **Email:** Optional (SMTP). Used for verification, invitations, password reset, and card assignment / mention notifications — members only, opt-out per user on the profile page, 15-minute cooldown per card and kind, language via `EMAIL_LOCALE` (`en` default, `de`). Disabled if `SMTP_HOST` is empty.
 
 ## Tech Stack & Architecture
 

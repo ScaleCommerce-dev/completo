@@ -28,6 +28,7 @@ export default defineEventHandler(async (event) => {
       assigneeId: card.assigneeId,
       actorId: user.id,
       actorName: user.name,
+      projectName: project.name,
       projectSlug: project.slug,
       projectKey: project.key || 'TK',
       isNew: true

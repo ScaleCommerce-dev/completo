@@ -77,18 +77,30 @@ export function createCard({ projectId, userId, userName, body }: CreateCardPara
           actorId: userId
         })
       }
-      if (needsMentionNotify) {
-        notifyMentionedUsers({
-          text: description,
-          projectId: project.id,
-          cardId: inserted.id,
-          actorId: userId,
-          actorName: userName,
-          cardTitle: title,
-          projectSlug: project.slug,
-          projectKey: project.key || 'TK'
-        })
-      }
+      const mentioned = needsMentionNotify
+        ? notifyMentionedUsers({
+            text: description,
+            projectId: project.id,
+            cardId: inserted.id,
+            actorId: userId,
+            actorName: userName,
+            cardTitle: title,
+            projectSlug: project.slug,
+            projectKey: project.key || 'TK'
+          })
+        : new Set<string>()
+
+      sendCardActivityEmails({
+        actorId: userId,
+        actorName: userName,
+        project,
+        cardId: inserted.id,
+        cardTitle: title,
+        assignedUserId: needsAssignNotify ? assigneeId : null,
+        mentionedUserIds: mentioned,
+        mentionText: description,
+        mentionSource: 'description'
+      })
     }
   }
 

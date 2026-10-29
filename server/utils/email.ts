@@ -190,18 +190,223 @@ function buildEmailHtml(options: {
 </html>`
 }
 
+/** The public URL links in emails point at. */
+export function appBaseUrl(): string {
+  return process.env.APP_URL || 'http://localhost:3000'
+}
+
+/**
+ * Language of the card-activity emails (assigned / mentioned), for the whole
+ * instance: `EMAIL_LOCALE=de` for German, anything else English. Per instance
+ * rather than per user because there is no per-user language anywhere else in
+ * Completo yet; the other emails are English-only.
+ */
+export type EmailLocale = 'en' | 'de'
+export function emailLocale(): EmailLocale {
+  return process.env.EMAIL_LOCALE?.trim().toLowerCase() === 'de' ? 'de' : 'en'
+}
+
+/**
+ * Escape user-controlled text for the HTML part of an email.
+ *
+ * Card titles, project names, display names and comment text are all typed by
+ * users. Interpolated raw, a title like `<a href="https://evil">Log in</a>` would
+ * arrive as a live link inside a mail that looks like it came from Completo.
+ */
+export function escapeEmailHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/** A subject is one header line: collapse any whitespace a title smuggles in. */
+function oneLine(value: string): string {
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+const MENTION = /@\[([^\]]+)\]\(([^)\s]+)\)/g
+// Marks the recipient's mention through flattening; any NUL already in the text is stripped first.
+const SENTINEL = '\u0000'
+
+/**
+ * A short plain-text excerpt of a description or comment for a mention email.
+ * Mentions are stored as `@[Name](ref)` and read as `@Name`; light markdown is
+ * flattened so the excerpt reads as prose in any mail client.
+ *
+ * With `aroundUserId`, the window starts shortly before that person's mention
+ * rather than at the top of the text: in a long description the mention is often
+ * paragraphs down, and an excerpt of paragraph one would not contain the name
+ * the email is about. A ref is a prefix of the user id (see notifications.ts).
+ */
+export function mentionExcerpt(text: string, options: { max?: number, aroundUserId?: string } = {}): string {
+  const max = options.max ?? 200
+  // The window is cut on the *flattened* text: cutting the raw markdown can open
+  // inside an earlier `@[Name](ref)` or link and leak its syntax. So the
+  // recipient's first mention is tagged with a sentinel, flattened along with
+  // everything else, and located afterwards.
+  const target = options.aroundUserId?.toLowerCase()
+  let tagged = false
+  let flat = text
+    .replaceAll(SENTINEL, '')
+    .replace(MENTION, (_, name: string, ref: string) => {
+      if (target && !tagged && target.startsWith(ref.toLowerCase())) {
+        tagged = true
+        return `${SENTINEL}@${name}`
+      }
+      return `@${name}`
+    })
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+/gm, '')
+    .replace(/[*_`~]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  let start = 0
+  const at = flat.indexOf(SENTINEL)
+  if (at >= 0) {
+    flat = flat.slice(0, at) + flat.slice(at + 1)
+    start = Math.max(0, at - 80)
+    // Don't open mid-word: move to the next whitespace if we cut into one.
+    if (start > 0) {
+      const space = flat.slice(start, at).search(/\s/)
+      start = space >= 0 ? start + space : at
+    }
+    flat = flat.slice(start).trim()
+  }
+  const body = flat.length > max ? `${flat.slice(0, max).trimEnd()}…` : flat
+  return start > 0 && body ? `…${body}` : body
+}
+
+interface CardEmailParams {
+  actorName: string
+  projectName: string
+  ticketId: string
+  cardTitle: string
+  cardUrl: string
+  locale?: EmailLocale
+}
+
+export interface BuiltEmail {
+  subject: string
+  text: string
+  html: string
+}
+
+/** Escaped pieces both card emails share, and the opt-out footnote link. */
+function cardEmailParts(p: CardEmailParams) {
+  const baseUrl = appBaseUrl()
+  return {
+    baseUrl,
+    locale: p.locale ?? emailLocale(),
+    actor: escapeEmailHtml(p.actorName),
+    project: `<strong style="color:#4f46e5;">${escapeEmailHtml(p.projectName)}</strong>`,
+    ticket: `<strong style="color:#18181b;">${escapeEmailHtml(p.ticketId)}: ${escapeEmailHtml(p.cardTitle)}</strong>`,
+    profileUrl: `${baseUrl}/profile`,
+    profileLink: (label: string) => `<a href="${baseUrl}/profile" style="color:#6366f1;text-decoration:none;">${label}</a>`
+  }
+}
+
+export function buildCardAssignedEmail(p: CardEmailParams): BuiltEmail {
+  const s = cardEmailParts(p)
+
+  if (s.locale === 'de') {
+    return {
+      subject: oneLine(`[Completo] ${p.actorName} hat dir ein Ticket zugewiesen: ${p.cardTitle}`),
+      text: `${p.actorName} hat dir im Projekt ${p.projectName} ein Ticket zugewiesen:\n\n${p.ticketId}: ${p.cardTitle}\n\nTicket öffnen: ${p.cardUrl}\n\nDiese E-Mails kannst du in deinem Profil abschalten: ${s.profileUrl}`,
+      html: buildEmailHtml({
+        preheader: `${s.actor} hat dir ${escapeEmailHtml(p.ticketId)} zugewiesen.`,
+        heading: 'Neues Ticket für dich',
+        body: `${s.actor} hat dir im Projekt ${s.project} ein Ticket zugewiesen:<br /><br />${s.ticket}`,
+        ctaUrl: p.cardUrl,
+        ctaLabel: 'Ticket öffnen',
+        footnote: `Du bekommst diese E-Mail, weil dir in Completo ein Ticket zugewiesen wurde. Du kannst diese E-Mails in deinem ${s.profileLink('Profil')} abschalten.`,
+        baseUrl: s.baseUrl
+      })
+    }
+  }
+
+  return {
+    subject: oneLine(`[Completo] ${p.actorName} assigned you a card: ${p.cardTitle}`),
+    text: `${p.actorName} assigned you a card in ${p.projectName}:\n\n${p.ticketId}: ${p.cardTitle}\n\nOpen the card: ${p.cardUrl}\n\nYou can turn these emails off in your profile: ${s.profileUrl}`,
+    html: buildEmailHtml({
+      preheader: `${s.actor} assigned ${escapeEmailHtml(p.ticketId)} to you.`,
+      heading: 'A card for you',
+      body: `${s.actor} assigned you a card in ${s.project}:<br /><br />${s.ticket}`,
+      ctaUrl: p.cardUrl,
+      ctaLabel: 'Open card',
+      footnote: `You're receiving this because a card was assigned to you on Completo. You can turn these emails off in your ${s.profileLink('profile')}.`,
+      baseUrl: s.baseUrl
+    })
+  }
+}
+
+export function buildMentionEmail(p: CardEmailParams & { excerpt: string, source: 'description' | 'comment' }): BuiltEmail {
+  const s = cardEmailParts(p)
+  const quote = p.excerpt
+    ? `<br /><br /><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td style="border-left:3px solid #4f46e5;background-color:#f4f4f5;padding:12px 16px;font-family:${FONT};font-size:14px;line-height:22px;color:#3f3f46;">${escapeEmailHtml(p.excerpt)}</td></tr></table>`
+    : ''
+
+  if (s.locale === 'de') {
+    const where = p.source === 'comment' ? 'in einem Kommentar zum Ticket' : 'in der Beschreibung des Tickets'
+    return {
+      subject: oneLine(`[Completo] ${p.actorName} hat dich erwähnt: ${p.cardTitle}`),
+      text: `${p.actorName} hat dich im Projekt ${p.projectName} ${where} ${p.ticketId}: ${p.cardTitle} erwähnt.${p.excerpt ? `\n\n„${p.excerpt}“` : ''}\n\nTicket öffnen: ${p.cardUrl}\n\nDiese E-Mails kannst du in deinem Profil abschalten: ${s.profileUrl}`,
+      html: buildEmailHtml({
+        preheader: `${s.actor} hat dich in ${escapeEmailHtml(p.ticketId)} erwähnt.`,
+        heading: 'Du wurdest erwähnt',
+        body: `${s.actor} hat dich im Projekt ${s.project} ${where} ${s.ticket} erwähnt.${quote}`,
+        ctaUrl: p.cardUrl,
+        ctaLabel: 'Ticket öffnen',
+        footnote: `Du bekommst diese E-Mail, weil du in Completo erwähnt wurdest. Du kannst diese E-Mails in deinem ${s.profileLink('Profil')} abschalten.`,
+        baseUrl: s.baseUrl
+      })
+    }
+  }
+
+  const where = p.source === 'comment' ? 'in a comment on' : 'in the description of'
+  return {
+    subject: oneLine(`[Completo] ${p.actorName} mentioned you: ${p.cardTitle}`),
+    text: `${p.actorName} mentioned you ${where} ${p.ticketId}: ${p.cardTitle} in ${p.projectName}.${p.excerpt ? `\n\n"${p.excerpt}"` : ''}\n\nOpen the card: ${p.cardUrl}\n\nYou can turn these emails off in your profile: ${s.profileUrl}`,
+    html: buildEmailHtml({
+      preheader: `${s.actor} mentioned you in ${escapeEmailHtml(p.ticketId)}.`,
+      heading: 'You were mentioned',
+      body: `${s.actor} mentioned you ${where} ${s.ticket} in ${s.project}.${quote}`,
+      ctaUrl: p.cardUrl,
+      ctaLabel: 'Open card',
+      footnote: `You're receiving this because you were mentioned on Completo. You can turn these emails off in your ${s.profileLink('profile')}.`,
+      baseUrl: s.baseUrl
+    })
+  }
+}
+
+export async function sendBuiltEmail(to: string, email: BuiltEmail): Promise<void> {
+  await getTransporter().sendMail({
+    from: process.env.SMTP_FROM || 'Completo <noreply@completo.local>',
+    to,
+    subject: email.subject,
+    text: email.text,
+    html: email.html
+  })
+}
+
 export async function sendProjectNotificationEmail(to: string, inviterName: string, projectName: string, projectSlug: string): Promise<void> {
   const baseUrl = process.env.APP_URL || 'http://localhost:3000'
   const projectUrl = `${baseUrl}/projects/${projectSlug}`
   const from = process.env.SMTP_FROM || 'Completo <noreply@completo.local>'
 
+  const inviter = escapeEmailHtml(inviterName)
+  const project = escapeEmailHtml(projectName)
   const html = buildEmailHtml({
-    preheader: `${inviterName} just added you to the crew.`,
+    preheader: `${inviter} just added you to the crew.`,
     heading: 'You\'re on the board!',
-    body: `${inviterName} added you to <strong style="color:#4f46e5;">${projectName}</strong>. Everything's ready to start: Drap. Drop. Get Stuff Completo.`,
+    body: `${inviter} added you to <strong style="color:#4f46e5;">${project}</strong>. Everything's ready to start: Drag. Drop. Get Stuff Completo.`,
     ctaUrl: projectUrl,
-    ctaLabel: `Open ${projectName}`,
-    footnote: `You're receiving this because ${inviterName} added you to a project on Completo.`,
+    ctaLabel: `Open ${project}`,
+    footnote: `You're receiving this because ${inviter} added you to a project on Completo.`,
     baseUrl
   })
 
@@ -218,13 +423,14 @@ export async function sendAccountInviteEmail(to: string, inviterName: string, pr
   const baseUrl = process.env.APP_URL || 'http://localhost:3000'
   const from = process.env.SMTP_FROM || 'Completo <noreply@completo.local>'
 
+  const inviter = escapeEmailHtml(inviterName)
   const html = buildEmailHtml({
     preheader: 'Your seat at the table is waiting.',
     heading: 'You\'ve been invited!',
-    body: `${inviterName} wants you on <strong style="color:#4f46e5;">${projectName}</strong>. Create your account and you'll land right in the project - cards piled high, toppings included.`,
+    body: `${inviter} wants you on <strong style="color:#4f46e5;">${escapeEmailHtml(projectName)}</strong>. Create your account and you'll land right in the project - cards piled high, toppings included.`,
     ctaUrl: registerUrl,
     ctaLabel: 'Create Account &amp; Join',
-    footnote: `This invitation expires in 7 days. If you don't know ${inviterName}, you can safely ignore this.`,
+    footnote: `This invitation expires in 7 days. If you don't know ${inviter}, you can safely ignore this.`,
     baseUrl
   })
 
@@ -241,10 +447,11 @@ export async function sendAccountSetupEmail(to: string, adminName: string, setup
   const baseUrl = process.env.APP_URL || 'http://localhost:3000'
   const from = process.env.SMTP_FROM || 'Completo <noreply@completo.local>'
 
+  const admin = escapeEmailHtml(adminName)
   const html = buildEmailHtml({
-    preheader: `${adminName} set you up. Time to make it yours.`,
+    preheader: `${admin} set you up. Time to make it yours.`,
     heading: 'Welcome to the crew!',
-    body: `${adminName} created a Completo account for you. One quick step - set your password and you're in: Drag, drop, get stuff Completo.`,
+    body: `${admin} created a Completo account for you. One quick step - set your password and you're in: Drag, drop, get stuff Completo.`,
     ctaUrl: setupUrl,
     ctaLabel: 'Set Your Password',
     footnote: 'This link expires in 24 hours. If you didn\'t expect this, you can safely ignore it.',

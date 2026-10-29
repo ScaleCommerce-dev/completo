@@ -7,6 +7,7 @@ const { public: { appVersion } } = useRuntimeConfig()
 const { data: profileData } = useFetch<{
   createdAt: string | null
   lastSeenAt: string | null
+  emailNotifications: boolean
   priorityCounts: Record<string, number>
   totalOpen: number
   projects: Array<{

@@ -150,6 +150,7 @@ export function notifyCommentActivity(params: {
   assigneeId?: string | null
   actorId: string
   actorName: string
+  projectName: string
   projectSlug: string
   projectKey: string
   /** Only a newly created comment notifies the assignee; an edit just notifies new mentions. */
@@ -166,6 +167,20 @@ export function notifyCommentActivity(params: {
     projectSlug: params.projectSlug,
     projectKey: params.projectKey,
     source: 'comment'
+  })
+
+  // Mentions also go out by email; `mentioned` already holds only the newly added
+  // ones, so editing a comment does not re-mail anyone. A plain new comment is
+  // in-app only — email is reserved for being assigned or addressed directly.
+  sendCardActivityEmails({
+    actorId: params.actorId,
+    actorName: params.actorName,
+    project: { id: params.projectId, name: params.projectName, slug: params.projectSlug, key: params.projectKey },
+    cardId: params.cardId,
+    cardTitle: params.cardTitle,
+    mentionedUserIds: mentioned,
+    mentionText: params.body,
+    mentionSource: 'comment'
   })
 
   // Editing a comment only notifies its newly added mentions (handled above);

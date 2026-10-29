@@ -5,6 +5,7 @@ const {
   profileName,
   profileAvatarUrl,
   profileColorMode,
+  profileEmailNotifications,
   profileLoading,
   profileError,
   profileSuccess,
@@ -15,12 +16,17 @@ const {
   handleProfileKeydown
 } = useProfileForm()
 
-defineProps<{
+const props = defineProps<{
   profileData?: {
     createdAt: string | null
     lastSeenAt: string | null
+    emailNotifications?: boolean
   } | null
 }>()
+
+watch(() => props.profileData?.emailNotifications, (value) => {
+  if (value !== undefined) profileEmailNotifications.value = value
+}, { immediate: true })
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -181,6 +187,36 @@ function formatDate(iso: string): string {
               />
               {{ option.label }}
             </button>
+          </div>
+        </div>
+        <!-- Card email row: opt-out for assigned / mentioned emails -->
+        <div class="flex items-center px-3 py-2.5 bg-default">
+          <div class="flex items-center gap-2 w-28 shrink-0">
+            <UIcon
+              name="i-lucide-mail"
+              class="text-sm text-dimmed"
+            />
+            <span class="text-sm font-medium text-muted">Emails</span>
+          </div>
+          <div class="flex flex-1 items-center justify-between gap-3">
+            <span class="text-xs text-dimmed">When you're assigned or mentioned</span>
+            <div class="flex gap-1">
+              <button
+                v-for="option in [{ value: true, label: 'On', icon: 'i-lucide-bell' }, { value: false, label: 'Off', icon: 'i-lucide-bell-off' }]"
+                :key="option.label"
+                type="button"
+                class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+                :class="profileEmailNotifications === option.value ? 'bg-primary/10 text-primary' : 'text-dimmed hover:text-toned hover:bg-elevated'"
+                :aria-pressed="profileEmailNotifications === option.value"
+                @click="profileEmailNotifications = option.value"
+              >
+                <UIcon
+                  :name="option.icon"
+                  class="text-sm"
+                />
+                {{ option.label }}
+              </button>
+            </div>
           </div>
         </div>
       </div>

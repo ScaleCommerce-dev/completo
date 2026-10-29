@@ -4,6 +4,11 @@ export function useProfileForm() {
   const profileName = ref(user.value?.name || '')
   const profileAvatarUrl = ref(user.value?.avatarUrl || '')
   const profileColorMode = ref(user.value?.colorMode || 'system')
+  // Not part of the session user, so the profile page seeds it from
+  // GET /api/user/profile (see ProfileSettings). Unknown until then, and an
+  // unknown value is left out of the save (JSON drops `undefined`): a default of
+  // `true` would silently undo an opt-out if Save landed before the fetch.
+  const profileEmailNotifications = ref<boolean>()
   const profileLoading = ref(false)
   const profileError = ref('')
   const profileSuccess = ref(false)
@@ -54,7 +59,7 @@ export function useProfileForm() {
       const avatarToSave = (hasGravatar.value && !gravatarOverride.value) ? gravatarUrl.value.replace('?d=404&s=160', '?s=160') : (profileAvatarUrl.value || null)
       await $fetch('/api/user/profile', {
         method: 'PUT',
-        body: { name: profileName.value, avatarUrl: avatarToSave, colorMode: profileColorMode.value }
+        body: { name: profileName.value, avatarUrl: avatarToSave, colorMode: profileColorMode.value, emailNotifications: profileEmailNotifications.value }
       })
       await fetchSession()
       profileSuccess.value = true
@@ -77,6 +82,7 @@ export function useProfileForm() {
     profileName,
     profileAvatarUrl,
     profileColorMode,
+    profileEmailNotifications,
     profileLoading,
     profileError,
     profileSuccess,

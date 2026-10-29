@@ -128,6 +128,10 @@ export async function setup() {
       NODE_ENV: 'test',
       DATABASE_URL: TEST_DB,
       ALLOW_TEST_ENDPOINTS: '1',
+      // The server's public URL. Without it the dev container's APP_URL leaks in,
+      // and the OAuth discovery documents (oauth-server.ts prefers APP_URL) point
+      // at the dev domain instead of this server.
+      APP_URL: `http://localhost:${PORT}`,
       NUXT_SESSION_PASSWORD: 'at-least-32-characters-long-secret-key-for-testing',
       // Disable email sending in tests
       SMTP_HOST: '',
