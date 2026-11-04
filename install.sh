@@ -43,6 +43,30 @@ if ! curl -fsSL -o "$TMP" "$DOWNLOAD_URL"; then
   exit 1
 fi
 
+# Verify SHA256 against the release's checksums.txt ('sha256  filename'
+# per line). Releases before v0.14.1 have none: install those unverified,
+# with a warning. Once no such release is "latest", make this mandatory.
+SUMS=$(mktemp)
+if curl -fsL -o "$SUMS" "https://github.com/${REPO}/releases/latest/download/checksums.txt"; then
+  EXPECTED="$(grep "  ${ASSET_NAME}$" "$SUMS" | awk '{print $1}')"
+  if command -v sha256sum >/dev/null 2>&1; then
+    ACTUAL="$(sha256sum "$TMP" | awk '{print $1}')"
+  else
+    ACTUAL="$(shasum -a 256 "$TMP" | awk '{print $1}')"
+  fi
+  if [ -z "$EXPECTED" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
+    echo "Error: checksum mismatch for ${ASSET_NAME}"
+    echo "  expected: ${EXPECTED:-<not listed in checksums.txt>}"
+    echo "  actual:   ${ACTUAL}"
+    rm -f "$TMP" "$SUMS"
+    exit 1
+  fi
+  echo "Checksum verified."
+else
+  echo "Warning: this release has no checksums.txt; installing unverified."
+fi
+rm -f "$SUMS"
+
 chmod +x "$TMP"
 
 # Remove macOS quarantine attribute if present

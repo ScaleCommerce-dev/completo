@@ -149,7 +149,13 @@ Pages use `useFetch()`, composables `$fetch()`. Refresh after mutations — **ex
 
 Refactors, renames, test and doc changes and dependency bumps are not entries; if a contributor needs them, that is `### Dev`.
 
-Before tagging: bump `package.json`, rename `## Unreleased`, update `README.md`. The release workflow pulls the body with `awk "/^## ${TAG}/…"` and **publishes a stub body if no section matches the tag** — verify before pushing. Then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+Before tagging: bump `package.json`, rename `## Unreleased`, update `README.md`. Then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+
+**What the tag runs** (`.github/workflows/release-build.yml`): `ci` first checks that `CHANGELOG.md` has a section whose heading is exactly the tag (`## v0.14.0` or `## v0.14.0 (date)`) and that `package.json` carries the same version, and fails the release before anything is pushed if not. It then lints, typechecks and tests; `build-docker` pushes `ghcr.io/scalecommerce-dev/completo:<version>` and `:latest`; `build-cli` builds five CLI binaries and checks the linux-amd64 one reports the tag (an `-X` path that matches no variable is silently ignored and ships a `dev` CLI); `release` writes `checksums.txt`, which `install.sh` verifies against, and publishes the release with `.github/release-body-header.md` plus the tag's section.
+
+**Re-running a failed release:** `gh workflow run release-build.yml -f tag=vX.Y.Z`. The workflow file comes from `main`, so a CI fix there applies, but every job checks out the tag: the code is always the tagged code. A fix to the code or the CHANGELOG needs a new tag. Note that `build-docker` may already have pushed `:latest` before a later job failed.
+
+Actions are pinned to commit SHAs (the release job can push images and publish releases). To bump one, dereference the new tag with `gh api repos/<owner>/<repo>/commits/<tag> --jq .sha` and keep the version in the trailing comment.
 
 ## Where the reasoning lives
 
