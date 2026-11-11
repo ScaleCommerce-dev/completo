@@ -583,7 +583,7 @@ const showDeleteConfirm = ref(false)
                       >
                         <button
                           type="button"
-                          class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
+                          class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition"
                           :style="{ backgroundColor: col.color || '#a1a1aa' }"
                         />
                         <template #content>
@@ -635,7 +635,7 @@ const showDeleteConfirm = ref(false)
               <UPopover v-model:open="newColorOpen">
                 <button
                   type="button"
-                  class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
+                  class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition"
                   :style="{ backgroundColor: newColumnColor }"
                 />
                 <template #content>

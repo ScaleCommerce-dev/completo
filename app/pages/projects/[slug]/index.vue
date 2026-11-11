@@ -504,7 +504,7 @@ async function confirmDeleteTag(tagId: string) {
                     <UPopover v-model:open="newTagColorOpen">
                       <button
                         type="button"
-                        class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
+                        class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition"
                         :style="{ backgroundColor: newTagColor }"
                       />
                       <template #content>
@@ -639,7 +639,7 @@ async function confirmDeleteTag(tagId: string) {
             <!-- Ghost "+ New View" card -->
             <button
               type="button"
-              class="rounded-xl border-2 border-dashed border-accented p-4 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer group text-left"
+              class="rounded-xl border-2 border-dashed border-accented p-4 hover:border-primary hover:bg-primary/5 transition-colors group text-left"
               @click="showNewView = true"
             >
               <div class="flex items-center gap-3">

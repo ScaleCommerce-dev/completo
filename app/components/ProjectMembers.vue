@@ -487,7 +487,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           v-for="(u, i) in searchResults"
           :key="u.id"
           type="button"
-          class="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md transition-colors text-left cursor-pointer"
+          class="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md transition-colors text-left"
           :class="i === highlightIndex ? 'bg-elevated' : 'hover:bg-elevated'"
           :disabled="adding"
           @mousedown.prevent="addMember(u)"
@@ -505,7 +505,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
         <button
           v-if="!searching && searchResults.length === 0 && isValidEmail(searchQuery.trim())"
           type="button"
-          class="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md transition-colors text-left cursor-pointer hover:bg-elevated"
+          class="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md transition-colors text-left hover:bg-elevated"
           :disabled="adding"
           @mousedown.prevent="inviteByEmail"
         >
@@ -572,7 +572,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           >
             <button
               type="button"
-              class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition hover:ring-2 hover:ring-primary/20 flex items-center gap-1"
+              class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 transition hover:ring-2 hover:ring-primary/20 flex items-center gap-1"
               :class="m.role === 'owner'
                 ? 'bg-primary/10 text-primary'
                 : 'bg-elevated text-muted'"
@@ -619,7 +619,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
             <UDropdownMenu :items="invitationMenuItems(inv)">
               <button
                 type="button"
-                class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition hover:ring-2 hover:ring-warning/20 flex items-center gap-1 bg-warning/10 text-warning"
+                class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 transition hover:ring-2 hover:ring-warning/20 flex items-center gap-1 bg-warning/10 text-warning"
                 :disabled="resendingInvitation === inv.id || cancellingInvitation === inv.id"
               >
                 <UIcon
@@ -788,7 +788,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
           >
             <button
               type="button"
-              class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition hover:ring-2 hover:ring-primary/20 flex items-center gap-1 bg-elevated text-muted"
+              class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 transition hover:ring-2 hover:ring-primary/20 flex items-center gap-1 bg-elevated text-muted"
               :aria-label="`Role of ${a.name}: member. Agents are always members`"
             >
               <UIcon

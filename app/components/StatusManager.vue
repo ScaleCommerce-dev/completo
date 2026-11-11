@@ -390,7 +390,7 @@ async function setDoneStatus(statusId: string | null) {
             <UPopover v-model:open="newColColorOpen">
               <button
                 type="button"
-                class="w-4 h-4 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
+                class="w-4 h-4 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition"
                 :style="{ backgroundColor: newColColor }"
               />
               <template #content>

@@ -39,7 +39,7 @@ withDefaults(defineProps<{
   <button
     type="button"
     :aria-label="label"
-    class="cell-trigger flex items-center rounded-md px-1 -mx-1 hover:bg-elevated transition-colors cursor-pointer min-h-cell"
+    class="cell-trigger flex items-center rounded-md px-1 -mx-1 hover:bg-elevated transition-colors min-h-cell"
     @click.stop
   >
     <slot />

@@ -263,7 +263,7 @@ defineExpose({ upload, uploadFiles, uploading })
         dragging
           ? 'border-dashed border-primary bg-primary/10 text-primary'
           : 'border-default bg-default text-dimmed hover:bg-muted',
-        uploading ? 'cursor-default' : 'cursor-pointer'
+        uploading ? 'cursor-default' : ''
       ]"
       :disabled="uploading"
       @click="openFilePicker"

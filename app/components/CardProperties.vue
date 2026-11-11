@@ -63,7 +63,7 @@ function toggleTag(tagId: string) {
 }
 
 const TRIGGER = computed(() => [
-  'flex items-center gap-1.5 max-w-full rounded-md px-1.5 py-1 text-sm font-medium transition-colors hover:bg-elevated cursor-pointer',
+  'flex items-center gap-1.5 max-w-full rounded-md px-1.5 py-1 text-sm font-medium transition-colors hover:bg-elevated',
   // Pulls the control's text out to the row's content edge. In compact there is no
   // label column to align with, and negative margins would eat the gap between chips.
   isCompact.value ? '' : '-mx-1.5'
@@ -289,7 +289,7 @@ function row(label: string, icon: string, align?: 'start') {
           -->
           <button
             type="button"
-            class="flex items-start gap-1 rounded-md px-1.5 py-1 -mx-1.5 transition-colors hover:bg-elevated cursor-pointer text-left"
+            class="flex items-start gap-1 rounded-md px-1.5 py-1 -mx-1.5 transition-colors hover:bg-elevated text-left"
             :aria-label="label"
           >
             <!-- `max-h-4` is one pill tall, so an overflowing tag wraps onto a

@@ -582,6 +582,29 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   CURSOR
+
+   Everything clickable shows the hand. Tailwind 4's preflight resets `<button>`
+   to the arrow, so the cursor said how a control was built rather than what it
+   does: a UButton with `to` renders an `<a>` and got the hand, the same button
+   opening a dialog rendered a `<button>` and got the arrow — Settings and Members
+   side by side in the project header disagreed. Twenty-two files patched it with
+   a hand-written `cursor-pointer`, on whichever buttons someone noticed.
+
+   Base layer, so a utility still wins: `disabled:cursor-not-allowed` on Nuxt UI's
+   buttons, or `cursor-default` where a control means to look inert. Write
+   `cursor-pointer` only on a clickable element that is not a button — a row, a
+   label, a span.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    SCROLL SURFACES
    ═══════════════════════════════════════════════════════════════════════════ */
 

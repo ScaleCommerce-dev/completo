@@ -447,7 +447,7 @@ async function confirmDelete() {
           -->
           <button
             type="button"
-            class="group w-full flex items-center gap-1.5 px-4 py-2.5 min-h-row text-sm font-medium text-muted hover:text-error hover:bg-error/5 transition-colors cursor-pointer"
+            class="group w-full flex items-center gap-1.5 px-4 py-2.5 min-h-row text-sm font-medium text-muted hover:text-error hover:bg-error/5 transition-colors"
             @click="showDeleteConfirm = true"
           >
             <!-- `gap-1.5` and a dimmed glyph, both copied off UiFieldRow's label
