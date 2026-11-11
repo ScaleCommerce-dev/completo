@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -214,4 +216,91 @@ func TestFormatCommentsEditMarker(t *testing.T) {
 			t.Errorf("unexpected edited marker:\n%s", out)
 		}
 	})
+}
+
+func TestFormatCardComments(t *testing.T) {
+	t.Run("says none, aligned with the card's fields", func(t *testing.T) {
+		got := formatCardComments([]comment{}, "TK-42")
+		// The value column is derived from the card view itself, so the line
+		// keeps lining up if formatCard gains a longer key.
+		card := formatCard(&cardResponse{card: card{ID: 42, Title: "t"}, Project: &projectInfo{Key: "TK"}})
+		var col int
+		for _, l := range strings.Split(card, "\n") {
+			if strings.HasPrefix(l, "attachments:") {
+				col = len(l) - len(strings.TrimLeft(l[len("attachments:"):], " "))
+			}
+		}
+		if col == 0 {
+			t.Fatalf("no attachments line in card view:\n%s", card)
+		}
+		if want := "comments:" + strings.Repeat(" ", col-len("comments:")) + "none\n"; got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	})
+
+	t.Run("prints every comment under a heading with the count", func(t *testing.T) {
+		got := formatCardComments(commentFixtures(), "TK-42")
+		if !strings.HasPrefix(got, "comments (3):\n") {
+			t.Errorf("heading: %q", strings.SplitN(got, "\n", 2)[0])
+		}
+		for _, c := range commentFixtures() {
+			for _, line := range strings.Split(c.Body, "\n") {
+				if !strings.Contains(got, "\n    "+line+"\n") {
+					t.Errorf("body line %q missing or not indented under the heading:\n%s", line, got)
+				}
+			}
+		}
+	})
+
+	t.Run("keeps the newest when the thread is long, and says how to see the rest", func(t *testing.T) {
+		var many []comment
+		for i := 0; i < cardCommentLimit+3; i++ {
+			many = append(many, comment{
+				ID:   fmt.Sprintf("%08d-0000-4000-8000-000000000000", i),
+				Body: fmt.Sprintf("comment number %d", i), AuthorName: strptr("Ada"),
+				CreatedAt: "2026-08-20T12:00:00.000Z", UpdatedAt: "2026-08-20T12:00:00.000Z",
+			})
+		}
+		got := formatCardComments(many, "TK-42")
+		if !strings.Contains(strings.SplitN(got, "\n", 2)[0], "completo comment TK-42") {
+			t.Errorf("heading should point at the full list: %q", strings.SplitN(got, "\n", 2)[0])
+		}
+		if strings.Contains(got, "comment number 2\n") {
+			t.Errorf("an old comment printed although the thread was cut:\n%s", got)
+		}
+		if !strings.Contains(got, fmt.Sprintf("comment number %d\n", len(many)-1)) {
+			t.Errorf("the newest comment is missing:\n%s", got)
+		}
+		if n := strings.Count(got, "comment number "); n != cardCommentLimit {
+			t.Errorf("printed %d comments, want %d", n, cardCommentLimit)
+		}
+	})
+
+	t.Run("leaves no trailing whitespace on blank body lines", func(t *testing.T) {
+		got := formatCardComments([]comment{{ID: "aaaaaaaa", Body: "a\n\nb", AuthorName: strptr("Ada"), CreatedAt: "2026-08-20T12:00:00.000Z", UpdatedAt: "2026-08-20T12:00:00.000Z"}}, "TK-42")
+		for _, line := range strings.Split(got, "\n") {
+			if line != strings.TrimRight(line, " ") {
+				t.Errorf("line %q has trailing whitespace", line)
+			}
+		}
+	})
+}
+
+func TestWithComments(t *testing.T) {
+	out, err := withComments([]byte(`{"id":42,"title":"t","tags":[]}`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var obj map[string]any
+	if err := json.Unmarshal(out, &obj); err != nil {
+		t.Fatal(err)
+	}
+	if obj["title"] != "t" || obj["id"] != float64(42) {
+		t.Errorf("card fields changed: %s", out)
+	}
+	// An empty array, not null: a script iterating comments should not have to
+	// special-case a card without any.
+	if c, ok := obj["comments"].([]any); !ok || len(c) != 0 {
+		t.Errorf("comments should be an empty array, got %s", out)
+	}
 }

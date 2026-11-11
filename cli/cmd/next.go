@@ -65,15 +65,24 @@ var nextCmd = &cobra.Command{
 		}
 
 		best := &cards[0]
+		comments, err := peekComments(client, best.ID)
+		if err != nil {
+			return err
+		}
 
 		if jsonOutput {
-			b, _ := json.MarshalIndent(best, "", "  ")
-			fmt.Println(string(b))
+			b, _ := json.Marshal(best)
+			out, err := withComments(b, comments)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(out))
 			return nil
 		}
 
 		resp := &cardResponse{card: *best, Project: &projectInfo{Key: proj.Key}}
 		fmt.Print(formatCard(resp))
+		fmt.Print(formatCardComments(comments, resp.ticket()))
 		return nil
 	},
 }

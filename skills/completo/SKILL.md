@@ -100,6 +100,14 @@ and pick, rather than blindly taking the top card. Read the card carefully: titl
 and priority tell you what to build. **Checklist items (`- [ ]` / `- [x]`) in the description are your
 implementation plan.**
 
+**Read the comments too. They are newer than the description and override it where the two
+disagree.** `get` and `next` print them under the card, the latest 10. If the heading says there are
+more, run `completo comment <ticket-id>` for the whole thread. If `get` prints no `comments` line at
+all, the CLI is older than this and you must run `completo comment <ticket-id>` yourself. A comment is often how a ticket is
+re-scoped, how a fix in the meantime is recorded, or where a constraint gets added after the ticket was
+written. Plan from the description *as amended by its comments*, and say so in your assessment when a
+comment changed what you will build.
+
 ### Step 2 — Claim it
 
 ```bash
@@ -245,7 +253,7 @@ Run `completo <command> --help` for full, always-current flag lists. The essenti
 | `completo statuses [project]` | List a project's statuses (names are exact) |
 | `completo next [project] [--status X] [--all]` | Top card of a status, or all of them (`--all`) |
 | `completo list [project] [--status] [--priority] [--assignee] [--limit]` | List/filter cards (limit default 50, max 200) |
-| `completo get <ticket-id>` | Fetch one card |
+| `completo get <ticket-id>` | Fetch one card, with its latest comments |
 | `completo create <title> [flags]` | Create a card (see above) |
 | `completo update <ticket-id> [flags]` | Edit `--title` / `--description[-file]` / `--priority` / `--due` (`--due none` clears it) |
 | `completo move <ticket-id> "Status"` | Move a card to a status (to the top of the column) |

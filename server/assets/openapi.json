@@ -4838,10 +4838,25 @@
           "Comments"
         ],
         "summary": "List card comments",
+        "description": "Listing a card's comments marks the card as read for the caller, clearing its unread indicator. Pass markRead=false to read them without doing so.",
         "operationId": "listComments",
         "parameters": [
           {
             "$ref": "#/components/parameters/CardId"
+          },
+          {
+            "name": "markRead",
+            "in": "query",
+            "required": false,
+            "description": "false leaves the card's unread state untouched",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "true"
+            }
           }
         ],
         "responses": {

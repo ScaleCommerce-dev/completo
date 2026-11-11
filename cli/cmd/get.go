@@ -91,7 +91,23 @@ var getCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			fmt.Println(string(data))
+			// The comment endpoint takes the numeric id only, so a ticket key
+			// has to be read off the card first.
+			var ref struct {
+				ID int `json:"id"`
+			}
+			if err := json.Unmarshal(data, &ref); err != nil {
+				return fmt.Errorf("failed to parse card: %w", err)
+			}
+			comments, err := peekComments(client, ref.ID)
+			if err != nil {
+				return err
+			}
+			out, err := withComments(data, comments)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(out))
 			return nil
 		}
 
@@ -99,14 +115,38 @@ var getCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		comments, err := peekComments(client, c.ID)
+		if err != nil {
+			return err
+		}
 
 		fmt.Print(formatCard(c))
+		fmt.Print(formatCardComments(comments, c.ticket()))
 		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(getCmd)
+}
+
+// withComments adds a "comments" array to a card's JSON object and leaves every
+// other field as the API sent it. Unlike the text view, the JSON is not capped:
+// a script asking for the card gets all of it.
+func withComments(cardJSON []byte, comments []comment) ([]byte, error) {
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(cardJSON, &obj); err != nil {
+		return nil, fmt.Errorf("failed to parse card: %w", err)
+	}
+	if comments == nil {
+		comments = []comment{}
+	}
+	c, err := json.Marshal(comments)
+	if err != nil {
+		return nil, err
+	}
+	obj["comments"] = c
+	return json.MarshalIndent(obj, "", "  ")
 }
 
 func formatCard(c *cardResponse) string {

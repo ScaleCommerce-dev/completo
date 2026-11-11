@@ -14,10 +14,12 @@
 - **Resetting or changing your password signs you out everywhere else.** Any other browser still signed in to your account, including one belonging to whoever knew the old password, used to stay signed in. Now only the browser you reset or changed it from stays signed in. A reset also revokes your API tokens and connected apps, which a token or an MCP connection created by whoever knew the old password used to survive: run `completo config` again, and reconnect Claude or other MCP clients, after a reset.
 - **Sign-ins expire after 30 days.** They used to last forever. Set `NUXT_SESSION_MAX_AGE` (in seconds) to change this, or `0` to turn it off.
 - **Removing someone from a project unassigns their cards there**, as removing an agent already did. Their cards used to keep the name of a person who could no longer open them, and kept them on the cards' notifications. Removing an admin leaves their cards assigned, since they still reach the project.
+- **Claude sees a card's comments when it reads the card.** Through `/mcp`, reading a card returned its description and only a count of its comments, so Claude worked from the original description even when a later comment had changed the ticket. It now gets the latest 10 comments along with the card, without marking the card as read for you. The comment list no longer reports every comment as edited.
 - **Security: client metadata documents can no longer reach internal addresses.** A third-party OAuth client identified by its URL could point Completo at a redirect or a name resolving to the server's own network.
 
 ### CLI
 
+- **`completo get` and `completo next` show the card's comments.** They print the latest 10 under the description, with the total and a pointer to `completo comment` when there are more, and `--json` gains a `comments` array with all of them. Comments that re-scoped a ticket or recorded a later decision used to go unseen unless you thought to run `completo comment`, so an agent picking up the card worked from the original description. Reading them this way does not mark the card as read, so an agent using your token does not clear your unread dots.
 - **A `.completo.local` that changes the server must also bring its own token.** A `.completo.local` arriving with a cloned repository could set only `COMPLETO_URL`, and the CLI then sent your token from `~/.completo/.env` to that server. It now refuses to run and says why.
 
 ### Upgrading

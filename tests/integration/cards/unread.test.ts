@@ -76,6 +76,17 @@ describe('Unread comment activity (A) and thread notifications (D)', async () =>
     // `card.activity` event is what surfaces a same-second comment in practice.)
   })
 
+  it('leaves the card unread when the comments are fetched with markRead=false', async () => {
+    const card = await createTestCard(author, projectId, statusId, { title: 'Peek' })
+    await createTestComment(author, card.id, 'Context only')
+    expect(await unread(member, boardId, card.id)).toBe(true)
+
+    // What `completo get` sends: the comments come back, the dot stays.
+    const comments = await $fetch(`/api/cards/${card.id}/comments?markRead=false`, { headers: member.headers }) as unknown[]
+    expect(comments).toHaveLength(1)
+    expect(await unread(member, boardId, card.id)).toBe(true)
+  })
+
   it('notifies thread participants of a new comment, not just the assignee', async () => {
     const card = await createTestCard(author, projectId, statusId, { title: 'Thread' })
 

@@ -286,6 +286,57 @@ func fetchComments(client *internal.Client, cardID int) ([]comment, error) {
 	return comments, nil
 }
 
+// peekComments fetches a card's comments without marking the card read. `get`
+// and `next` show comments as context, usually to an agent on a person's token,
+// and that must not clear the person's unread dots on cards they never opened.
+// `completo comment` is an explicit request to read them, so it uses
+// fetchComments and marks the card read.
+func peekComments(client *internal.Client, cardID int) ([]comment, error) {
+	data, err := client.Get(fmt.Sprintf("/api/cards/%d/comments?markRead=false", cardID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch comments: %w", err)
+	}
+	var comments []comment
+	if err := json.Unmarshal(data, &comments); err != nil {
+		return nil, fmt.Errorf("failed to parse comments: %w", err)
+	}
+	if comments == nil {
+		comments = []comment{}
+	}
+	return comments, nil
+}
+
+// cardCommentLimit is how many comments `get` and `next` print. A card's later
+// comments often correct its description, so they belong in the card view, but
+// a long thread would bury the card itself. The newest are kept, since those are
+// the ones most likely to supersede what the description says.
+const cardCommentLimit = 10
+
+// formatCardComments renders the comment section printed under a card. The
+// heading carries the total and, when the thread is cut, the command that shows
+// all of it.
+func formatCardComments(comments []comment, ticket string) string {
+	if len(comments) == 0 {
+		return "comments:     none\n"
+	}
+	shown := comments
+	heading := fmt.Sprintf("comments (%d):", len(comments))
+	if len(comments) > cardCommentLimit {
+		shown = comments[len(comments)-cardCommentLimit:]
+		heading = fmt.Sprintf("comments (%d, latest %d; all: completo comment %s):", len(comments), cardCommentLimit, ticket)
+	}
+	var sb strings.Builder
+	sb.WriteString(heading + "\n")
+	for _, line := range strings.Split(strings.TrimRight(formatComments(shown), "\n"), "\n") {
+		if line == "" {
+			sb.WriteString("\n")
+			continue
+		}
+		sb.WriteString("  " + line + "\n")
+	}
+	return sb.String()
+}
+
 // reportComments prints the card's comment list after a mutation, re-fetched so
 // the output is the server's state rather than the CLI's guess at it.
 func reportComments(client *internal.Client, c *cardResponse, headline string) error {
