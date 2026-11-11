@@ -29,7 +29,7 @@ const emit = defineEmits<{
     <span
       v-else
       class="text-dimmed text-sm"
-    >&mdash;</span>
+    >-</span>
   </div>
 
   <!-- editable -->
@@ -57,7 +57,7 @@ const emit = defineEmits<{
         <span
           v-else
           :class="EMPTY_CELL_CLASS"
-        >&mdash;</span>
+        >-</span>
       </ListCellTrigger>
     </template>
   </StatusMenu>

@@ -25,6 +25,6 @@ defineProps<{
     <span
       v-else
       :class="EMPTY_CELL_CLASS"
-    >&mdash;</span>
+    >-</span>
   </div>
 </template>

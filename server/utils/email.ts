@@ -25,12 +25,35 @@ const ICON_DATA_URI = 'data:image/svg+xml;base64,' + Buffer.from(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#ffffff" d="m19.1 9.349l-9.74 9.74l.01.01l9.74-9.74Z"/><path fill="#ffffff" d="m20.276 9.119l-.47-.47a3.157 3.157 0 0 0-.03-4.43a3.21 3.21 0 0 0-4.42-.03l-.48-.48a2.3 2.3 0 0 0-3.18 0l-7.98 7.98a2.263 2.263 0 0 0 0 3.18l.48.48a3.145 3.145 0 0 0 .03 4.42a3.1 3.1 0 0 0 2.23.92a3.13 3.13 0 0 0 2.2-.89l.47.47a2.245 2.245 0 0 0 3.18 0l7.97-7.97a2.245 2.245 0 0 0 0-3.18m-15.85 3.27l7.97-7.97a1.243 1.243 0 0 1 1.77 0l.47.47l-9.736 9.74l-.47-.47a1.25 1.25 0 0 1-.004-1.77m3.52 6.7a2.2 2.2 0 0 1-3.02-.03a2.15 2.15 0 0 1-.03-3.01l11.16-11.16a2.16 2.16 0 0 1 1.49-.6a2.155 2.155 0 0 1 1.55 3.65Zm11.63-7.49l-7.98 7.97a1.275 1.275 0 0 1-1.76 0l-.47-.47l-.01-.01l9.74-9.74l.01.01l.47.47a1.27 1.27 0 0 1 0 1.771Z"/><path fill="#ffffff" d="M6.57 17.569a.5.5 0 0 1-.354-.854a4.5 4.5 0 0 1 1.357-.967a3.5 3.5 0 0 0 1.1-.778a3.5 3.5 0 0 0 .779-1.1a5.03 5.03 0 0 1 2.324-2.324a3.5 3.5 0 0 0 1.1-.78a3.5 3.5 0 0 0 .78-1.1a4.5 4.5 0 0 1 .97-1.359a4.5 4.5 0 0 1 1.359-.97a3.5 3.5 0 0 0 1.1-.78a.5.5 0 1 1 .707.707a4.5 4.5 0 0 1-1.36.969a3.5 3.5 0 0 0-1.1.781a3.5 3.5 0 0 0-.781 1.1a4.5 4.5 0 0 1-.969 1.36a4.5 4.5 0 0 1-1.359.969a4.03 4.03 0 0 0-1.874 1.874a4.5 4.5 0 0 1-.967 1.357a4.5 4.5 0 0 1-1.358.968a3.5 3.5 0 0 0-1.1.777a.5.5 0 0 1-.354.15"/></svg>'
 ).toString('base64')
 
-// Shared font stack
+// Shared font stacks: the connect2scale faces first, real fallbacks after.
 const FONT = '\'Plus Jakarta Sans\',-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif'
-const MONO = '\'JetBrains Mono\',\'SF Mono\',\'Fira Code\',\'Cascadia Code\',Menlo,Consolas,monospace'
+const MONO = '\'DM Mono\',\'SF Mono\',Menlo,Consolas,monospace'
 
 /**
- * The one HTML shell every email shares.
+ * The connect2scale colours an email uses, as solid hex — copied from
+ * `app/assets/css/connect2scale-tokens.css` (light theme), because a mail client
+ * reads no stylesheet and resolves no custom property. Retune a token there and
+ * this table has to follow; the names say which token each one is.
+ */
+const C2S = {
+  shell: '#0e0e18', //           --c2s-shell
+  shellText: '#adadbf', //       --c2s-shell-text
+  shellLabel: '#9494a8', //      --c2s-shell-label
+  accent: '#d4006a', //          --c2s-accent: the button and the logo tile
+  accentText: '#a60053', //      --c2s-accent-text: links and highlights in text
+  canvas: '#e5eaf3', //          --c2s-canvas: behind the card
+  surface: '#ffffff', //         --c2s-surface: the card
+  surfaceSubtle: '#f5f5f9', //   --c2s-surface-subtle: quoted text
+  text: '#0f0f14', //            --c2s-text
+  muted: '#6b6b7e', //           --c2s-muted
+  border: '#e2e2eb' //           --c2s-border
+} as const
+
+/**
+ * The one HTML shell every email shares, on the connect2scale styleguide: the
+ * always-dark shell as the header, the canvas behind a white 12px card, the
+ * 22px dialog title, body copy in `muted` at 14px/1.8, and the primary button
+ * in the brand magenta with white 700 text and 9px corners.
  *
  * Mail clients are not browsers, and three constraints here are not stylistic —
  * each one is a client that renders the alternative wrongly:
@@ -41,9 +64,12 @@ const MONO = '\'JetBrains Mono\',\'SF Mono\',\'Fira Code\',\'Cascadia Code\',Men
  * - **Solid hex colours only.** `rgba()` is unsupported in roughly a fifth of
  *   installed clients, and it fails by dropping the colour rather than by
  *   degrading, so a translucent panel arrives transparent.
- * - **No `border-radius` on a button.** Outlook ignores it, so a rounded CTA
- *   arrives square while every other client rounds it; a VML `v:roundrect` is the
- *   only portable rounded button.
+ * - **A rounded button needs VML for Outlook.** Outlook ignores
+ *   `border-radius`, so the CTA is drawn twice: a `v:roundrect` for Outlook and
+ *   a rounded link for everything else, at the same 9px.
+ * - **No gradients.** Most clients drop a CSS gradient and show nothing, so the
+ *   brand gradient the access pages use is not attempted; the logo sits on a
+ *   solid accent tile instead, as it does in the app's sidebar.
  *
  * Also why the fonts above are declared as stacks with real fallbacks: a webfont
  * cannot be loaded, so `Plus Jakarta Sans` here is only ever a hint for the
@@ -77,41 +103,47 @@ function buildEmailHtml(options: {
   </noscript>
   <![endif]-->
 </head>
-<body style="margin:0;padding:0;background-color:#f0f0f3;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+<body style="margin:0;padding:0;background-color:${C2S.canvas};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
   <!-- Preheader (hidden inbox preview text) -->
-  <div style="display:none;font-size:1px;color:#f0f0f3;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+  <div style="display:none;font-size:1px;color:${C2S.canvas};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
     ${preheader}
   </div>
 
-  <!-- Outer wrapper -->
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f0f0f3;">
+  <!-- Outer wrapper: the canvas -->
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${C2S.canvas};">
     <tr>
       <td align="center" style="padding:40px 16px;">
 
         <!-- Inner card -->
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="520" style="max-width:520px;width:100%;background-color:#ffffff;border:1px solid #e4e4e7;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="520" style="max-width:520px;width:100%;background-color:${C2S.surface};border:1px solid ${C2S.border};border-radius:12px;border-collapse:separate;overflow:hidden;">
 
-          <!-- Branded header -->
+          <!-- Header: the shell -->
           <tr>
-            <td style="background-color:#4f46e5;padding:32px 40px 28px;">
+            <td style="background-color:${C2S.shell};padding:28px 32px;border-radius:12px 12px 0 0;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <!-- Icon -->
-                  <td style="vertical-align:middle;padding-right:16px;">
-                    <img src="${ICON_DATA_URI}" alt="" width="48" height="48" style="display:block;width:48px;height:48px;" />
+                  <!-- Logo on its accent tile -->
+                  <td style="vertical-align:middle;padding-right:14px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="background-color:${C2S.accent};border-radius:9px;padding:8px;">
+                          <img src="${ICON_DATA_URI}" alt="" width="28" height="28" style="display:block;width:28px;height:28px;" />
+                        </td>
+                      </tr>
+                    </table>
                   </td>
-                  <!-- Brand text -->
+                  <!-- Wordmark -->
                   <td style="vertical-align:middle;">
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                       <tr>
-                        <td style="font-family:${FONT};font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.03em;line-height:1;">
+                        <td style="font-family:${FONT};font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.03em;line-height:1;">
                           Completo
                         </td>
                       </tr>
                       <tr>
-                        <td style="padding-top:5px;font-family:${MONO};font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#dddcf7;line-height:1.6;">
-                          ALL THE TOPPINGS<br />
-                          <span style="font-weight:400;color:#9f9dd4;">NONE OF THE MESS</span>
+                        <td style="padding-top:5px;font-family:${MONO};font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;color:${C2S.shellText};line-height:1.6;">
+                          All the toppings<br />
+                          <span style="color:${C2S.shellLabel};">None of the mess</span>
                         </td>
                       </tr>
                     </table>
@@ -123,35 +155,35 @@ function buildEmailHtml(options: {
 
           <!-- Body content -->
           <tr>
-            <td style="padding:36px 40px 32px;">
-              <!-- Heading -->
+            <td style="padding:32px 32px 28px;">
+              <!-- Heading: the dialog title, 22px -->
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
-                  <td style="font-family:${FONT};font-size:22px;font-weight:700;color:#18181b;padding-bottom:16px;line-height:1.3;">
+                  <td style="font-family:${FONT};font-size:22px;font-weight:700;letter-spacing:-0.6px;color:${C2S.text};padding-bottom:12px;line-height:1.2;">
                     ${heading}
                   </td>
                 </tr>
               </table>
-              <!-- Body text -->
+              <!-- Body text: 14px / 1.8 -->
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
-                  <td style="font-family:${FONT};font-size:15px;line-height:24px;color:#52525b;padding-bottom:32px;">
+                  <td style="font-family:${FONT};font-size:14px;line-height:25px;color:${C2S.muted};padding-bottom:28px;">
                     ${body}
                   </td>
                 </tr>
               </table>
-              <!-- CTA Button -->
+              <!-- CTA button: the primary action -->
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
-                  <td align="center" style="background-color:#4f46e5;padding:16px 24px;">
+                  <td align="center" style="background-color:${C2S.accent};border-radius:9px;">
                     <!--[if mso]>
-                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${ctaUrl}" style="height:52px;v-text-anchor:middle;" arcsize="0%" fillcolor="#4f46e5" strokecolor="#4f46e5" strokeweight="0">
+                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${ctaUrl}" style="height:46px;v-text-anchor:middle;width:456px;" arcsize="20%" fillcolor="${C2S.accent}" strokecolor="${C2S.accent}" strokeweight="0">
                       <w:anchorlock/>
-                      <center style="color:#ffffff;font-family:${FONT};font-size:15px;font-weight:700;">${ctaLabel}</center>
+                      <center style="color:#ffffff;font-family:${FONT};font-size:14px;font-weight:700;">${ctaLabel}</center>
                     </v:roundrect>
                     <![endif]-->
                     <!--[if !mso]><!-->
-                    <a href="${ctaUrl}" target="_blank" style="font-family:${FONT};font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${ctaLabel}</a>
+                    <a href="${ctaUrl}" target="_blank" style="display:block;padding:14px 18px;border-radius:9px;font-family:${FONT};font-size:14px;font-weight:700;line-height:18px;color:#ffffff;text-decoration:none;">${ctaLabel}</a>
                     <!--<![endif]-->
                   </td>
                 </tr>
@@ -161,10 +193,10 @@ function buildEmailHtml(options: {
 
           <!-- Footnote -->
           <tr>
-            <td style="padding:0 40px 32px;">
+            <td style="padding:0 32px 28px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
-                  <td style="border-top:1px solid #e4e4e7;padding-top:20px;font-family:${FONT};font-size:13px;line-height:20px;color:#a1a1aa;">
+                  <td style="border-top:1px solid ${C2S.border};padding-top:20px;font-family:${FONT};font-size:13px;line-height:20px;color:${C2S.muted};">
                     ${footnote}
                   </td>
                 </tr>
@@ -177,8 +209,8 @@ function buildEmailHtml(options: {
         <!-- Footer -->
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="520" style="max-width:520px;width:100%;">
           <tr>
-            <td style="padding:24px 40px;text-align:center;font-family:${FONT};font-size:12px;line-height:18px;color:#a1a1aa;">
-              Sent by <a href="${baseUrl}" style="color:#6366f1;text-decoration:none;font-weight:600;">Completo</a>
+            <td style="padding:24px 32px;text-align:center;font-family:${FONT};font-size:12px;line-height:18px;color:${C2S.muted};">
+              Sent by <a href="${baseUrl}" style="color:${C2S.accentText};text-decoration:none;font-weight:600;">Completo</a>
             </td>
           </tr>
         </table>
@@ -303,10 +335,10 @@ function cardEmailParts(p: CardEmailParams) {
     baseUrl,
     locale: p.locale ?? emailLocale(),
     actor: escapeEmailHtml(p.actorName),
-    project: `<strong style="color:#4f46e5;">${escapeEmailHtml(p.projectName)}</strong>`,
-    ticket: `<strong style="color:#18181b;">${escapeEmailHtml(p.ticketId)}: ${escapeEmailHtml(p.cardTitle)}</strong>`,
+    project: `<strong style="color:${C2S.accentText};">${escapeEmailHtml(p.projectName)}</strong>`,
+    ticket: `<strong style="color:${C2S.text};">${escapeEmailHtml(p.ticketId)}: ${escapeEmailHtml(p.cardTitle)}</strong>`,
     profileUrl: `${baseUrl}/profile`,
-    profileLink: (label: string) => `<a href="${baseUrl}/profile" style="color:#6366f1;text-decoration:none;">${label}</a>`
+    profileLink: (label: string) => `<a href="${baseUrl}/profile" style="color:${C2S.accentText};text-decoration:none;">${label}</a>`
   }
 }
 
@@ -347,7 +379,7 @@ export function buildCardAssignedEmail(p: CardEmailParams): BuiltEmail {
 export function buildMentionEmail(p: CardEmailParams & { excerpt: string, source: 'description' | 'comment' }): BuiltEmail {
   const s = cardEmailParts(p)
   const quote = p.excerpt
-    ? `<br /><br /><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td style="border-left:3px solid #4f46e5;background-color:#f4f4f5;padding:12px 16px;font-family:${FONT};font-size:14px;line-height:22px;color:#3f3f46;">${escapeEmailHtml(p.excerpt)}</td></tr></table>`
+    ? `<br /><br /><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td style="border-left:3px solid ${C2S.accent};background-color:${C2S.surfaceSubtle};padding:12px 16px;font-family:${FONT};font-size:14px;line-height:22px;color:${C2S.text};">${escapeEmailHtml(p.excerpt)}</td></tr></table>`
     : ''
 
   if (s.locale === 'de') {
@@ -403,7 +435,7 @@ export async function sendProjectNotificationEmail(to: string, inviterName: stri
   const html = buildEmailHtml({
     preheader: `${inviter} just added you to the crew.`,
     heading: 'You\'re on the board!',
-    body: `${inviter} added you to <strong style="color:#4f46e5;">${project}</strong>. Everything's ready to start: Drag. Drop. Get Stuff Completo.`,
+    body: `${inviter} added you to <strong style="color:${C2S.accentText};">${project}</strong>. Everything's ready to start: Drag. Drop. Get Stuff Completo.`,
     ctaUrl: projectUrl,
     ctaLabel: `Open ${project}`,
     footnote: `You're receiving this because ${inviter} added you to a project on Completo.`,
@@ -427,9 +459,9 @@ export async function sendAccountInviteEmail(to: string, inviterName: string, pr
   const html = buildEmailHtml({
     preheader: 'Your seat at the table is waiting.',
     heading: 'You\'ve been invited!',
-    body: `${inviter} wants you on <strong style="color:#4f46e5;">${escapeEmailHtml(projectName)}</strong>. Create your account and you'll land right in the project - cards piled high, toppings included.`,
+    body: `${inviter} wants you on <strong style="color:${C2S.accentText};">${escapeEmailHtml(projectName)}</strong>. Create your account and you'll land right in the project - cards piled high, toppings included.`,
     ctaUrl: registerUrl,
-    ctaLabel: 'Create Account &amp; Join',
+    ctaLabel: 'Create account and join',
     footnote: `This invitation expires in 7 days. If you don't know ${inviter}, you can safely ignore this.`,
     baseUrl
   })
@@ -453,7 +485,7 @@ export async function sendAccountSetupEmail(to: string, adminName: string, setup
     heading: 'Welcome to the crew!',
     body: `${admin} created a Completo account for you. One quick step - set your password and you're in: Drag, drop, get stuff Completo.`,
     ctaUrl: setupUrl,
-    ctaLabel: 'Set Your Password',
+    ctaLabel: 'Set your password',
     footnote: 'This link expires in 24 hours. If you didn\'t expect this, you can safely ignore it.',
     baseUrl
   })
@@ -475,9 +507,9 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
   const html = buildEmailHtml({
     preheader: 'Someone requested a password reset for your account.',
     heading: 'Reset your password',
-    body: 'We received a request to reset your password. Click the button below to choose a new one. If you didn\'t request this, you can safely ignore this email &mdash; your password won\'t change.',
+    body: 'We received a request to reset your password. Click the button below to choose a new one. If you didn\'t request this, you can safely ignore this email. Your password won\'t change.',
     ctaUrl: resetUrl,
-    ctaLabel: 'Reset Password',
+    ctaLabel: 'Reset password',
     footnote: 'This link expires in 1 hour. If you didn\'t request a password reset, no action is needed.',
     baseUrl
   })
@@ -499,9 +531,9 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
   const html = buildEmailHtml({
     preheader: 'You\'re one click away from getting stuff Completo.',
     heading: 'Almost there! Verify your email.',
-    body: 'You\'re one click away from getting stuff <strong style="color:#4f46e5;">Completo</strong>. Hit the button below to confirm your email and start with drag, drop, get stuff Completo.',
+    body: `You're one click away from getting stuff <strong style="color:${C2S.accentText};">Completo</strong>. Hit the button below to confirm your email and start with drag, drop, get stuff Completo.`,
     ctaUrl: verifyUrl,
-    ctaLabel: 'Verify Email &amp; Get Started',
+    ctaLabel: 'Verify email and get started',
     footnote: 'This link expires in 24 hours. If you didn\'t create an account, you can safely ignore this email.',
     baseUrl
   })

@@ -34,7 +34,7 @@ const status = computed(() => getDueDateStatus(props.dueDate))
       <span
         v-else
         :class="EMPTY_CELL_CLASS"
-      >&mdash;</span>
+      >-</span>
     </ListCellTrigger>
   </DueDatePicker>
 </template>

@@ -12,6 +12,7 @@
 - **Keyboard focus is easier to see.** Tabbing draws a clear accent outline on every control; clicking into a field shows a quieter one.
 - **Notifications stay as long as you need to read them.** Short ones stay 5 seconds, longer ones longer, and errors stay until you close them.
 - **The sign-in pages have a new layout**, with the form on the left and a branded panel on the right.
+- **Emails match the new design**: sign-up, invitation, password reset, assignment and mention emails carry the connect2scale header, colours and button.
 
 ## v0.16.2 (2026-11-11)
 

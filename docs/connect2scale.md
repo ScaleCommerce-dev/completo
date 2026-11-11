@@ -40,7 +40,8 @@ Evidenz nach `01-grundsaetze.md`: **B** im Browser geprüft, **T** technisch gep
 | Anmelde-/Abmeldeübergang | gemeinsame Zeitachse über `useAuthTransition`, Doppelauslösung gesperrt, Reduced Motion 140ms Überblendung | B (Reduced Motion), Q (volle Bewegung) |
 | Fokus | Eingabeart-Modul: Tastatur 2px `--c2s-focus` Offset 2px, Maus 1px neutral nur auf Textfeldern, Shell weiß Offset 3px, `data-focus-field` für zusammengesetzte Felder, Forced Colors `Highlight` | B, T |
 | Skip-Link | erster fokussierbarer Punkt, springt zur Inhaltsfläche | B |
-| Texte | keine Halbgeviert- und Geviertstriche in UI-Texten | T |
+| Texte | keine Halbgeviert- und Geviertstriche in UI-Texten und E-Mails, auch nicht als HTML-Entität | T |
+| E-Mails | Kopf in Shell-Farbe mit Logo auf Akzent-Kachel, Inhaltskarte 12px auf Canvas, Titel 22px, Text 14px/1,8 `--c2s-muted`, Primäraktion Akzent/weiß/700 mit 9px-Ecken (Outlook über VML), Hervorhebungen `--c2s-accent-text`, Buttons in Satzschreibung; alle sieben Vorlagen in Mailpit geprüft | B |
 
 ## Abweichungen von der Guideline
 
@@ -59,6 +60,8 @@ Evidenz nach `01-grundsaetze.md`: **B** im Browser geprüft, **T** technisch gep
 | `02` Eingabefelder | Titel, die in einem Panel oder auf einer Seite den Datensatz selbst bearbeiten (Kartentitel, Profilname, Agentname), bleiben nahtlos; in Dialogen sind Namensfelder Kästen | Ein Titel, der an Ort und Stelle bearbeitet wird, liest sich als Überschrift, nicht als Formularfeld | offen | — |
 | `07` Fokusmodell: jedes Feld zeigt Fokus | Das Suchfeld der Befehlspalette (⌘K) zeigt keine Fokuslinie | Es ist fokussiert, solange die Palette offen ist; die Linie markiert keinen Wechsel, Einfügemarke und hervorgehobene Zeile zeigen die Position. Außerhalb des Felds gezeichnet schnitt sie die runde Dialogecke | offen | `main.css` › FOCUS |
 | `04` Dialoge: Breite 510px | Die Befehlspalette ist breiter (`sm:max-w-5xl`) | Sie zeigt neben der Liste eine Vorschau der markierten Karte | offen | `layouts/default.vue` |
+| `02` Markenverlauf | E-Mails zeigen keinen Verlauf; das Logo steht auf einer einfarbigen Akzent-Kachel | Die meisten Mail-Programme ignorieren CSS-Verläufe und zeigen dann nichts | offen | `server/utils/email.ts` |
+| `02` Schriften lokal | E-Mails nennen Plus Jakarta Sans und DM Mono nur als Wunsch mit Systemschriften als Ersatz | Mail-Programme laden keine Webfonts | offen | `server/utils/email.ts` |
 | `04` Zwei benannte Fokusausnahmen | `focus:border-error*` bei Löschbestätigungen und `focus:border-secondary` beim Agent-Briefing bleiben, zusätzlich zur Outline | tragen eine Bedeutung (destruktiv, KI) | offen | `design-tokens.test.ts` › NAMED_EXCEPTIONS |
 
 ## Nicht anwendbar

@@ -50,7 +50,7 @@ const allTagNames = computed(() => props.cardTags.map(t => t.name).join(', '))
     <span
       v-if="!cardTags.length"
       :class="EMPTY_CELL_CLASS"
-    >&mdash;</span>
+    >-</span>
   </div>
 
   <!-- editable -->
@@ -84,7 +84,7 @@ const allTagNames = computed(() => props.cardTags.map(t => t.name).join(', '))
         <span
           v-if="!cardTags.length"
           :class="EMPTY_CELL_CLASS"
-        >&mdash;</span>
+        >-</span>
       </ListCellTrigger>
     </template>
   </TagMenu>
