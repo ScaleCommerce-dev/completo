@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.16.1 (2026-11-11)
+
+### Upgrading
+
+- **Installing from source no longer needs `make` or a C++ compiler.** Since v0.15.0, `pnpm install` (and `npm ci` in `scripts/`) ran a native rebuild of the SQLite driver that compiles nothing but still calls `make`, so installing or deploying on a host without build tools failed with `gyp ERR! stack Error: not found: make`. The driver's bundled binaries are now used as they are. The Docker image is unaffected.
+
 ## v0.16.0 (2026-11-11)
 
 ### App
