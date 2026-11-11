@@ -2,6 +2,10 @@ import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
+  // The creator becomes the project's owner, and an agent can never own a project.
+  if (user.kind === 'agent') {
+    throw createError({ statusCode: 403, message: 'Agents cannot create projects' })
+  }
   const { name, description, briefing, key: rawKey, slug: rawSlug, icon, doneStatusName, doneRetentionDays } = await readBody<{ name: string, description?: string, briefing?: string, key?: string, slug?: string, icon?: string, doneStatusName?: string, doneRetentionDays?: number | null }>(event)
 
   if (!name) {

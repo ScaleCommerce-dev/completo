@@ -1,3 +1,5 @@
+import type { PersonRef } from '~/types/card'
+
 interface Attachment {
   id: string
   cardId: number
@@ -7,6 +9,8 @@ interface Attachment {
   mimeType: string
   size: number
   uploadedById: string | null
+  /** Who uploaded it; null once their account is gone. */
+  uploader?: PersonRef | null
   createdAt: string
 }
 

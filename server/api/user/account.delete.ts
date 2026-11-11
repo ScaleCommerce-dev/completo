@@ -2,6 +2,9 @@ import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
+  if (user.kind === 'agent') {
+    throw createError({ statusCode: 403, message: 'An agent is deleted by its manager' })
+  }
   const { password } = await readBody<{ password: string }>(event)
 
   if (!password) {
@@ -22,7 +25,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Password is incorrect' })
   }
 
-  db.delete(schema.users).where(eq(schema.users.id, user.id)).run()
+  // Someone leaving cannot hand their agents to anyone, so instead of refusing as
+  // an admin's delete does, suspend them: their tokens die now, and once this row
+  // is gone they show as having no manager until an admin transfers them.
+  suspendAgents(activeAgentsOf(user.id).map(a => a.id))
+
+  db.transaction(() => {
+    recordAccountRemoval(user, user)
+    db.delete(schema.users).where(eq(schema.users.id, user.id)).run()
+  })
   await clearUserSession(event)
 
   return { ok: true }

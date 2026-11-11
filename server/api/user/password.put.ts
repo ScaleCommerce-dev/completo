@@ -1,7 +1,10 @@
 import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user } = await resolveAuth(event)
+  const { user, authMethod } = await resolveAuth(event)
+  if (user.kind === 'agent') {
+    throw createError({ statusCode: 403, message: 'Agents have no password' })
+  }
   const { currentPassword, newPassword } = await readBody<{ currentPassword: string, newPassword: string }>(event)
 
   if (!currentPassword || !newPassword) {
@@ -24,6 +27,15 @@ export default defineEventHandler(async (event) => {
 
   const newHash = await hashPassword(newPassword)
   db.update(schema.users).set({ passwordHash: newHash }).where(eq(schema.users.id, user.id)).run()
+
+  // Changing a password is how someone locks out whoever else knew it, so every other
+  // sign-in ends. Over a cookie this request stays signed in with a fresh session; over
+  // an API token there is no session to keep, and the token itself is unaffected.
+  if (authMethod === 'session') {
+    await rotateSessions(event, userRecord)
+  } else {
+    endAllSessions(user.id)
+  }
 
   return { ok: true }
 })

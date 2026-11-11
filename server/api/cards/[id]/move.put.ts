@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { card } = await resolveCard(event)
+  const { user, card } = await resolveCard(event)
   const { statusId, position } = await readBody<{ statusId: string, position: number }>(event)
 
   if (!statusId || position === undefined) {
@@ -47,6 +47,9 @@ export default defineEventHandler(async (event) => {
 
     // If moved to a different status, also renumber the source status
     if (card.statusId !== statusId) {
+      // Only the column change is history; the renumbering on either side is not.
+      recordCardEvents(user, [{ cardId: card.id, field: 'status', from: statusSide(card.statusId), to: { id: status.id, value: status.name } }])
+
       const sourceCards = db.select().from(schema.cards)
         .where(eq(schema.cards.statusId, card.statusId))
         .all()

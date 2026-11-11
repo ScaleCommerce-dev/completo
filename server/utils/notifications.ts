@@ -1,9 +1,8 @@
-import { eq, and, like } from 'drizzle-orm'
+import { eq, and, like, inArray } from 'drizzle-orm'
 
 type NotificationType = 'card_assigned' | 'member_added' | 'role_changed' | 'member_removed' | 'mentioned' | 'comment_added'
 
-export function createNotification(params: {
-  userId: string
+interface NotificationContent {
   type: NotificationType
   title: string
   message: string
@@ -11,32 +10,67 @@ export function createNotification(params: {
   projectId?: string
   cardId?: number
   actorId?: string
-}) {
+}
+
+export function createNotification(params: NotificationContent & { userId: string }) {
+  const { userId, ...content } = params
+  createNotifications([userId], content)
+}
+
+/**
+ * The same notification to several people: the one place a notification is
+ * written, so the two rules below hold for every caller, and one query sorts out
+ * the agents among the recipients however many there are.
+ */
+export function createNotifications(userIds: Iterable<string>, params: NotificationContent) {
   // Never notify yourself
-  if (params.actorId && params.actorId === params.userId) return
+  const ids = [...new Set(userIds)].filter(id => id !== params.actorId)
+  if (!ids.length) return
 
-  const row = db.insert(schema.notifications).values({
-    userId: params.userId,
-    type: params.type,
-    title: params.title,
-    message: params.message,
-    linkUrl: params.linkUrl || null,
-    projectId: params.projectId || null,
-    cardId: params.cardId || null,
-    actorId: params.actorId || null
-  }).returning().get()
+  // Nor an agent: nobody reads its inbox, so its notifications would only pile up
+  // unread. Agents are told nothing; the people around them are.
+  const humans = db.select({ id: schema.users.id, isAdmin: schema.users.isAdmin }).from(schema.users)
+    .where(and(inArray(schema.users.id, ids), eq(schema.users.kind, 'human')))
+    .all()
 
-  // Push it live to that user's notification stream, so the bell count and a
-  // toast appear at once instead of on the next 30s poll. Payload is enough to
-  // render the toast without a round-trip; the bell still refetches the count so
-  // it stays authoritative if several land together.
-  emitUserEvent(params.userId, 'notification', {
-    id: row.id,
-    notificationType: params.type,
-    title: params.title,
-    message: params.message,
-    linkUrl: params.linkUrl || null
-  })
+  // Nor anyone who can no longer see the project. Callers derive recipients from
+  // history — the assignee, earlier commenters — and removing a member touches
+  // neither, so an ex-member kept getting a card title per new comment. Checked
+  // here once rather than trusted to each caller. `member_removed` is the one
+  // notification addressed to someone who has just left.
+  let recipients = humans.map(r => r.id)
+  if (params.projectId && params.type !== 'member_removed') {
+    const members = new Set(db.select({ userId: schema.projectMembers.userId }).from(schema.projectMembers)
+      .where(and(eq(schema.projectMembers.projectId, params.projectId), inArray(schema.projectMembers.userId, recipients)))
+      .all()
+      .map(r => r.userId))
+    recipients = humans.filter(r => r.isAdmin || members.has(r.id)).map(r => r.id)
+  }
+
+  for (const userId of recipients) {
+    const row = db.insert(schema.notifications).values({
+      userId,
+      type: params.type,
+      title: params.title,
+      message: params.message,
+      linkUrl: params.linkUrl || null,
+      projectId: params.projectId || null,
+      cardId: params.cardId || null,
+      actorId: params.actorId || null
+    }).returning().get()
+
+    // Push it live to that user's notification stream, so the bell count and a
+    // toast appear at once instead of on the next 30s poll. Payload is enough to
+    // render the toast without a round-trip; the bell still refetches the count so
+    // it stays authoritative if several land together.
+    emitUserEvent(userId, 'notification', {
+      id: row.id,
+      notificationType: params.type,
+      title: params.title,
+      message: params.message,
+      linkUrl: params.linkUrl || null
+    })
+  }
 }
 
 /**
@@ -117,20 +151,18 @@ export function notifyMentionedUsers(params: {
 
     // Exactly one, or nobody. An ambiguous prefix must never resolve to a guess.
     if (matches.length !== 1) continue
-    const userId = matches[0]!.userId
-
-    createNotification({
-      userId,
-      type: 'mentioned',
-      title: 'You were mentioned',
-      message: `${params.actorName} mentioned you ${where}: ${params.cardTitle}`,
-      linkUrl,
-      projectId: params.projectId,
-      cardId: params.cardId,
-      actorId: params.actorId
-    })
-    notified.add(userId)
+    notified.add(matches[0]!.userId)
   }
+
+  createNotifications(notified, {
+    type: 'mentioned',
+    title: 'You were mentioned',
+    message: `${params.actorName} mentioned you ${where}: ${params.cardTitle}`,
+    linkUrl,
+    projectId: params.projectId,
+    cardId: params.cardId,
+    actorId: params.actorId
+  })
 
   return notified
 }
@@ -201,17 +233,13 @@ export function notifyCommentActivity(params: {
   }
 
   const ticketId = `${params.projectKey}-${params.cardId}`
-  for (const userId of recipients) {
-    if (mentioned.has(userId)) continue
-    createNotification({
-      userId,
-      type: 'comment_added',
-      title: 'New comment',
-      message: `${params.actorName} commented on ${ticketId}: ${params.cardTitle}`,
-      linkUrl: `/projects/${params.projectSlug}/cards/${ticketId}`,
-      projectId: params.projectId,
-      cardId: params.cardId,
-      actorId: params.actorId
-    })
-  }
+  createNotifications([...recipients].filter(userId => !mentioned.has(userId)), {
+    type: 'comment_added',
+    title: 'New comment',
+    message: `${params.actorName} commented on ${ticketId}: ${params.cardTitle}`,
+    linkUrl: `/projects/${params.projectSlug}/cards/${ticketId}`,
+    projectId: params.projectId,
+    cardId: params.cardId,
+    actorId: params.actorId
+  })
 }

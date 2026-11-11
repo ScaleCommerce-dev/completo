@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
-import { sqliteTable, text, integer, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, index, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
+import { CARD_HISTORY_FIELDS } from '../../shared/utils/card-history-fields'
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -10,18 +11,40 @@ export const users = sqliteTable('users', {
   colorMode: text('color_mode'),
   isAdmin: integer('is_admin').notNull().default(0),
   suspendedAt: integer('suspended_at', { mode: 'timestamp' }),
+  // Every session is issued with the value this held at sign-in, and one that no
+  // longer matches is refused (requireActiveSession). A password reset or change
+  // increments it, which ends every other sign-in: sealed cookies live on the
+  // client, so this is the only way to revoke them.
+  sessionVersion: integer('session_version').notNull().default(0),
   emailVerifiedAt: integer('email_verified_at', { mode: 'timestamp' }),
   lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }),
   // Opt-out for card-activity emails (assigned / mentioned). On by default, so
   // existing users start receiving them; the profile page turns them off.
   emailNotifications: integer('email_notifications').notNull().default(1),
+  // An agent is an account for an AI tool: it acts only through API tokens, its
+  // password hash is the unhashable '!agent' and its address is a synthetic
+  // `@agents.invalid` one that is never mailed or returned (see server/utils/agents.ts).
+  // Type-level only, like notifications.type: plain text in SQLite.
+  kind: text('kind', { enum: ['human', 'agent'] }).notNull().default('human'),
+  // The human responsible for an agent. Null on an agent whose manager was deleted;
+  // such an agent stays suspended until an admin transfers it. Always null on people.
+  managedById: text('managed_by_id').references((): AnySQLiteColumn => users.id, { onDelete: 'set null' }),
+  // Lets a non-admin create and manage agents. Admins can regardless.
+  canCreateAgents: integer('can_create_agents').notNull().default(0),
+  // Shown where a person shows an email address. Agents only.
+  description: text('description'),
+  // The avatar tint an agent's creator picked; people keep the hashed identityColor.
+  color: text('color'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 }, table => [
   // The `.unique()` above is case-sensitive (no COLLATE NOCASE), which let one person hold
   // two rows — `foo@x` and `Foo@x` — when an endpoint forgot to normalise. Every write path
   // now lowercases, and this makes the database refuse the mistake rather than trusting all
   // of them to keep remembering.
-  uniqueIndex('users_email_lower_unique').on(sql`lower(${table.email})`)
+  uniqueIndex('users_email_lower_unique').on(sql`lower(${table.email})`),
+  // The MCP layer resolves an assignee by name, so two agents called "Claude" would make
+  // "assign it to Claude" ambiguous. People may share names; agents may not.
+  uniqueIndex('users_agent_name_lower_unique').on(sql`lower(${table.name})`).where(sql`${table.kind} = 'agent'`)
 ])
 
 export const projects = sqliteTable('projects', {
@@ -154,6 +177,41 @@ export const comments = sqliteTable('comments', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })
 
+// A card's change history: one row per change, never merged, written by
+// `recordCardEvents` (server/utils/card-history.ts) on every path that changes a
+// recorded field; `tests/unit/card-history-recording.test.ts` derives those
+// paths. The card's creation is not a row: it is read off `cards.createdAt` and
+// `createdById`, so there is one source for it.
+//
+// No projectId, for the reason `comments` gives: access goes through the card.
+export const cardEvents = sqliteTable('card_events', {
+  // An integer, unlike every other table but `cards`, because it is the order:
+  // milliseconds still tie inside one request (a save that changes three fields)
+  // and a wall clock can step backwards, so insert order is what sequences a
+  // burst, and the history endpoint pages on it.
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  cardId: integer('card_id').notNull().references(() => cards.id, { onDelete: 'cascade' }),
+  // Kept when the account is deleted; `actorName` still says who it was.
+  actorId: text('actor_id').references(() => users.id, { onDelete: 'set null' }),
+  actorName: text('actor_name').notNull(),
+  // Type-level only, like notifications.type: plain text in SQLite, so adding a
+  // value needs no migration. The list is `shared/utils/card-history-fields.ts`.
+  field: text('field', { enum: CARD_HISTORY_FIELDS }).notNull(),
+  // Each side is the referenced row's id (status, user, tag, attachment) and its
+  // name at the time, or just the value (priority, title, due date as ISO). The
+  // name is the fallback for a row deleted since; a live row is read by its
+  // current name. A null side is "none": unassigned, no due date, tag not on the
+  // card. `description` records that it changed and never the text.
+  fromId: text('from_id'),
+  fromValue: text('from_value'),
+  toId: text('to_id'),
+  toValue: text('to_value'),
+  // Milliseconds: whole seconds cannot tell a burst apart.
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().$defaultFn(() => new Date())
+}, table => [
+  index('card_events_card_id_idx').on(table.cardId, table.id)
+])
+
 export const aiSkills = sqliteTable('ai_skills', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text('name').notNull(),
@@ -255,6 +313,20 @@ export const cardReads = sqliteTable('card_reads', {
   // table's use of a unique index rather than a composite PK, keeping the uuid
   // `id` every other table has.
   uniqueIndex('card_reads_user_card_unique').on(table.userId, table.cardId)
+])
+
+// The projects a person keeps in their sidebar. Only members may star, and a
+// row outlives a membership on purpose: `starred` is computed against current
+// membership on every read (`/api/projects`, `/api/projects/[id]`), so a person
+// removed from a project loses it from the sidebar without every removal path —
+// member delete, agent pruning, transfers — having to remember this table.
+export const projectStars = sqliteTable('project_stars', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+}, table => [
+  uniqueIndex('project_stars_user_project_unique').on(table.userId, table.projectId)
 ])
 
 // ─── OAuth for MCP clients ───────────────────────────────────────────────────

@@ -100,9 +100,10 @@ export default defineEventHandler(async (event) => {
     .offset(offset)
     .all()
 
+  const { ref } = createUserRefs(rows.map(row => row.users))
   const cards = rows.map(row => ({
     ...row.cards,
-    assignee: row.users ? { id: row.users.id, name: row.users.name, avatarUrl: row.users.avatarUrl } : null,
+    assignee: ref(row.users),
     status: row.statuses ? { id: row.statuses.id, name: row.statuses.name, color: row.statuses.color } : null
   }))
 

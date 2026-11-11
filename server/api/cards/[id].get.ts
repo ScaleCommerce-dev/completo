@@ -36,11 +36,7 @@ export default defineEventHandler(async (event) => {
     .where(eq(schema.statuses.projectId, row.cards.projectId))
     .all()
 
-  const members = db.select({
-    id: schema.users.id,
-    name: schema.users.name,
-    avatarUrl: schema.users.avatarUrl
-  })
+  const members = db.select(memberRefColumns())
     .from(schema.projectMembers)
     .innerJoin(schema.users, eq(schema.projectMembers.userId, schema.users.id))
     .where(eq(schema.projectMembers.projectId, row.cards.projectId))
@@ -63,17 +59,19 @@ export default defineEventHandler(async (event) => {
     .where(eq(schema.tags.projectId, row.cards.projectId))
     .all()
 
+  const { ref, member } = createUserRefs([row.users, ...members])
+
   return {
     ...row.cards,
     // The viewer's role in this project, as boards and lists already return, so the
     // client can show owner-only affordances (e.g. moderating others' comments).
     // Admins get a synthetic 'owner' — don't render it as a real project role.
     role: membership.role,
-    assignee: row.users ? { id: row.users.id, name: row.users.name, avatarUrl: row.users.avatarUrl } : null,
+    assignee: ref(row.users),
     creator: row.cards.createdById ? fetchCardCreators([row.cards]).get(row.cards.createdById) || null : null,
     project: project ? { id: project.id, name: project.name, slug: project.slug, key: project.key } : null,
     statuses,
-    members,
+    members: members.map(member),
     tags,
     projectTags
   }

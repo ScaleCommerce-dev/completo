@@ -99,6 +99,34 @@
       "when": 1793280039303,
       "tag": "0013_card_email_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1793711613425,
+      "tag": "0014_agents",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1793718561174,
+      "tag": "0015_card_history",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1794402375232,
+      "tag": "0016_project_stars",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1794418268583,
+      "tag": "0017_session_version",
+      "breakpoints": true
     }
   ]
 }

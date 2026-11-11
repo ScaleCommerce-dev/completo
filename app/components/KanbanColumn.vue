@@ -53,12 +53,11 @@ const emit = defineEmits<{
 // Use vuedraggable's :list mode (mutates this array directly) instead of
 // :model-value — the latter re-inserts the dropped node into the source DOM
 // before @change fires, causing a visible flicker on inter-column moves.
-// Resync only when the id sequence actually differs, so an in-flight
-// optimistic mutation isn't clobbered by stale props.
+// Resync only when the rows actually differ, so an in-flight optimistic
+// mutation isn't clobbered by stale props (see `columnNeedsResync`).
 const localCards = ref<BoardCard[]>([...props.cards])
 watch(() => props.cards, (val) => {
-  if (val.length !== localCards.value.length
-    || val.some((c, i) => c.id !== localCards.value[i]?.id)) {
+  if (columnNeedsResync(localCards.value, val)) {
     localCards.value = [...val]
   }
 })

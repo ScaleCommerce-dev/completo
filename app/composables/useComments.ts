@@ -5,6 +5,10 @@ export interface Comment {
   authorId: string | null
   authorName: string | null
   authorAvatarUrl: string | null
+  /** Null when the author's account is gone. */
+  authorKind: 'human' | 'agent' | null
+  authorColor: string | null
+  authorManagedBy: { id: string, name: string, avatarUrl: string | null } | null
   createdAt: string
   updatedAt: string
 }

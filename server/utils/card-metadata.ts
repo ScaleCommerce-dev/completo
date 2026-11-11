@@ -2,8 +2,6 @@ import { eq, and, or, ne, isNull, inArray, sql } from 'drizzle-orm'
 
 interface CardTag { id: string, name: string, color: string }
 
-interface CardUser { id: string, name: string, avatarUrl: string | null }
-
 interface CardMetadataMaps {
   tagsByCard: Map<number, CardTag[]>
   attachCountByCard: Map<number, number>
@@ -73,20 +71,17 @@ export function fetchCardMetadata(cardIds: number[]): CardMetadataMaps {
  * need a drizzle `alias()`. Batch-fetching the distinct creator IDs instead matches
  * how board and list creators are resolved in `projects/[id].get.ts`.
  */
-export function fetchCardCreators(cards: Array<{ createdById: string | null }>): Map<string, CardUser> {
+export function fetchCardCreators(cards: Array<{ createdById: string | null }>): Map<string, UserRef> {
   const creatorIds = [...new Set(cards.map(c => c.createdById).filter(Boolean))] as string[]
   if (!creatorIds.length) return new Map()
 
-  const creators = db.select({
-    id: schema.users.id,
-    name: schema.users.name,
-    avatarUrl: schema.users.avatarUrl
-  })
+  const creators = db.select(userRefColumns())
     .from(schema.users)
     .where(inArray(schema.users.id, creatorIds))
     .all()
 
-  return new Map(creators.map(c => [c.id, c]))
+  const { ref } = createUserRefs(creators)
+  return new Map(creators.map(c => [c.id, ref(c)]))
 }
 
 /**

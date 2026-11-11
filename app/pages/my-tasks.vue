@@ -18,6 +18,15 @@ const {
 const showColumnConfig = ref(false)
 
 /**
+ * "My agents' work" sits under your own cards for anyone who manages an agent.
+ * Hide puts it behind this page's settings rather than deleting anything, and
+ * both that and collapsing are remembered in this browser.
+ */
+const { user } = useUserSession()
+const agentsHidden = useLocalPref('my-tasks:agents-hidden', false)
+const agentsCollapsed = useLocalPref('my-tasks:agents-collapsed', false)
+
+/**
  * A card opens in the panel here, exactly as it does on a board and a list.
  *
  * It used to `navigateTo` the card's full page, which made My Tasks the one
@@ -189,6 +198,13 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
         description="Cards assigned to you show up here — from projects you belong to. Join a project, or ask someone to assign you a card."
         :actions="[{ label: 'Browse projects', icon: 'i-lucide-layout-grid', variant: 'subtle', to: '/projects' }]"
       />
+
+      <AgentsMyAgentsWork
+        v-if="!agentsHidden"
+        :collapsed="agentsCollapsed"
+        @toggle="agentsCollapsed = !agentsCollapsed"
+        @hide="agentsHidden = true"
+      />
     </div>
 
     <!-- Column config modal -->
@@ -211,7 +227,20 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
       @add="addColumn"
       @delete="removeColumn"
       @reorder="reorderColumns"
-    />
+    >
+      <template
+        v-if="user?.canManageAgents"
+        #extra
+      >
+        <USwitch
+          :model-value="!agentsHidden"
+          label="Show my agents' work"
+          description="Cards held by the agents you manage, under your own."
+          class="pt-4 mt-2 border-t border-default"
+          @update:model-value="(v: boolean) => { agentsHidden = !v }"
+        />
+      </template>
+    </ViewConfigModal>
 
     <!-- The card panel, with the lookups of the group the card belongs to rather
          than a single project's — this is the one host where those differ per

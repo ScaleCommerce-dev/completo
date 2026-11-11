@@ -414,6 +414,10 @@
    AA, and "fine" only next to the pill's own 2.50:1, which was never a standard to
    meet. Both are now held to 4.5:1 by the same assertion.
 
+   An agent's avatar is this same recipe on a rounded square, tinted with the
+   colour its creator picked from `COLOR_PALETTE` and carrying the bot glyph in
+   place of initials; the assertion covers those sixteen hexes as well.
+
    It still cannot simply *be* `.swatch`: that sets `color` on the element it is
    applied to, and UAvatar's initials live in a *child* carrying its own
    `text-muted`. A directly-declared colour beats an inherited one whatever the
@@ -574,6 +578,29 @@
   input:not(:where([type="checkbox"], [type="radio"], [type="file"], [type="submit"], [type="button"], [type="reset"], [type="image"], [type="hidden"])):focus-visible,
   textarea:focus-visible {
     border-color: var(--ui-primary);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CURSOR
+
+   Everything clickable shows the hand. Tailwind 4's preflight resets `<button>`
+   to the arrow, so the cursor said how a control was built rather than what it
+   does: a UButton with `to` renders an `<a>` and got the hand, the same button
+   opening a dialog rendered a `<button>` and got the arrow — Settings and Members
+   side by side in the project header disagreed. Twenty-two files patched it with
+   a hand-written `cursor-pointer`, on whichever buttons someone noticed.
+
+   Base layer, so a utility still wins: `disabled:cursor-not-allowed` on Nuxt UI's
+   buttons, or `cursor-default` where a control means to look inert. Write
+   `cursor-pointer` only on a clickable element that is not a button — a row, a
+   label, a span.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
   }
 }
 

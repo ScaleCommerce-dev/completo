@@ -84,3 +84,17 @@ export function applyCardDelete(cards: ReconcileCard[], id: number): boolean {
   cards.splice(index, 1)
   return true
 }
+
+/**
+ * Whether a column's local list has to be replaced by the cards it was handed.
+ *
+ * By row, not by id. A refetch (`refresh()` after a `view.invalidate`, an SSE
+ * reconnect) replaces every row with a new object under the same ids, and an id
+ * comparison kept the column rendering the replaced ones: every later patch went
+ * to rows nothing drew, so an assignee picked in the card panel showed there and
+ * not on the board until a reload. The same rows handed back in the same order,
+ * which is every patch, still keep the list.
+ */
+export function columnNeedsResync<T>(local: readonly T[], incoming: readonly T[]): boolean {
+  return incoming.length !== local.length || incoming.some((c, i) => c !== local[i])
+}

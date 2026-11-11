@@ -14,7 +14,11 @@ export default defineEventHandler(async (event) => {
     readAt: schema.notifications.readAt,
     createdAt: schema.notifications.createdAt,
     actorName: schema.users.name,
-    actorAvatarUrl: schema.users.avatarUrl
+    actorAvatarUrl: schema.users.avatarUrl,
+    actorId: schema.users.id,
+    actorKind: schema.users.kind,
+    actorColor: schema.users.color,
+    actorManagedById: schema.users.managedById
   })
     .from(schema.notifications)
     .leftJoin(schema.users, eq(schema.notifications.actorId, schema.users.id))
@@ -22,5 +26,13 @@ export default defineEventHandler(async (event) => {
     .orderBy(desc(schema.notifications.createdAt))
     .all()
 
-  return rows
+  // Whether the actor is an agent, and whose, so the avatar can show it.
+  const actors = rows.map(r => r.actorId
+    ? { id: r.actorId, name: r.actorName!, avatarUrl: r.actorAvatarUrl, kind: r.actorKind!, color: r.actorColor, managedById: r.actorManagedById }
+    : null)
+  const { ref } = createUserRefs(actors)
+  return rows.map(({ actorManagedById: _managedById, ...row }, i) => ({
+    ...row,
+    actorManagedBy: ref(actors[i])?.managedBy ?? null
+  }))
 })

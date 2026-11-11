@@ -44,7 +44,7 @@ type Priority = 'low' | 'medium' | 'high' | 'urgent'
 
 interface ApiStatus { id: string, name: string, color: string | null, cardCount?: number }
 interface ApiTag { id: string, name: string, color: string }
-interface ApiMember { id: string, name: string, email?: string, role?: string }
+interface ApiMember { id: string, name: string, email?: string | null, role?: string, kind?: 'human' | 'agent' }
 interface ApiProjectRef { id: string, name: string, slug: string, key: string }
 interface ApiProject extends ApiProjectRef {
   description: string | null
@@ -191,6 +191,20 @@ function cardView(ctx: ToolContext, card: ApiCard, project: ApiProjectRef, statu
   }
 }
 
+/**
+ * How many comments get_card carries. A card's later comments often re-scope
+ * it, so they belong with the card, but a long thread would bury it; the newest
+ * are the ones most likely to supersede the description. Matches the CLI's
+ * `get`.
+ */
+const CARD_COMMENT_LIMIT = 10
+
+function commentView(c: ApiComment) {
+  // updatedAt is set on insert too, so its presence says nothing; an edit is a
+  // later timestamp.
+  return { author: c.authorName, body: c.body, createdAt: c.createdAt, edited: !!c.updatedAt && c.updatedAt !== c.createdAt }
+}
+
 function projectOf(card: ApiCardDetail): ApiProjectRef {
   if (!card.project) throw new ToolError('Card has no project')
   return card.project
@@ -267,7 +281,7 @@ const TOOLS: Tool[] = [
         statuses: project.statuses.map(s => ({ name: s.name, cards: s.cardCount ?? 0, done: s.id === project.doneStatusId })),
         doneRetentionDays: project.doneRetentionDays,
         tags: project.tags.map(t => t.name),
-        members: members.map(m => ({ name: m.name, role: m.role })),
+        members: members.map(m => ({ name: m.name, role: m.role, kind: m.kind })),
         boards: project.boards.map(b => b.name),
         lists: project.lists.map(l => l.name),
         openCards: project.openCards,
@@ -345,12 +359,19 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'get_card',
-    description: 'A card in full: description (Markdown; checklist items are `- [ ]` lines), status, assignee, tags, due date and link.',
+    description: `A card in full: description (Markdown; checklist items are \`- [ ]\` lines), status, assignee, tags, due date, link, and its latest ${CARD_COMMENT_LIMIT} comments, oldest first. Comments are newer than the description and override it where they disagree. When commentCount is higher, list_comments has the rest. Does not mark the card as read.`,
     inputSchema: schema({ card: CARD_REF }, ['card']),
     annotations: { readOnlyHint: true },
     run: async (ctx, args) => {
       const card = await loadCard(ctx, need(args, 'card'))
-      return cardView(ctx, card, projectOf(card), card.statuses)
+      // Context for the model, not the person reading the card: markRead=false
+      // keeps their unread dot, as `completo get` does.
+      const comments = await ctx.get<ApiComment[]>(`/api/cards/${card.id}/comments?markRead=false`)
+      return {
+        ...cardView(ctx, card, projectOf(card), card.statuses),
+        commentCount: comments.length,
+        comments: comments.slice(-CARD_COMMENT_LIMIT).map(commentView)
+      }
     }
   },
   {
@@ -489,7 +510,7 @@ const TOOLS: Tool[] = [
     annotations: { readOnlyHint: true },
     run: async (ctx, args) => {
       const comments = await ctx.get<ApiComment[]>(`/api/cards/${cardNumber(need(args, 'card'))}/comments`)
-      return comments.map(c => ({ author: c.authorName, body: c.body, createdAt: c.createdAt, edited: !!c.updatedAt }))
+      return comments.map(commentView)
     }
   },
   {

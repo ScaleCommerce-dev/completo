@@ -10,6 +10,10 @@ interface Notification {
   createdAt: string
   actorName: string | null
   actorAvatarUrl: string | null
+  actorId: string | null
+  actorKind: 'human' | 'agent' | null
+  actorColor: string | null
+  actorManagedBy: { id: string, name: string, avatarUrl: string | null } | null
 }
 
 export function useNotifications() {

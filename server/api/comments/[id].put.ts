@@ -36,6 +36,7 @@ export default defineEventHandler(async (event) => {
   return {
     ...updated,
     authorName: user.name,
-    authorAvatarUrl: user.avatarUrl
+    authorAvatarUrl: user.avatarUrl,
+    ...authorFields(user)
   }
 })

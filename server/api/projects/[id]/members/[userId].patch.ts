@@ -2,6 +2,9 @@ import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { project, user } = await resolveProject(event, { auth: 'owner' })
+  if (user.kind === 'agent') {
+    throw createError({ statusCode: 403, message: 'Agents cannot manage members' })
+  }
   const userId = getRouterParam(event, 'userId')!
 
   const body = await readBody(event)
@@ -19,6 +22,13 @@ export default defineEventHandler(async (event) => {
 
   if (!targetMembership) {
     throw createError({ statusCode: 404, message: 'Member not found' })
+  }
+
+  if (role === 'owner') {
+    const target = db.select({ kind: schema.users.kind }).from(schema.users).where(eq(schema.users.id, userId)).get()
+    if (target?.kind === 'agent') {
+      throw createError({ statusCode: 400, message: 'An agent cannot own a project' })
+    }
   }
 
   // Prevent demoting the last owner

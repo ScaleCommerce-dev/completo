@@ -19,4 +19,10 @@ export default defineNuxtRouteMiddleware((to) => {
   if (loggedIn.value && to.path.startsWith('/admin') && !user.value?.isAdmin) {
     return navigateTo('/projects')
   }
+
+  // Admins, and people an admin allowed. The flag is read fresh on every session
+  // fetch (`server/plugins/session-capabilities.ts`); the API checks again anyway.
+  if (loggedIn.value && (to.path === '/agents' || to.path.startsWith('/agents/')) && !user.value?.canManageAgents) {
+    return navigateTo('/projects')
+  }
 })

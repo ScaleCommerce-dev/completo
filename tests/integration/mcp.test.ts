@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { url } from '../setup/server'
 import { registerTestUser, createTestToken, type TestUser } from '../setup/auth'
-import { createTestProject } from '../setup/fixtures'
+import { createTestProject, createTestBoard, createTestCard, createTestComment, createInvitation, getBoard } from '../setup/fixtures'
 
 /**
  * The MCP endpoint, driven the way a client drives it: raw JSON-RPC over POST.
@@ -169,6 +169,36 @@ describe('POST /mcp', () => {
       expect(comment.data.author).toBe(user.name)
       const comments = await call(headers, 'list_comments', { card: ticket })
       expect(comments.data.map((c: { body: string }) => c.body)).toEqual(['Looks good'])
+      expect(comments.data[0].edited).toBe(false)
+
+      // get_card carries the discussion, since a comment can re-scope the card.
+      const withComments = await call(headers, 'get_card', { card: ticket })
+      expect(withComments.data.commentCount).toBe(1)
+      expect(withComments.data.comments.map((c: { body: string }) => c.body)).toEqual(['Looks good'])
+    })
+
+    it('get_card shows the latest comments without clearing the caller\'s unread dot', async () => {
+      const other = await registerTestUser()
+      const owned = await createTestProject(user, { name: `MCP unread ${Date.now()}` })
+      await createInvitation(user, owned.id, other.email)
+      const board = await createTestBoard(user, owned.id)
+      const statusId = (await getBoard(user, board.id)).columns[0]!.id
+      const card = await createTestCard(user, owned.id, statusId, { title: 'Discussed' })
+      for (let i = 0; i < 12; i++) await createTestComment(other, card.id, `note ${i}`)
+
+      const unread = async () => ((await getBoard(user, board.id)).cards as Array<{ id: number, hasUnread?: boolean }>)
+        .find(c => c.id === card.id)?.hasUnread
+      expect(await unread()).toBe(true)
+
+      const fetched = await call(headers, 'get_card', { card: String(card.id) })
+      expect(fetched.data.commentCount).toBe(12)
+      // The newest ten, oldest first: the two oldest are the ones left out.
+      expect(fetched.data.comments.map((c: { body: string }) => c.body)).toEqual(Array.from({ length: 10 }, (_, i) => `note ${i + 2}`))
+      expect(await unread()).toBe(true)
+
+      // list_comments is the explicit read, and clears it.
+      await call(headers, 'list_comments', { card: String(card.id) })
+      expect(await unread()).toBe(false)
     })
 
     it('lists and searches, scoped by what the caller can see', async () => {

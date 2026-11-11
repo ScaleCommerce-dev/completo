@@ -1,31 +1,28 @@
 import { eq, and, inArray } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user: _user, board } = await resolveBoard(event, { columnAccess: false })
+  const { user, board } = await resolveBoard(event, { columnAccess: false })
   const { moves } = await readBody<{ moves: { cardId: number, statusId: string, position: number }[] }>(event)
 
   if (!moves?.length) {
     throw createError({ statusCode: 400, message: 'Moves array is required' })
   }
 
-  // Validate all statusIds belong to this project
-  const statusIds = [...new Set(moves.map(m => m.statusId))]
-  const validStatuses = db.select({ id: schema.statuses.id }).from(schema.statuses)
-    .where(and(
-      inArray(schema.statuses.id, statusIds),
-      eq(schema.statuses.projectId, board.projectId)
-    ))
+  // Validate all statusIds belong to this project. Every status of the project,
+  // not only the targets: a recorded move names the status it left as well.
+  const statusNames = new Map(db.select({ id: schema.statuses.id, name: schema.statuses.name }).from(schema.statuses)
+    .where(eq(schema.statuses.projectId, board.projectId))
     .all()
-  const validStatusIds = new Set(validStatuses.map(c => c.id))
+    .map(s => [s.id, s.name]))
   for (const move of moves) {
-    if (!validStatusIds.has(move.statusId)) {
+    if (!statusNames.has(move.statusId)) {
       throw createError({ statusCode: 400, message: 'Status does not belong to this project' })
     }
   }
 
   // Validate all cardIds belong to this project
   const cardIds = moves.map(m => m.cardId)
-  const validCards = db.select({ id: schema.cards.id }).from(schema.cards)
+  const validCards = db.select({ id: schema.cards.id, statusId: schema.cards.statusId }).from(schema.cards)
     .where(and(
       inArray(schema.cards.id, cardIds),
       eq(schema.cards.projectId, board.projectId)
@@ -36,11 +33,23 @@ export default defineEventHandler(async (event) => {
   }
 
   db.transaction(() => {
+    // A move that keeps its status is a reorder, which is not history.
+    const statusOf = new Map(validCards.map(c => [c.id, c.statusId]))
     for (const move of moves) {
       db.update(schema.cards)
         .set({ statusId: move.statusId, position: move.position, updatedAt: new Date() })
         .where(eq(schema.cards.id, move.cardId))
         .run()
+      const from = statusOf.get(move.cardId)
+      if (from !== move.statusId) {
+        recordCardEvents(user, [{
+          cardId: move.cardId,
+          field: 'status',
+          from: from ? { id: from, value: statusNames.get(from) ?? '' } : null,
+          to: { id: move.statusId, value: statusNames.get(move.statusId)! }
+        }])
+        statusOf.set(move.cardId, move.statusId)
+      }
     }
   })
 

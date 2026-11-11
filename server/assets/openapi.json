@@ -68,6 +68,10 @@
       "description": "Cards assigned to current user"
     },
     {
+      "name": "Agents",
+      "description": "Accounts for AI tools. An agent acts only through API tokens its manager or an admin generates, and its work is attributed to it. It can never sign in, be an admin or a project owner, create projects, manage members, or receive email or notifications. It can only be a member of projects its manager is a member of (an admin's agents: any project)."
+    },
+    {
       "name": "Admin",
       "description": "User management, settings, AI skills (admin only)"
     },
@@ -307,7 +311,7 @@
           "Projects"
         ],
         "summary": "List projects",
-        "description": "Returns projects the current user is a member of. Admins see all projects.",
+        "description": "Returns projects the current user is a member of, sorted alphabetically by name. Admins see all projects.",
         "operationId": "listProjects",
         "responses": {
           "200": {
@@ -367,6 +371,10 @@
                           "listCount": {
                             "type": "integer",
                             "description": "Number of list views in the project"
+                          },
+                          "starred": {
+                            "type": "boolean",
+                            "description": "Whether the caller has starred this project, which puts it in their sidebar. Always false where the caller is not a member, including an admin's non-member projects."
                           }
                         }
                       }
@@ -386,7 +394,7 @@
           "Projects"
         ],
         "summary": "Create project",
-        "description": "Creates a new project with default statuses, tags, and a board. The creator becomes the owner.",
+        "description": "Creates a new project with default statuses, tags, and a board. The creator becomes the owner. Agents cannot create projects (403).",
         "operationId": "createProject",
         "requestBody": {
           "required": true,
@@ -454,6 +462,9 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         }
       }
@@ -588,6 +599,14 @@
                               "type": "integer"
                             }
                           }
+                        },
+                        "isMember": {
+                          "type": "boolean",
+                          "description": "Whether the caller is a member of the project. False for an admin viewing a project they are not in, whose `role` is still reported as owner-level access."
+                        },
+                        "starred": {
+                          "type": "boolean",
+                          "description": "Whether the caller has starred this project, which puts it in their sidebar. Always false where the caller is not a member, including an admin's non-member projects."
                         }
                       }
                     }
@@ -721,6 +740,85 @@
         }
       }
     },
+    "/api/projects/{id}/star": {
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Star project",
+        "description": "Stars the project for the caller, which puts it in their sidebar. Idempotent. Members only: an admin who is not a member gets 403.",
+        "operationId": "starProject",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Star state after the call",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "starred": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Unstar project",
+        "description": "Removes the caller's star from the project. Idempotent.",
+        "operationId": "unstarProject",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Star state after the call",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "starred": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
     "/api/projects/{id}/members": {
       "get": {
         "tags": [
@@ -741,31 +839,38 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "format": "uuid"
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/MemberSummary"
                       },
-                      "email": {
-                        "type": "string",
-                        "format": "email"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "avatarUrl": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "role": {
-                        "type": "string",
-                        "enum": [
-                          "owner",
-                          "member"
-                        ]
+                      {
+                        "type": "object",
+                        "properties": {
+                          "email": {
+                            "type": "string",
+                            "format": "email",
+                            "nullable": true,
+                            "description": "Null for an agent, except to the agent itself."
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "owner",
+                              "member"
+                            ]
+                          },
+                          "isAdmin": {
+                            "type": "boolean",
+                            "description": "Present only for a caller who can remove members (a project owner or an admin): removing an admin keeps the agents they manage in the project. Always false for an agent."
+                          },
+                          "assignedCardCount": {
+                            "type": "integer",
+                            "nullable": true,
+                            "description": "For agents: cards assigned to it in this project, which leaving the project unassigns. Null for people."
+                          }
+                        }
                       }
-                    }
+                    ]
                   }
                 }
               }
@@ -784,7 +889,7 @@
           "Members"
         ],
         "summary": "Add member or invite by email",
-        "description": "Adds an existing user directly, or creates a pending invitation if the email is not registered. Owner or admin only.",
+        "description": "Adds an existing user directly, or creates a pending invitation if the email is not registered. Owner or admin only. An agent can be added only while its manager is a member of the project (an admin's agents: any project; 403 otherwise), never while suspended (400), always as member, and is not emailed or notified.",
         "operationId": "addMemberOrInvite",
         "parameters": [
           {
@@ -867,7 +972,7 @@
           "Members"
         ],
         "summary": "Change member role",
-        "description": "Changes a member's role between owner and member. Cannot demote the last owner.",
+        "description": "Changes a member's role between owner and member. Cannot demote the last owner. An agent cannot be made owner (400).",
         "operationId": "changeMemberRole",
         "parameters": [
           {
@@ -978,7 +1083,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Success"
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "removedAgents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "unassignedCards": {
+                      "type": "integer"
+                    }
+                  }
                 }
               }
             }
@@ -992,7 +1120,8 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           }
-        }
+        },
+        "description": "Owner or admin; an agent's manager may also remove their own agent. Removing a person also removes the agents they manage from the project (unless they are an admin). An agent leaving a project has its cards there unassigned."
       }
     },
     "/api/projects/{id}/invitations": {
@@ -1517,7 +1646,7 @@
                         "members": {
                           "type": "array",
                           "items": {
-                            "$ref": "#/components/schemas/UserSummary"
+                            "$ref": "#/components/schemas/MemberSummary"
                           }
                         },
                         "project": {
@@ -2153,7 +2282,7 @@
                         "members": {
                           "type": "array",
                           "items": {
-                            "$ref": "#/components/schemas/UserSummary"
+                            "$ref": "#/components/schemas/MemberSummary"
                           }
                         },
                         "statuses": {
@@ -2436,7 +2565,7 @@
                         "members": {
                           "type": "array",
                           "items": {
-                            "$ref": "#/components/schemas/UserSummary"
+                            "$ref": "#/components/schemas/MemberSummary"
                           }
                         },
                         "tags": {
@@ -3462,8 +3591,12 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "description": "Agents cannot edit themselves (403); their manager edits them through PATCH /api/agents/{id}."
       }
     },
     "/api/user/password": {
@@ -3512,8 +3645,12 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "description": "Agents have no password (403)."
       }
     },
     "/api/user/account": {
@@ -3522,7 +3659,7 @@
           "User"
         ],
         "summary": "Delete own account",
-        "description": "Permanently deletes the authenticated user's account. Requires password confirmation. Admin accounts cannot self-delete.",
+        "description": "Permanently deletes the authenticated user's account. Requires password confirmation. Admin accounts cannot self-delete. Agents cannot delete themselves (403). Suspends every agent the caller manages: they keep their memberships, lose their tokens, and have no manager until an admin transfers them.",
         "operationId": "deleteOwnAccount",
         "requestBody": {
           "required": true,
@@ -3629,7 +3766,7 @@
                           "members": {
                             "type": "array",
                             "items": {
-                              "$ref": "#/components/schemas/UserSummary"
+                              "$ref": "#/components/schemas/MemberSummary"
                             }
                           },
                           "cards": {
@@ -3693,7 +3830,7 @@
           "Admin"
         ],
         "summary": "List all users",
-        "description": "Admin only.",
+        "description": "Admin only. People only: agents are listed under GET /api/agents.",
         "operationId": "listAllUsers",
         "responses": {
           "200": {
@@ -3722,6 +3859,17 @@
                           },
                           "pendingSetup": {
                             "type": "boolean"
+                          },
+                          "canCreateAgents": {
+                            "type": "boolean"
+                          },
+                          "agentCount": {
+                            "type": "integer",
+                            "description": "Agents this person manages, suspended ones included."
+                          },
+                          "activeAgentCount": {
+                            "type": "integer",
+                            "description": "Agents this person manages that are not suspended. Non-zero means removing their permission needs a hand-over first."
                           }
                         }
                       }
@@ -3810,8 +3958,8 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Update user (suspend, admin)",
-        "description": "Suspend/unsuspend or promote/demote admin. Cannot self-modify.",
+        "summary": "Update user (suspend, admin, agents permission)",
+        "description": "Suspend/unsuspend, promote/demote admin, or allow/disallow creating agents. Cannot self-modify, and refuses agents (400). Returns 409 when the change would leave the person unable to manage agents (suspended, demoted without canCreateAgents, or canCreateAgents revoked) while they still manage active agents; hand them over first. Demoting an admin, or giving someone back the ability to manage agents, removes their agents (suspended ones too) from projects they are not a member of, listed in `removedFrom`.",
         "operationId": "updateUser",
         "parameters": [
           {
@@ -3836,6 +3984,9 @@
                   },
                   "isAdmin": {
                     "type": "boolean"
+                  },
+                  "canCreateAgents": {
+                    "type": "boolean"
                   }
                 }
               }
@@ -3848,7 +3999,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Success"
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "removedFrom": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LostMembership"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -3864,6 +4026,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           }
         }
       },
@@ -3872,7 +4037,7 @@
           "Admin"
         ],
         "summary": "Delete user",
-        "description": "Permanently deletes a user account. Admin only.",
+        "description": "Permanently deletes a user account. Admin only. Refuses agents (400; use DELETE /api/agents/{id}), and returns 409 while the person still manages active agents.",
         "operationId": "deleteUser",
         "parameters": [
           {
@@ -3904,6 +4069,12 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           }
         }
       }
@@ -4753,10 +4924,25 @@
           "Comments"
         ],
         "summary": "List card comments",
+        "description": "Listing a card's comments marks the card as read for the caller, clearing its unread indicator. Pass markRead=false to read them without doing so.",
         "operationId": "listComments",
         "parameters": [
           {
             "$ref": "#/components/parameters/CardId"
+          },
+          {
+            "name": "markRead",
+            "in": "query",
+            "required": false,
+            "description": "false leaves the card's unread state untouched",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "true"
+            }
           }
         ],
         "responses": {
@@ -4810,6 +4996,95 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Comment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/cards/{id}/history": {
+      "get": {
+        "tags": [
+          "Cards"
+        ],
+        "summary": "Card history",
+        "description": "Who changed what on a card, and when: status (including moves between columns), assignee, priority, due date, title, tags added and removed, attachments added and removed, and that the description was edited (never its text). The first entry is the card's creation. Oldest first within a page; pages run backwards from the newest, so pass the first event's `id` as `before` to read the page before it. History starts with the release that added it: changes made earlier were not recorded.",
+        "operationId": "getCardHistory",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Events per page, from 1 to 500. Defaults to 200.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 200
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "description": "Return only events older than this event id.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "description": "Read forward instead: only events newer than this event id (0 for all), oldest first, never the `created` entry. Cannot be combined with `before`. How an open timeline fetches only what is new.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of the card's history, oldest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CardEvent"
+                      }
+                    },
+                    "hasMore": {
+                      "type": "boolean",
+                      "description": "Whether there are older events than this page, or with `after`, newer ones. When false on a backwards read, the page starts with the `created` entry."
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "How many entries the card's whole history has, the `created` entry included, whichever page this is."
+                    },
+                    "projectId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "The card's project, whose live event stream announces new entries."
+                    }
+                  }
                 }
               }
             }
@@ -5294,6 +5569,1089 @@
           }
         }
       }
+    },
+    "/api/agents": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "List agents",
+        "description": "The agents the caller manages. Admins can list every agent with `scope=all` or a `managerId`.",
+        "operationId": "listAgents",
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "mine",
+                "all"
+              ]
+            },
+            "description": "`all` is admin only."
+          },
+          {
+            "name": "managerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "A manager's user ID, or `none` for agents without one. Admin only unless it is the caller."
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "suspended"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Matches name or description."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agents, by name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Agent"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Create agent",
+        "description": "Admins and people with canCreateAgents. The caller becomes the agent's manager. Create a token next: an agent with none can do nothing.",
+        "operationId": "createAgent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Unique among agents, case-insensitively. At most 100 characters."
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "At most 500 characters."
+                  },
+                  "color": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Hex colour like #f97316."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created agent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/agents/{id}": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Get agent",
+        "description": "Its manager or an admin; 404 for anyone else.",
+        "operationId": "getAgent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Agent ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The agent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Update agent",
+        "description": "Its manager or an admin. Send any of name, description, colour.",
+        "operationId": "updateAgent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Agent ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Unique among agents, case-insensitively. At most 100 characters."
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "At most 500 characters."
+                  },
+                  "color": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Hex colour like #f97316."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated agent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Delete agent",
+        "description": "Its manager or an admin. Its tokens and memberships go; its cards become unassigned; its comments stay.",
+        "operationId": "deleteAgent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Agent ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/agents/{id}/tokens": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Create agent token",
+        "description": "Its manager or an admin. The raw token is returned only once. Refused while the agent is suspended (409). At most 25 per agent.",
+        "operationId": "createAgentToken",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Agent ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "expiresInDays": {
+                    "type": "integer",
+                    "description": "Days until expiration. Omit for non-expiring token."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created token with raw value (one-time)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiToken"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "description": "Raw token value (only returned on creation)"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/agents/{id}/tokens/{tokenId}": {
+      "delete": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Delete agent token",
+        "description": "Its manager or an admin.",
+        "operationId": "deleteAgentToken",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Agent ID"
+          },
+          {
+            "name": "tokenId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/agents/{id}/suspend": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Suspend agent",
+        "description": "Its manager or an admin. Revokes every token the agent holds; unsuspending needs a new one.",
+        "operationId": "suspendAgent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Agent ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "revokedTokens": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/agents/{id}/unsuspend": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Unsuspend agent",
+        "description": "Its manager or an admin. Refused (409) while the agent has no manager or its manager can no longer manage agents; an admin transfers it first. Removes the agent from any project its manager is not a member of (none for an admin manager), listed in `removedFrom`.",
+        "operationId": "unsuspendAgent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Agent ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent unsuspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "removedFrom": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LostMembership"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/agents/{id}/transfer": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Transfer agent",
+        "description": "Admin only. Hands the agent to a new manager and removes it from every project that person is not a member of (none for an admin), listed in `removedFrom`. A suspended agent stays suspended.",
+        "operationId": "transferAgent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Agent ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "toUserId"
+                ],
+                "properties": {
+                  "toUserId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "An active admin, or a person with canCreateAgents."
+                  },
+                  "dryRun": {
+                    "type": "boolean",
+                    "description": "Report `removedFrom` without changing anything."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Agent transferred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agentIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "managedBy": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "removedFrom": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LostMembership"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/agents/transfer": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Transfer agents",
+        "description": "Admin only. POST /api/agents/{id}/transfer for several agents at once.",
+        "operationId": "transferAgents",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "agentIds",
+                  "toUserId"
+                ],
+                "properties": {
+                  "agentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "toUserId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "An active admin, or a person with canCreateAgents."
+                  },
+                  "dryRun": {
+                    "type": "boolean",
+                    "description": "Report `removedFrom` without changing anything."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Agents transferred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agentIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "managedBy": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "removedFrom": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LostMembership"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/agents/suspend": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Suspend agents",
+        "description": "An admin, or the manager of every agent named (404 otherwise). Revokes all their tokens.",
+        "operationId": "suspendAgents",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "agentIds"
+                ],
+                "properties": {
+                  "agentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Agents suspended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agentIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "revokedTokens": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/agents/managers": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "List possible agent managers",
+        "description": "Admin only. Active admins and people with canCreateAgents. With `agentIds`, each candidate carries the memberships those agents would lose by moving to them.",
+        "operationId": "listAgentManagers",
+        "parameters": [
+          {
+            "name": "agentIds",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated agent IDs."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Candidates, by name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "avatarUrl": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "isAdmin": {
+                        "type": "boolean"
+                      },
+                      "canCreateAgents": {
+                        "type": "boolean"
+                      },
+                      "removedFrom": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/LostMembership"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}/hand-over": {
+      "post": {
+        "tags": [
+          "Admin",
+          "Agents"
+        ],
+        "summary": "Hand over a person's agents",
+        "description": "Admin only. Transfers every agent the person manages to one new manager, or suspends them all, before the person is deleted, suspended or loses the permission.",
+        "operationId": "handOverAgents",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "action"
+                ],
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "transfer",
+                      "suspend"
+                    ]
+                  },
+                  "toUserId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Required for transfer."
+                  },
+                  "dryRun": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Agents handed over",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agentIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "manager": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "description": "transfer only"
+                    },
+                    "removedFrom": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LostMembership"
+                      },
+                      "description": "transfer only"
+                    },
+                    "revokedTokens": {
+                      "type": "integer",
+                      "description": "suspend only"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/agent-candidates": {
+      "get": {
+        "tags": [
+          "Members",
+          "Agents"
+        ],
+        "summary": "List agents that can be added",
+        "description": "Owner or admin. Active agents that are not members yet and whose manager is a member of this project or an admin.",
+        "operationId": "listAgentCandidates",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Matches name or description."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Candidates, by manager then name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MemberSummary"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/my-tasks/agents": {
+      "get": {
+        "tags": [
+          "My Tasks",
+          "Agents"
+        ],
+        "summary": "Get my agents' work",
+        "description": "Cards assigned to the agents the caller manages, in projects the caller can see, with the agent as `assignee`. Done cards past retention are left out.",
+        "operationId": "getMyAgentsWork",
+        "responses": {
+          "200": {
+            "description": "Cards held by the caller's agents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agentCount": {
+                      "type": "integer",
+                      "description": "Agents the caller manages."
+                    },
+                    "agentsWithCards": {
+                      "type": "integer",
+                      "description": "Of those, how many hold at least one card here."
+                    },
+                    "cards": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/Card"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "assignee": {
+                                "$ref": "#/components/schemas/MemberSummary"
+                              },
+                              "status": {
+                                "$ref": "#/components/schemas/Status"
+                              },
+                              "project": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "slug": {
+                                    "type": "string"
+                                  },
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "icon": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "doneStatusId": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "nullable": true
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5306,7 +6664,7 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "API token (create via POST /api/user/tokens)"
+        "description": "API token (create via POST /api/user/tokens, or for an agent via POST /api/agents/{id}/tokens)"
       }
     },
     "parameters": {
@@ -5643,6 +7001,15 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "uploader": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            ],
+            "nullable": true,
+            "description": "Who uploaded the file. Null if their account was deleted."
           }
         }
       },
@@ -5682,6 +7049,37 @@
             "type": "string",
             "format": "date-time",
             "description": "Greater than createdAt if the comment has been edited."
+          },
+          "authorKind": {
+            "type": "string",
+            "enum": [
+              "human",
+              "agent"
+            ],
+            "description": "`agent` for an account an AI tool acts through (see the Agents tag).",
+            "nullable": true
+          },
+          "authorColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorManagedBy": {
+            "type": "object",
+            "nullable": true,
+            "description": "The person responsible for an agent. Null for people, and for an agent whose manager was deleted.",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              },
+              "avatarUrl": {
+                "type": "string",
+                "nullable": true
+              }
+            }
           }
         }
       },
@@ -5750,8 +7148,40 @@
           "avatarUrl": {
             "type": "string",
             "nullable": true
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "human",
+              "agent"
+            ],
+            "description": "`agent` for an account an AI tool acts through (see the Agents tag)."
+          },
+          "color": {
+            "type": "string",
+            "nullable": true,
+            "description": "Avatar tint an agent's creator picked (hex). Null for people."
+          },
+          "managedBy": {
+            "type": "object",
+            "nullable": true,
+            "description": "The person responsible for an agent. Null for people, and for an agent whose manager was deleted.",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              },
+              "avatarUrl": {
+                "type": "string",
+                "nullable": true
+              }
+            }
           }
-        }
+        },
+        "description": "A person or an agent wherever one is named: assignee, creator, uploader. Never carries an email address."
       },
       "AiSkill": {
         "type": "object",
@@ -5882,6 +7312,226 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "MemberSummary": {
+        "description": "A project member as the assignee and mention pickers need it. The extra fields are for agents and are null or false for people.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string",
+                "nullable": true,
+                "description": "What the agent does; shown where a person shows an email."
+              },
+              "suspended": {
+                "type": "boolean",
+                "description": "A suspended agent is left out of pickers."
+              },
+              "lastSeenAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "When the agent last used a token."
+              }
+            }
+          }
+        ]
+      },
+      "LostMembership": {
+        "type": "object",
+        "description": "A project an agent leaves because its new manager is not a member there.",
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "agentName": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectName": {
+            "type": "string"
+          }
+        }
+      },
+      "Agent": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string",
+                "nullable": true
+              },
+              "suspended": {
+                "type": "boolean"
+              },
+              "suspendedAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "lastSeenAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true,
+                "description": "When a token of the agent was last used."
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "projectCount": {
+                "type": "integer"
+              },
+              "projects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "key": {
+                      "type": "string"
+                    },
+                    "icon": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "member"
+                      ]
+                    }
+                  }
+                }
+              },
+              "tokenCount": {
+                "type": "integer"
+              }
+            }
+          }
+        ]
+      },
+      "AgentDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Agent"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string",
+                "description": "The agent's synthetic address on agents.invalid. Never mailed; set it as COMPLETO_USER for the CLI's --me. Returned only here and to the agent itself."
+              },
+              "tokens": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ApiToken"
+                }
+              },
+              "assignedCardCount": {
+                "type": "integer"
+              }
+            }
+          }
+        ]
+      },
+      "CardEvent": {
+        "type": "object",
+        "description": "One change to a card. Every change is its own event, never merged with the one before however close together they were, ordered by `id`.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Increases with every change, so it is the exact order even where two share a millisecond. 0 for the `created` entry, which is read off the card and has no row of its own."
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "created",
+              "status",
+              "assignee",
+              "priority",
+              "dueDate",
+              "title",
+              "description",
+              "tag",
+              "attachment"
+            ],
+            "description": "What changed. `status` includes moves between board columns; reordering within a status is not recorded. `tag` and `attachment` events have only `to` when one was added and only `from` when one was removed."
+          },
+          "from": {
+            "type": "object",
+            "nullable": true,
+            "description": "One side of a change. Null means none: unassigned, no due date, a tag or file the card did not have. `description` events carry no sides at all: they record that the text changed, never the text.",
+            "properties": {
+              "id": {
+                "type": "string",
+                "nullable": true,
+                "description": "The status, person, tag or attachment this side names. Null for plain values (priority, title, due date)."
+              },
+              "value": {
+                "type": "string",
+                "description": "The name the status, person or tag has now, or, once it has been deleted, the name it had when the change was made. For priority and title the value itself; for a due date an ISO 8601 date-time; for an attachment its file name."
+              }
+            }
+          },
+          "to": {
+            "type": "object",
+            "nullable": true,
+            "description": "One side of a change. Null means none: unassigned, no due date, a tag or file the card did not have. `description` events carry no sides at all: they record that the text changed, never the text.",
+            "properties": {
+              "id": {
+                "type": "string",
+                "nullable": true,
+                "description": "The status, person, tag or attachment this side names. Null for plain values (priority, title, due date)."
+              },
+              "value": {
+                "type": "string",
+                "description": "The name the status, person or tag has now, or, once it has been deleted, the name it had when the change was made. For priority and title the value itself; for a due date an ISO 8601 date-time; for an attachment its file name."
+              }
+            }
+          },
+          "actor": {
+            "description": "Who made the change: the signed-in person, or the agent whose token made the request. A change a request caused on other cards (a deleted status moving its cards, a removed member's agents leaving, a deleted account or tag) is attributed to whoever made that request. Null once the account is deleted.",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            ]
+          },
+          "actorName": {
+            "type": "string",
+            "nullable": true,
+            "description": "The actor's name when the change was made, so a deleted account is still named. Null only on a `created` entry whose creator is gone."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the change was made, to the millisecond."
           }
         }
       }

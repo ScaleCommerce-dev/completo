@@ -274,12 +274,31 @@ describe('empty sections are their own invitation', () => {
 
   it('leaves the empty sections unlabelled, so no heading sits over a void', () => {
     // The count is what the label is *for*, and there is nothing to count until
-    // the section has something in it. Both gate on that rather than on `|| null`,
+    // the section has something in it. It gates on that rather than on `|| null`,
     // which used to render the heading with the number simply absent.
-    for (const path of ['app/components/AttachmentList.vue', 'app/components/CommentList.vue']) {
-      const src = read(path)
-      expect(src, path).toMatch(/<UiSectionLabel\s+v-if="(attachments|comments)\.length"/)
-    }
+    //
+    // The comment section no longer has a label to gate: its heading is the
+    // All / Comments / Activity tabs, which are controls rather than a title, and
+    // a card always has a record under them (its creation, on Activity). The void
+    // this guarded against is still covered on the Comments tab, where the
+    // collapsed composer is the empty state (the next test).
+    const attachments = read('app/components/AttachmentList.vue')
+    expect(attachments).toMatch(/<UiSectionLabel\s+v-if="attachments\.length"/)
+    expect(strip(read('app/components/CommentList.vue'))).not.toContain('<UiSectionLabel')
+  })
+
+  it('opens every card on its comments, whichever tab the last one was left on', () => {
+    // The owner's call: comments are what people open a card to read, so the
+    // tab is per-card state that resets, never a remembered preference.
+    const comments = strip(read('app/components/CommentList.vue'))
+    expect(comments).toMatch(/const tab = ref<TimelineTab>\('comments'\)/)
+    expect(comments).toMatch(/watch\(cardIdRef, \(\) => \{[^}]*tab\.value = 'comments'/)
+    expect(comments).not.toMatch(/useLocalPref\(/)
+  })
+
+  it('offers the composer only where comments are listed', () => {
+    const comments = strip(read('app/components/CommentList.vue'))
+    expect(comments).toMatch(/v-if="!readonly && cardId && tab !== 'activity'"\s*\n[^\n]*\n\s*data-comment-editor="new"/)
   })
 
   it('the comment composer is the comments empty state', () => {
@@ -376,9 +395,21 @@ describe('one spelling per idiom', () => {
     // three stacked headings, one of them without the icon its neighbours had —
     // because two hand-rolled the style UiSectionLabel exists to hold.
     for (const path of ['app/components/CommentList.vue', 'app/components/AttachmentList.vue']) {
-      expect(read(path), path).toContain('<UiSectionLabel')
       expect(read(path), path).not.toMatch(/text-xs font-semibold uppercase tracking-\[/)
     }
+    expect(read('app/components/AttachmentList.vue')).toContain('<UiSectionLabel')
+
+    // The comment section's heading is its All / Comments / Activity tabs, so
+    // they have to wear the label's type rather than grow a fourth spelling of
+    // it: the weight, case and tracking are read off UiSectionLabel itself, and
+    // the 12px comes from the tabs' `xs` size.
+    const labelType = tokens(read('app/components/ui/SectionLabel.vue').match(/<span class="([^"]*uppercase[^"]*)"/)?.[1] ?? '')
+      .filter(t => /^(font-|uppercase$|tracking-)/.test(t))
+    const comments = strip(read('app/components/CommentList.vue'))
+    const tabs = comments.slice(comments.indexOf('<UTabs'), comments.indexOf('</UTabs>'))
+    expect(labelType.length).toBe(3)
+    expect(tokens(tabs.match(/trigger: '([^']*)'/)?.[1] ?? '')).toEqual(expect.arrayContaining(labelType))
+    expect(tabs).toMatch(/\bsize="xs"/)
   })
 
   it('puts no heading over the card’s own body', () => {
@@ -724,7 +755,7 @@ describe('the comment thread', () => {
     expect(COMMENTS).toMatch(/group-first:border-t-0/)
 
     const listClasses = COMMENTS.match(/<ul\b[\s\S]{0,80}?class="([^"]*)"/)?.[1] ?? ''
-    const rowClasses = COMMENTS.match(/:key="comment\.id"\s*\n\s*class="([^"]*)"/)?.[1] ?? ''
+    const rowClasses = COMMENTS.match(/in timeline"\s*\n\s*:key="key"\s*\n\s*class="([^"]*)"/)?.[1] ?? ''
 
     expect(listClasses).not.toMatch(/divide-y/)
     expect(rowClasses).not.toMatch(/border/)
@@ -756,7 +787,7 @@ describe('the comment thread', () => {
     // The previous version banned every hover background anywhere in the thread on
     // the strength of one invisible fill on the row, so it forbade the correct
     // answer for a button along with the wrong one for a row.
-    const row = tokens(COMMENTS.match(/:key="comment\.id"\s*\n\s*class="([^"]*)"/)?.[1] ?? '')
+    const row = tokens(COMMENTS.match(/in timeline"\s*\n\s*:key="key"\s*\n\s*class="([^"]*)"/)?.[1] ?? '')
 
     expect(row).not.toEqual([])
     expect(row.filter(t => t.startsWith('hover:bg-'))).toEqual([])
@@ -781,7 +812,7 @@ describe('the comment thread', () => {
     // recomputed it. A one-sided assertion would have passed both times.
     const listGap = Number(COMMENTS.match(/<ul\b[\s\S]{0,80}?class="space-y-(\d+)"/)?.[1])
     const belowRule = Number(COMMENTS.match(/border-t border-default pt-(\d+)/)?.[1])
-    const beforeComposer = Number(COMMENTS.match(/comments\.length \? 'mt-(\d+)'/)?.[1])
+    const beforeComposer = Number(COMMENTS.match(/timeline\.length \? 'mt-(\d+)'/)?.[1])
 
     expect(listGap).toBeGreaterThan(0)
     expect(beforeComposer).toBeGreaterThan(listGap + belowRule)

@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import type { Member, PersonRef } from '~/types/card'
+
 defineProps<{
-  assignee: { id: string, name: string, avatarUrl: string | null } | null
-  members?: Array<{ id: string, name: string, avatarUrl: string | null }>
+  assignee: PersonRef | null
+  members?: Member[]
   readOnly?: boolean
   popoverOpen: boolean
 }>()

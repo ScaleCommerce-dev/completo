@@ -36,7 +36,24 @@ export default defineEventHandler(async (event) => {
 
   if (projects.length === 0) return []
 
+  // Alphabetical, case- and accent-insensitive, with numbers in numeric order.
+  // There was no ORDER BY at all, so the sidebar and the projects grid showed
+  // insertion order for admins and join order for everyone else — which read as
+  // random. A plain `<` sort would not fix it: it puts every lower-case name
+  // ("smoxy", "zdev") after every capitalised one.
+  const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
+  projects.sort((a, b) => collator.compare(a.project.name, b.project.name))
+
   const projectIds = projects.map(p => p.project.id)
+
+  // A star counts only where the caller is a real member: an admin's synthetic
+  // 'admin' role is not membership, and a removed member's row is left behind
+  // on purpose (see `projectStars` in the schema).
+  const starredIds = new Set(db.select({ projectId: schema.projectStars.projectId })
+    .from(schema.projectStars)
+    .where(eq(schema.projectStars.userId, userId))
+    .all()
+    .map(s => s.projectId))
 
   // Batch: boards per project
   const allBoards = db.select().from(schema.boards)
@@ -78,7 +95,9 @@ export default defineEventHandler(async (event) => {
     projectId: schema.projectMembers.projectId,
     userId: schema.projectMembers.userId,
     name: schema.users.name,
-    avatarUrl: schema.users.avatarUrl
+    avatarUrl: schema.users.avatarUrl,
+    kind: schema.users.kind,
+    color: schema.users.color
   })
     .from(schema.projectMembers)
     .innerJoin(schema.users, eq(schema.projectMembers.userId, schema.users.id))
@@ -86,17 +105,18 @@ export default defineEventHandler(async (event) => {
     .all()
 
   const memberCountByProject = new Map<string, number>()
-  const memberAvatarsByProject = new Map<string, Array<{ name: string, avatarUrl: string | null }>>()
+  const memberAvatarsByProject = new Map<string, Array<{ name: string, avatarUrl: string | null, kind: 'human' | 'agent', color: string | null }>>()
   for (const m of allMembers) {
     memberCountByProject.set(m.projectId, (memberCountByProject.get(m.projectId) || 0) + 1)
     const avatars = memberAvatarsByProject.get(m.projectId) || []
-    if (avatars.length < 3) avatars.push({ name: m.name, avatarUrl: m.avatarUrl })
+    if (avatars.length < 3) avatars.push({ name: m.name, avatarUrl: m.avatarUrl, kind: m.kind, color: m.color })
     memberAvatarsByProject.set(m.projectId, avatars)
   }
 
   return projects.map(({ project, role }) => ({
     ...project,
     role,
+    starred: role !== 'admin' && starredIds.has(project.id),
     boardCount: allBoards.filter(b => b.projectId === project.id).length,
     listCount: allLists.filter(l => l.projectId === project.id).length,
     totalCards: cardCountByProject.get(project.id) || 0,

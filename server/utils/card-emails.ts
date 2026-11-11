@@ -77,7 +77,8 @@ const cooldown = createCardEmailCooldown()
  * (assignees are validated, mentions resolve within the project): card content
  * leaving the app by email is the one place where a future caller forgetting that
  * check would leak, so the guard sits at the exit. Also drops anyone who turned
- * card emails off on their profile.
+ * card emails off on their profile, and every agent: an agent's address is
+ * synthetic, and its `emailNotifications` flag is not what keeps it out.
  */
 export function resolveCardEmailRecipients(projectId: string, userIds: string[]): Map<string, string> {
   if (!userIds.length) return new Map()
@@ -87,7 +88,8 @@ export function resolveCardEmailRecipients(projectId: string, userIds: string[])
     .where(and(
       eq(schema.projectMembers.projectId, projectId),
       inArray(schema.projectMembers.userId, userIds),
-      eq(schema.users.emailNotifications, 1)
+      eq(schema.users.emailNotifications, 1),
+      eq(schema.users.kind, 'human')
     ))
     .all()
   return new Map(rows.map(r => [r.id, r.email]))

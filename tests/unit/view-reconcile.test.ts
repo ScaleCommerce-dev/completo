@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import {
   cardBelongsToView,
   applyCardUpsert,
-  applyCardDelete
+  applyCardDelete,
+  columnNeedsResync
 } from '../../app/utils/view-reconcile'
 
 /**
@@ -78,5 +79,49 @@ describe('applyCardDelete', () => {
     const cards = rows({ id: 2, statusId: 's1' })
     expect(applyCardDelete(cards, 1)).toBe(false)
     expect(cards).toHaveLength(1)
+  })
+})
+
+/**
+ * `KanbanColumn` renders its own copy of the column's list (vuedraggable mutates
+ * it in place) and replaces that copy when `columnNeedsResync` says so. Every
+ * card patch after that, optimistic or live, goes to the view's rows, so the copy
+ * has to hold those same rows or the patch never reaches the screen.
+ */
+describe('columnNeedsResync', () => {
+  interface Card { id: number, assignee: { id: string } | null }
+
+  /** The column's watcher, as `KanbanColumn` runs it on new props. */
+  function sync(local: Card[], incoming: Card[]): Card[] {
+    return columnNeedsResync(local, incoming) ? [...incoming] : local
+  }
+
+  it('renders a card patched after a view refetch', () => {
+    let view: Card[] = [{ id: 1, assignee: null }, { id: 5, assignee: null }]
+    let column = [...view]
+
+    // refresh() replaces the view wholesale: same ids, same order, new objects.
+    view = view.map(c => ({ ...c }))
+    column = sync(column, view)
+
+    // `useViewData.updateCard` patches the row it finds in the view by id.
+    view.find(c => c.id === 5)!.assignee = { id: 'agent-claude' }
+
+    expect(column.find(c => c.id === 5)!.assignee).toEqual({ id: 'agent-claude' })
+  })
+
+  it('keeps its list when handed the same rows again', () => {
+    // Every patch recomputes the column's array without changing its rows; that
+    // must not replace a list vuedraggable may be holding mid-drop.
+    const view: Card[] = [{ id: 1, assignee: null }, { id: 5, assignee: null }]
+    const column = [...view]
+    expect(columnNeedsResync(column, [...view])).toBe(false)
+  })
+
+  it('resyncs when the order or the set of cards changes', () => {
+    const a: Card = { id: 1, assignee: null }
+    const b: Card = { id: 5, assignee: null }
+    expect(columnNeedsResync([a, b], [b, a])).toBe(true)
+    expect(columnNeedsResync([a, b], [a])).toBe(true)
   })
 })

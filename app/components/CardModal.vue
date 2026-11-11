@@ -761,6 +761,11 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           >
             <span class="text-dimmed shrink-0">by</span>
             <span class="text-muted truncate">{{ card!.creator.name }}</span>
+            <UiAgentChip
+              v-if="card!.creator.kind === 'agent'"
+              :managed-by="card!.creator.managedBy"
+              class="self-center ml-1"
+            />
           </span>
         </div>
         <span

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import { join } from 'node:path'
@@ -37,8 +37,16 @@ const ROOT = join(import.meta.dirname, '../..')
  * half comes from `PROSE_EXTENSIONS`, the same array the component passes, so it
  * cannot drift at all.
  */
+// Every editor is destroyed after its test. An editor left alive keeps ProseMirror's
+// view timers pending past the environment teardown, where they fire into a window
+// that no longer exists — `document is not defined`, unattributed, on a loaded run.
+const editors: Editor[] = []
+afterEach(() => {
+  for (const editor of editors.splice(0)) editor.destroy()
+})
+
 function makeEditor() {
-  return new Editor({
+  const editor = new Editor({
     extensions: [
       Markdown.configure({ markedOptions: { gfm: true, breaks: true } }),
       StarterKit.configure({ code: false, horizontalRule: false, link: { openOnClick: false } }),
@@ -50,6 +58,8 @@ function makeEditor() {
     content: '',
     contentType: 'markdown'
   })
+  editors.push(editor)
+  return editor
 }
 
 /**
@@ -89,6 +99,10 @@ const CONTENT: Record<string, string> = {
   // than normalised away, so that if a future Tiptap stops escaping (or starts
   // escaping something else) this says so instead of passing quietly.
   'underscores and asterisks in prose': 'file\\_name\\_here and 2*3*4',
+  // Banned by the AI contract until Tiptap 3.32, which flattened `<u>` into a
+  // literal ++text++. It survives now, so the ban was lifted; the general "no raw
+  // HTML" rule still keeps the model from emitting it; a user's Cmd+U is what writes one.
+  'an underline': 'some <u>underlined</u> words',
   'a realistic card body': '## Acceptance Criteria\n\n- [ ] Editor renders **formatted** text\n- [ ] Uses `UButton`\n\nSee @[Tom](8f3a2b1c).'
 }
 
@@ -199,7 +213,6 @@ describe('the AI formatting contract is earned', () => {
     ['an HTML element', 'press <kbd>Esc</kbd> to close'],
     ['a subscript', 'the formula H<sub>2</sub>O'],
     ['a details block', '<details><summary>More</summary>\n\nhidden\n\n</details>'],
-    ['an underline', 'some <u>underlined</u> words'],
     ['an HTML comment', '<!-- note to self -->\n\nvisible text'],
     ['a footnote', 'text with a footnote[^1]\n\n[^1]: the note']
   ]

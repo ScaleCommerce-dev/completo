@@ -44,6 +44,7 @@ export default defineEventHandler(async (event) => {
   return {
     ...comment,
     authorName: user.name,
-    authorAvatarUrl: user.avatarUrl
+    authorAvatarUrl: user.avatarUrl,
+    ...authorFields(user)
   }
 })

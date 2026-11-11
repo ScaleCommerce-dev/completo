@@ -13,6 +13,9 @@ interface ProjectDetail {
   icon: string | null
   doneStatusId: string | null
   role: string
+  /** `role` reports owner-level access for an admin outside the project; this does not. */
+  isMember: boolean
+  starred: boolean
   openCards: number
   statuses: Array<{ id: string, name: string, color: string | null }>
   tags: Array<{ id: string, name: string, color: string }>
@@ -32,6 +35,24 @@ useSeoMeta({
 })
 
 const isOwnerOrAdmin = computed(() => project.value?.role === 'owner' || project.value?.role === 'admin')
+
+// ─── Settings ───
+const showSettings = ref(false)
+const { refreshProjects } = useNavigation()
+
+/**
+ * The page is keyed by its slug, so a changed slug means a different URL: follow
+ * it, replacing this entry so Back doesn't land on a slug that no longer exists.
+ * Otherwise refresh in place. Either way the sidebar's name may have changed.
+ */
+async function onSettingsSaved({ slug: newSlug }: { slug: string }) {
+  refreshProjects()
+  if (newSlug && newSlug !== slug) {
+    await navigateTo(`/projects/${newSlug}`, { replace: true })
+    return
+  }
+  await refresh()
+}
 
 // Derived data
 const projectStatuses = computed(() => project.value?.statuses || [])
@@ -203,36 +224,67 @@ async function confirmDeleteTag(tagId: string) {
       v-if="project"
       #leading
     >
+      <!-- 16px glyph in the 32px tile: at 14px the tile read as mostly tint. -->
       <span class="flex items-center justify-center size-8 rounded-lg bg-primary/10 text-primary shrink-0">
         <UIcon
           :name="`i-lucide-${project.icon || 'folder'}`"
-          class="text-base"
+          class="size-4"
         />
       </span>
     </template>
 
+    <!-- The member check is on the slot, not the button: UiPage spaces the
+         description by whether this slot exists, so an empty one left an
+         admin outside the project with an 8px gap where 14 belongs. -->
     <template
-      v-if="project"
-      #meta
+      v-if="project?.isMember"
+      #title-trailing
     >
-      <UBadge
-        :label="project.key"
-        color="primary"
-        variant="subtle"
-        :ui="{ label: 'font-mono' }"
+      <!-- No project key, for the reason on the All Projects card: this page
+           shows no ticket ids for it to label. -->
+      <!-- Here as well as in All Projects: arriving at an unstarred project
+           through ⌘K or a notification is when you decide to keep it, and
+           leaving to find its card would make that a chore. UiPage centres it
+           on the name; `-my-1.5` keeps the 28px hit area without letting it
+           set the row's height. -->
+      <ProjectStarButton
+        :project-id="project.id"
+        :project-name="project.name"
+        :starred="project.starred"
+        class="-my-1.5"
+        @update:starred="project = { ...project, starred: $event }"
       />
     </template>
 
+    <!-- The project's own controls, and nothing else: who is in it, then its
+         settings. Members is open to everyone in the project, read-only for
+         those who cannot edit it. -->
     <template
-      v-if="project && (project.role === 'owner' || project.role === 'admin')"
+      v-if="project"
       #actions
     >
+      <ProjectMembersButton
+        :project-id="project.id"
+        :project-name="project.name"
+      />
       <UButton
-        :to="`/projects?edit=${project.id}`"
+        v-if="isOwnerOrAdmin"
         icon="i-lucide-settings"
         label="Settings"
+        aria-label="Settings"
         variant="ghost"
         color="neutral"
+        :ui="{ label: 'max-sm:hidden' }"
+        @click="showSettings = true"
+      />
+      <!-- In place, like Members. It used to link to All Projects and open
+           there, so closing it left you outside the project. -->
+      <ProjectSettingsDialog
+        v-if="isOwnerOrAdmin"
+        v-model:open="showSettings"
+        :project="project"
+        @saved="onSettingsSaved"
+        @deleted="navigateTo('/projects', { replace: true })"
       />
     </template>
 
@@ -481,7 +533,7 @@ async function confirmDeleteTag(tagId: string) {
                     <UPopover v-model:open="newTagColorOpen">
                       <button
                         type="button"
-                        class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
+                        class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition"
                         :style="{ backgroundColor: newTagColor }"
                       />
                       <template #content>
@@ -527,9 +579,9 @@ async function confirmDeleteTag(tagId: string) {
         </div>
       </div>
 
-      <!-- Views + Members side by side -->
-      <div class="lg:grid lg:grid-cols-[2fr_1fr] lg:gap-8">
-        <!-- Views (Boards + Lists) -->
+      <!-- Views take the whole width. Members were a third column here, and moved
+           to the header (`ProjectMembersButton`). -->
+      <div>
         <div>
           <h2 class="flex items-center gap-1.5 text-sm font-bold text-muted uppercase tracking-label mb-2">
             <UIcon
@@ -542,7 +594,7 @@ async function confirmDeleteTag(tagId: string) {
             Boards and lists for viewing this project's cards
           </p>
 
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <!-- Link as a stretched overlay so the delete button is its sibling
                  rather than its child: a `<button>` inside an `<a>` is invalid
                  and there is no valid way to nest them. -->
@@ -616,7 +668,7 @@ async function confirmDeleteTag(tagId: string) {
             <!-- Ghost "+ New View" card -->
             <button
               type="button"
-              class="rounded-xl border-2 border-dashed border-accented p-4 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer group text-left"
+              class="rounded-xl border-2 border-dashed border-accented p-4 hover:border-primary hover:bg-primary/5 transition-colors group text-left"
               @click="showNewView = true"
             >
               <div class="flex items-center gap-3">
@@ -632,21 +684,6 @@ async function confirmDeleteTag(tagId: string) {
               </div>
             </button>
           </div>
-        </div>
-
-        <!-- Members -->
-        <div class="max-lg:mt-8">
-          <h2 class="flex items-center gap-1.5 text-sm font-bold text-muted uppercase tracking-label mb-2">
-            <UIcon
-              name="i-lucide-users"
-              class="text-base"
-            />
-            Members
-          </h2>
-          <p class="text-xs text-dimmed mb-4">
-            People with access to this project
-          </p>
-          <ProjectMembers :project-id="project.id" />
         </div>
       </div>
 

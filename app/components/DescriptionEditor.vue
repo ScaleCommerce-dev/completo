@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Mentionable } from '~/types/card'
+
 const description = defineModel<string>({ default: '' })
 
 const props = withDefaults(defineProps<{
@@ -7,7 +9,7 @@ const props = withDefaults(defineProps<{
   priority?: string
   projectSlug?: string
   projectKey?: string
-  members?: Array<{ id: string, name: string, email?: string }>
+  members?: Mentionable[]
   cardId?: number | null
   minHeight?: number
   maxHeight?: number

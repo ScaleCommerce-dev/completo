@@ -115,6 +115,6 @@ export function createCard({ projectId, userId, userName, body }: CreateCardPara
 
   return {
     ...card!.cards,
-    assignee: card!.users ? { id: card!.users.id, name: card!.users.name, avatarUrl: card!.users.avatarUrl } : null
+    assignee: createUserRefs([card!.users]).ref(card!.users)
   }
 }

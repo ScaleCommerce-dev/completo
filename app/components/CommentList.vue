@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import type { Mentionable } from '~/types/card'
 import type { Comment } from '~/composables/useComments'
 
 const props = defineProps<{
   cardId: number | null | undefined
-  members?: Array<{ id: string, name: string, email?: string }>
+  members?: Mentionable[]
   projectSlug?: string
   projectKey?: string
   readonly?: boolean
@@ -18,6 +19,34 @@ const props = defineProps<{
 const cardIdRef = computed(() => props.cardId ?? null)
 const { comments, loading, saving, add, edit, remove } = useComments(cardIdRef)
 const { user: currentUser } = useUserSession()
+
+/**
+ * The card's changes beside its comments: who moved it, assigned it, retagged
+ * it, and when. One line each, quieter than a comment, because on a card an
+ * agent works on they outnumber the comments many times over.
+ *
+ * Three tabs: All threads both by time, Comments and Activity show one each.
+ * Every card opens on Comments, the thing people open a card to read, and the
+ * tab is not remembered: reset per card below, like the rest of this list's
+ * per-card state.
+ */
+const tab = ref<TimelineTab>('comments')
+// The Comments tab needs only the Activity count, so the changes themselves are
+// read once a tab shows them.
+const { events: history, hasMore: hasEarlierChanges, total: historyTotal, loading: historyLoading, loadingEarlier, loadEarlier }
+  = useCardHistory(cardIdRef, computed(() => tab.value !== 'comments'))
+const timeline = computed(() => timelineFor(tab.value, comments.value, history.value))
+const timelinePending = computed(() => timelineLoading(tab.value, {
+  commentsLoading: loading.value,
+  commentCount: comments.value.length,
+  historyLoading: historyLoading.value,
+  historyCount: history.value.length
+}))
+const tabs = computed(() => [
+  { label: 'All', value: 'all' },
+  { label: 'Comments', value: 'comments', count: comments.value.length },
+  { label: 'Activity', value: 'activity', count: historyTotal.value ?? undefined }
+])
 
 const draft = ref('')
 const editingId = ref<string | null>(null)
@@ -102,6 +131,7 @@ const newCommentEditor = ref<{ startEditing: () => void }>()
  * file it under `card:<new>:comment:<old comment>`.
  */
 watch(cardIdRef, () => {
+  tab.value = 'comments'
   editingId.value = null
   editDraft.value = ''
   draft.value = ''
@@ -201,27 +231,53 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
 
 <template>
   <div class="mt-6">
-    <!-- The label arrives with the first comment.
-         The collapsed composer is already this section's empty state — that is why
-         "No comments yet" could go — so a heading above it is a heading over a
-         void, which is the thing the attachments section stopped doing in the same
-         pass. What the label is *for* is the count, and there is nothing to count
-         until somebody writes something.
+    <!-- The tabs are this section's heading, so they wear the section label's
+         type: 12px semibold uppercase at `tracking-label`, counts in tabular mono
+         (UiSectionLabel). The link variant without its list rule: the underline
+         marks the open tab, and a hairline the full width of the panel would cross
+         the avatar gutter the thread below is built on. Neutral, because chrome
+         carries no colour here.
 
-         (The three card sections also sat at three different letter-spacings —
-         0.48px, 0.84px and 0.30px — because two of them hand-rolled the style
-         UiSectionLabel exists to hold, and this one had no icon while its
-         neighbours did.) -->
-    <UiSectionLabel
-      v-if="comments.length"
-      label="Comments"
-      icon="i-lucide-message-square"
-      :count="comments.length"
-      class="mb-4"
+         Counts on Comments and Activity even at zero: the collapsed composer is
+         still the comments' empty state, and the number says so before you look.
+         Activity's is the whole history's (`total`), not the page loaded. -->
+    <UTabs
+      v-if="cardId"
+      v-model="tab"
+      :items="tabs"
+      :content="false"
+      variant="link"
+      color="neutral"
+      size="xs"
+      aria-label="Card record"
+      :ui="{
+        list: 'border-b-0 p-0 gap-4',
+        trigger: 'px-0 py-1 font-semibold uppercase tracking-label'
+      }"
+      :class="timeline.length ? 'mb-4' : 'mb-3'"
+    >
+      <template #trailing="{ item }">
+        <span
+          v-if="item.count !== undefined"
+          class="text-xs font-mono tabular-nums text-dimmed"
+        >{{ item.count }}</span>
+      </template>
+    </UTabs>
+
+    <UButton
+      v-if="tab !== 'comments' && hasEarlierChanges"
+      label="Show earlier changes"
+      icon="i-lucide-chevrons-up"
+      variant="link"
+      color="neutral"
+      size="xs"
+      :loading="loadingEarlier"
+      class="mb-3"
+      @click="loadEarlier"
     />
 
     <div
-      v-if="loading && !comments.length"
+      v-if="timelinePending"
       class="text-sm text-dimmed"
     >
       Loading…
@@ -285,9 +341,18 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
       tidiness. GitHub repeats the author on every comment for the same reason.
       Rejecting it is only defensible because the exact time now sits behind every
       relative one; see the tooltip below.
+
+      **Changes join the same column.** Each is one 12px line with a 16px face
+      centred in the 24px gutter, so the faces stay one column. A change after a
+      comment is ruled off like any record, but a run of changes shares one rule
+      and sits 8px apart: a hairline under every one-line change would outweigh
+      the lines, and an agent's burst would read as a stack of separate records
+      instead of the one stretch of work it was (`mergeTimeline`). So the list's
+      `space-y-4` sets every gap but that one, which the row above it takes in as
+      `mb-2`, and a change draws its own rule only when it opens a run.
     -->
     <ul
-      v-else-if="comments.length"
+      v-else-if="timeline.length"
       class="space-y-4"
     >
       <!--
@@ -303,13 +368,17 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
         record all the way to the edge those buttons sit on.
       -->
       <li
-        v-for="comment in comments"
-        :key="comment.id"
+        v-for="({ key, ruled, comment, event }, index) in timeline"
+        :key="key"
         class="group flex gap-3"
+        :class="timeline[index + 1]?.ruled === false ? 'mb-2' : ''"
       >
         <UiAvatar
+          v-if="comment"
           :src="comment.authorAvatarUrl"
           :alt="comment.authorName"
+          :kind="comment.authorKind"
+          :color="comment.authorColor"
           :tint="!!comment.authorName"
           size="xs"
           class="shrink-0 mt-4 group-first:mt-0"
@@ -321,7 +390,10 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
              16px above it comes from the list's `space-y-4` and the 16px below from
              this `pt-4`, so the hairline sits centred in a 32px band rather than
              hugging whichever comment happens to be adjacent. -->
-        <div class="min-w-0 flex-1 border-t border-default pt-4 group-first:border-t-0 group-first:pt-0">
+        <div
+          v-if="comment"
+          class="min-w-0 flex-1 border-t border-default pt-4 group-first:border-t-0 group-first:pt-0"
+        >
           <!-- The byline is deliberately *smaller* than what it introduces.
                13px semibold over 14px prose is barely a step, which is why a name
                and the sentence under it were indistinguishable and four comments
@@ -341,6 +413,10 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
               <!-- authorId is nulled when a user is deleted, so the name can be missing -->
               {{ comment.authorName ?? 'Deleted user' }}
             </span>
+            <UiAgentChip
+              v-if="comment.authorKind === 'agent'"
+              :managed-by="comment.authorManagedBy"
+            />
             <!-- The exact moment sits behind the relative one. "2d ago" is what
                  anyone wants to read, but it flattens genuinely different moments
                  into one label — the demo card's first three comments are 23
@@ -460,6 +536,40 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
             class="mt-0.5"
           />
         </div>
+
+        <template v-if="event">
+          <div
+            class="w-6 shrink-0 flex justify-center"
+            :class="ruled ? 'mt-4' : ''"
+          >
+            <!-- Untinted once the account is gone, as a deleted comment author is. -->
+            <UiAvatar
+              :src="event.actor?.avatarUrl"
+              :alt="actorLabel(event)"
+              :kind="event.actor?.kind"
+              :color="event.actor?.color"
+              :tint="!!event.actor"
+              size="3xs"
+            />
+          </div>
+          <p
+            class="min-w-0 flex-1 text-xs text-muted wrap-break-word"
+            :class="ruled ? 'border-t border-default pt-4' : ''"
+          >
+            <!-- The space as an expression: the compiler condenses a literal one
+                 at the end of an element away. -->
+            <span class="font-medium text-toned">{{ actorLabel(event) }}</span>{{ ' ' }}<span
+              v-for="(phrase, i) in describeChange(event)"
+              :key="i"
+              :class="phrase.strong ? 'font-medium text-toned' : undefined"
+            >{{ phrase.text }}</span>
+            <!-- To the second: an agent's changes can be seconds apart, and the
+                 minute alone would show five of them as simultaneous. -->
+            <UTooltip :text="formatTimestamp(event.createdAt, { seconds: true })">
+              <span class="text-dimmed"> · {{ relativeTime(event.createdAt) }}</span>
+            </UTooltip>
+          </p>
+        </template>
       </li>
     </ul>
 
@@ -474,8 +584,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
          since a border is also what an empty section leads with and there this is
          the only row on screen. -->
     <div
-      v-if="!readonly && cardId"
-      :class="comments.length ? 'mt-10' : ''"
+      v-if="!readonly && cardId && tab !== 'activity'"
+      :class="timeline.length ? 'mt-10' : ''"
       data-comment-editor="new"
     >
       <!-- Collapsed: one row that reads as an input and doubles as the empty

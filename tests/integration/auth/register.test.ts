@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { $fetch, url, expectError } from '../../setup/server'
+import { registerTestUser } from '../../setup/auth'
 
 describe('POST /auth/register', async () => {
   it('registers a new user and returns verification-required response', async () => {
@@ -37,11 +38,9 @@ describe('POST /auth/register', async () => {
   })
 
   it('returns same response for duplicate email (anti-enumeration)', async () => {
-    const email = `dup-${Date.now()}@test.com`
-    await $fetch('/auth/register', {
-      method: 'POST',
-      body: { name: 'First', email, password: 'password123' }
-    })
+    // A *verified* account: an unverified one is only a claim, and a second
+    // registration replaces it (pre-hijack.test.ts).
+    const { email } = await registerTestUser({ name: 'First', email: `dup-${Date.now()}@test.com`, password: 'password123' })
 
     // Second registration with same email should return 200 with same shape
     // to prevent email enumeration (no 400 error)

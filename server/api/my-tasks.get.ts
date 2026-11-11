@@ -5,14 +5,16 @@ export default defineEventHandler(async (event) => {
   const userId = user.id
 
   // ─── Cards assigned to this user ───
-  const myCards = db.select().from(schema.cards)
+  const myCardRows = db.select().from(schema.cards)
     .leftJoin(schema.users, eq(schema.cards.assigneeId, schema.users.id))
     .leftJoin(schema.statuses, eq(schema.cards.statusId, schema.statuses.id))
     .where(eq(schema.cards.assigneeId, userId))
     .all()
+  const { ref: assigneeRef } = createUserRefs(myCardRows.map(row => row.users))
+  const myCards = myCardRows
     .map(row => ({
       ...row.cards,
-      assignee: row.users ? { id: row.users.id, name: row.users.name, avatarUrl: row.users.avatarUrl } : null,
+      assignee: assigneeRef(row.users),
       status: row.statuses ? { id: row.statuses.id, name: row.statuses.name, color: row.statuses.color } : null
     }))
 
@@ -77,14 +79,13 @@ export default defineEventHandler(async (event) => {
     .all()
   const allMembers = db.select({
     projectId: schema.projectMembers.projectId,
-    id: schema.users.id,
-    name: schema.users.name,
-    avatarUrl: schema.users.avatarUrl
+    ...memberRefColumns()
   })
     .from(schema.projectMembers)
     .innerJoin(schema.users, eq(schema.projectMembers.userId, schema.users.id))
     .where(inArray(schema.projectMembers.projectId, visibleProjectIds))
     .all()
+  const { member } = createUserRefs(allMembers)
 
   // ─── Group by project ───
   const groups = allProjects.map((project) => {
@@ -122,7 +123,7 @@ export default defineEventHandler(async (event) => {
       role: roleByProject.get(project.id) ?? 'member',
       statuses: projectStatuses.map(s => ({ id: s.id, name: s.name, color: s.color })),
       tags: allTags.filter(t => t.projectId === project.id).map(t => ({ id: t.id, name: t.name, color: t.color })),
-      members: allMembers.filter(m => m.projectId === project.id).map(m => ({ id: m.id, name: m.name, avatarUrl: m.avatarUrl })),
+      members: allMembers.filter(m => m.projectId === project.id).map(({ projectId: _projectId, ...m }) => member(m)),
       cards: cardsWithTags
     }
   }).filter(g => g.cards.length > 0)

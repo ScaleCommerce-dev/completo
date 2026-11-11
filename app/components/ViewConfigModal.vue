@@ -2,6 +2,7 @@
 // Explicit import: shared/utils is auto-imported for Nitro but not into app components.
 import { LIST_FIELDS } from '#shared/utils/list-fields'
 import { CARD_FIELDS, type CardField } from '#shared/utils/card-fields'
+import type { Member } from '~/types/card'
 
 const draggable = defineAsyncComponent(() => import('vuedraggable'))
 
@@ -29,7 +30,7 @@ const props = defineProps<{
   canAddColumns?: boolean
   tags?: Array<{ id: string, name: string, color: string }>
   statuses?: Array<{ id: string, name: string, color: string | null }>
-  members?: Array<{ id: string, name: string, avatarUrl: string | null }>
+  members?: Member[]
   activeTagFilters?: string[]
   activeStatusFilters?: string[]
   activeAssigneeFilters?: string[]
@@ -106,9 +107,81 @@ function fieldIcon(field: string) {
   return ALL_FIELDS.find(f => f.field === field)?.icon || 'i-lucide-columns-3'
 }
 
-const memberItems = computed(() =>
-  (props.members || []).map(m => ({ value: m.id, label: m.name }))
-)
+/**
+ * The assignee filter groups the way the assignee menu does (People, Your
+ * agents, Other agents: `groupForPicker`) and adds a *Select all* row to each
+ * agent group, because "everything my agents are doing" is a filter people want
+ * in one move. The rows are pseudo-values that `assigneeModel` expands into the
+ * group's ids, so nothing but real ids ever reaches the saved filter.
+ *
+ * The search is the menu's own term with `ignore-filter`, because other people's
+ * agents show only the few most recent until a query asks for the rest, and the
+ * menu's built-in filter can only narrow what it is given.
+ */
+const { user: sessionUser } = useUserSession()
+const assigneeSearch = ref('')
+const SELECT_ALL = { mine: '__all:mine', others: '__all:others' } as const
+
+const assigneeGroups = computed(() => groupForPicker(props.members || [], {
+  currentUserId: sessionUser.value?.id,
+  query: assigneeSearch.value,
+  keepIds: localAssigneeFilters.value
+}))
+
+/** Every agent a *Select all* row stands for: the whole group, not just the rows shown. */
+const allInGroup = computed(() => {
+  const all = groupForPicker(props.members || [], {
+    currentUserId: sessionUser.value?.id,
+    query: assigneeSearch.value,
+    limit: Number.POSITIVE_INFINITY
+  })
+  return { mine: all.mine.map(m => m.id), others: all.others.map(m => m.id) }
+})
+
+const memberItems = computed(() => {
+  const g = assigneeGroups.value
+  const item = (m: Member) => ({ value: m.id, label: m.name, member: m })
+  if (!g.hasAgents) return g.people.map(item)
+
+  const selectAll = (value: string) => ({ value, label: 'Select all', icon: 'i-lucide-list-checks' })
+  const groups: Array<Array<Record<string, unknown>>> = []
+  if (g.people.length) groups.push([{ type: 'label', label: 'People' }, ...g.people.map(item)])
+  if (g.mine.length) groups.push([{ type: 'label', label: 'Your agents' }, selectAll(SELECT_ALL.mine), ...g.mine.map(item)])
+  if (g.others.length) {
+    groups.push([
+      { type: 'label', label: g.othersHidden ? `Other agents · ${g.othersTotal}` : 'Other agents' },
+      selectAll(SELECT_ALL.others),
+      ...g.others.map(item),
+      ...(g.othersHidden ? [{ type: 'label', label: `${g.othersHidden} more, type to search`, ui: { label: 'font-normal text-dimmed' } }] : [])
+    ])
+  }
+  return groups
+})
+
+const assigneeModel = computed({
+  get: () => localAssigneeFilters.value,
+  set: (next: string[]) => {
+    let ids = next.filter(v => v !== SELECT_ALL.mine && v !== SELECT_ALL.others)
+    for (const key of ['mine', 'others'] as const) {
+      if (!next.includes(SELECT_ALL[key])) continue
+      const group = allInGroup.value[key]
+      // A second press clears the group, so the row is a toggle like every other one.
+      ids = group.every(id => ids.includes(id))
+        ? ids.filter(id => !group.includes(id))
+        : [...new Set([...ids, ...group])]
+    }
+    localAssigneeFilters.value = ids
+  }
+})
+
+const memberOf = (item: unknown) => (item as { member?: Member }).member
+const iconOf = (item: unknown) => (item as { icon?: string }).icon
+
+/** The trigger names the selection itself: a selected agent can be outside the rows a search shows. */
+const assigneeSummary = computed(() => localAssigneeFilters.value
+  .map(id => props.members?.find(m => m.id === id)?.name)
+  .filter(Boolean)
+  .join(', '))
 
 /**
  * Closed sets get chips; open-ended sets get a search field.
@@ -510,7 +583,7 @@ const showDeleteConfirm = ref(false)
                       >
                         <button
                           type="button"
-                          class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
+                          class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition"
                           :style="{ backgroundColor: col.color || '#a1a1aa' }"
                         />
                         <template #content>
@@ -562,7 +635,7 @@ const showDeleteConfirm = ref(false)
               <UPopover v-model:open="newColorOpen">
                 <button
                   type="button"
-                  class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition cursor-pointer"
+                  class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition"
                   :style="{ backgroundColor: newColumnColor }"
                 />
                 <template #content>
@@ -703,14 +776,42 @@ const showDeleteConfirm = ref(false)
               >
                 <span class="text-xs font-medium text-dimmed pt-[7px] w-16 shrink-0 text-right">Assignee</span>
                 <USelectMenu
-                  v-model="localAssigneeFilters"
+                  v-model="assigneeModel"
+                  v-model:search-term="assigneeSearch"
                   :items="memberItems"
                   multiple
+                  ignore-filter
                   value-key="value"
                   placeholder="Any member"
                   size="sm"
                   class="flex-1"
-                />
+                >
+                  <template #default>
+                    <span
+                      v-if="assigneeSummary"
+                      class="truncate"
+                    >{{ assigneeSummary }}</span>
+                    <span
+                      v-else
+                      class="truncate text-dimmed"
+                    >Any member</span>
+                  </template>
+                  <template #item-leading="{ item }">
+                    <UiAvatar
+                      v-if="memberOf(item)"
+                      :src="memberOf(item)!.avatarUrl"
+                      :alt="memberOf(item)!.name"
+                      :kind="memberOf(item)!.kind"
+                      :color="memberOf(item)!.color"
+                      size="3xs"
+                    />
+                    <UIcon
+                      v-else-if="iconOf(item)"
+                      :name="iconOf(item)!"
+                      class="text-sm text-dimmed"
+                    />
+                  </template>
+                </USelectMenu>
               </div>
 
               <div
@@ -770,6 +871,10 @@ const showDeleteConfirm = ref(false)
             </div>
           </template>
         </UTabs>
+
+        <!-- Anything the host shows besides the view, such as a section of the page
+             it can hide. My Tasks keeps its agents' section switch here. -->
+        <slot name="extra" />
       </div>
     </template>
 

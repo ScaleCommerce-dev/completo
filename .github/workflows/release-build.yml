@@ -3,11 +3,14 @@ name: release
 on:
   push:
     tags: ['v*']
+  # Re-run a release for an existing tag. The workflow file comes from the
+  # branch you dispatch on (so a CI fix on main applies), but every job
+  # checks out the tag: the code built is always the tagged code.
   workflow_dispatch:
     inputs:
       tag:
         description: 'Tag to build (e.g. v0.4.0)'
-        required: false
+        required: true
         type: string
 
 env:
@@ -17,21 +20,42 @@ permissions:
   contents: write
   packages: write
 
+# Actions are pinned to commit SHAs, not tags, because this workflow can
+# push images and publish releases: a moved upstream tag must not be able
+# to inject code. Bump deliberately; keep the version in the comment.
+
 jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      # Runs first so a bad tag fails before any image is pushed or any
+      # release exists, rather than after.
+      - name: Check release metadata
+        run: |
+          NOTES=$(awk -v h="## ${RELEASE_TAG}" '$0==h || index($0, h" ")==1 {found=1; next} /^## /{if(found) exit} found' CHANGELOG.md)
+          if [ -z "$(printf '%s' "$NOTES" | tr -d '[:space:]')" ]; then
+            echo "::error::CHANGELOG.md has no '## ${RELEASE_TAG}' section"
+            exit 1
+          fi
+          PKG=$(jq -r .version package.json)
+          if [ "v${PKG}" != "${RELEASE_TAG}" ]; then
+            echo "::error::package.json version is ${PKG}, tag is ${RELEASE_TAG}"
+            exit 1
+          fi
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           # Read from package.json's "packageManager" field
           run_install: false
 
       - name: Install node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24
           cache: pnpm
@@ -58,7 +82,9 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       # The linux/arm64 leg is emulated, and until this step existed it used whatever QEMU the
       # hosted runner image happened to ship. A runner roll then broke the release with
@@ -66,17 +92,19 @@ jobs:
       # `pnpm install` — no change of ours involved, and v0.8.0's first attempt instead wedged
       # for 48 minutes on the same fault. Pinning the binfmt image makes the emulator a
       # declared dependency rather than a property of the runner. Bump deliberately.
+      # qemu-v9.2.2 built v0.13.0 on 2026-10-29, then hit the same fault twice in a row on
+      # v0.14.0 with an unchanged lockfile, Dockerfile and node image, so the pin is 10.2.3.
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
         with:
-          image: tonistiigi/binfmt:qemu-v9.2.2
+          image: tonistiigi/binfmt:qemu-v10.2.3
           platforms: arm64
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -87,7 +115,7 @@ jobs:
         run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           file: docker/Dockerfile
@@ -125,12 +153,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: cli/go.mod
+          # Newest patch, not whatever the runner has cached: release
+          # binaries embed the standard library and its fixes.
+          check-latest: true
 
       - name: Build
         working-directory: cli
@@ -142,10 +175,24 @@ jobs:
           VERSION=${RELEASE_TAG}
           BUILD_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
           LDFLAGS="-s -w -X github.com/scalecommerce-dev/completo/cli/cmd.Version=${VERSION} -X github.com/scalecommerce-dev/completo/cli/cmd.BuildTime=${BUILD_TIME}"
-          go build -ldflags "${LDFLAGS}" -o ../completo-${{ matrix.suffix }} .
+          go build -trimpath -ldflags "${LDFLAGS}" -o ../completo-${{ matrix.suffix }} .
+
+      # The linker silently ignores an -X path that matches no variable,
+      # which would ship a CLI reporting "dev" and break self-update. Only
+      # the linux-amd64 binary runs on this runner; the -X path is the same
+      # for every platform.
+      - name: Verify version
+        if: matrix.suffix == 'linux-amd64'
+        run: |
+          GOT=$(./completo-linux-amd64 version)
+          echo "completo reports: ${GOT}"
+          case "${GOT}" in
+            "${RELEASE_TAG} "*) ;;
+            *) echo "::error::completo reports '${GOT}', want ${RELEASE_TAG}; check the -X cmd.Version path"; exit 1 ;;
+          esac
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: completo-${{ matrix.suffix }}
           path: completo-${{ matrix.suffix }}
@@ -156,28 +203,36 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Download CLI artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: dist
           pattern: completo-*
           merge-multiple: true
 
+      - name: Generate checksums
+        working-directory: dist
+        run: |
+          sha256sum completo-* > checksums.txt
+          cat checksums.txt
+
       - name: Build release body
         run: |
-          VERSION=${RELEASE_TAG}
-          NOTES=$(awk "/^## ${VERSION}/{found=1; next} /^## v/{if(found) exit} found" CHANGELOG.md)
-          if [ -z "$NOTES" ]; then
-            NOTES="Release ${VERSION}"
-          fi
+          # The ci job already checked the section exists. The match is the
+          # exact tag: `## v0.1.1` must not pick up `## v0.1.10 (date)`.
+          NOTES=$(awk -v h="## ${RELEASE_TAG}" '$0==h || index($0, h" ")==1 {found=1; next} /^## /{if(found) exit} found' CHANGELOG.md)
           cp .github/release-body-header.md release-body.md
           printf '%s\n' "$NOTES" >> release-body.md
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           body_path: release-body.md
-          files: dist/completo-*
+          files: |
+            dist/completo-*
+            dist/checksums.txt

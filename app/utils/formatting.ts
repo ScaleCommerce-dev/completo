@@ -32,13 +32,16 @@ export function relativeTime(iso: string): string {
  * render as "2d ago". So every relative time on a card surface carries this behind
  * it, rather than the reader having to guess or open the API.
  */
-export function formatTimestamp(iso: string): string {
+export function formatTimestamp(iso: string, opts?: { seconds?: boolean }): string {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
     hour: 'numeric',
-    minute: '2-digit'
+    minute: '2-digit',
+    // A card's changes can come seconds apart (an agent's burst), so their
+    // tooltips say which second; a comment's minute is enough.
+    ...(opts?.seconds && { second: '2-digit' })
   })
 }
 

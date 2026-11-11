@@ -156,10 +156,14 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
                  already resolves src-or-initials, and the brand gradient is
                  reserved for the logo and the drag. -->
             <div class="relative shrink-0 mt-0.5">
+              <!-- An agent's square is the only agent marker in this list: the
+                   message is a sentence, and a chip inside it would break it. -->
               <UiAvatar
                 v-if="n.actorName"
                 :src="n.actorAvatarUrl || undefined"
                 :alt="n.actorName"
+                :kind="n.actorKind"
+                :color="n.actorColor"
                 size="sm"
                 class="ring-2 ring-bg"
               />

@@ -19,7 +19,10 @@ export default defineEventHandler(async (event) => {
   }
 
   await storage.delete(attachment.storageKey)
-  db.delete(schema.attachments).where(eq(schema.attachments.id, id)).run()
+  db.transaction(() => {
+    db.delete(schema.attachments).where(eq(schema.attachments.id, id)).run()
+    recordCardEvents(user, [{ cardId: attachment.cardId, field: 'attachment', from: { id: attachment.id, value: attachment.originalName } }])
+  })
 
   emitCardChange(attachment.cardId, attachment.projectId)
 

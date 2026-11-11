@@ -15,8 +15,8 @@ export default defineEventHandler(async (event) => {
     .where(eq(schema.users.email, email.toLowerCase().trim()))
     .get()
 
-  // Silent bail: no user, suspended, invited, or unverified
-  if (!user || user.suspendedAt || user.passwordHash === '!invited' || !user.emailVerifiedAt) {
+  // Silent bail: no user, an agent, suspended, invited, or unverified
+  if (!user || user.kind === 'agent' || user.suspendedAt || user.passwordHash === '!invited' || !user.emailVerifiedAt) {
     return { message: successMessage }
   }
 

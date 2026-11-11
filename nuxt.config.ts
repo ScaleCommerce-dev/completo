@@ -30,6 +30,12 @@ export default defineNuxtConfig({
     session: {
       // password is provided via NUXT_SESSION_PASSWORD env var
       password: process.env.NUXT_SESSION_PASSWORD || '',
+      // Seconds a sign-in lasts, counted from sign-in, not from the last request: h3
+      // checks the sealed cookie's `createdAt`, so this is an absolute lifetime and
+      // using the app does not extend it. Without one, a sealed cookie never expired,
+      // so a copied cookie stayed valid indefinitely. 30 days by default; override with
+      // NUXT_SESSION_MAX_AGE, and 0 turns expiry off.
+      maxAge: 60 * 60 * 24 * 30,
       cookie: {
         // h3 defaults this to true; it used to be forced to false here, so every HTTPS
         // install shipped its session cookie without the Secure flag and would hand it to

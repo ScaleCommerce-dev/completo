@@ -8,58 +8,121 @@ interface Project {
   name: string
   slug: string
   icon?: string | null
+  starred: boolean
+}
+
+interface NavItem { label: string, icon: string, to: string }
+
+interface NavSection {
+  label?: string
+  items: NavItem[]
+  /** Where an empty section points instead of disappearing. See `Starred` below. */
+  empty?: { to: string }
+}
+
+function projectItem(p: Project): NavItem {
+  return { label: p.name, to: `/projects/${p.slug}`, icon: `i-lucide-${p.icon || 'folder'}` }
 }
 
 export function useNavigation() {
+  // One call site, so one `useFetch` key: every caller of this composable —
+  // the layout, All Projects, the star button — shares this `projects` ref,
+  // which is what lets a star show up in the sidebar without a refetch.
   const { data: projects, refresh: refreshProjects } = useFetch<Project[]>('/api/projects')
   const { user } = useUserSession()
+  const toast = useToast()
+
+  const topItems = computed<NavItem[]>(() => [
+    // Here, not in the page header: they are the signed-in person's, on every
+    // page, and in the header they sat between a project's name and its
+    // Settings as if they belonged to the project. The unread count is added
+    // by the layout, which owns the poll.
+    { label: 'Notifications', icon: 'i-lucide-bell', to: '/notifications' },
+    { label: 'My Tasks', icon: 'i-lucide-check-square', to: '/my-tasks' },
+    { label: 'All Projects', icon: 'i-lucide-layout-grid', to: '/projects' },
+    // In the top group rather than under Admin: people an admin allows
+    // manage their own agents here too, and they have no Admin section.
+    ...(user.value?.canManageAgents ? [{ label: 'Agents', icon: 'i-lucide-bot', to: '/agents' }] : [])
+  ])
+
+  const adminItems = computed<NavItem[]>(() => user.value?.isAdmin
+    ? [
+        { label: 'User Management', icon: 'i-lucide-users', to: '/admin/users' },
+        { label: 'AI Skills', icon: 'i-lucide-sparkles', to: '/admin/skills' },
+        { label: 'Settings', icon: 'i-lucide-settings', to: '/admin/settings' }
+      ]
+    : [])
 
   /**
    * Sidebar sections. `label` on a section renders a heading above it — the three
    * groups previously ran together as one flat list, so a project was
    * indistinguishable from a navigation destination.
+   *
+   * Projects are the *starred* ones only. Listing every project the caller can
+   * see made the sidebar 23 rows long on a real install, and admins saw every
+   * project on the instance. Every other project is one hop away through All
+   * Projects or ⌘K, and the order is the API's, which is alphabetical.
+   *
+   * The section stays when it is empty, with a line saying how to fill it: on
+   * the day this shipped nobody had starred anything, and a heading-less gap
+   * where the projects used to be reads as the projects having gone.
    */
-  const navSections = computed(() => {
-    const sections: Array<{
-      label?: string
-      items: Array<{ label: string, icon: string, to: string }>
-    }> = [
-      {
-        items: [
-          { label: 'My Tasks', icon: 'i-lucide-check-square', to: '/my-tasks' },
-          { label: 'All Projects', icon: 'i-lucide-layout-grid', to: '/projects' }
-        ]
-      }
-    ]
+  const navSections = computed<NavSection[]>(() => {
+    const sections: NavSection[] = [{ items: topItems.value }]
 
-    const projectList = projects.value || []
-    if (projectList.length > 0) {
+    // Not before the first response: an empty-state flash on every load would
+    // tell people with stars that they have none.
+    if (projects.value) {
       sections.push({
-        label: 'Projects',
-        items: projectList.map(p => ({
-          label: p.name,
-          to: `/projects/${p.slug}`,
-          icon: `i-lucide-${p.icon || 'folder'}`
-        }))
+        label: 'Starred',
+        items: projects.value.filter(p => p.starred).map(projectItem),
+        empty: { to: '/projects' }
       })
     }
 
-    if (user.value?.isAdmin) {
-      sections.push({
-        label: 'Admin',
-        items: [
-          { label: 'User Management', icon: 'i-lucide-users', to: '/admin/users' },
-          { label: 'AI Skills', icon: 'i-lucide-sparkles', to: '/admin/skills' },
-          { label: 'Settings', icon: 'i-lucide-settings', to: '/admin/settings' }
-        ]
-      })
+    if (adminItems.value.length) {
+      sections.push({ label: 'Admin', items: adminItems.value })
     }
 
     return sections
   })
 
-  /** Flat list, kept for the command palette. */
-  const navItems = computed(() => navSections.value.map(s => s.items))
+  /**
+   * The command palette's "Go to" group. Built from every project, not from the
+   * sidebar: stars decide what is *pinned*, and ⌘K is how you reach everything
+   * that is not.
+   */
+  const paletteItems = computed<NavItem[]>(() => [
+    ...topItems.value,
+    ...(projects.value || []).map(projectItem),
+    ...adminItems.value
+  ])
 
-  return { navSections, navItems, projects, refreshProjects }
+  /**
+   * Star or unstar, patching the shared list first so the sidebar moves on the
+   * click. Replaced rather than mutated: `useFetch` data is a shallowRef, so an
+   * in-place `starred = true` would change the object and nothing would render.
+   * Returns whether the server agreed, so the caller can roll its own copy back.
+   */
+  async function setStarred(projectId: string, starred: boolean): Promise<boolean> {
+    const patch = (value: boolean) => {
+      if (!projects.value) return
+      projects.value = projects.value.map(p => p.id === projectId ? { ...p, starred: value } : p)
+    }
+    patch(starred)
+    try {
+      await $fetch(`/api/projects/${projectId}/star`, { method: starred ? 'PUT' : 'DELETE' })
+      return true
+    } catch (e) {
+      patch(!starred)
+      toast.add({
+        title: starred ? 'Could not star project' : 'Could not unstar project',
+        description: getErrorMessage(e, 'Unknown error'),
+        color: 'error'
+      })
+      return false
+    }
+  }
+
+  return { navSections, paletteItems, projects, refreshProjects, setStarred }
 }

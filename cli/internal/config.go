@@ -49,7 +49,12 @@ func LoadConfig(envFile string) (*Config, error) {
 
 		// Load .completo.local alongside .completo (local dev overrides, gitignored)
 		localFile := projectFile + ".local"
-		applyFileOverrides(cfg, localFile)
+		if vals, err := parseEnvFile(localFile); err == nil {
+			if err := checkLocalCredentials(cfg.URL, vals); err != nil {
+				return nil, fmt.Errorf("%s: %w", localFile, err)
+			}
+			applyValues(cfg, vals)
+		}
 	}
 
 	// --env-file flag overrides everything except env vars
@@ -83,14 +88,21 @@ func LoadConfig(envFile string) (*Config, error) {
 	return cfg, nil
 }
 
-// applyFileOverrides loads an env file and applies any recognized keys to the config.
-// Silently skips if the file doesn't exist.
-func applyFileOverrides(cfg *Config, path string) {
-	vals, err := parseEnvFile(path)
-	if err != nil {
-		return
+// checkLocalCredentials refuses a .completo.local that points the CLI at another
+// server while leaving the token from ~/.completo/.env in place. The file sits in
+// a project directory, so it can arrive with a cloned repo or an archive; with
+// only COMPLETO_URL set, the first command sent the user's real, non-expiring
+// token to whatever server it named. URL and token are a pair: a different URL
+// must bring its own token.
+func checkLocalCredentials(currentURL string, vals map[string]string) error {
+	newURL := vals["COMPLETO_URL"]
+	if newURL == "" || vals["COMPLETO_TOKEN"] != "" {
+		return nil
 	}
-	applyValues(cfg, vals)
+	if strings.TrimRight(newURL, "/") == strings.TrimRight(currentURL, "/") {
+		return nil
+	}
+	return fmt.Errorf("sets COMPLETO_URL=%s without COMPLETO_TOKEN; refusing to send your token from ~/.completo/.env to a different server. Add COMPLETO_TOKEN for that server, or remove COMPLETO_URL", newURL)
 }
 
 // applyValues applies recognized keys from a parsed env map to the config.

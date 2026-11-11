@@ -10,9 +10,12 @@ export default defineEventHandler(async (event) => {
     || path === '/auth/verify-email' || path === '/auth/resend-verification') return
 
   // Skip Bearer token auth (API tokens `dzo_` and OAuth access tokens `dzoa_`):
-  // suspension is checked inside resolveAuth()
+  // suspension is checked inside resolveAuth(). Exactly the prefixes resolveAuth
+  // accepts — a looser `dzo` let `Bearer dzox` skip this and fall through to the
+  // cookie session. requireActiveSession() now checks suspension too, so this
+  // middleware is the early exit, not the guard.
   const authHeader = getRequestHeader(event, 'authorization')
-  if (authHeader?.startsWith('Bearer dzo')) return
+  if (authHeader?.startsWith('Bearer dzo_') || authHeader?.startsWith(`Bearer ${ACCESS_TOKEN_PREFIX}`)) return
 
   let session
   try {

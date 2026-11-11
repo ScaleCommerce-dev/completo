@@ -19,13 +19,17 @@
  *   the grant was issued to; a public client has no secret, so this is the only
  *   thing binding a stolen refresh token to its origin.
  * - A metadata-document client must be `https`, have a path, and declare its
- *   own URL as `client_id`; the server never fetches a bare host or an IP.
+ *   own URL as `client_id`; the server never fetches a bare host, an IP, a
+ *   non-default port or a name resolving to an internal address, and follows
+ *   no redirect (`fetchMetadataClient`).
  *
  * Tokens are opaque random strings with a prefix that says what they are
  * (`dzoa_` access, `dzor_` refresh, `dzos_` client secret); `resolveAuth`
  * routes on the prefix. Only hashes are stored.
  */
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import { lookup } from 'node:dns/promises'
+import { BlockList } from 'node:net'
 import { eq } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 
@@ -102,6 +106,34 @@ function isLoopback(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
 }
 
+// Every range a metadata-document fetch has no business reaching: loopback, private,
+// link-local (cloud metadata lives at 169.254.169.254), CGNAT, ULA, multicast, reserved.
+const INTERNAL = new BlockList()
+for (const [net, bits] of [['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16],
+  ['172.16.0.0', 12], ['192.0.0.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15], ['224.0.0.0', 4], ['240.0.0.0', 4]] as const) {
+  INTERNAL.addSubnet(net, bits, 'ipv4')
+}
+for (const [net, bits] of [['::', 128], ['::1', 128], ['fc00::', 7], ['fe80::', 10], ['ff00::', 8]] as const) {
+  INTERNAL.addSubnet(net, bits, 'ipv6')
+}
+
+/** True when any address the name resolves to is internal, or when it does not resolve. */
+async function resolvesToInternalAddress(hostname: string): Promise<boolean> {
+  let addresses: Array<{ address: string, family: number }>
+  try {
+    addresses = await lookup(hostname, { all: true })
+  } catch {
+    return true
+  }
+  return !addresses.length || addresses.some(({ address, family }) => {
+    // An IPv4-mapped IPv6 address (`::ffff:10.0.0.5`) is the IPv4 address.
+    const mapped = family === 6 && address.toLowerCase().startsWith('::ffff:') && address.includes('.')
+    return mapped
+      ? INTERNAL.check(address.slice(7), 'ipv4')
+      : INTERNAL.check(address, family === 6 ? 'ipv6' : 'ipv4')
+  })
+}
+
 /** `https://…`, or `http://` on the loopback only, which is where a desktop client listens for its callback. */
 export function isAcceptableRedirectUri(uri: string): boolean {
   let u: URL
@@ -161,16 +193,32 @@ async function fetchMetadataClient(clientId: string): Promise<OAuthClient> {
   } catch {
     throw new OAuthError('invalid_client', 'Unknown client', 401, false)
   }
+  // A non-default port or a single-label name (`https://redis/x`, `https://intranet/x`)
+  // only ever reaches something on the server's own network.
   if (u.protocol !== 'https:' || u.pathname === '/' || !u.pathname || u.hash || u.username
+    || u.port || !u.hostname.includes('.')
     || isLoopback(u.hostname) || /^[\d.]+$/.test(u.hostname) || u.hostname.includes(':')) {
     throw new OAuthError('invalid_client', 'A client metadata URL must be https with a path', 401, false)
   }
 
   let doc: Record<string, unknown> | undefined
   try {
-    doc = await $fetch<Record<string, unknown>>(clientId, { timeout: 5000, headers: { accept: 'application/json' } })
+    // The string checks above say nothing about where the name points, so resolve it
+    // and refuse an internal address. Not pinned — a rebinding resolver can still
+    // answer differently on the fetch — but the fetch below follows no redirect and
+    // its result is never shown, so what remains is a blind GET at the time of a race.
+    if (await resolvesToInternalAddress(u.hostname)) throw new Error('internal address')
+    // `redirect: 'error'`: a public document answering `302 Location: http://10.0.0.5/`
+    // made the server fetch the internal address after all. `retry: 0`: ofetch retries
+    // a failed GET once by default, which doubles every probe.
+    doc = await $fetch<Record<string, unknown>>(clientId, {
+      timeout: 5000,
+      redirect: 'error',
+      retry: 0,
+      headers: { accept: 'application/json' }
+    })
   } catch {
-    // Unreachable, slow or not JSON: all the same answer below.
+    // Unreachable, internal, redirecting, slow or not JSON: all the same answer below.
   }
   if (!doc || typeof doc !== 'object' || doc.client_id !== clientId || !Array.isArray(doc.redirect_uris)) {
     throw new OAuthError('invalid_client', 'Client metadata document is missing or does not name itself', 401, false)

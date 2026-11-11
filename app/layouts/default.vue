@@ -15,13 +15,39 @@ import { matchSegments } from '#shared/utils/card-search'
  * notifications, search, the user menu — lives here, once.
  */
 const { user, clear } = useUserSession()
-const { navSections } = useNavigation()
+const { navSections, paletteItems } = useNavigation()
 const router = useRouter()
 const colorMode = useColorMode()
 
 // Live notifications for the whole session — opened here (persistent across
 // navigations) rather than in NotificationBell, which remounts per page.
 useNotificationStream()
+
+/**
+ * The unread count rides on the sidebar's Notifications row. The 30s poll is the
+ * stream's fallback (see `useNotificationStream`) and lives here because the
+ * sidebar is the one place that never remounts.
+ */
+const { unreadCount, refreshUnreadCount } = useNotifications()
+let unreadPoll: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  unreadPoll = setInterval(refreshUnreadCount, 30000)
+})
+onUnmounted(() => clearInterval(unreadPoll))
+
+/** `slot` routes the row to `#notifications-leading`, which hangs the collapsed rail's dot. */
+const sidebarSections = computed(() => navSections.value.map(section => ({
+  ...section,
+  items: section.items.map(item => item.to === '/notifications'
+    ? {
+        ...item,
+        slot: 'notifications',
+        badge: unreadCount.value > 0
+          ? { label: unreadCount.value > 99 ? '99+' : String(unreadCount.value), color: 'primary' as const, variant: 'soft' as const }
+          : undefined
+      }
+    : item)
+})))
 
 /** The three states `UColorModeButton` cycles, as command-palette rows. */
 const COLOR_MODES = [
@@ -81,7 +107,8 @@ const searchGroups = computed(() => [
   {
     id: 'go',
     label: 'Go to',
-    items: navSections.value.flatMap(s => s.items).map(i => ({
+    // Every project, not the sidebar's starred few — see `paletteItems`.
+    items: paletteItems.value.map(i => ({
       label: i.label,
       icon: i.icon,
       to: i.to
@@ -281,21 +308,66 @@ watch(searchOpen, (open) => {
         </UDashboardSearchButton>
 
         <template
-          v-for="(section, i) in navSections"
+          v-for="(section, i) in sidebarSections"
           :key="i"
         >
           <UiSectionLabel
-            v-if="section.label && !collapsed"
+            v-if="section.label && !collapsed && (section.items.length || section.empty)"
             :label="section.label"
             class="px-2.5 pt-1.5"
           />
           <UNavigationMenu
+            v-if="section.items.length"
             :items="section.items"
             :collapsed="collapsed"
             :tooltip="collapsed"
             orientation="vertical"
             :ui="{ link: 'font-medium' }"
-          />
+          >
+            <!-- Collapsed, the rail has no room for the count badge, so unread
+                 shows as a dot on the glyph instead. -->
+            <template #notifications-leading="{ item, ui, active }">
+              <UChip
+                :show="collapsed && unreadCount > 0"
+                size="sm"
+                inset
+              >
+                <UIcon
+                  :name="item.icon!"
+                  :class="ui.linkLeadingIcon({ active })"
+                />
+              </UChip>
+            </template>
+          </UNavigationMenu>
+          <!--
+            An empty section says how to fill it rather than vanishing — as a
+            caption under its heading, not as a row. Dressed as a nav link in dim
+            grey it read as a disabled destination, and its star as some
+            project's icon; a dashed slot was tried next and read as a content
+            tile (the empty board column, the New Project card) that had wandered
+            into the sidebar, which only speaks in rows and labels. So: plain
+            text from the heading's left edge, no box and no icon column.
+
+            The copy names the control by its look, with the same glyph inline,
+            so you know what to find on a card or in a project's header — and
+            uses no verb of its own, so it holds under whatever the section is
+            called. `text-muted`, not `dimmed`: this is a sentence to be read.
+            `text-balance` keeps the last word from sitting alone. Still a link
+            to All Projects, where the stars are. Not in the collapsed rail:
+            there is no room for a sentence.
+          -->
+          <NuxtLink
+            v-else-if="section.empty && !collapsed"
+            :to="section.empty.to"
+            class="block px-2.5 pt-0.5 pb-1.5 text-xs leading-relaxed text-balance text-muted hover:text-highlighted transition-colors"
+          >
+            Click
+            <UIcon
+              name="i-lucide-star"
+              class="size-3.5 align-[-0.15em]"
+            />
+            on any project to add it here.
+          </NuxtLink>
         </template>
       </template>
 

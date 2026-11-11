@@ -4,10 +4,31 @@ export interface Tag {
   color: string
 }
 
-export interface Member {
+/**
+ * A person or an agent, as every user reference in the API carries it.
+ *
+ * `kind` is what draws an agent as one (a square avatar with the bot glyph, the
+ * "Agent" chip), `color` is the tint its creator picked (people have none and
+ * keep `identityColor`), and `managedBy` names the human responsible for it. All
+ * three are optional because a few local shapes are built by hand from a name.
+ */
+export interface PersonRef {
   id: string
   name: string
   avatarUrl: string | null
+  kind?: 'human' | 'agent'
+  color?: string | null
+  managedBy?: { id: string, name: string, avatarUrl: string | null } | null
+}
+
+/**
+ * A project member, as pickers get it. `description`, `suspended` and
+ * `lastSeenAt` are filled for agents only: what tells agents apart in a list.
+ */
+export interface Member extends PersonRef {
+  description?: string | null
+  suspended?: boolean
+  lastSeenAt?: string | null
 }
 
 export interface CardStatus {
@@ -44,3 +65,9 @@ export interface CardWithStatus extends BaseCard {
 
 /** Lightweight card shape used in board views (no status/timestamps needed) */
 export type BoardCard = Pick<BaseCard, 'id' | 'title' | 'description' | 'priority' | 'assignee' | 'tags' | 'attachmentCount' | 'commentCount' | 'dueDate' | 'hasUnread'>
+
+/** Someone the @ picker can offer: a member as the editors pass it along. */
+export interface Mentionable extends Omit<Member, 'avatarUrl'> {
+  avatarUrl?: string | null
+  email?: string | null
+}

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui/runtime/components/DropdownMenu.vue'
 import type { TableColumn } from '@nuxt/ui/runtime/components/Table.vue'
+import type { HandOverAction } from '~/types/agent'
 
 definePageMeta({ layout: 'default' })
 useSeoMeta({ title: 'Users · Completo' })
@@ -14,6 +15,10 @@ interface AdminUser {
   suspendedAt: string | null
   pendingSetup: boolean
   lastSeenAt: string | null
+  /** The permission alone; admins can create agents regardless. */
+  canCreateAgents: boolean
+  agentCount: number
+  activeAgentCount: number
 }
 
 interface PendingInvitation {
@@ -36,6 +41,11 @@ const deleting = ref(false)
 
 function openDelete(user: AdminUser) {
   if (user.id === currentUser.value?.id) return
+  // Known up front, so the one dialog asks both questions.
+  if (user.activeAgentCount > 0) {
+    openHandOver(user, 'delete', () => deleteUser(user))
+    return
+  }
   deleteTarget.value = user
   deleteError.value = ''
   showDeleteModal.value = true
@@ -43,17 +53,62 @@ function openDelete(user: AdminUser) {
 
 async function confirmDelete() {
   if (!deleteTarget.value) return
+  const target = deleteTarget.value
   deleting.value = true
   deleteError.value = ''
   try {
-    await $fetch(`/api/user/${deleteTarget.value.id}`, { method: 'DELETE' })
+    await deleteUser(target)
     showDeleteModal.value = false
     deleteTarget.value = null
-    await refresh()
   } catch (e: unknown) {
-    deleteError.value = getErrorMessage(e, 'Failed to delete user')
+    // Agents were added since this page loaded: same dialog as if we had known.
+    if (agentsInTheWay(e)) {
+      showDeleteModal.value = false
+      openHandOver(target, 'delete', () => deleteUser(target))
+    } else {
+      deleteError.value = getErrorMessage(e, 'Failed to delete user')
+    }
   } finally {
     deleting.value = false
+  }
+}
+
+async function deleteUser(u: AdminUser) {
+  await $fetch(`/api/user/${u.id}`, { method: 'DELETE' })
+  await refresh()
+  toast.add({ title: `${u.name} deleted`, color: 'success' })
+}
+
+// ─── Agents in the way ───────────────────────────────────────────────────────
+/**
+ * Deleting, suspending, demoting or revoking the permission of someone who still
+ * manages active agents is refused with a 409 until their agents have a new
+ * manager or are suspended. The hand-over dialog makes that choice and then runs
+ * the original change again, so the admin answers one question rather than two.
+ */
+function agentsInTheWay(e: unknown) {
+  const err = e as { statusCode?: number, data?: { data?: { agentCount?: number } } }
+  return err?.statusCode === 409 && !!err.data?.data?.agentCount
+}
+
+const handOver = ref<{ person: AdminUser, action: HandOverAction, proceed: () => Promise<void> } | null>(null)
+const showHandOver = ref(false)
+
+function openHandOver(person: AdminUser, action: HandOverAction, proceed: () => Promise<void>) {
+  handOver.value = { person, action, proceed }
+  showHandOver.value = true
+}
+
+/** Run a change, or hand their agents over first when the server says it has to. */
+async function withHandOver(u: AdminUser, action: HandOverAction, change: () => Promise<void>) {
+  actionLoading.value = u.id
+  try {
+    await change()
+  } catch (e: unknown) {
+    if (agentsInTheWay(e)) openHandOver(u, action, change)
+    else toast.add({ title: 'Failed to update user', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+  } finally {
+    actionLoading.value = null
   }
 }
 
@@ -72,36 +127,44 @@ async function resendSetup(u: AdminUser) {
   }
 }
 
-async function toggleSuspend(u: AdminUser) {
-  actionLoading.value = u.id
-  try {
+function toggleSuspend(u: AdminUser) {
+  return withHandOver(u, 'suspend', async () => {
     await $fetch(`/api/admin/users/${u.id}`, {
       method: 'PATCH',
       body: { suspended: !u.suspendedAt }
     })
     await refresh()
     toast.add({ title: u.suspendedAt ? `${u.name} unsuspended` : `${u.name} suspended`, color: 'success' })
-  } catch (e: unknown) {
-    toast.add({ title: 'Failed to update user', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
-  } finally {
-    actionLoading.value = null
-  }
+  })
 }
 
-async function toggleAdmin(u: AdminUser) {
-  actionLoading.value = u.id
-  try {
-    await $fetch(`/api/admin/users/${u.id}`, {
+function toggleAdmin(u: AdminUser) {
+  return withHandOver(u, 'demote', async () => {
+    const result = await $fetch<{ removedFrom?: unknown[] }>(`/api/admin/users/${u.id}`, {
       method: 'PATCH',
       body: { isAdmin: !u.isAdmin }
     })
     await refresh()
-    toast.add({ title: `${u.name} is now ${u.isAdmin ? 'a regular user' : 'an admin'}`, color: 'success' })
-  } catch (e: unknown) {
-    toast.add({ title: 'Failed to update user', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
-  } finally {
-    actionLoading.value = null
-  }
+    // Demoted: their agents, suspended ones too, stay only in projects they are
+    // themselves in.
+    const left = result?.removedFrom?.length ?? 0
+    toast.add({
+      title: `${u.name} is now ${u.isAdmin ? 'a regular user' : 'an admin'}`,
+      description: left ? `Their agents left ${plural(left, 'project membership')} outside ${u.name}'s projects.` : undefined,
+      color: 'success'
+    })
+  })
+}
+
+function toggleCanCreateAgents(u: AdminUser) {
+  return withHandOver(u, 'revoke', async () => {
+    await $fetch(`/api/admin/users/${u.id}`, {
+      method: 'PATCH',
+      body: { canCreateAgents: !u.canCreateAgents }
+    })
+    await refresh()
+    toast.add({ title: u.canCreateAgents ? `${u.name} can no longer create agents` : `${u.name} can create agents`, color: 'success' })
+  })
 }
 
 /**
@@ -153,6 +216,14 @@ function userMenuItems(u: AdminUser) {
         onSelect: () => toggleAdmin(u)
       })
     }
+    // Admins create agents regardless; the permission is what a demotion keeps.
+    firstGroup.push({
+      label: 'Can create agents',
+      icon: 'i-lucide-bot',
+      type: 'checkbox',
+      checked: u.canCreateAgents,
+      onSelect: () => toggleCanCreateAgents(u)
+    })
     // Resend setup (if pending)
     if (u.pendingSetup) {
       firstGroup.push({
@@ -278,7 +349,8 @@ function formatDate(date: string | Date | null) {
 const userColumns: TableColumn<AdminUser>[] = [
   { accessorKey: 'name', header: 'Person' },
   { accessorKey: 'email', header: 'Email' },
-  { accessorKey: 'isAdmin', header: 'Role', meta: { class: { th: 'w-[92px]', td: 'w-[92px]' } } },
+  { accessorKey: 'isAdmin', header: 'Role', meta: { class: { th: 'w-[170px]', td: 'w-[170px]' } } },
+  { accessorKey: 'agentCount', header: 'Agents', meta: { class: { th: 'w-[110px]', td: 'w-[110px]' } } },
   { accessorKey: 'suspendedAt', header: 'Status', meta: { class: { th: 'w-[130px]', td: 'w-[130px]' } } },
   { accessorKey: 'lastSeenAt', header: 'Last seen', meta: { class: { th: 'w-[110px]', td: 'w-[110px]' } } },
   { id: 'actions', header: '', meta: { class: { th: 'w-[44px]', td: 'w-[44px]' } } }
@@ -353,8 +425,42 @@ const TABLE_UI = {
           />
           <span
             v-else
+            class="inline-flex items-center gap-1.5"
+          >
+            <span class="text-xs text-dimmed">User</span>
+            <!-- The permission, as an outline beside the role. Admins don't
+                 carry it: they can create agents anyway. -->
+            <UBadge
+              v-if="row.original.canCreateAgents"
+              color="secondary"
+              variant="outline"
+              label="Creates agents"
+            />
+          </span>
+        </template>
+
+        <!-- A count, never names, linking to the Agents page filtered to that
+             person. Blank for people who cannot have any. -->
+        <template #agentCount-cell="{ row }">
+          <UTooltip
+            v-if="row.original.agentCount"
+            :text="`Show ${row.original.name.split(' ')[0]}'s agents`"
+          >
+            <NuxtLink
+              :to="{ path: '/agents', query: { managerId: row.original.id } }"
+              class="inline-flex items-center gap-0.5 text-xs tabular-nums text-primary hover:underline underline-offset-2"
+            >
+              {{ agentCountLabel(row.original.agentCount) }}
+              <UIcon
+                name="i-lucide-arrow-up-right"
+                class="text-xs"
+              />
+            </NuxtLink>
+          </UTooltip>
+          <span
+            v-else-if="row.original.isAdmin || row.original.canCreateAgents"
             class="text-xs text-dimmed"
-          >User</span>
+          >None</span>
         </template>
 
         <template #suspendedAt-cell="{ row }">
@@ -499,6 +605,13 @@ const TABLE_UI = {
         />
       </template>
     </UiModal>
+
+    <AgentsHandOverDialog
+      v-model:open="showHandOver"
+      :person="handOver?.person ?? null"
+      :action="handOver?.action ?? 'delete'"
+      :proceed="handOver?.proceed ?? (async () => {})"
+    />
 
     <UiModal
       v-model:open="showDeleteModal"

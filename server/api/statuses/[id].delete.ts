@@ -24,7 +24,7 @@ import { eq } from 'drizzle-orm'
  * below looks redundant with the schema and is not.
  */
 export default defineEventHandler(async (event) => {
-  const { status } = await resolveStatus(event)
+  const { user, status } = await resolveStatus(event)
 
   // A DELETE may legitimately arrive with no body at all — the empty-status case
   // needs none — so both spellings are accepted and neither is required.
@@ -81,6 +81,14 @@ export default defineEventHandler(async (event) => {
         .where(eq(schema.cards.id, card.id))
         .run()
     }
+    // A move per card, by whoever deleted the status. The status is about to be
+    // gone, so the name stored here is what these entries will read by.
+    recordCardEvents(user, cards.map(card => ({
+      cardId: card.id,
+      field: 'status' as const,
+      from: { id: status.id, value: status.name },
+      to: { id: target.id, value: target.name }
+    })))
 
     db.delete(schema.statuses).where(eq(schema.statuses.id, status.id)).run()
   })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DOMAIN_RESTRICTED_MESSAGE } from '#shared/utils/auth-messages'
+import { DOMAIN_RESTRICTED_MESSAGE, OAUTH_UNVERIFIED_MESSAGE } from '#shared/utils/auth-messages'
 
 definePageMeta({ layout: 'auth' })
 
@@ -9,6 +9,7 @@ const oauthError = computed(() => {
   if (route.query.error === 'oauth') return 'Sign-in failed. Please try again.'
   if (route.query.error === 'oauth-suspended') return 'Your account has been suspended.'
   if (route.query.error === 'oauth-domain') return DOMAIN_RESTRICTED_MESSAGE
+  if (route.query.error === 'oauth-unverified') return OAUTH_UNVERIFIED_MESSAGE
   return ''
 })
 

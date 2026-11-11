@@ -39,7 +39,11 @@ export default defineEventHandler(async (event) => {
   if (body.statusId !== undefined) updates.statusId = body.statusId
   if (body.dueDate !== undefined) updates.dueDate = body.dueDate ? new Date(body.dueDate) : null
 
-  db.update(schema.cards).set(updates).where(eq(schema.cards.id, existingCard.id)).run()
+  const changes = cardFieldChanges(existingCard, { ...body, dueDate: updates.dueDate as Date | null | undefined })
+  db.transaction(() => {
+    db.update(schema.cards).set(updates).where(eq(schema.cards.id, existingCard.id)).run()
+    recordCardEvents(user, changes)
+  })
 
   // Notifications: assignment change + mentions
   const needsAssignNotify = body.assigneeId !== undefined && body.assigneeId !== null && body.assigneeId !== existingCard.assigneeId
@@ -97,6 +101,6 @@ export default defineEventHandler(async (event) => {
 
   return {
     ...card!.cards,
-    assignee: card!.users ? { id: card!.users.id, name: card!.users.name, avatarUrl: card!.users.avatarUrl } : null
+    assignee: createUserRefs([card!.users]).ref(card!.users)
   }
 })

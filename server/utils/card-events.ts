@@ -25,7 +25,7 @@ export function emitCardChange(cardId: number, projectId: string): void {
 
   const [card] = enrichCardsWithMetadata([{
     ...row.cards,
-    assignee: row.users ? { id: row.users.id, name: row.users.name, avatarUrl: row.users.avatarUrl } : null,
+    assignee: createUserRefs([row.users]).ref(row.users),
     status: row.statuses ? { id: row.statuses.id, name: row.statuses.name, color: row.statuses.color } : null
   }])
 

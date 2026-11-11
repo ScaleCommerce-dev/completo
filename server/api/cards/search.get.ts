@@ -71,7 +71,10 @@ export default defineEventHandler(async (event) => {
     isDone: sql<number>`${schema.cards.statusId} = ${schema.projects.doneStatusId}`,
     assigneeId: schema.users.id,
     assigneeName: schema.users.name,
-    assigneeAvatarUrl: schema.users.avatarUrl
+    assigneeAvatarUrl: schema.users.avatarUrl,
+    assigneeKind: schema.users.kind,
+    assigneeColor: schema.users.color,
+    assigneeManagedById: schema.users.managedById
   })
     .from(schema.cards)
     .innerJoin(schema.projects, eq(schema.cards.projectId, schema.projects.id))
@@ -96,13 +99,22 @@ export default defineEventHandler(async (event) => {
   // the moment they are scanning, and arrowing through ten rows would fire ten
   // of them. Ten cards is a bounded amount of extra data to carry instead.
   const { tagsByCard } = fetchCardMetadata(rows.map(r => r.id))
+  const assignees = rows.map(r => r.assigneeId
+    ? { id: r.assigneeId, name: r.assigneeName!, avatarUrl: r.assigneeAvatarUrl, kind: r.assigneeKind!, color: r.assigneeColor, managedById: r.assigneeManagedById }
+    : null)
+  const { ref } = createUserRefs(assignees)
 
-  return rows.map(({ description, isDone, assigneeId, assigneeName, assigneeAvatarUrl, ...card }) => ({
+  return rows.map(({
+    description, isDone,
+    assigneeId: _id, assigneeName: _name, assigneeAvatarUrl: _avatarUrl,
+    assigneeKind: _kind, assigneeColor: _color, assigneeManagedById: _managedById,
+    ...card
+  }, i) => ({
     ...card,
     isDone: !!isDone,
     // The part of the description this query matched, not its opening lines.
     snippet: descriptionSnippet(description, q),
-    assignee: assigneeId ? { id: assigneeId, name: assigneeName!, avatarUrl: assigneeAvatarUrl } : null,
+    assignee: ref(assignees[i]),
     tags: tagsByCard.get(card.id) || []
   }))
 })

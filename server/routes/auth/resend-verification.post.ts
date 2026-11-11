@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
     deleteCookie(event, 'expired-verification-token')
   }
 
-  if (!user || user.emailVerifiedAt) {
+  if (!user || user.kind === 'agent' || user.emailVerifiedAt) {
     return { message: successMessage }
   }
 

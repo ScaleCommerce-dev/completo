@@ -13,121 +13,71 @@ interface ProjectListItem {
   doneStatusId: string | null
   doneRetentionDays: number | null
   role: string
+  starred: boolean
   boardCount: number
   listCount: number
   totalCards: number
   openCards: number
   memberCount: number
-  memberAvatars: Array<{ name: string, avatarUrl: string | null }>
+  memberAvatars: Array<{ name: string, avatarUrl: string | null, kind?: 'human' | 'agent', color?: string | null }>
   lastActivity: string | null
 }
 
 const { data: projects, refresh } = await useFetch<ProjectListItem[]>('/api/projects')
 const { refreshProjects } = useNavigation()
+const { user } = useUserSession()
 
-// Edit project
-interface EditProjectData {
-  id: string
-  name: string
-  key: string
-  slug: string
-  description: string | null
-  briefing: string | null
-  icon: string | null
-  doneStatusId: string | null
-  doneRetentionDays: number | null
+/**
+ * Owners, and every admin. `role` alone is not enough: the list reports an
+ * admin's real membership, so an admin who is a plain member reads 'member'
+ * here, while the project page grants them owner access and shows Settings.
+ */
+function canEditProject(project: ProjectListItem) {
+  return !!user.value?.isAdmin || project.role === 'owner'
 }
 
-const showEditProject = ref(false)
-const editProjectData = ref<EditProjectData | undefined>(undefined)
-const editStatuses = ref<Array<{ id: string, name: string, color: string | null }>>([])
-const loadingStatuses = ref(false)
-const editError = ref('')
-const saving = ref(false)
-const deleting = ref(false)
-
-async function openEditProject(project: ProjectListItem, e?: Event) {
-  e?.preventDefault()
-  e?.stopPropagation()
-  editError.value = ''
-  saving.value = false
-  deleting.value = false
-  editProjectData.value = {
-    id: project.id,
-    name: project.name,
-    key: project.key || '',
-    slug: project.slug || '',
-    description: project.description || null,
-    briefing: project.briefing || null,
-    icon: project.icon || null,
-    doneStatusId: project.doneStatusId || null,
-    doneRetentionDays: project.doneRetentionDays ?? null
-  }
-  editStatuses.value = []
-  loadingStatuses.value = true
-  showEditProject.value = true
-
-  // Fetch project detail for statuses + latest briefing/done config
-  try {
-    const detail = await $fetch(`/api/projects/${project.id}`) as { statuses?: Array<{ id: string, name: string, color: string | null }>, doneStatusId?: string | null, doneRetentionDays?: number | null, briefing?: string | null }
-    editStatuses.value = detail.statuses || []
-    editProjectData.value = {
-      ...editProjectData.value!,
-      doneStatusId: detail.doneStatusId || null,
-      doneRetentionDays: detail.doneRetentionDays ?? null,
-      briefing: detail.briefing || null
-    }
-  } catch {
-    // ignore — statuses selector will be empty
-  } finally {
-    loadingStatuses.value = false
-  }
-}
-
-// Open edit modal via ?edit=projectId query param (from project detail settings icon)
-const route = useRoute()
-onMounted(() => {
-  const editParam = route.query.edit as string
-  if (editParam && projects.value) {
-    const project = projects.value.find(p => p.id === editParam)
-    if (project) openEditProject(project)
-  }
+/**
+ * Starred first, then the rest — each alphabetical, which is the API's order.
+ *
+ * The grouping is taken once per set of projects, not on every star: re-sorting
+ * on the click would pull the card out from under the pointer and slide the grid
+ * past it, and the next card you meant to star would no longer be where you were
+ * looking. The order catches up on the next visit, or when a project is added or
+ * removed — the moments the grid is being re-read anyway.
+ */
+const starredAtLoad = ref(new Set<string>())
+watch(
+  () => (projects.value || []).map(p => p.id).join(),
+  () => { starredAtLoad.value = new Set((projects.value || []).filter(p => p.starred).map(p => p.id)) },
+  { immediate: true }
+)
+const orderedProjects = computed(() => {
+  const list = projects.value || []
+  return [
+    ...list.filter(p => starredAtLoad.value.has(p.id)),
+    ...list.filter(p => !starredAtLoad.value.has(p.id))
+  ]
 })
 
-async function saveProject(data: Record<string, unknown>) {
-  if (!editProjectData.value?.id) return
-  saving.value = true
-  editError.value = ''
-  try {
-    await $fetch(`/api/projects/${editProjectData.value.id}` as string, {
-      method: 'PUT' as const,
-      body: data
-    })
-    showEditProject.value = false
-    await Promise.all([refresh(), refreshProjects()])
-    // If opened via ?edit= param (e.g. from project detail), navigate back
-    if (route.query.edit) {
-      await navigateTo(`/projects/${data.slug as string}`)
-    }
-  } catch (e: unknown) {
-    editError.value = getErrorMessage(e, 'Failed to update project')
-  } finally {
-    saving.value = false
-  }
+/** The page's own copy of the flag; the sidebar's is patched by the button. */
+function setRowStarred(projectId: string, starred: boolean) {
+  if (!projects.value) return
+  projects.value = projects.value.map(p => p.id === projectId ? { ...p, starred } : p)
 }
 
-async function deleteProject() {
-  if (!editProjectData.value?.id) return
-  deleting.value = true
-  try {
-    await $fetch(`/api/projects/${editProjectData.value.id}` as string, { method: 'DELETE' as const })
-    showEditProject.value = false
-    await Promise.all([refresh(), refreshProjects()])
-  } catch (e: unknown) {
-    editError.value = getErrorMessage(e, 'Failed to delete project')
-  } finally {
-    deleting.value = false
-  }
+// Edit project — the dialog is shared with the project page's Settings button.
+const showEditProject = ref(false)
+const editTarget = ref<ProjectListItem | null>(null)
+
+function openEditProject(project: ProjectListItem, e?: Event) {
+  e?.preventDefault()
+  e?.stopPropagation()
+  editTarget.value = project
+  showEditProject.value = true
+}
+
+async function onProjectChanged() {
+  await Promise.all([refresh(), refreshProjects()])
 }
 
 // Summary stats
@@ -190,7 +140,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         move to `group-hover`.
       -->
       <div
-        v-for="(project, index) in projects"
+        v-for="(project, index) in orderedProjects"
         :key="project.id"
         class="group relative rise-in"
         :style="{ animationDelay: staggerDelay(index * 40) }"
@@ -213,12 +163,12 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
                 <h3 class="font-bold text-base tracking-name truncate">
                   {{ project.name }}
                 </h3>
-                <!-- The key is for the CLI, ticket IDs and URLs — the same judgment as
-                     TK-27 on a board card. As a filled chip in the project's own accent
-                     it competed with the name it sits beside. -->
-                <span class="font-mono text-2xs font-medium text-dimmed tracking-wide shrink-0">
-                  {{ project.key }}
-                </span>
+                <!-- No project key here, deliberately. Its one job is to prefix
+                     ticket ids, and it is printed wherever one appears (cards, the
+                     panel, the list's ID column, ⌘K). It is not what the CLI takes
+                     — that is the slug — and finding "SCC-2" needs no legend,
+                     because ⌘K resolves a ticket id by its number. The key is set
+                     and shown in the project's settings. -->
               </div>
               <!-- No "No description". A vacant sentence in the slot where a real one
                    would go is worse than the gap it fills. -->
@@ -230,22 +180,45 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
               </p>
             </div>
             <!--
-              `group-focus-within` alongside `group-hover`, the way
-              `EMPTY_CELL_CLASS` already does it: a control revealed only on
-              hover is a control a keyboard can tab onto while it is still
-              invisible. `relative z-10` lifts it above the link overlay below.
+              One control spec for both, so the pair reads as one instrument:
+              same button, same 16px glyph. Settings comes *first* so the star
+              owns the card's right edge — settings is invisible at rest, and
+              while it sat outside the star the star floated a button's width
+              in from the edge and then had a neighbour appear beside it.
+
+              `-mt-1 -mr-1.5` puts the glyph, not the button, where it
+              belongs: centred on the name's line, and flush with the content
+              edge the avatar stack below ends on. `relative z-10` lifts both
+              above the card's link overlay.
+
+              Settings shows on `group-focus-within` as well as hover, the way
+              `EMPTY_CELL_CLASS` does it: a control revealed only on hover is
+              one a keyboard can tab onto while it is still invisible. The star
+              is visible at rest in both states, because whether a project is
+              in your sidebar is what you scan this grid for — and members
+              only, since an admin's non-member project has nothing to star.
             -->
-            <button
-              v-if="project.role === 'owner' || project.role === 'admin'"
-              :aria-label="`Settings for ${project.name}`"
-              class="relative z-10 opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 p-1 rounded-md text-dimmed hover:text-toned hover:bg-elevated transition shrink-0"
-              @click="openEditProject(project, $event)"
-            >
-              <UIcon
-                name="i-lucide-settings"
-                class="text-sm"
+            <div class="relative z-10 flex items-center gap-0.5 -mt-1 -mr-1.5 shrink-0">
+              <UButton
+                v-if="canEditProject(project)"
+                :aria-label="`Settings for ${project.name}`"
+                icon="i-lucide-settings"
+                variant="ghost"
+                color="neutral"
+                size="sm"
+                square
+                class="opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 text-dimmed hover:text-toned"
+                :ui="{ leadingIcon: 'size-4' }"
+                @click="openEditProject(project, $event)"
               />
-            </button>
+              <ProjectStarButton
+                v-if="project.role !== 'admin'"
+                :project-id="project.id"
+                :project-name="project.name"
+                :starred="project.starred"
+                @update:starred="setRowStarred(project.id, $event)"
+              />
+            </div>
           </div>
 
           <!-- Stats row -->
@@ -285,6 +258,8 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
                   :key="mIdx"
                   :src="m.avatarUrl || undefined"
                   :alt="m.name"
+                  :kind="m.kind"
+                  :color="m.color"
                   size="3xs"
                   class="ring-2 ring-bg"
                 />
@@ -330,29 +305,11 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
       </NuxtLink>
     </div>
 
-    <!-- `flush`, because `ProjectForm` carries its own padding and its own action
-         row: it is also the whole of `projects/new`, so it cannot assume a dialog
-         around it. One component, two placements. -->
-    <UiModal
+    <ProjectSettingsDialog
       v-model:open="showEditProject"
-      icon="i-lucide-folder-pen"
-      title="Edit project"
-      flush
-    >
-      <template #body>
-        <ProjectForm
-          mode="edit"
-          :initial-data="editProjectData"
-          :statuses="editStatuses"
-          :loading-statuses="loadingStatuses"
-          :loading="saving"
-          :deleting="deleting"
-          :error="editError"
-          @submit="saveProject"
-          @cancel="showEditProject = false"
-          @delete="deleteProject"
-        />
-      </template>
-    </UiModal>
+      :project="editTarget"
+      @saved="onProjectChanged"
+      @deleted="onProjectChanged"
+    />
   </UiPage>
 </template>

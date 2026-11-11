@@ -19,6 +19,11 @@ export async function handleOAuthUser(event: H3Event, info: OAuthUserInfo) {
   const existing = db.select().from(schema.users).where(eq(schema.users.email, email)).get()
 
   if (existing) {
+    // An agent never signs in. Its address is on a reserved TLD no provider can
+    // vouch for, but the kind check is the guard, not that.
+    if (existing.kind === 'agent') {
+      return sendRedirect(event, '/login?error=oauth')
+    }
     if (existing.suspendedAt) {
       return sendRedirect(event, '/login?error=oauth-suspended')
     }

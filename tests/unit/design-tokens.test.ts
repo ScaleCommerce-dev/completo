@@ -1270,13 +1270,19 @@ describe('identity avatars', () => {
     // coloured. Under the old recipe that difference had to be spelled as a second
     // set of mix percentages, which is how `.swatch-avatar` briefly became the name
     // of two rules and how this very assertion came to measure the pill's numbers.
+    //
+    // An agent's avatar wears the same recipe with the colour its creator picked, and
+    // the creator picks from `COLOR_PALETTE`, whose second half is deliberately dark,
+    // so the bot glyph is held to the same threshold across that set too. A glyph
+    // is a graphic and would only owe 3:1, but it sits in the same disc as initials
+    // and one bar for the disc is what keeps the two from drifting apart.
     for (const selector of ['.swatch-avatar', ':is(.dark) .swatch-avatar']) {
       const recipe = recipeFor(css, selector)
 
-      for (const hex of IDENTITY_COLORS) {
+      for (const hex of [...IDENTITY_COLORS, ...COLOR_PALETTE]) {
         const contrast = ratio(applyChannel(hex, recipe.fg), applyChannel(hex, recipe.fill))
 
-        expect(contrast, `${hex} initials under \`${selector}\``).toBeGreaterThanOrEqual(4.5)
+        expect(contrast, `${hex} initials or glyph under \`${selector}\``).toBeGreaterThanOrEqual(4.5)
       }
     }
   })

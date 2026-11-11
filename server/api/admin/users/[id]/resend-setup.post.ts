@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'User not found' })
   }
 
-  if (!isPendingSetup(targetUser)) {
+  if (targetUser.kind === 'agent' || !isPendingSetup(targetUser)) {
     throw createError({ statusCode: 400, message: 'User has already completed setup' })
   }
 

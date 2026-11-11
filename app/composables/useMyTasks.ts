@@ -1,3 +1,5 @@
+import type { Member, PersonRef } from '~/types/card'
+
 interface MyTasksGroup {
   project: {
     id: string
@@ -12,7 +14,7 @@ interface MyTasksGroup {
   role: string
   statuses: Array<{ id: string, name: string, color: string | null }>
   tags: Array<{ id: string, name: string, color: string }>
-  members: Array<{ id: string, name: string, avatarUrl: string | null }>
+  members: Member[]
   cards: Array<{
     id: number
     title: string
@@ -21,7 +23,7 @@ interface MyTasksGroup {
     statusId: string
     assigneeId: string | null
     position: number
-    assignee: { id: string, name: string, avatarUrl: string | null } | null
+    assignee: PersonRef | null
     status: { id: string, name: string, color: string | null } | null
     tags: Array<{ id: string, name: string, color: string }>
     dueDate: string | null
@@ -29,7 +31,7 @@ interface MyTasksGroup {
     // `fetchCardCreators` with the project views, and undeclared here until the
     // card panel needed them — the table only ever read the fields above. An
     // interface narrower than its endpoint is invisible until something asks.
-    creator: { id: string, name: string, avatarUrl: string | null } | null
+    creator: PersonRef | null
     attachmentCount: number
     commentCount: number
     hasUnread: boolean

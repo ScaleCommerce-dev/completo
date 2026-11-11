@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Mentionable } from '~/types/card'
 import type { Editor } from '@tiptap/core'
 import { TextSelection } from '@tiptap/pm/state'
 import { PROSE_EXTENSIONS } from '~/utils/prose-extensions'
@@ -36,7 +37,7 @@ const props = withDefaults(defineProps<{
   priority?: string
   projectSlug?: string
   projectKey?: string
-  members?: Array<{ id: string, name: string, email?: string }>
+  members?: Mentionable[]
   cardId?: number | null
   minHeight?: number
   maxHeight?: number

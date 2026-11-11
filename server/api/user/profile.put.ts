@@ -2,6 +2,9 @@ import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user, authMethod } = await resolveAuth(event)
+  if (user.kind === 'agent') {
+    throw createError({ statusCode: 403, message: 'An agent is edited by its manager' })
+  }
   const { name, avatarUrl, colorMode, emailNotifications } = await readBody<{ name?: string, avatarUrl?: string | null, colorMode?: string | null, emailNotifications?: boolean }>(event)
 
   if (name !== undefined && !name.trim()) {

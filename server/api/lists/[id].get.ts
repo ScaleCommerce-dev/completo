@@ -23,14 +23,21 @@ export default defineEventHandler(async (event) => {
     .get()
 
   // Fetch ALL project cards (not filtered by board columns)
-  const allProjectCards = db.select().from(schema.cards)
+  const cardRows = db.select().from(schema.cards)
     .leftJoin(schema.users, eq(schema.cards.assigneeId, schema.users.id))
     .leftJoin(schema.statuses, eq(schema.cards.statusId, schema.statuses.id))
     .where(eq(schema.cards.projectId, list.projectId))
     .all()
+  const members = db.select(memberRefColumns())
+    .from(schema.projectMembers)
+    .innerJoin(schema.users, eq(schema.projectMembers.userId, schema.users.id))
+    .where(eq(schema.projectMembers.projectId, list.projectId))
+    .all()
+  const { ref, member } = createUserRefs([...cardRows.map(row => row.users), ...members])
+  const allProjectCards = cardRows
     .map(row => ({
       ...row.cards,
-      assignee: row.users ? { id: row.users.id, name: row.users.name, avatarUrl: row.users.avatarUrl } : null,
+      assignee: ref(row.users),
       status: row.statuses ? { id: row.statuses.id, name: row.statuses.name, color: row.statuses.color } : null
     }))
 
@@ -56,16 +63,6 @@ export default defineEventHandler(async (event) => {
     .where(eq(schema.statuses.projectId, list.projectId))
     .all()
 
-  const members = db.select({
-    id: schema.users.id,
-    name: schema.users.name,
-    avatarUrl: schema.users.avatarUrl
-  })
-    .from(schema.projectMembers)
-    .innerJoin(schema.users, eq(schema.projectMembers.userId, schema.users.id))
-    .where(eq(schema.projectMembers.projectId, list.projectId))
-    .all()
-
   return {
     ...list,
     tagFilters: safeParseJson(list.tagFilters, []),
@@ -77,7 +74,7 @@ export default defineEventHandler(async (event) => {
     project: project ? { id: project.id, name: project.name, slug: project.slug, key: project.key, doneStatusId: project.doneStatusId, doneRetentionDays: project.doneRetentionDays } : null,
     columns,
     cards: cardsWithTags,
-    members,
+    members: members.map(member),
     statuses,
     tags: projectTags
   }

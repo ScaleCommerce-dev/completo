@@ -406,7 +406,7 @@ const STEP_HEADINGS = computed(() => {
               type="button"
               role="checkbox"
               :aria-checked="selectedBoardColumns.has(status.id)"
-              class="w-full text-left flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+              class="w-full text-left flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors"
               @click="toggleBoardColumn(status.id)"
             >
               <div
@@ -437,7 +437,7 @@ const STEP_HEADINGS = computed(() => {
               type="button"
               role="checkbox"
               :aria-checked="selectedListFields.has(f.field)"
-              class="w-full text-left flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+              class="w-full text-left flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors"
               @click="toggleListField(f.field)"
             >
               <div

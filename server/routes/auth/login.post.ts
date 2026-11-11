@@ -10,7 +10,9 @@ export default defineEventHandler(async (event) => {
   // Normalised to match how register/OAuth/admin-create store it — `users.email` is UNIQUE
   // but not COLLATE NOCASE, so an exact-case lookup made sign-in capitalisation-sensitive.
   const user = db.select().from(schema.users).where(eq(schema.users.email, email.trim().toLowerCase())).get()
-  if (!user || !await verifyPassword(user.passwordHash, password)) {
+  // An agent acts only through API tokens. Its hash is unhashable anyway; the kind
+  // check is the guard, and it answers exactly like a wrong password.
+  if (!user || user.kind === 'agent' || !await verifyPassword(user.passwordHash, password)) {
     throw createError({ statusCode: 401, message: 'Invalid email or password' })
   }
 

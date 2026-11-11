@@ -60,7 +60,8 @@ You didn't want that. You wanted a board with columns and cards. So that's what 
 - **Boards** — Create as many as you need. Configure the columns yourself. Done.
 - **Cards** — Title. Description you can actually format. Assignee. Priority. Drag it. That's the feature list.
 - **Comments** — Discuss the work where the work is. Markdown, `@mentions`, notifications. No second tool.
-- **Projects** — Separate your work. Invite your team. Keep things tidy.
+- **History**: Every card shows who moved, assigned, retitled or retagged it, and when, right beside the comments.
+- **Projects** — Separate your work. Invite your team. Keep things tidy. Star the ones you work in, and the sidebar shows only those.
 - **My Tasks** — One checklist. Everything assigned to you. Across all projects. Check it off. Go home.
 - **Search** — `⌘K`. Title, description or ticket ID, across every project you're in. Type `TK-42` and you're there.
 - **SSO** — Sign in with your existing identity provider. No new password to forget and then reset and then forget again.
@@ -78,6 +79,7 @@ The only required environment variable is `NUXT_SESSION_PASSWORD` (min 32 charac
 | Variable | What it does | Default |
 |----------|-------------|---------|
 | `NUXT_SESSION_PASSWORD` | Session encryption key (required) | — |
+| `NUXT_SESSION_MAX_AGE` | How long a sign-in lasts, in seconds. `0` keeps sign-ins forever | `2592000` (30 days) |
 | `NUXT_SESSION_COOKIE_SECURE` | Send the session cookie with `Secure`. Set to `false` only when serving over plain HTTP from a non-`localhost` address, or sign-in won't stick. `localhost` and TLS-terminating proxies both need the default | `true` |
 | `DATABASE_URL` | SQLite database path | `sqlite.db` |
 | `UPLOAD_DIR` | File attachment storage | `data/uploads` |
@@ -89,7 +91,8 @@ The only required environment variable is `NUXT_SESSION_PASSWORD` (min 32 charac
 | `AI_PROVIDER` | `anthropic`, `openai`, or `openrouter` (empty = AI disabled) | — |
 | `NUXT_OAUTH_GITHUB_CLIENT_ID/SECRET` | GitHub OAuth (empty = disabled) | — |
 | `NUXT_OAUTH_GOOGLE_CLIENT_ID/SECRET` | Google OAuth (empty = disabled) | — |
-| `NUXT_OAUTH_MICROSOFT_CLIENT_ID/SECRET` | Microsoft OAuth (empty = disabled) | — |
+| `NUXT_OAUTH_MICROSOFT_CLIENT_ID/SECRET` | Microsoft OAuth (empty = disabled). The app registration's ID token needs the optional claims `email` and `xms_edov` | — |
+| `NUXT_OAUTH_MICROSOFT_TENANT` | Microsoft tenant: `common`, `organizations`, or a tenant ID to allow one organisation only | `common` |
 | `ADMIN_USER_EMAIL` + `ADMIN_USER_PASSWORD` | Provisioned by `pnpm setup` (dev) and the Docker entrypoint (prod). Optional `ADMIN_USER_NAME`. No fallback — if unset, no admin is created. | — |
 
 ### CLI commands
@@ -172,6 +175,8 @@ INSTRUCTIONS=Create feature branches named <ticket-id>-<slug>. Run tests before 
 
 Now tell your agent: *"grab the next ticket"*, *"work on TK-27"*, or *"what's a quick win I can knock out?"*.
 
+**Give the agent its own account.** On the Agents page, create an agent with its own name, tokens and project memberships. Its cards, comments and moves then show as the agent, not as the person whose token it borrowed, and you can assign cards to it like to anyone else. The token reveal comes with the CLI, Claude Code and `.mcp.json` setup filled in.
+
 **Local development:** To point the CLI at a local dev server instead of production, create a `.completo.local` file (gitignored) alongside your `.completo`:
 
 ```env
@@ -179,7 +184,7 @@ COMPLETO_URL=http://localhost:3000
 COMPLETO_TOKEN=<your-dev-api-token>
 ```
 
-This overrides the global credentials in `~/.completo/.env` without modifying them. You can also use `--env-file path/to/env` for one-off overrides. Full precedence: `~/.completo/.env` → `.completo` → `.completo.local` → `--env-file` → environment variables.
+This overrides the global credentials in `~/.completo/.env` without modifying them. A `COMPLETO_URL` in `.completo.local` must come with its own `COMPLETO_TOKEN`: the CLI refuses to send your global token to a server named by a file in the project directory. You can also use `--env-file path/to/env` for one-off overrides. Full precedence: `~/.completo/.env` → `.completo` → `.completo.local` → `--env-file` → environment variables.
 
 ### Claude without a terminal (MCP)
 

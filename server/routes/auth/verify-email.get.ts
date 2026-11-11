@@ -24,6 +24,15 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, '/login?error=invalid-token')
   }
 
+  // Agents are never issued a token; refuse one that names an agent all the same,
+  // since this route signs the caller in.
+  const owner = db.select({ kind: schema.users.kind }).from(schema.users)
+    .where(eq(schema.users.id, tokenRow.userId))
+    .get()
+  if (owner?.kind === 'agent') {
+    return sendRedirect(event, '/login?error=invalid-token')
+  }
+
   if (tokenRow.expiresAt < new Date()) {
     // Follow the session cookie's setting so one env var governs both. Previously keyed off
     // NODE_ENV, which the prod image never sets — it happened to work only because Vite
@@ -64,6 +73,9 @@ export default defineEventHandler(async (event) => {
     .get()
 
   if (user) {
+    // The address is proven now, so pending invitations can become memberships.
+    // register.post.ts defers them to here for any registration without a token.
+    claimProjectInvitations(user.email, user.id)
     await setAuthSession(event, user)
     return sendRedirect(event, '/projects')
   }

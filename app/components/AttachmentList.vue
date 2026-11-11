@@ -160,6 +160,26 @@ defineExpose({ upload, uploadFiles, uploading })
           </span>
         </div>
 
+        <!-- Who put it here, so an agent's upload reads as the agent's rather
+             than as whoever owns the token it ran on. The exact time is one hover
+             away, the same as a comment's. -->
+        <span
+          v-if="attachment.uploader"
+          class="flex items-center gap-1 text-xs text-dimmed shrink-0 max-w-40 min-w-0"
+          :title="formatTimestamp(attachment.createdAt)"
+        >
+          <UiAvatar
+            :src="attachment.uploader.avatarUrl"
+            :alt="attachment.uploader.name"
+            :kind="attachment.uploader.kind"
+            :color="attachment.uploader.color"
+            size="3xs"
+            class="shrink-0"
+          />
+          <span class="truncate">{{ attachment.uploader.name }}</span>
+          <span class="shrink-0">· {{ relativeTime(attachment.createdAt) }}</span>
+        </span>
+
         <!-- Quiet at rest, like the comment rows'. A pending confirmation stays
              visible regardless: fading out the question you just asked is not a
              hover state. -->
@@ -243,7 +263,7 @@ defineExpose({ upload, uploadFiles, uploading })
         dragging
           ? 'border-dashed border-primary bg-primary/10 text-primary'
           : 'border-default bg-default text-dimmed hover:bg-muted',
-        uploading ? 'cursor-default' : 'cursor-pointer'
+        uploading ? 'cursor-default' : ''
       ]"
       :disabled="uploading"
       @click="openFilePicker"

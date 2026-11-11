@@ -64,16 +64,22 @@ export default defineEventHandler(async (event) => {
     .get()
 
   // Fetch cards where statusId is in the board's column set
-  const allBoardCards = statusIds.length
+  const cardRows = statusIds.length
     ? db.select().from(schema.cards)
         .leftJoin(schema.users, eq(schema.cards.assigneeId, schema.users.id))
         .where(inArray(schema.cards.statusId, statusIds))
         .all()
-        .map(row => ({
-          ...row.cards,
-          assignee: row.users ? { id: row.users.id, name: row.users.name, avatarUrl: row.users.avatarUrl } : null
-        }))
     : []
+  const members = db.select(memberRefColumns())
+    .from(schema.projectMembers)
+    .innerJoin(schema.users, eq(schema.projectMembers.userId, schema.users.id))
+    .where(eq(schema.projectMembers.projectId, board.projectId))
+    .all()
+  const { ref, member } = createUserRefs([...cardRows.map(row => row.users), ...members])
+  const allBoardCards = cardRows.map(row => ({
+    ...row.cards,
+    assignee: ref(row.users)
+  }))
 
   // Filter out done cards past retention window
   let boardCards = allBoardCards
@@ -90,16 +96,6 @@ export default defineEventHandler(async (event) => {
   // Fetch project-level tags for the picker
   const projectTags = db.select().from(schema.tags)
     .where(eq(schema.tags.projectId, board.projectId))
-    .all()
-
-  const members = db.select({
-    id: schema.users.id,
-    name: schema.users.name,
-    avatarUrl: schema.users.avatarUrl
-  })
-    .from(schema.projectMembers)
-    .innerJoin(schema.users, eq(schema.projectMembers.userId, schema.users.id))
-    .where(eq(schema.projectMembers.projectId, board.projectId))
     .all()
 
   // Find project statuses not linked to this board
@@ -124,7 +120,7 @@ export default defineEventHandler(async (event) => {
     project: project ? { id: project.id, name: project.name, slug: project.slug, key: project.key, doneStatusId: project.doneStatusId, doneRetentionDays: project.doneRetentionDays } : null,
     columns: boardColumns,
     cards: cardsWithTags,
-    members,
+    members: members.map(member),
     tags: projectTags,
     availableColumns
   }

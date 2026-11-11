@@ -14,6 +14,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'User not found' })
   }
 
-  db.delete(schema.users).where(eq(schema.users.id, id)).run()
+  if (targetUser.kind === 'agent') {
+    throw createError({ statusCode: 400, message: 'Agents are deleted under /api/agents' })
+  }
+
+  // Their active agents need a new manager, or suspending, before they go.
+  assertNoActiveAgents(targetUser)
+
+  db.transaction(() => {
+    recordAccountRemoval(targetUser, user)
+    db.delete(schema.users).where(eq(schema.users.id, id)).run()
+  })
   return { ok: true }
 })

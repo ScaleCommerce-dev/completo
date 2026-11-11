@@ -71,9 +71,16 @@ HANDOFF_STATUS=Review
 INSTRUCTIONS=Free-form guidance for agents — read this and follow it throughout the workflow.
 ```
 
+**Running as an agent.** When Completo has an agent account for you (its Agents page, set up by your
+user), configure the CLI with that agent's own token as `COMPLETO_TOKEN`, not a person's, and set
+`COMPLETO_USER` to the agent's address shown on that page (`<name>-xxxx@agents.invalid`). Your cards
+and comments are then attributed to the agent, `--me` / `--assign-me` mean the agent, and the people
+you @mention are notified.
+
 **If a `.completo` exists in the working directory (or any parent), read its `INSTRUCTIONS` field and
 follow it for the whole session.** The CLI walks up directories to find it. A gitignored
-`.completo.local` can override credentials for local dev (e.g. point at `http://localhost:3000`);
+`.completo.local` can override credentials for local dev (e.g. point at `http://localhost:3000`) —
+a `COMPLETO_URL` there must come with its own `COMPLETO_TOKEN`, or the CLI refuses to run;
 `--env-file path` does the same for one-offs. Precedence: `~/.completo/.env` → `.completo` →
 `.completo.local` → `--env-file` → env vars.
 
@@ -92,6 +99,14 @@ Use `--all` when the user wants to *choose* (e.g. "what's a quick win?") — sca
 and pick, rather than blindly taking the top card. Read the card carefully: title, description, tags,
 and priority tell you what to build. **Checklist items (`- [ ]` / `- [x]`) in the description are your
 implementation plan.**
+
+**Read the comments too. They are newer than the description and override it where the two
+disagree.** `get` and `next` print them under the card, the latest 10. If the heading says there are
+more, run `completo comment <ticket-id>` for the whole thread. If `get` prints no `comments` line at
+all, the CLI is older than this and you must run `completo comment <ticket-id>` yourself. A comment is often how a ticket is
+re-scoped, how a fix in the meantime is recorded, or where a constraint gets added after the ticket was
+written. Plan from the description *as amended by its comments*, and say so in your assessment when a
+comment changed what you will build.
 
 ### Step 2 — Claim it
 
@@ -238,7 +253,7 @@ Run `completo <command> --help` for full, always-current flag lists. The essenti
 | `completo statuses [project]` | List a project's statuses (names are exact) |
 | `completo next [project] [--status X] [--all]` | Top card of a status, or all of them (`--all`) |
 | `completo list [project] [--status] [--priority] [--assignee] [--limit]` | List/filter cards (limit default 50, max 200) |
-| `completo get <ticket-id>` | Fetch one card |
+| `completo get <ticket-id>` | Fetch one card, with its latest comments |
 | `completo create <title> [flags]` | Create a card (see above) |
 | `completo update <ticket-id> [flags]` | Edit `--title` / `--description[-file]` / `--priority` / `--due` (`--due none` clears it) |
 | `completo move <ticket-id> "Status"` | Move a card to a status (to the top of the column) |

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import type { BoardCard } from '~/types/card'
+import type { BoardCard, Member } from '~/types/card'
 import type { CardField } from '#shared/utils/card-fields'
 /**
  * Named imports, not the usual auto-import: Nuxt resolves `<TagMenu>` to an
@@ -74,7 +74,7 @@ const props = defineProps<{
 const kanbanContext = inject<{
   projectKey: ComputedRef<string | undefined>
   projectSlug: ComputedRef<string | undefined>
-  members: ComputedRef<Array<{ id: string, name: string, avatarUrl: string | null }> | undefined>
+  members: ComputedRef<Member[] | undefined>
   tags: ComputedRef<Array<{ id: string, name: string, color: string }> | undefined>
   cardFieldVisible: ComputedRef<(key: CardField) => boolean>
 }>('kanbanContext')!
@@ -636,6 +636,8 @@ function toggleTag(tagId: string) {
                   v-if="paintAssignee"
                   :src="card.assignee!.avatarUrl || undefined"
                   :alt="card.assignee!.name"
+                  :kind="card.assignee!.kind"
+                  :color="card.assignee!.color"
                   size="2xs"
                 />
                 <UIcon

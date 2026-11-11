@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Mentionable } from '~/types/card'
+
 /**
  * The `@` picker: search members and cards, pick one, insert a reference.
  *
@@ -13,19 +15,24 @@
  * something" and having two triggers to remember helped nobody.
  */
 const props = defineProps<{
-  members?: Array<{ id: string, name: string, email?: string }>
+  members?: Mentionable[]
   projectSlug?: string
   projectKey?: string
 }>()
 
 const emit = defineEmits<{
-  select: [item: { _type: 'user', id: string, name: string, email?: string } | { _type: 'card', id: number, title: string }]
+  select: [item: { _type: 'user', id: string, name: string, email?: string | null } | { _type: 'card', id: number, title: string }]
   close: []
 }>()
 
+type MentionUser = Mentionable
+
+const { user: currentUser } = useUserSession()
+
 const query = ref('')
 const index = ref(0)
-const userResults = ref<Array<{ id: string, name: string, email?: string }>>([])
+/** People found by the server search; agents are always matched locally, see `groups`. */
+const searchedPeople = ref<MentionUser[] | null>(null)
 const cardResults = ref<Array<{ id: number, title: string }>>([])
 const searchInput = useTemplateRef<HTMLInputElement>('searchInput')
 
@@ -42,45 +49,65 @@ onBeforeUnmount(() => {
   if (searchTimeout) clearTimeout(searchTimeout)
 })
 
+/**
+ * People, your agents, then other agents: the assignee menu's three groups, from
+ * `groupForPicker`, so both pickers answer the same question the same way. With no
+ * query that is every person, every agent you manage and the three most recently
+ * active of the rest. A group with no match is left out.
+ *
+ * People can come from the server search, which reaches past this project's
+ * members, as mentioning someone always could. Agents never do: an agent
+ * outside the project cannot open the card it is mentioned on.
+ */
+const groups = computed(() => {
+  const local = groupForPicker(props.members || [], { currentUserId: currentUser.value?.id, query: query.value })
+  const people = searchedPeople.value ?? local.people
+  return [
+    { key: 'people', label: 'People', users: people },
+    { key: 'mine', label: 'Your agents', users: local.mine },
+    { key: 'others', label: 'Other agents', users: local.others }
+  ].filter(g => g.users.length)
+})
+
+const userResults = computed(() => groups.value.flatMap(g => g.users))
+
 const allResults = computed(() => [
   ...userResults.value.map(u => ({ ...u, _type: 'user' as const })),
   ...cardResults.value.map(c => ({ ...c, _type: 'card' as const }))
 ])
 
+/** The flat position of a user row, for the keyboard highlight. */
+function userIndex(groupKey: string, i: number) {
+  let offset = 0
+  for (const g of groups.value) {
+    if (g.key === groupKey) return offset + i
+    offset += g.users.length
+  }
+  return -1
+}
+
 watch(query, (q) => {
   if (searchTimeout) clearTimeout(searchTimeout)
   const trimmed = q.trim()
-  const members = props.members || []
+  index.value = 0
 
-  // Nothing typed: the project's own members are the useful default, since the
-  // overwhelmingly common mention is someone already on the card's project.
-  if (trimmed.length === 0) {
-    userResults.value = members.slice(0, 5)
+  // Up to one character filters what we already hold rather than going to the
+  // server: a single letter matches most of the project and the round-trip buys
+  // nothing. The overwhelmingly common mention is someone already on the project.
+  if (trimmed.length <= 1) {
+    searchedPeople.value = null
     cardResults.value = []
-    index.value = 0
-    return
-  }
-
-  // One character filters what we already hold rather than going to the server:
-  // a single letter matches most of the project and the round-trip buys nothing.
-  if (trimmed.length === 1) {
-    const lower = trimmed.toLowerCase()
-    userResults.value = members
-      .filter(m => m.name.toLowerCase().includes(lower) || m.email?.toLowerCase().includes(lower))
-      .slice(0, 5)
-    cardResults.value = []
-    index.value = 0
     return
   }
 
   searchTimeout = setTimeout(async () => {
     const [users, cards] = await Promise.all([
-      $fetch<Array<{ id: string, name: string, email?: string }>>('/api/users/search', { params: { q: trimmed } }).catch(() => [] as Array<{ id: string, name: string, email?: string }>),
+      $fetch<MentionUser[]>('/api/users/search', { params: { q: trimmed } }).catch(() => [] as MentionUser[]),
       props.projectSlug
         ? $fetch<Array<{ id: number, title: string }>>(`/api/projects/${props.projectSlug}/cards/search`, { params: { q: trimmed } }).catch(() => [] as Array<{ id: number, title: string }>)
         : Promise.resolve([] as Array<{ id: number, title: string }>)
     ])
-    userResults.value = users
+    searchedPeople.value = users.filter(u => !isAgent(u))
     cardResults.value = cards
     index.value = 0
   }, 200)
@@ -119,7 +146,6 @@ function focus() {
 }
 
 onMounted(() => {
-  userResults.value = (props.members || []).slice(0, 5)
   focus()
 })
 
@@ -145,25 +171,33 @@ defineExpose({ focus })
       >
     </div>
     <div class="max-h-[240px] overflow-y-auto">
-      <div v-if="userResults.length > 0">
+      <div
+        v-for="group in groups"
+        :key="group.key"
+      >
         <div class="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-label text-dimmed">
-          Members
+          {{ group.label }}
         </div>
         <button
-          v-for="(user, i) in userResults"
+          v-for="(user, i) in group.users"
           :key="'u-' + user.id"
           type="button"
           class="w-full flex items-center gap-2.5 px-3 py-1.5 text-left text-sm transition-colors"
-          :class="i === index ? 'bg-primary/10 text-primary' : 'text-default hover:bg-elevated'"
+          :class="userIndex(group.key, i) === index ? 'bg-primary/10 text-primary' : 'text-default hover:bg-elevated'"
           @mousedown.prevent
           @click="emit('select', { ...user, _type: 'user' })"
         >
           <UiAvatar
+            :src="user.avatarUrl"
             :alt="user.name"
+            :kind="user.kind"
+            :color="user.color"
             size="2xs"
           />
           <span class="font-medium truncate">{{ user.name }}</span>
-          <span class="ml-auto text-xs text-dimmed truncate">{{ user.email }}</span>
+          <!-- Where a person shows an address, an agent shows what it is for: its
+               own address is synthetic and never shown outside its page. -->
+          <span class="ml-auto text-xs text-dimmed truncate">{{ isAgent(user) ? user.description : user.email }}</span>
         </button>
       </div>
       <div v-if="cardResults.length > 0">

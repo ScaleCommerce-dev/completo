@@ -265,7 +265,8 @@ describe('OAuth for MCP', () => {
   })
 
   it('rejects a metadata-document client that is not https with a path', async () => {
-    for (const bad of ['http://client.example/meta.json', 'https://client.example/', 'https://127.0.0.1/meta.json']) {
+    for (const bad of ['http://client.example/meta.json', 'https://client.example/', 'https://127.0.0.1/meta.json',
+      'https://client.example:8443/meta.json', 'https://intranet/meta.json']) {
       const res = await fetch(url('/api/oauth/authorize?' + new URLSearchParams({ client_id: bad, redirect_uri: REDIRECT, response_type: 'code', code_challenge: 'x', code_challenge_method: 'S256' })), { headers: user.headers })
       expect(res.status).toBe(400)
     }

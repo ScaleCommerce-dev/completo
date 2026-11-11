@@ -8,9 +8,21 @@ interface ApiToken {
   isExpired: boolean
 }
 
-export function useApiTokens() {
+/**
+ * Your own tokens by default. An agent's page passes its own endpoint, because a
+ * manager mints and revokes the agent's tokens (`/api/agents/:id/tokens`), and its
+ * own `list`: the agent's tokens arrive with the agent, so the list shown is that
+ * data and `reload` refetches the agent. A copy kept here went stale whenever the
+ * page refreshed the agent for another reason, such as a suspend revoking them all.
+ */
+export function useApiTokens(options: {
+  endpoint?: string
+  list?: { tokens: Readonly<Ref<ApiToken[]>>, reload: () => Promise<unknown> }
+} = {}) {
+  const endpoint = options.endpoint ?? '/api/user/tokens'
   const toast = useToast()
-  const tokens = ref<ApiToken[]>([])
+  const ownTokens = ref<ApiToken[]>([])
+  const tokens = options.list?.tokens ?? ownTokens
   const tokenName = ref('')
   const tokenExpiry = ref<string>('')
   const tokenLoading = ref(false)
@@ -30,21 +42,23 @@ export function useApiTokens() {
 
   async function fetchTokens() {
     try {
-      tokens.value = await $fetch('/api/user/tokens') as ApiToken[]
+      if (options.list) await options.list.reload()
+      else ownTokens.value = await $fetch(endpoint) as ApiToken[]
     } catch {
       toast.add({ title: 'Failed to load API tokens', color: 'error' })
     }
   }
 
+  // A caller's list is already loaded, or loading, with whatever it came with.
   onMounted(() => {
-    fetchTokens()
+    if (!options.list) fetchTokens()
   })
 
   async function createToken() {
     if (!tokenName.value.trim()) return
     tokenLoading.value = true
     try {
-      const result = await $fetch('/api/user/tokens', {
+      const result = await $fetch(endpoint, {
         method: 'POST',
         body: {
           name: tokenName.value.trim(),
@@ -76,7 +90,7 @@ export function useApiTokens() {
   async function confirmDeleteToken(id: string) {
     cancelDeleteToken()
     try {
-      await $fetch(`/api/user/tokens/${id}`, { method: 'DELETE' })
+      await $fetch(`${endpoint}/${id}`, { method: 'DELETE' })
       await fetchTokens()
     } catch {
       toast.add({ title: 'Failed to delete token', color: 'error' })
@@ -102,6 +116,7 @@ export function useApiTokens() {
     startDeleteToken,
     cancelDeleteToken,
     confirmDeleteToken,
-    formatTokenDate
+    formatTokenDate,
+    fetchTokens
   }
 }

@@ -13,7 +13,14 @@
  * noise about data that isn't there — the due-date column already got this right.
  */
 withDefaults(defineProps<{
-  person?: { id?: string, name: string, avatarUrl?: string | null } | null
+  person?: {
+    id?: string
+    name: string
+    avatarUrl?: string | null
+    kind?: 'human' | 'agent'
+    color?: string | null
+    managedBy?: { name: string } | null
+  } | null
   size?: '3xs' | '2xs' | 'xs' | 'sm' | 'md'
   /** Overrides the em-dash where a word genuinely reads better. */
   emptyLabel?: string
@@ -25,8 +32,14 @@ withDefaults(defineProps<{
    * `EMPTY_CELL_CLASS`. Needs an ancestor carrying `group`.
    */
   emptyOnHover?: boolean
+  /**
+   * The "Agent" chip after an agent's name. Off where a group label already says
+   * *Agents*, so the chip does not repeat it on every row.
+   */
+  chip?: boolean
 }>(), {
-  size: '3xs'
+  size: '3xs',
+  chip: true
 })
 </script>
 
@@ -38,6 +51,8 @@ withDefaults(defineProps<{
     <UiAvatar
       :src="person.avatarUrl"
       :alt="person.name"
+      :kind="person.kind"
+      :color="person.color"
       :size="size"
       class="shrink-0"
     />
@@ -45,6 +60,10 @@ withDefaults(defineProps<{
       class="truncate text-sm"
       :class="strong ? 'font-semibold text-default' : 'text-muted'"
     >{{ person.name }}</span>
+    <UiAgentChip
+      v-if="chip && person.kind === 'agent'"
+      :managed-by="person.managedBy"
+    />
   </span>
 
   <span

@@ -25,19 +25,23 @@ export default defineEventHandler(async (event) => {
   const mimeType = serveContentType(file.name)
   await storage.write(storageKey, buffer, mimeType)
 
-  const attachment = db.insert(schema.attachments).values({
-    cardId: card.id,
-    projectId: card.projectId,
-    storageKey,
-    originalName: file.name,
-    mimeType,
-    size: file.size,
-    uploadedById: user.id
-  }).returning().get()
+  const attachment = db.transaction(() => {
+    const row = db.insert(schema.attachments).values({
+      cardId: card.id,
+      projectId: card.projectId,
+      storageKey,
+      originalName: file.name,
+      mimeType,
+      size: file.size,
+      uploadedById: user.id
+    }).returning().get()
+    recordCardEvents(user, [{ cardId: card.id, field: 'attachment', to: { id: row.id, value: row.originalName } }])
+    return row
+  })
 
   // attachmentCount is a card face badge, so an upload is a view change.
   emitCardChange(card.id, card.projectId)
 
   setResponseStatus(event, 201)
-  return attachment
+  return { ...attachment, uploader: createUserRefs([user]).ref(user) }
 })
