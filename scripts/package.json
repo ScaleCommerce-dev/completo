@@ -12,8 +12,8 @@
     "user:set-role": "node user-set-role.ts"
   },
   "dependencies": {
-    "better-sqlite3": "^12.6.2",
-    "dotenv": "^16.4.7",
-    "drizzle-orm": "^0.45.1"
+    "better-sqlite3": "^13.0.3",
+    "dotenv": "^18.0.9",
+    "drizzle-orm": "^0.45.4"
   }
 }
