@@ -233,8 +233,11 @@ async function confirmDeleteTag(tagId: string) {
       </span>
     </template>
 
+    <!-- The member check is on the slot, not the button: UiPage spaces the
+         description by whether this slot exists, so an empty one left an
+         admin outside the project with an 8px gap where 14 belongs. -->
     <template
-      v-if="project"
+      v-if="project?.isMember"
       #title-trailing
     >
       <!-- No project key, for the reason on the All Projects card: this page
@@ -245,7 +248,6 @@ async function confirmDeleteTag(tagId: string) {
            on the name; `-my-1.5` keeps the 28px hit area without letting it
            set the row's height. -->
       <ProjectStarButton
-        v-if="project.isMember"
         :project-id="project.id"
         :project-name="project.name"
         :starred="project.starred"
