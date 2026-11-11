@@ -311,7 +311,7 @@
           "Projects"
         ],
         "summary": "List projects",
-        "description": "Returns projects the current user is a member of. Admins see all projects.",
+        "description": "Returns projects the current user is a member of, sorted alphabetically by name. Admins see all projects.",
         "operationId": "listProjects",
         "responses": {
           "200": {
@@ -371,6 +371,10 @@
                           "listCount": {
                             "type": "integer",
                             "description": "Number of list views in the project"
+                          },
+                          "starred": {
+                            "type": "boolean",
+                            "description": "Whether the caller has starred this project, which puts it in their sidebar. Always false where the caller is not a member, including an admin's non-member projects."
                           }
                         }
                       }
@@ -595,6 +599,14 @@
                               "type": "integer"
                             }
                           }
+                        },
+                        "isMember": {
+                          "type": "boolean",
+                          "description": "Whether the caller is a member of the project. False for an admin viewing a project they are not in, whose `role` is still reported as owner-level access."
+                        },
+                        "starred": {
+                          "type": "boolean",
+                          "description": "Whether the caller has starred this project, which puts it in their sidebar. Always false where the caller is not a member, including an admin's non-member projects."
                         }
                       }
                     }
@@ -721,6 +733,85 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/star": {
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Star project",
+        "description": "Stars the project for the caller, which puts it in their sidebar. Idempotent. Members only: an admin who is not a member gets 403.",
+        "operationId": "starProject",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Star state after the call",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "starred": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Unstar project",
+        "description": "Removes the caller's star from the project. Idempotent.",
+        "operationId": "unstarProject",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Star state after the call",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "starred": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"

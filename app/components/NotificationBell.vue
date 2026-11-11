@@ -12,15 +12,27 @@ onUnmounted(() => {
 
 <template>
   <UTooltip :text="unreadCount > 0 ? `${unreadCount} unread` : 'Notifications'">
-    <NuxtLink to="/notifications">
+    <!-- `flex`: an inline link adds a line box around the button, which made
+         the link 24px tall around a 20px button and shifted it off-centre. -->
+    <NuxtLink
+      to="/notifications"
+      class="flex"
+    >
+      <!-- `md` and square, the size of every page action beside it (New
+           project, Settings). It was `xs` — a 20px box with a 12px glyph next to
+           32px buttons with 20px glyphs — and the navbar's right edge stepped
+           in height from one control to the next. -->
       <UButton
         variant="ghost"
         color="neutral"
         class="relative notification-bell"
-        size="xs"
+        square
       >
+        <!-- size-5: a child icon sizes from the button's font, not from its
+             theme's icon slot, so it has to be told what `leadingIcon` is. -->
         <UIcon
           name="i-lucide-bell"
+          class="size-5"
           :class="{ 'bell-ring': unreadCount > 0 }"
         />
         <span

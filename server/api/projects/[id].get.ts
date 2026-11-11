@@ -1,7 +1,7 @@
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user: _user, project, membership } = await resolveProject(event)
+  const { user, project, membership } = await resolveProject(event)
 
   const projectBoards = db.select().from(schema.boards)
     .where(eq(schema.boards.projectId, project.id))
@@ -113,8 +113,20 @@ export default defineEventHandler(async (event) => {
     createdBy: l.createdById ? creatorsMap.get(l.createdById) || null : null
   }))
 
+  // Against real membership, not `membership`: that is a synthetic owner row for
+  // an admin, and a star left behind by a removed member must not count.
+  // `isMember` goes out too, because `role` cannot tell an admin who is not in the
+  // project from an owner, and only members may star.
+  const isMember = isProjectMember(project.id, user.id)
+  const starred = isMember && !!db.select({ id: schema.projectStars.id })
+    .from(schema.projectStars)
+    .where(and(eq(schema.projectStars.userId, user.id), eq(schema.projectStars.projectId, project.id)))
+    .get()
+
   return {
     ...project,
+    isMember,
+    starred,
     boards,
     lists,
     statuses: projectStatuses,

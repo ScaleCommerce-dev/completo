@@ -13,6 +13,9 @@ interface ProjectDetail {
   icon: string | null
   doneStatusId: string | null
   role: string
+  /** `role` reports owner-level access for an admin outside the project; this does not. */
+  isMember: boolean
+  starred: boolean
   openCards: number
   statuses: Array<{ id: string, name: string, color: string | null }>
   tags: Array<{ id: string, name: string, color: string }>
@@ -213,13 +216,25 @@ async function confirmDeleteTag(tagId: string) {
 
     <template
       v-if="project"
-      #meta
+      #title-trailing
     >
-      <UBadge
-        :label="project.key"
-        color="primary"
-        variant="subtle"
-        :ui="{ label: 'font-mono' }"
+      <!-- Same treatment as the key on the project's card in All Projects: it is
+           for the CLI, ticket ids and URLs, so it is read, not clicked, and a
+           filled chip competed with the name beside it. -->
+      <span class="font-mono text-xs font-medium text-dimmed tracking-wide">{{ project.key }}</span>
+      <!-- Here as well as in All Projects: arriving at an unstarred project
+           through ⌘K or a notification is when you decide to keep it, and
+           leaving to find its card would make that a chore. `-my-1.5` keeps
+           the 28px hit area without letting it set the line's height: a row
+           of baseline-aligned text grows to its tallest item, and this one
+           lifted the title off the centre of the icon beside it. -->
+      <ProjectStarButton
+        v-if="project.isMember"
+        :project-id="project.id"
+        :project-name="project.name"
+        :starred="project.starred"
+        class="self-center -my-1.5"
+        @update:starred="project = { ...project, starred: $event }"
       />
     </template>
 

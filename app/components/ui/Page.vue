@@ -62,12 +62,23 @@ const WIDTHS = {
         <!-- Title and description share one row. The description is the first
              thing to go on a narrow screen — it explains, it doesn't identify. -->
         <template
-          v-if="$slots.title || description"
+          v-if="$slots.title || $slots['title-trailing'] || description"
           #title
         >
           <slot name="title">
             <span class="flex items-baseline gap-2.5 min-w-0">
               <span class="text-base font-extrabold tracking-heading text-highlighted shrink-0">{{ title }}</span>
+              <!-- What belongs to the record rather than to the page — its key,
+                   its star. Beside the name, not in `#right`: there, a chip and a
+                   toggle sat among page actions at three heights and read as
+                   actions themselves. Baseline-aligned like the description, so
+                   text here sits on the title's line; a control centres itself. -->
+              <span
+                v-if="$slots['title-trailing']"
+                class="flex items-baseline gap-1.5 shrink-0"
+              >
+                <slot name="title-trailing" />
+              </span>
               <span
                 v-if="description"
                 class="text-sm text-muted truncate max-lg:hidden"

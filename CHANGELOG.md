@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **The sidebar shows only the projects you star.** It used to list every project you could see, in no particular order, so on a busy install it ran past the bottom of the screen and admins saw every project on the instance. Star a project from its card in All Projects or from its own header (stars are yours alone and follow you across devices); unstarred projects are still a click away in All Projects and are all still found by ⌘K. You can star projects you are a member of. Until you star one, the sidebar says how. Projects are now listed alphabetically everywhere, ignoring case, with your starred ones first in All Projects. A project's key and star now sit beside its name in the header, and the notification bell is the same size as the buttons next to it.
+
 ## v0.14.0 (2026-11-03)
 
 ### App

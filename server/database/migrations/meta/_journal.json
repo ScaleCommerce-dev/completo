@@ -113,6 +113,13 @@
       "when": 1793718561174,
       "tag": "0015_card_history",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1794402375232,
+      "tag": "0016_project_stars",
+      "breakpoints": true
     }
   ]
 }

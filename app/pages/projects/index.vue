@@ -13,6 +13,7 @@ interface ProjectListItem {
   doneStatusId: string | null
   doneRetentionDays: number | null
   role: string
+  starred: boolean
   boardCount: number
   listCount: number
   totalCards: number
@@ -24,6 +25,35 @@ interface ProjectListItem {
 
 const { data: projects, refresh } = await useFetch<ProjectListItem[]>('/api/projects')
 const { refreshProjects } = useNavigation()
+
+/**
+ * Starred first, then the rest — each alphabetical, which is the API's order.
+ *
+ * The grouping is taken once per set of projects, not on every star: re-sorting
+ * on the click would pull the card out from under the pointer and slide the grid
+ * past it, and the next card you meant to star would no longer be where you were
+ * looking. The order catches up on the next visit, or when a project is added or
+ * removed — the moments the grid is being re-read anyway.
+ */
+const starredAtLoad = ref(new Set<string>())
+watch(
+  () => (projects.value || []).map(p => p.id).join(),
+  () => { starredAtLoad.value = new Set((projects.value || []).filter(p => p.starred).map(p => p.id)) },
+  { immediate: true }
+)
+const orderedProjects = computed(() => {
+  const list = projects.value || []
+  return [
+    ...list.filter(p => starredAtLoad.value.has(p.id)),
+    ...list.filter(p => !starredAtLoad.value.has(p.id))
+  ]
+})
+
+/** The page's own copy of the flag; the sidebar's is patched by the button. */
+function setRowStarred(projectId: string, starred: boolean) {
+  if (!projects.value) return
+  projects.value = projects.value.map(p => p.id === projectId ? { ...p, starred } : p)
+}
 
 // Edit project
 interface EditProjectData {
@@ -190,7 +220,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         move to `group-hover`.
       -->
       <div
-        v-for="(project, index) in projects"
+        v-for="(project, index) in orderedProjects"
         :key="project.id"
         class="group relative rise-in"
         :style="{ animationDelay: staggerDelay(index * 40) }"
@@ -230,22 +260,45 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
               </p>
             </div>
             <!--
-              `group-focus-within` alongside `group-hover`, the way
-              `EMPTY_CELL_CLASS` already does it: a control revealed only on
-              hover is a control a keyboard can tab onto while it is still
-              invisible. `relative z-10` lifts it above the link overlay below.
+              One control spec for both, so the pair reads as one instrument:
+              same button, same 16px glyph. Settings comes *first* so the star
+              owns the card's right edge — settings is invisible at rest, and
+              while it sat outside the star the star floated a button's width
+              in from the edge and then had a neighbour appear beside it.
+
+              `-mt-1 -mr-1.5` puts the glyph, not the button, where it
+              belongs: centred on the name's line, and flush with the content
+              edge the avatar stack below ends on. `relative z-10` lifts both
+              above the card's link overlay.
+
+              Settings shows on `group-focus-within` as well as hover, the way
+              `EMPTY_CELL_CLASS` does it: a control revealed only on hover is
+              one a keyboard can tab onto while it is still invisible. The star
+              is visible at rest in both states, because whether a project is
+              in your sidebar is what you scan this grid for — and members
+              only, since an admin's non-member project has nothing to star.
             -->
-            <button
-              v-if="project.role === 'owner' || project.role === 'admin'"
-              :aria-label="`Settings for ${project.name}`"
-              class="relative z-10 opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 p-1 rounded-md text-dimmed hover:text-toned hover:bg-elevated transition shrink-0"
-              @click="openEditProject(project, $event)"
-            >
-              <UIcon
-                name="i-lucide-settings"
-                class="text-sm"
+            <div class="relative z-10 flex items-center gap-0.5 -mt-1 -mr-1.5 shrink-0">
+              <UButton
+                v-if="project.role === 'owner' || project.role === 'admin'"
+                :aria-label="`Settings for ${project.name}`"
+                icon="i-lucide-settings"
+                variant="ghost"
+                color="neutral"
+                size="sm"
+                square
+                class="opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 text-dimmed hover:text-toned"
+                :ui="{ leadingIcon: 'size-4' }"
+                @click="openEditProject(project, $event)"
               />
-            </button>
+              <ProjectStarButton
+                v-if="project.role !== 'admin'"
+                :project-id="project.id"
+                :project-name="project.name"
+                :starred="project.starred"
+                @update:starred="setRowStarred(project.id, $event)"
+              />
+            </div>
           </div>
 
           <!-- Stats row -->
