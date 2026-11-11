@@ -7,8 +7,14 @@ minimumReleaseAge: 10080  # minutes (7 days)
 
 # Explicit allow/deny list for postinstall build scripts (pnpm 11+).
 # `true` = run the build script, `false` = skip without warning.
+#
+# better-sqlite3 is off since v13: it ships N-API prebuilds for linux, linuxmusl,
+# darwin and win32 (x64 + arm64) in `prebuilds/` and loads those first. It has
+# no install script any more, but it still has a binding.gyp, so pnpm runs the
+# implicit `node-gyp rebuild` — which compiles nothing (binding.gyp detects the
+# prebuild) yet still needs `make`, and failed every deploy on a host without it.
 allowBuilds:
-  better-sqlite3: true
+  better-sqlite3: false
   '@parcel/watcher': false
   '@tailwindcss/oxide': false
   '@scarf/scarf': false
