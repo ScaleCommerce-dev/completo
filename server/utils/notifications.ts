@@ -29,10 +29,23 @@ export function createNotifications(userIds: Iterable<string>, params: Notificat
 
   // Nor an agent: nobody reads its inbox, so its notifications would only pile up
   // unread. Agents are told nothing; the people around them are.
-  const recipients = db.select({ id: schema.users.id }).from(schema.users)
+  const humans = db.select({ id: schema.users.id, isAdmin: schema.users.isAdmin }).from(schema.users)
     .where(and(inArray(schema.users.id, ids), eq(schema.users.kind, 'human')))
     .all()
-    .map(r => r.id)
+
+  // Nor anyone who can no longer see the project. Callers derive recipients from
+  // history — the assignee, earlier commenters — and removing a member touches
+  // neither, so an ex-member kept getting a card title per new comment. Checked
+  // here once rather than trusted to each caller. `member_removed` is the one
+  // notification addressed to someone who has just left.
+  let recipients = humans.map(r => r.id)
+  if (params.projectId && params.type !== 'member_removed') {
+    const members = new Set(db.select({ userId: schema.projectMembers.userId }).from(schema.projectMembers)
+      .where(and(eq(schema.projectMembers.projectId, params.projectId), inArray(schema.projectMembers.userId, recipients)))
+      .all()
+      .map(r => r.userId))
+    recipients = humans.filter(r => r.isAdmin || members.has(r.id)).map(r => r.id)
+  }
 
   for (const userId of recipients) {
     const row = db.insert(schema.notifications).values({

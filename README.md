@@ -182,7 +182,7 @@ COMPLETO_URL=http://localhost:3000
 COMPLETO_TOKEN=<your-dev-api-token>
 ```
 
-This overrides the global credentials in `~/.completo/.env` without modifying them. You can also use `--env-file path/to/env` for one-off overrides. Full precedence: `~/.completo/.env` → `.completo` → `.completo.local` → `--env-file` → environment variables.
+This overrides the global credentials in `~/.completo/.env` without modifying them. A `COMPLETO_URL` in `.completo.local` must come with its own `COMPLETO_TOKEN`: the CLI refuses to send your global token to a server named by a file in the project directory. You can also use `--env-file path/to/env` for one-off overrides. Full precedence: `~/.completo/.env` → `.completo` → `.completo.local` → `--env-file` → environment variables.
 
 ### Claude without a terminal (MCP)
 

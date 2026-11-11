@@ -94,35 +94,84 @@ export async function resolveAuth(event: H3Event): Promise<AuthResult> {
     }
   }
 
-  const session = await requireUserSession(event)
+  const { session, freshUser } = await requireActiveSession(event)
   const sessionUser = session.user as ResolvedUser
+
+  return {
+    user: {
+      ...sessionUser,
+      isAdmin: !!freshUser.isAdmin,
+      kind: 'human',
+      color: freshUser.color ?? null,
+      managedById: null
+    },
+    authMethod: 'session'
+  }
+}
+
+/**
+ * A cookie session whose user still exists, is human and is not suspended.
+ *
+ * The cookie is sealed and carries no expiry, so suspending or deleting a user
+ * invalidates nothing on the client: this database read is the only thing that
+ * does. It used to live only in the `check-suspended` middleware, which skips any
+ * request with a `Bearer dzo…` header so that tokens are checked here instead —
+ * and `Bearer dzox` matched that skip but neither token branch above, so a
+ * suspended user kept full access by adding one header. Every session-only
+ * handler goes through this rather than `requireUserSession`, so the check does
+ * not depend on any middleware.
+ */
+export async function requireActiveSession(event: H3Event) {
+  const session = await requireUserSession(event)
 
   // Re-fetch isAdmin from DB to prevent stale session privilege escalation
   const freshUser = db.select({
     isAdmin: schema.users.isAdmin,
     kind: schema.users.kind,
     color: schema.users.color,
-    managedById: schema.users.managedById
+    managedById: schema.users.managedById,
+    suspendedAt: schema.users.suspendedAt
   })
     .from(schema.users)
-    .where(eq(schema.users.id, sessionUser.id))
+    .where(eq(schema.users.id, session.user.id))
     .get()
 
-  // Every sign-in path refuses an agent, so a session naming one was not issued
-  // by this server as it is now. Refuse it rather than reason about what it may do.
-  if (freshUser?.kind === 'agent') {
+  // A deleted user's cookie, or a session naming an agent: every sign-in path
+  // refuses an agent, so such a session was not issued by this server as it is now.
+  if (!freshUser || freshUser.kind === 'agent') {
+    await dropSession(event)
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
+  if (freshUser.suspendedAt) {
+    await dropSession(event)
+    throw createError({ statusCode: 403, message: 'Your account has been suspended' })
+  }
 
-  return {
-    user: {
-      ...sessionUser,
-      isAdmin: !!freshUser?.isAdmin,
-      kind: 'human',
-      color: freshUser?.color ?? null,
-      managedById: null
-    },
-    authMethod: 'session'
+  return { session, freshUser }
+}
+
+/**
+ * Clear the cookie when the response can still carry it. An SSE stream re-checks
+ * auth after its headers went out (see `isStillAuthorized`), where setting a
+ * cookie would throw instead of reporting the real reason.
+ */
+async function dropSession(event: H3Event) {
+  if (!event.node.res.headersSent) await clearUserSession(event)
+}
+
+/**
+ * Re-run authentication for a long-lived response. `resolveAuth` at connect
+ * proves who the caller *was*; a stream that outlives a suspension, a deleted
+ * token or a removed membership must ask again before it sends anything else.
+ * `check` adds the endpoint's own condition (e.g. project membership).
+ */
+export async function isStillAuthorized(event: H3Event, check?: (user: ResolvedUser) => void): Promise<boolean> {
+  try {
+    const { user } = await resolveAuth(event)
+    check?.(user)
+    return true
+  } catch {
+    return false
   }
 }
 

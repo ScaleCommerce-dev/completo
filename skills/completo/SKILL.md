@@ -79,7 +79,8 @@ you @mention are notified.
 
 **If a `.completo` exists in the working directory (or any parent), read its `INSTRUCTIONS` field and
 follow it for the whole session.** The CLI walks up directories to find it. A gitignored
-`.completo.local` can override credentials for local dev (e.g. point at `http://localhost:3000`);
+`.completo.local` can override credentials for local dev (e.g. point at `http://localhost:3000`) —
+a `COMPLETO_URL` there must come with its own `COMPLETO_TOKEN`, or the CLI refuses to run;
 `--env-file path` does the same for one-offs. Precedence: `~/.completo/.env` → `.completo` →
 `.completo.local` → `--env-file` → env vars.
 

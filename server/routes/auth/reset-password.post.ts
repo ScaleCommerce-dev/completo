@@ -34,6 +34,13 @@ export default defineEventHandler(async (event) => {
     .where(eq(schema.emailVerificationTokens.userId, user.id))
     .run()
 
+  // A reset is how someone takes their account back, so it must also take back what
+  // a past holder of the password minted: API tokens and MCP grants never expire on
+  // their own, and one created during a takeover outlived the reset that ended it.
+  // Agents' tokens stay — they are the manager's tooling, revoked from the agents page.
+  db.delete(schema.apiTokens).where(eq(schema.apiTokens.userId, user.id)).run()
+  db.delete(schema.oauthGrants).where(eq(schema.oauthGrants.userId, user.id)).run()
+
   // Auto-sign in
   await setAuthSession(event, user)
 

@@ -20,20 +20,31 @@ export default defineEventHandler(async (event) => {
 
   const stream = createEventStream(event)
 
+  // Same rule as the project view stream: a suspended or deleted user's open tab
+  // must stop receiving, so every push re-runs auth and a failure ends the stream.
+  let chain = Promise.resolve()
+  const send = (msg: { event: string, data: string }) => {
+    chain = chain.then(async () => {
+      if (!(await isStillAuthorized(event))) return cleanup()
+      await stream.push(msg)
+    }).catch(() => {})
+  }
+
   const unsubscribe = subscribeAppEvents((evt) => {
     if (evt.type !== 'notification' || evt.userId !== user.id) return
-    stream.push({ event: 'notification', data: JSON.stringify(evt.payload ?? null) }).catch(() => {})
+    send({ event: 'notification', data: JSON.stringify(evt.payload ?? null) })
   })
 
-  const heartbeat = setInterval(() => {
-    stream.push({ event: 'ping', data: '1' }).catch(() => {})
-  }, 25_000)
+  const heartbeat = setInterval(() => send({ event: 'ping', data: '1' }), 25_000)
 
-  stream.onClosed(async () => {
+  // Shared by a dropped socket and a failed re-check, which ends the stream from
+  // our side; running it twice is harmless.
+  async function cleanup() {
     clearInterval(heartbeat)
     unsubscribe()
     await stream.close()
-  })
+  }
+  stream.onClosed(cleanup)
 
   return stream.send()
 })

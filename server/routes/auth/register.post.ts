@@ -45,7 +45,20 @@ export default defineEventHandler(async (event) => {
 
   // Silent bail if email already taken — prevent enumeration
   const existing = db.select().from(schema.users).where(eq(schema.users.email, normalizedEmail)).get()
-  if (existing) {
+
+  // A self-registration nobody has verified yet is not an account, only a claim on an
+  // address. It used to keep the first caller's password and answer everyone after
+  // with "check your email" — so an attacker could register a colleague's address
+  // first, wait for the colleague to click the genuine verification mail, and then
+  // sign in with their own password. Whoever registers now replaces that claim, and
+  // the earlier link dies with it.
+  const unclaimed = existing
+    && existing.kind === 'human'
+    && !existing.emailVerifiedAt
+    && !isPendingSetup(existing)
+    && !existing.suspendedAt
+
+  if (existing && !unclaimed) {
     // One exception to "do nothing": an admin-created account that was never claimed. That
     // person has no password (`!invited` is unhashable) and no way in, so silently doing
     // nothing stranded them — they waited for an email that was never sent. Re-send their
@@ -61,18 +74,34 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const userId = crypto.randomUUID()
-  db.insert(schema.users).values({
-    id: userId,
-    email: normalizedEmail,
-    name,
-    passwordHash: await hashPassword(password),
-    emailVerifiedAt: validInvitation ? new Date() : null,
-    lastSeenAt: new Date()
-  }).run()
+  const passwordHash = await hashPassword(password)
+  const emailVerifiedAt = validInvitation ? new Date() : null
+  let userId: string
+  if (unclaimed) {
+    userId = existing.id
+    db.update(schema.users)
+      .set({ name, passwordHash, emailVerifiedAt, lastSeenAt: new Date() })
+      .where(eq(schema.users.id, userId))
+      .run()
+    db.delete(schema.emailVerificationTokens)
+      .where(eq(schema.emailVerificationTokens.userId, userId))
+      .run()
+  } else {
+    userId = crypto.randomUUID()
+    db.insert(schema.users).values({
+      id: userId,
+      email: normalizedEmail,
+      name,
+      passwordHash,
+      emailVerifiedAt,
+      lastSeenAt: new Date()
+    }).run()
+  }
 
-  // Claim any pending project invitations for this email
-  claimProjectInvitations(normalizedEmail, userId)
+  // Invitations become memberships only once the address is proven: here when the
+  // invitation token proved it, otherwise in verify-email. Claiming them on an
+  // unverified row handed the memberships to whoever registered first.
+  if (validInvitation) claimProjectInvitations(normalizedEmail, userId)
 
   // Valid invitation: email ownership proven by the token — skip verification, auto-sign in
   if (validInvitation) {

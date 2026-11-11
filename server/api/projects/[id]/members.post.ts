@@ -18,9 +18,18 @@ export default defineEventHandler(async (event) => {
   const normalizedEmail = email?.trim().toLowerCase()
 
   // Try to find the user
-  const targetUser = userId
+  const found = userId
     ? db.select().from(schema.users).where(eq(schema.users.id, userId)).get()
     : db.select().from(schema.users).where(eq(schema.users.email, normalizedEmail!)).get()
+
+  // An unverified self-registration is not yet anyone's account — its password was set
+  // by whoever registered first, and the address's real owner may still replace it
+  // (register.post.ts). Attaching it would hand this project to that first caller once
+  // the owner verifies. By email it becomes an invitation, claimed at verification;
+  // by id there is no address to invite, so it is not found. An admin-created account
+  // pending setup is different: an admin vouched for it and nobody chose its password.
+  const unverified = found && found.kind === 'human' && !found.emailVerifiedAt && !isPendingSetup(found)
+  const targetUser = unverified ? undefined : found
 
   // User found — add directly
   if (targetUser) {

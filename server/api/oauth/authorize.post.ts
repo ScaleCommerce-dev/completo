@@ -4,7 +4,7 @@
  * URL the page navigates to, because the redirect must happen in the browser.
  */
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
+  const { session } = await requireActiveSession(event)
   const body = (await readBody<Record<string, unknown>>(event)) ?? {}
   let req: AuthorizeRequest
   try {

@@ -1,7 +1,7 @@
 import { eq, desc } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
+  const { session } = await requireActiveSession(event)
 
   const tokens = db.select()
     .from(schema.apiTokens)

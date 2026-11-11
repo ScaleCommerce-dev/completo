@@ -117,7 +117,10 @@ describe('email normalisation', () => {
     // This is what produced the "pending setup" ghosts: `users.email` is UNIQUE but not
     // COLLATE NOCASE, so `Foo@x` slipped past the duplicate check on `foo@x`.
     const email = `dupe-${Date.now()}@example.com`
-    await registerRaw({ name: 'First', email, password: 'testpass123' })
+    const first = await (await registerRaw({ name: 'First', email, password: 'testpass123' })).json() as { user: { id: string } }
+    // Verified, so the second registration meets an account rather than an unproven
+    // claim (which it would replace in place — still one row; pre-hijack.test.ts).
+    await $fetch('/api/_test/verify-email', { method: 'POST', body: { userId: first.user.id } })
 
     const res = await registerRaw({ name: 'Second', email: email.toUpperCase(), password: 'other12345' })
     expect(res.status).toBe(200)

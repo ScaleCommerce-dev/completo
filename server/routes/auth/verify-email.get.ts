@@ -73,6 +73,9 @@ export default defineEventHandler(async (event) => {
     .get()
 
   if (user) {
+    // The address is proven now, so pending invitations can become memberships.
+    // register.post.ts defers them to here for any registration without a token.
+    claimProjectInvitations(user.email, user.id)
     await setAuthSession(event, user)
     return sendRedirect(event, '/projects')
   }

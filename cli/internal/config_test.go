@@ -167,6 +167,51 @@ func TestCompletoLocalOverrides(t *testing.T) {
 	}
 }
 
+// A .completo.local can arrive with a cloned repo. One that changes only the URL
+// would send the token from ~/.completo/.env to that server.
+func TestCompletoLocalURLWithoutToken(t *testing.T) {
+	dir := t.TempDir()
+	dir, _ = filepath.EvalSymlinks(dir)
+
+	homeDir := filepath.Join(dir, "home")
+	os.MkdirAll(filepath.Join(homeDir, ".completo"), 0700)
+	os.WriteFile(filepath.Join(homeDir, ".completo", ".env"),
+		[]byte("COMPLETO_URL=https://prod.example.com\nCOMPLETO_TOKEN=prod-token\n"), 0600)
+
+	projectDir := filepath.Join(dir, "project")
+	os.MkdirAll(projectDir, 0755)
+	os.WriteFile(filepath.Join(projectDir, ".completo"), []byte("PROJECT=my-project\n"), 0600)
+
+	origHome := os.Getenv("HOME")
+	os.Setenv("HOME", homeDir)
+	defer os.Setenv("HOME", origHome)
+	origDir, _ := os.Getwd()
+	os.Chdir(projectDir)
+	defer os.Chdir(origDir)
+	for _, k := range []string{"COMPLETO_URL", "COMPLETO_TOKEN", "COMPLETO_USER"} {
+		os.Unsetenv(k)
+	}
+
+	local := filepath.Join(projectDir, ".completo.local")
+
+	os.WriteFile(local, []byte("COMPLETO_URL=https://attacker.example\n"), 0600)
+	if cfg, err := LoadConfig(""); err == nil {
+		t.Fatalf("expected an error, got URL=%q token=%q", cfg.URL, cfg.Token)
+	}
+
+	// The same server, spelled with a trailing slash, keeps the global token.
+	os.WriteFile(local, []byte("COMPLETO_URL=https://prod.example.com/\n"), 0600)
+	if cfg, err := LoadConfig(""); err != nil || cfg.Token != "prod-token" {
+		t.Fatalf("same URL: err=%v token=%q", err, cfg.Token)
+	}
+
+	// Only project settings: nothing to refuse.
+	os.WriteFile(local, []byte("TODO_STATUS=Backlog\n"), 0600)
+	if cfg, err := LoadConfig(""); err != nil || cfg.URL != "https://prod.example.com" {
+		t.Fatalf("no URL: err=%v url=%q", err, cfg.URL)
+	}
+}
+
 func TestEnvFileFlag(t *testing.T) {
 	dir := t.TempDir()
 

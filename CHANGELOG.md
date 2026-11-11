@@ -8,6 +8,19 @@
 - **A project's members moved to its header, and notifications to the sidebar.** The project page no longer gives a third of its width to the members list: the header shows the members' faces next to Settings, and clicking them opens the list, where owners add, invite and remove people and agents as before, now with the search field at the top. Everyone in the project can open it to see who is in it. Views use the full width of the page. Notifications are now the first entry in the sidebar, with the unread count beside them (a dot when the sidebar is collapsed); on a phone the bell stays at the right of the header. The header's buttons now line up with the right edge of the page's content instead of the far edge of the window.
 - **Confirmation dialogs no longer show an empty band** between their text and their buttons.
 - **A project's Settings open over the project.** They used to open on All Projects, so closing them without saving left you there instead of in the project. Admins also get the settings button on the card in All Projects for projects they are a plain member of; it used to show only on projects they owned or were not in.
+- **Security: Microsoft sign-in could be used to take over any account.** Completo trusted the email address Microsoft reported, which the administrator of any Microsoft organisation, including one created for the purpose, can set to anyone's address. Microsoft sign-in now accepts an address only when the person's organisation has verified it owns that address's domain, and otherwise asks them to sign in with their password. See Upgrading.
+- **Security: suspending someone now locks them out everywhere at once.** A person who was signed in when suspended could keep using Completo, admin pages included, by adding one header to their requests; a deleted account's open session kept working as well. An open board or list also kept receiving live card updates after its viewer was removed from the project or suspended, and notifications about new comments kept reaching people who had left the project.
+- **Security: registering someone else's address no longer works.** Someone could register an address they did not own, wait for its owner to click the genuine verification email, and then sign in with the password they had chosen, inheriting the owner's project invitations. Registering again before the address is verified now replaces the earlier attempt and its link, invitations become memberships only once the address is verified, and adding an unverified address to a project sends an invitation instead.
+- **Resetting your password signs out your API tokens and connected apps.** A token or an MCP connection created by whoever knew the old password used to keep working after the reset. Run `completo config` again, and reconnect Claude or other MCP clients, after a reset.
+- **Security: client metadata documents can no longer reach internal addresses.** A third-party OAuth client identified by its URL could point Completo at a redirect or a name resolving to the server's own network.
+
+### CLI
+
+- **A `.completo.local` that changes the server must also bring its own token.** A `.completo.local` arriving with a cloned repository could set only `COMPLETO_URL`, and the CLI then sent your token from `~/.completo/.env` to that server. It now refuses to run and says why.
+
+### Upgrading
+
+- **Microsoft sign-in needs one setting in Azure.** In the app registration, under Token configuration, add the optional claims `email` and `xms_edov` to the ID token. Without them, Microsoft sign-in refuses everyone with "Microsoft could not confirm your email address". `NUXT_OAUTH_MICROSOFT_TENANT` now takes effect; it was ignored before and `common` was always used, which remains the default.
 
 ## v0.14.0 (2026-11-03)
 

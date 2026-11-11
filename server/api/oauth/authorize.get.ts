@@ -4,7 +4,7 @@
  * consent on a user's behalf.
  */
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
+  const { session } = await requireActiveSession(event)
   try {
     const req = await parseAuthorizeRequest(event, getQuery(event))
     return {

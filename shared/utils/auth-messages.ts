@@ -8,3 +8,12 @@
  */
 export const DOMAIN_RESTRICTED_MESSAGE
   = 'Registration is restricted to approved email domains. If you were invited, open the link in your invitation email to finish signing up.'
+
+/**
+ * Shown when Microsoft sign-in cannot vouch for the address (no `xms_edov`, see
+ * `server/routes/auth/microsoft.get.ts`). Either the organisation has not verified
+ * the email's domain, or this instance's app registration lacks the optional claim;
+ * the user cannot tell which, so the message names the way in that always works.
+ */
+export const OAUTH_UNVERIFIED_MESSAGE
+  = 'Microsoft could not confirm your email address. Sign in with your password instead, or ask your administrator.'
