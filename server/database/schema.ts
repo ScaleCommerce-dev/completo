@@ -11,6 +11,11 @@ export const users = sqliteTable('users', {
   colorMode: text('color_mode'),
   isAdmin: integer('is_admin').notNull().default(0),
   suspendedAt: integer('suspended_at', { mode: 'timestamp' }),
+  // Every session is issued with the value this held at sign-in, and one that no
+  // longer matches is refused (requireActiveSession). A password reset or change
+  // increments it, which ends every other sign-in: sealed cookies live on the
+  // client, so this is the only way to revoke them.
+  sessionVersion: integer('session_version').notNull().default(0),
   emailVerifiedAt: integer('email_verified_at', { mode: 'timestamp' }),
   lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }),
   // Opt-out for card-activity emails (assigned / mentioned). On by default, so

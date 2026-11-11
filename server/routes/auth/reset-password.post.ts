@@ -41,8 +41,9 @@ export default defineEventHandler(async (event) => {
   db.delete(schema.apiTokens).where(eq(schema.apiTokens.userId, user.id)).run()
   db.delete(schema.oauthGrants).where(eq(schema.oauthGrants.userId, user.id)).run()
 
-  // Auto-sign in
-  await setAuthSession(event, user)
+  // Every other sign-in ends, including one a past holder of the password still has
+  // open; the person resetting is signed in fresh.
+  await rotateSessions(event, user)
 
   return { ok: true }
 })

@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 
 interface SessionUser {
   id: string
@@ -36,7 +36,34 @@ export async function setAuthSession(
   user: { id: string, email: string, name: string, avatarUrl: string | null, colorMode: string | null, isAdmin: number | boolean | null },
   overrides?: Partial<Pick<SessionUser, 'name' | 'avatarUrl' | 'colorMode' | 'isAdmin'>>
 ) {
-  await setUserSession(event, { user: buildSessionUser(user, overrides) })
+  // Stamp the user's current session version, read here rather than passed in so
+  // that no caller can issue a session from a stale row (see requireActiveSession).
+  const row = db.select({ sessionVersion: schema.users.sessionVersion })
+    .from(schema.users)
+    .where(eq(schema.users.id, user.id))
+    .get()
+  await setUserSession(event, { user: buildSessionUser(user, overrides), sessionVersion: row?.sessionVersion ?? 0 })
+}
+
+/**
+ * End every sign-in the user has. For a password reset or change: whoever knew the
+ * old password may hold a session, and a sealed cookie cannot be revoked any other
+ * way. API tokens and OAuth grants are separate credentials and are not touched.
+ */
+export function endAllSessions(userId: string) {
+  db.update(schema.users)
+    .set({ sessionVersion: sql`${schema.users.sessionVersion} + 1` })
+    .where(eq(schema.users.id, userId))
+    .run()
+}
+
+/** endAllSessions, then sign this request back in with a fresh session. */
+export async function rotateSessions(
+  event: H3Event,
+  user: Parameters<typeof setAuthSession>[1]
+) {
+  endAllSessions(user.id)
+  await setAuthSession(event, user)
 }
 
 /**

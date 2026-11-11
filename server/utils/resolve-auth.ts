@@ -110,11 +110,12 @@ export async function resolveAuth(event: H3Event): Promise<AuthResult> {
 }
 
 /**
- * A cookie session whose user still exists, is human and is not suspended.
+ * A cookie session whose user still exists, is human, is not suspended, and was
+ * issued since their last password reset or change.
  *
- * The cookie is sealed and carries no expiry, so suspending or deleting a user
- * invalidates nothing on the client: this database read is the only thing that
- * does. It used to live only in the `check-suspended` middleware, which skips any
+ * The cookie is sealed and lives on the client until its maxAge, so suspending or
+ * deleting a user or changing their password invalidates nothing there: this
+ * database read is the only thing that does. It used to live only in the `check-suspended` middleware, which skips any
  * request with a `Bearer dzo…` header so that tokens are checked here instead —
  * and `Bearer dzox` matched that skip but neither token branch above, so a
  * suspended user kept full access by adding one header. Every session-only
@@ -130,7 +131,8 @@ export async function requireActiveSession(event: H3Event) {
     kind: schema.users.kind,
     color: schema.users.color,
     managedById: schema.users.managedById,
-    suspendedAt: schema.users.suspendedAt
+    suspendedAt: schema.users.suspendedAt,
+    sessionVersion: schema.users.sessionVersion
   })
     .from(schema.users)
     .where(eq(schema.users.id, session.user.id))
@@ -138,7 +140,10 @@ export async function requireActiveSession(event: H3Event) {
 
   // A deleted user's cookie, or a session naming an agent: every sign-in path
   // refuses an agent, so such a session was not issued by this server as it is now.
-  if (!freshUser || freshUser.kind === 'agent') {
+  // Or a session from before a password reset or change (setAuthSession stamps the
+  // version; a cookie from before versions existed counts as 0, the column default).
+  const issuedVersion = typeof session.sessionVersion === 'number' ? session.sessionVersion : 0
+  if (!freshUser || freshUser.kind === 'agent' || issuedVersion !== freshUser.sessionVersion) {
     await dropSession(event)
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }

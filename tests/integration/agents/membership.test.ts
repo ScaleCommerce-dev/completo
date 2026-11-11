@@ -153,7 +153,7 @@ describe('Agents: project membership', () => {
   })
 
   describe('removing', () => {
-    it('takes the manager\'s agents out with them, unassigning the agents\' cards there', async () => {
+    it('takes the manager\'s agents out with them, unassigning their cards and the agents\' there', async () => {
       const project = await createTestProject(owner)
       await addMember(owner, project.id, manager.id)
       const agent = await createTestAgent(manager)
@@ -166,12 +166,13 @@ describe('Agents: project membership', () => {
 
       const result = await $fetch(`/api/projects/${project.id}/members/${manager.id}`, { method: 'DELETE', headers: owner.headers }) as { removedAgents: Array<{ id: string }>, unassignedCards: number }
       expect(result.removedAgents.map(a => a.id)).toEqual([agent.id])
-      expect(result.unassignedCards).toBe(1)
+      // The manager's own card and the agent's.
+      expect(result.unassignedCards).toBe(2)
 
       expect((await members(owner, project.id)).map(m => m.id)).not.toContain(agent.id)
       expect((await $fetch(`/api/cards/${card.id}`, { headers: owner.headers }) as { assigneeId: string | null }).assigneeId).toBeNull()
-      // A person's cards keep their name, as before.
-      expect((await $fetch(`/api/cards/${humanCard.id}`, { headers: owner.headers }) as { assigneeId: string | null }).assigneeId).toBe(manager.id)
+      // A person who leaves is unassigned too, so they drop off the card's notifications.
+      expect((await $fetch(`/api/cards/${humanCard.id}`, { headers: owner.headers }) as { assigneeId: string | null }).assigneeId).toBeNull()
     })
 
     it('lets a manager take their own agent out of a project they are only a member of', async () => {

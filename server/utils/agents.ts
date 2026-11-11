@@ -80,7 +80,7 @@ export function projectsLostOnTransfer(agentProjectIds: string[], manager: { isA
   return agentProjectIds.filter(id => !manager.projectIds.has(id))
 }
 
-// ─── Lookups ─────────────────────────────────────────────────────────────────
+// âââ Lookups âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export function loadUserRow(id: string) {
   return db.select().from(schema.users).where(eq(schema.users.id, id)).get()
@@ -155,7 +155,7 @@ export function agentSearchCondition(q: string) {
   return sql`(${schema.users.name} LIKE ${pattern} ESCAPE '\\' OR ${schema.users.description} LIKE ${pattern} ESCAPE '\\')`
 }
 
-// ─── Guards ──────────────────────────────────────────────────────────────────
+// âââ Guards ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 /** The caller may create agents: an admin, or a person an admin allowed. */
 export async function requireAgentCreator(event: H3Event) {
@@ -233,7 +233,7 @@ export function readAgentFields(body: { name?: unknown, description?: unknown, c
   return fields
 }
 
-// ─── Changes ─────────────────────────────────────────────────────────────────
+// âââ Changes âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 /**
  * Suspend agents and revoke every credential they hold. Revoking rather than
@@ -266,23 +266,25 @@ export function suspendAgents(agentIds: string[]): number {
 }
 
 /**
- * Take one agent out of one project. Its cards there are unassigned: an agent
- * that can no longer open a project cannot work on them, so leaving its name on
- * them would hide that nobody is. Each card's history says so, against `actor`:
- * whoever's request took the agent out, directly or by removing its manager.
+ * Take one member, person or agent, out of one project. Their cards there are
+ * unassigned: someone who can no longer open a project cannot work on them, so
+ * leaving their name on them would hide that nobody is — and for a person it
+ * also kept them on the card's notification list after they left. Each card's
+ * history says so, against `actor`: whoever's request took the member out,
+ * directly or, for an agent, by removing its manager.
  */
-export function removeAgentFromProject(agentId: string, projectId: string, actor: HistoryActor): number {
+export function removeFromProject(memberId: string, projectId: string, actor: HistoryActor): number {
   const unassigned = db.transaction(() => {
     db.delete(schema.projectMembers)
-      .where(and(eq(schema.projectMembers.projectId, projectId), eq(schema.projectMembers.userId, agentId)))
+      .where(and(eq(schema.projectMembers.projectId, projectId), eq(schema.projectMembers.userId, memberId)))
       .run()
     const cards = db.update(schema.cards)
       .set({ assigneeId: null, updatedAt: new Date() })
-      .where(and(eq(schema.cards.projectId, projectId), eq(schema.cards.assigneeId, agentId)))
+      .where(and(eq(schema.cards.projectId, projectId), eq(schema.cards.assigneeId, memberId)))
       .returning({ id: schema.cards.id })
       .all()
-    const agent = userSide(agentId)
-    recordCardEvents(actor, cards.map(c => ({ cardId: c.id, field: 'assignee' as const, from: agent, to: null })))
+    const member = userSide(memberId)
+    recordCardEvents(actor, cards.map(c => ({ cardId: c.id, field: 'assignee' as const, from: member, to: null })))
     return cards.length
   })
   if (unassigned) emitViewChange(projectId)
@@ -304,7 +306,7 @@ export function removeManagedAgentsFromProject(managerId: string, projectId: str
     ))
     .all()
   let unassignedCards = 0
-  for (const agent of agents) unassignedCards += removeAgentFromProject(agent.id, projectId, actor)
+  for (const agent of agents) unassignedCards += removeFromProject(agent.id, projectId, actor)
   return { agents, unassignedCards }
 }
 
@@ -345,7 +347,7 @@ export function planAgentMemberships(agentIds: string[], manager: { id: string, 
 /** Remove agents from every project `manager` is not in, keeping the invariant. */
 export function pruneAgentMemberships(agentIds: string[], manager: { id: string, isAdmin: number | boolean }, actor: HistoryActor): LostMembership[] {
   const lost = planAgentMemberships(agentIds, manager)
-  for (const m of lost) removeAgentFromProject(m.agentId, m.projectId, actor)
+  for (const m of lost) removeFromProject(m.agentId, m.projectId, actor)
   return lost
 }
 
@@ -384,7 +386,7 @@ export function loadAgentsForBulk(agentIds: unknown) {
   return agents
 }
 
-// ─── Response shapes ─────────────────────────────────────────────────────────
+// âââ Response shapes âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 type AgentRow = typeof schema.users.$inferSelect
 

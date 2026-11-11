@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (target?.kind === 'agent') {
-    const unassignedCards = targetMembership ? removeAgentFromProject(userId!, project.id, user) : 0
+    const unassignedCards = targetMembership ? removeFromProject(userId!, project.id, user) : 0
     return { ok: true, removedAgents: [], unassignedCards }
   }
 
@@ -56,12 +56,19 @@ export default defineEventHandler(async (event) => {
     actorId: user.id
   })
 
-  db.delete(schema.projectMembers)
-    .where(and(
-      eq(schema.projectMembers.projectId, project.id),
-      eq(schema.projectMembers.userId, userId!)
-    ))
-    .run()
+  // A person who can no longer open the project is unassigned from its cards, as an
+  // agent is. An admin still reaches every project, so their cards stay theirs.
+  let ownCards = 0
+  if (target?.isAdmin) {
+    db.delete(schema.projectMembers)
+      .where(and(
+        eq(schema.projectMembers.projectId, project.id),
+        eq(schema.projectMembers.userId, userId!)
+      ))
+      .run()
+  } else if (targetMembership) {
+    ownCards = removeFromProject(userId!, project.id, user)
+  }
 
   // The membership invariant: an agent is only in projects its manager is in, so
   // the agents this person manages leave with them. An admin's agents are the
@@ -70,5 +77,5 @@ export default defineEventHandler(async (event) => {
     ? removeManagedAgentsFromProject(userId!, project.id, user)
     : { agents: [], unassignedCards: 0 }
 
-  return { ok: true, removedAgents: agents, unassignedCards }
+  return { ok: true, removedAgents: agents, unassignedCards: ownCards + unassignedCards }
 })

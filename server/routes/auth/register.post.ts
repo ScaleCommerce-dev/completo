@@ -105,15 +105,13 @@ export default defineEventHandler(async (event) => {
 
   // Valid invitation: email ownership proven by the token — skip verification, auto-sign in
   if (validInvitation) {
-    await setUserSession(event, {
-      user: {
-        id: userId,
-        email: normalizedEmail,
-        name,
-        avatarUrl: null,
-        colorMode: null,
-        isAdmin: false
-      }
+    await setAuthSession(event, {
+      id: userId,
+      email: normalizedEmail,
+      name,
+      avatarUrl: null,
+      colorMode: null,
+      isAdmin: false
     })
 
     return {

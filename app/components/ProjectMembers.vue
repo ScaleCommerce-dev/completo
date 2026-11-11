@@ -298,7 +298,8 @@ watch(pendingRemove, () => {
 const removeDescription = computed(() => {
   const m = pendingRemove.value
   if (m && isAgent(m)) return 'It loses access to this project. Its comments and uploads stay.'
-  return 'They lose access to this project and are notified. Cards assigned to them keep their name.'
+  if (m?.isAdmin) return 'They are notified. As an admin they still reach this project, so cards assigned to them stay theirs.'
+  return 'They lose access to this project and are notified. Cards assigned to them are unassigned; their comments and uploads stay.'
 })
 
 async function confirmRemoveMember() {
