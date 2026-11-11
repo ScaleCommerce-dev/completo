@@ -182,12 +182,16 @@ const trail = computed<Crumb[]>(() => {
                    project's star. -->
               <slot name="title-trailing" />
             </div>
-            <p
-              v-if="description"
-              class="text-sm text-muted truncate"
-            >
-              {{ description }}
-            </p>
+            <!-- A slot as well as a prop: a page whose record edits its own
+                 description in place (the agent page) puts the field here. -->
+            <slot name="description">
+              <p
+                v-if="description"
+                class="text-sm text-muted truncate"
+              >
+                {{ description }}
+              </p>
+            </slot>
           </div>
         </div>
 

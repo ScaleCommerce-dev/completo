@@ -281,220 +281,227 @@ const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.le
     :style="fadeStyle"
     @scroll="updateFade"
   >
-    <table
-      class="w-full border-collapse text-left table-fixed"
-      :style="{ minWidth: `${tableMinWidth}px` }"
-    >
-      <!-- Column sizing -->
-      <colgroup>
-        <col
-          v-for="col in columns"
-          :key="col.id"
-          :style="colWidth(col.field) ? { width: colWidth(col.field) } : undefined"
-        >
-      </colgroup>
-
-      <!-- Header. Sortable columns are real buttons carrying aria-sort — they
-           used to be bare clickable <th> elements: not focusable, no keyboard
-           activation, and visually identical to unsortable ones until hover. -->
-      <thead class="sticky top-0 z-10 bg-muted/95 backdrop-blur-sm">
-        <tr class="border-b border-default">
-          <th
+    <!-- On the list page the table is the page's content, so it sits on a card
+         like every other surface on the canvas (My Tasks frames it itself).
+         `overflow-clip`, not `hidden`: hidden makes this wrapper a scroll
+         container, and the sticky header would stick to it instead of to
+         the scroller above. -->
+    <div :class="gutter ? 'rounded-xl border border-default bg-default overflow-clip' : ''">
+      <table
+        class="w-full border-collapse text-left table-fixed"
+        :style="{ minWidth: `${tableMinWidth}px` }"
+      >
+        <!-- Column sizing -->
+        <colgroup>
+          <col
             v-for="col in columns"
             :key="col.id"
-            scope="col"
-            :class="`${TABLE_CELL_PAD} whitespace-nowrap select-none align-middle group/th text-dimmed`"
-            :aria-sort="localSortField === col.field
-              ? (localSortDirection === 'asc' ? 'ascending' : 'descending')
-              : (SORTABLE_FIELDS.has(col.field) ? 'none' : undefined)"
+            :style="colWidth(col.field) ? { width: colWidth(col.field) } : undefined"
           >
-            <!-- The type styles live on the inner element, not the th: Tailwind's
+        </colgroup>
+
+        <!-- Header. Sortable columns are real buttons carrying aria-sort — they
+           used to be bare clickable <th> elements: not focusable, no keyboard
+           activation, and visually identical to unsortable ones until hover. -->
+        <thead class="sticky top-0 z-10 bg-table-header">
+          <tr class="border-b border-default">
+            <th
+              v-for="col in columns"
+              :key="col.id"
+              scope="col"
+              :class="`${TABLE_CELL_PAD} whitespace-nowrap select-none align-middle group/th text-dimmed`"
+              :aria-sort="localSortField === col.field
+                ? (localSortDirection === 'asc' ? 'ascending' : 'descending')
+                : (SORTABLE_FIELDS.has(col.field) ? 'none' : undefined)"
+            >
+              <!-- The type styles live on the inner element, not the th: Tailwind's
                  preflight resets `text-transform` on buttons, so sortable headers
                  rendered in sentence case while unsortable ones inherited
                  uppercase from the th. -->
-            <component
-              :is="SORTABLE_FIELDS.has(col.field) ? 'button' : 'span'"
-              :type="SORTABLE_FIELDS.has(col.field) ? 'button' : undefined"
-              class="inline-flex items-center gap-1 rounded-md"
-              :class="[
-                TABLE_HEAD_LABEL,
-                col.field === 'done' ? 'flex justify-center w-full min-h-[1lh] translate-y-px' : '',
-                SORTABLE_FIELDS.has(col.field)
-                  ? `cursor-pointer transition-colors hover:text-toned ${localSortField === col.field ? 'text-primary' : ''}`
-                  : ''
-              ]"
-              @click="SORTABLE_FIELDS.has(col.field) && toggleSort(col.field)"
-            >
-              <template v-if="col.field === 'done'">
+              <component
+                :is="SORTABLE_FIELDS.has(col.field) ? 'button' : 'span'"
+                :type="SORTABLE_FIELDS.has(col.field) ? 'button' : undefined"
+                class="inline-flex items-center gap-1 rounded-md"
+                :class="[
+                  TABLE_HEAD_LABEL,
+                  col.field === 'done' ? 'flex justify-center w-full min-h-[1lh] translate-y-px' : '',
+                  SORTABLE_FIELDS.has(col.field)
+                    ? `cursor-pointer transition-colors hover:text-toned ${localSortField === col.field ? 'text-primary' : ''}`
+                    : ''
+                ]"
+                @click="SORTABLE_FIELDS.has(col.field) && toggleSort(col.field)"
+              >
+                <template v-if="col.field === 'done'">
+                  <UIcon
+                    name="i-lucide-circle-check-big"
+                    class="text-xs"
+                  />
+                </template>
+                <template v-else>
+                  {{ fieldLabel(col.field) }}
+                </template>
                 <UIcon
-                  name="i-lucide-circle-check-big"
+                  v-if="localSortField === col.field && localSortDirection === 'asc'"
+                  name="i-lucide-arrow-up"
                   class="text-xs"
                 />
-              </template>
-              <template v-else>
-                {{ fieldLabel(col.field) }}
-              </template>
-              <UIcon
-                v-if="localSortField === col.field && localSortDirection === 'asc'"
-                name="i-lucide-arrow-up"
-                class="text-xs"
-              />
-              <UIcon
-                v-else-if="localSortField === col.field && localSortDirection === 'desc'"
-                name="i-lucide-arrow-down"
-                class="text-xs"
-              />
-              <UIcon
-                v-else-if="SORTABLE_FIELDS.has(col.field)"
-                name="i-lucide-arrow-up-down"
-                class="text-2xs opacity-0 group-hover/th:opacity-40 transition-opacity"
-              />
-            </component>
-          </th>
-        </tr>
-      </thead>
+                <UIcon
+                  v-else-if="localSortField === col.field && localSortDirection === 'desc'"
+                  name="i-lucide-arrow-down"
+                  class="text-xs"
+                />
+                <UIcon
+                  v-else-if="SORTABLE_FIELDS.has(col.field)"
+                  name="i-lucide-arrow-up-down"
+                  class="text-2xs opacity-0 group-hover/th:opacity-40 transition-opacity"
+                />
+              </component>
+            </th>
+          </tr>
+        </thead>
 
-      <tbody>
-        <tr
-          v-for="card in sortedCards"
-          :key="card.id"
-          class="list-row group cursor-pointer"
-          :class="isDone(card) ? 'list-row-done' : ''"
-          @click="emit('card-click', card)"
-        >
-          <td
-            v-for="(col, colIdx) in columns"
-            :key="col.id"
-            class="py-2 text-base relative"
-            :class="colIdx === 0 ? 'pl-3 pr-3' : 'px-3'"
+        <tbody>
+          <tr
+            v-for="card in sortedCards"
+            :key="card.id"
+            class="list-row group cursor-pointer"
+            :class="isDone(card) ? 'list-row-done' : ''"
+            @click="emit('card-click', card)"
           >
-            <!-- Priority edge bar, first cell only. Rendered only for high and
+            <td
+              v-for="(col, colIdx) in columns"
+              :key="col.id"
+              class="py-2 text-base relative"
+              :class="colIdx === 0 ? 'pl-3 pr-3' : 'px-3'"
+            >
+              <!-- Priority edge bar, first cell only. Rendered only for high and
                  urgent — an unremarkable card carries no marks. -->
-            <span
-              v-if="colIdx === 0 && priorityBarClass(card.priority)"
-              class="list-row-bar"
-              :class="priorityBarClass(card.priority)"
-            />
+              <span
+                v-if="colIdx === 0 && priorityBarClass(card.priority)"
+                class="list-row-bar"
+                :class="priorityBarClass(card.priority)"
+              />
 
-            <ListCellDone
-              v-if="col.field === 'done'"
-              :is-done="isDone(card)"
-              :disabled="!doneStatusId"
-              @toggle="toggleDone(card)"
-            />
+              <ListCellDone
+                v-if="col.field === 'done'"
+                :is-done="isDone(card)"
+                :disabled="!doneStatusId"
+                @toggle="toggleDone(card)"
+              />
 
-            <ListCellTicketId
-              v-else-if="col.field === 'ticketId'"
-              :project-key="projectKey"
-              :project-slug="projectSlug"
-              :card-id="card.id"
-            />
+              <ListCellTicketId
+                v-else-if="col.field === 'ticketId'"
+                :project-key="projectKey"
+                :project-slug="projectSlug"
+                :card-id="card.id"
+              />
 
-            <ListCellTitle
-              v-else-if="col.field === 'title'"
-              :title="card.title"
-              :is-done="isDone(card)"
-              :detail-url="detailUrl(card)"
-              :has-unread="card.hasUnread"
-            />
+              <ListCellTitle
+                v-else-if="col.field === 'title'"
+                :title="card.title"
+                :is-done="isDone(card)"
+                :detail-url="detailUrl(card)"
+                :has-unread="card.hasUnread"
+              />
 
-            <ListCellStatus
-              v-else-if="col.field === 'status'"
-              :status="card.status"
-              :status-id="card.statusId"
-              :statuses="statuses"
-              :read-only="readOnlyFields?.includes('status')"
-              :popover-open="isPopoverOpen(card.id, 'status')"
-              @select="selectStatus(card.id, $event)"
-              @update:popover-open="setPopoverOpen(card.id, 'status', $event)"
-            />
+              <ListCellStatus
+                v-else-if="col.field === 'status'"
+                :status="card.status"
+                :status-id="card.statusId"
+                :statuses="statuses"
+                :read-only="readOnlyFields?.includes('status')"
+                :popover-open="isPopoverOpen(card.id, 'status')"
+                @select="selectStatus(card.id, $event)"
+                @update:popover-open="setPopoverOpen(card.id, 'status', $event)"
+              />
 
-            <ListCellAssignee
-              v-else-if="col.field === 'assignee'"
-              :assignee="card.assignee"
-              :members="members"
-              :read-only="readOnlyFields?.includes('assignee')"
-              :popover-open="isPopoverOpen(card.id, 'assignee')"
-              @select="selectAssignee(card.id, $event)"
-              @update:popover-open="setPopoverOpen(card.id, 'assignee', $event)"
-            />
+              <ListCellAssignee
+                v-else-if="col.field === 'assignee'"
+                :assignee="card.assignee"
+                :members="members"
+                :read-only="readOnlyFields?.includes('assignee')"
+                :popover-open="isPopoverOpen(card.id, 'assignee')"
+                @select="selectAssignee(card.id, $event)"
+                @update:popover-open="setPopoverOpen(card.id, 'assignee', $event)"
+              />
 
-            <ListCellCreator
-              v-else-if="col.field === 'creator'"
-              :creator="card.creator"
-            />
+              <ListCellCreator
+                v-else-if="col.field === 'creator'"
+                :creator="card.creator"
+              />
 
-            <ListCellCount
-              v-else-if="col.field === 'commentCount'"
-              :count="card.commentCount"
-              icon="i-lucide-message-square"
-            />
+              <ListCellCount
+                v-else-if="col.field === 'commentCount'"
+                :count="card.commentCount"
+                icon="i-lucide-message-square"
+              />
 
-            <ListCellCount
-              v-else-if="col.field === 'attachmentCount'"
-              :count="card.attachmentCount"
-              icon="i-lucide-paperclip"
-            />
+              <ListCellCount
+                v-else-if="col.field === 'attachmentCount'"
+                :count="card.attachmentCount"
+                icon="i-lucide-paperclip"
+              />
 
-            <ListCellPriority
-              v-else-if="col.field === 'priority'"
-              :priority="card.priority"
-              :popover-open="isPopoverOpen(card.id, 'priority')"
-              @select="selectPriority(card.id, $event)"
-              @update:popover-open="setPopoverOpen(card.id, 'priority', $event)"
-            />
+              <ListCellPriority
+                v-else-if="col.field === 'priority'"
+                :priority="card.priority"
+                :popover-open="isPopoverOpen(card.id, 'priority')"
+                @select="selectPriority(card.id, $event)"
+                @update:popover-open="setPopoverOpen(card.id, 'priority', $event)"
+              />
 
-            <ListCellTags
-              v-else-if="col.field === 'tags'"
-              :card-tags="card.tags || []"
-              :tags="tags"
-              :read-only="readOnlyFields?.includes('tags')"
-              :popover-open="isPopoverOpen(card.id, 'tags')"
-              @toggle="toggleTag(card, $event)"
-              @update:popover-open="setPopoverOpen(card.id, 'tags', $event)"
-            />
+              <ListCellTags
+                v-else-if="col.field === 'tags'"
+                :card-tags="card.tags || []"
+                :tags="tags"
+                :read-only="readOnlyFields?.includes('tags')"
+                :popover-open="isPopoverOpen(card.id, 'tags')"
+                @toggle="toggleTag(card, $event)"
+                @update:popover-open="setPopoverOpen(card.id, 'tags', $event)"
+              />
 
-            <ListCellDueDate
-              v-else-if="col.field === 'dueDate'"
-              :due-date="card.dueDate"
-              :popover-open="isPopoverOpen(card.id, 'dueDate')"
-              @select="selectDueDate(card.id, $event)"
-              @update:popover-open="setPopoverOpen(card.id, 'dueDate', $event)"
-            />
+              <ListCellDueDate
+                v-else-if="col.field === 'dueDate'"
+                :due-date="card.dueDate"
+                :popover-open="isPopoverOpen(card.id, 'dueDate')"
+                @select="selectDueDate(card.id, $event)"
+                @update:popover-open="setPopoverOpen(card.id, 'dueDate', $event)"
+              />
 
-            <ListCellTimestamp
-              v-else-if="col.field === 'createdAt' || col.field === 'updatedAt'"
-              :value="col.field === 'createdAt' ? card.createdAt : card.updatedAt"
-            />
+              <ListCellTimestamp
+                v-else-if="col.field === 'createdAt' || col.field === 'updatedAt'"
+                :value="col.field === 'createdAt' ? card.createdAt : card.updatedAt"
+              />
 
-            <ListCellDescription
-              v-else-if="col.field === 'description'"
-              :description="card.description"
-            />
-          </td>
-        </tr>
+              <ListCellDescription
+                v-else-if="col.field === 'description'"
+                :description="card.description"
+              />
+            </td>
+          </tr>
 
-        <tr v-if="sortedCards.length === 0">
-          <td :colspan="columns.length">
-            <UEmpty
-              v-if="isFiltered"
-              icon="i-lucide-filter-x"
-              title="No cards match these filters"
-              description="Clear a filter in view settings to see more."
-              :actions="[{ label: 'Edit filters', icon: 'i-lucide-sliders-horizontal', color: 'neutral', variant: 'outline', onClick: () => emit('open-settings') }]"
-            />
-            <UEmpty
-              v-else
-              icon="i-lucide-inbox"
-              title="No cards yet"
-              description="Add the first one and it shows up here."
-              class="c2s-empty-brand"
-              :actions="[{ label: 'New card', icon: 'i-lucide-plus', onClick: () => emit('add-card') }]"
-            />
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          <tr v-if="sortedCards.length === 0">
+            <td :colspan="columns.length">
+              <UEmpty
+                v-if="isFiltered"
+                icon="i-lucide-filter-x"
+                title="No cards match these filters"
+                description="Clear a filter in view settings to see more."
+                :actions="[{ label: 'Edit filters', icon: 'i-lucide-sliders-horizontal', color: 'neutral', variant: 'outline', onClick: () => emit('open-settings') }]"
+              />
+              <UEmpty
+                v-else
+                icon="i-lucide-inbox"
+                title="No cards yet"
+                description="Add the first one and it shows up here."
+                class="c2s-empty-brand"
+                :actions="[{ label: 'New card', icon: 'i-lucide-plus', onClick: () => emit('add-card') }]"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 

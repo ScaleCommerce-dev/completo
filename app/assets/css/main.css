@@ -672,6 +672,10 @@
 .title-field {
   font: inherit;
   letter-spacing: inherit;
+  /* As wide as what it holds, so whatever trails the title (the agent's chip)
+     sits beside the name rather than after a field's default width. Where
+     `field-sizing` is not supported the `size` attribute approximates it. */
+  field-sizing: content;
 }
 
 /* ─── Counters beside titles (handoff `02` › Farben › Badge) ─────────────────
@@ -1231,6 +1235,14 @@
 }
 @media (max-width: 620px) {
   .auth-title { font-size: 34px; }
+}
+/* A line of explanation under the title belongs to it: 8px under the title,
+   the title's own 28px after it. */
+.auth-title:has(+ p) {
+  margin-bottom: 8px;
+}
+.auth-title + p {
+  margin-bottom: 28px;
 }
 
 /* The page's form block. Was a glass card on a decorated page; on a plain

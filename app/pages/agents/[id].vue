@@ -235,94 +235,122 @@ function formatDate(iso: string) {
     :title="agent?.name"
     :crumbs="[{ label: 'Agents', to: '/agents' }]"
   >
-    <template v-if="agent">
-      <!-- Identity -->
-      <div class="flex flex-wrap sm:flex-nowrap items-start gap-4">
-        <UiAvatar
-          :alt="agent.name"
-          kind="agent"
-          :color="agent.color"
-          size="xl"
-          class="shrink-0"
+    <!--
+      A detail page (handoff `03` › Seitentypen › Detail): the agent's own name
+      is the page heading and edits in place, its description sits under it,
+      and Transfer is the page's action. It was a 26px "Claude" over a second,
+      editable "Claude" in an identity block below.
+    -->
+    <template
+      v-if="agent"
+      #leading
+    >
+      <UiAvatar
+        :alt="agent.name"
+        kind="agent"
+        :color="agent.color"
+        size="lg"
+        class="shrink-0"
+      />
+    </template>
+    <template
+      v-if="agent"
+      #title
+    >
+      <input
+        v-model="nameDraft"
+        type="text"
+        aria-label="Agent name"
+        maxlength="100"
+        :size="Math.max(nameDraft.length, 4)"
+        class="title-field block min-w-0 max-w-full text-highlighted bg-transparent border-0 rounded-none p-0"
+        @blur="commitName"
+        @keydown.enter.prevent="($event.target as HTMLInputElement).blur()"
+        @keydown.esc.prevent="revert('name', $event)"
+      >
+    </template>
+    <template
+      v-if="agent"
+      #title-trailing
+    >
+      <span class="flex items-center gap-2 ml-2.5 shrink-0">
+        <UiAgentChip />
+        <UBadge
+          v-if="agent.suspended"
+          color="error"
+          label="Suspended"
         />
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-2 min-w-0">
-            <input
-              v-model="nameDraft"
-              type="text"
-              aria-label="Agent name"
-              maxlength="100"
-              class="min-w-0 flex-1 max-w-md text-lg font-bold text-highlighted bg-transparent border-0 border-b border-transparent hover:not-focus-visible:border-default rounded-none tracking-heading leading-tight py-0.5 transition-colors"
-              @blur="commitName"
-              @keydown.enter.prevent="($event.target as HTMLInputElement).blur()"
-              @keydown.esc.prevent="revert('name', $event)"
-            >
-            <UiAgentChip />
-            <UBadge
-              v-if="agent.suspended"
-              color="error"
-              label="Suspended"
-            />
-          </div>
-          <input
-            v-model="descriptionDraft"
-            type="text"
-            aria-label="Description"
-            placeholder="Add a description: what it does"
-            maxlength="500"
-            class="mt-0.5 w-full max-w-xl text-sm text-muted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent hover:not-focus-visible:border-default rounded-none py-0.5 transition-colors"
-            @blur="commitDescription"
-            @keydown.enter.prevent="($event.target as HTMLInputElement).blur()"
-            @keydown.esc.prevent="revert('description', $event)"
-          >
+      </span>
+    </template>
+    <template
+      v-if="agent"
+      #description
+    >
+      <input
+        v-model="descriptionDraft"
+        type="text"
+        aria-label="Description"
+        placeholder="Add a description: what it does"
+        maxlength="500"
+        class="w-full max-w-xl text-sm text-muted placeholder:text-dimmed bg-transparent border-0 rounded-none p-0"
+        @blur="commitDescription"
+        @keydown.enter.prevent="($event.target as HTMLInputElement).blur()"
+        @keydown.esc.prevent="revert('description', $event)"
+      >
+    </template>
+    <template
+      v-if="agent && isAdmin"
+      #actions
+    >
+      <UButton
+        label="Transfer to…"
+        icon="i-lucide-arrow-right-left"
+        color="neutral"
+        variant="outline"
+        @click="showTransfer = true"
+      />
+    </template>
 
-          <div class="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-dimmed">
-            <UiManagedBy :manager="agent.managedBy" />
-            <span class="flex items-center gap-1">
-              Colour
-              <UPopover v-model:open="colorOpen">
-                <UButton
-                  variant="ghost"
-                  color="neutral"
-                  size="xs"
-                  trailing-icon="i-lucide-chevron-down"
-                  :aria-label="`Colour, ${agent.color ?? 'none'}. Change`"
-                >
-                  <span
-                    class="swatch-dot size-2.5 rounded-full"
-                    :style="{ '--swatch': agent.color ?? undefined }"
+    <template v-if="agent">
+      <!-- The record's metadata, one line under the header. -->
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-dimmed">
+          <UiManagedBy :manager="agent.managedBy" />
+          <span class="flex items-center gap-1">
+            Colour
+            <UPopover v-model:open="colorOpen">
+              <UButton
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                trailing-icon="i-lucide-chevron-down"
+                :aria-label="`Colour, ${agent.color ?? 'none'}. Change`"
+              >
+                <span
+                  class="swatch-dot size-2.5 rounded-full"
+                  :style="{ '--swatch': agent.color ?? undefined }"
+                />
+                <span class="font-mono text-muted">{{ agent.color ?? 'none' }}</span>
+              </UButton>
+              <template #content>
+                <div class="p-3 w-40">
+                  <ColorPicker
+                    :model-value="agent.color ?? COLOR_PALETTE[0]"
+                    @update:model-value="commitColor"
                   />
-                  <span class="font-mono text-muted">{{ agent.color ?? 'none' }}</span>
-                </UButton>
-                <template #content>
-                  <div class="p-3 w-40">
-                    <ColorPicker
-                      :model-value="agent.color ?? COLOR_PALETTE[0]"
-                      @update:model-value="commitColor"
-                    />
-                  </div>
-                </template>
-              </UPopover>
-            </span>
-            <span>Created {{ formatDate(agent.createdAt) }}</span>
-            <span :title="agent.lastSeenAt ? formatTimestamp(agent.lastSeenAt) : undefined">
-              Last active {{ agent.lastSeenAt ? relativeTime(agent.lastSeenAt) : 'never' }}
-            </span>
-            <span
-              class="font-mono"
-              title="Generated. It never receives email."
-            >{{ agent.email }}</span>
-          </div>
+                </div>
+              </template>
+            </UPopover>
+          </span>
+          <span>Created {{ formatDate(agent.createdAt) }}</span>
+          <span :title="agent.lastSeenAt ? formatTimestamp(agent.lastSeenAt) : undefined">
+            Last active {{ agent.lastSeenAt ? relativeTime(agent.lastSeenAt) : 'never' }}
+          </span>
+          <span
+            class="font-mono"
+            title="Generated. It never receives email."
+          >{{ agent.email }}</span>
         </div>
-        <UButton
-          v-if="isAdmin"
-          label="Transfer to…"
-          icon="i-lucide-arrow-right-left"
-          color="neutral"
-          variant="outline"
-          class="shrink-0"
-          @click="showTransfer = true"
-        />
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-6 items-start">
@@ -334,7 +362,7 @@ function formatDate(iso: string) {
               class="text-base text-dimmed"
             />
             <span class="text-xs font-semibold uppercase tracking-label text-dimmed">API tokens</span>
-            <span class="ml-auto font-mono tabular-nums text-xs text-dimmed">{{ tokens.length }}</span>
+            <span class="ml-auto c2s-count">{{ tokens.length }}</span>
           </div>
 
           <div class="px-card pb-3">
@@ -535,7 +563,7 @@ function formatDate(iso: string) {
                 class="text-base text-dimmed"
               />
               <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Projects</span>
-              <span class="ml-auto font-mono tabular-nums text-xs text-dimmed">{{ agent.projectCount }}</span>
+              <span class="ml-auto c2s-count">{{ agent.projectCount }}</span>
             </div>
             <div
               v-if="agent.projects.length"

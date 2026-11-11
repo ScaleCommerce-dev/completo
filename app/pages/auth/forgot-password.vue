@@ -64,7 +64,7 @@ async function requestReset() {
       <h2 class="auth-title">
         Reset your password
       </h2>
-      <p class="text-sm text-center text-muted mt-1">
+      <p class="text-base text-muted">
         Enter your email and we'll send you a reset link
       </p>
     </div>
@@ -92,7 +92,7 @@ async function requestReset() {
       <div>
         <UButton
           type="submit"
-          label="Send Reset Link"
+          label="Send reset link"
           block
           :loading="loading"
           size="lg"

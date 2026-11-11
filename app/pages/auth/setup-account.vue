@@ -38,7 +38,7 @@ async function setupAccount() {
       <h2 class="auth-title">
         Set up your account
       </h2>
-      <p class="text-sm text-center text-muted mt-1">
+      <p class="text-base text-muted">
         Enter your name and choose a password
       </p>
     </div>
@@ -78,7 +78,7 @@ async function setupAccount() {
       <div>
         <UButton
           type="submit"
-          label="Set Password & Sign In"
+          label="Set password and sign in"
           block
           :loading="loading"
           size="lg"

@@ -37,7 +37,7 @@ async function resetPassword() {
       <h2 class="auth-title">
         Set a new password
       </h2>
-      <p class="text-sm text-center text-muted mt-1">
+      <p class="text-base text-muted">
         Choose a new password for your account
       </p>
     </div>
@@ -47,7 +47,7 @@ async function resetPassword() {
       @submit.prevent="resetPassword"
     >
       <UFormField
-        label="New Password"
+        label="New password"
       >
         <UInput
           v-model="password"
@@ -65,7 +65,7 @@ async function resetPassword() {
       <div>
         <UButton
           type="submit"
-          label="Reset Password & Sign In"
+          label="Reset password and sign in"
           block
           :loading="loading"
           size="lg"
