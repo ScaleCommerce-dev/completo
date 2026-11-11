@@ -12,9 +12,17 @@ interface CreateCardParams {
     assigneeId?: string
     dueDate?: string | null
   }
+  /**
+   * Tags to attach in the same transaction as the card, already validated as this
+   * project's by the caller. Outside `body` on purpose: `POST /projects/:id/cards`
+   * passes its request body straight through, and its clients set tags with
+   * `PUT /cards/:id/tags` afterwards — this is for callers that must not leave a
+   * card behind without the tags that decide which boards show it.
+   */
+  tags?: Array<{ id: string, name: string }>
 }
 
-export function createCard({ projectId, userId, userName, body }: CreateCardParams) {
+export function createCard({ projectId, userId, userName, body, tags = [] }: CreateCardParams) {
   const { statusId, title, description, priority, assigneeId, dueDate } = body
 
   if (!statusId || !title) {
@@ -45,7 +53,7 @@ export function createCard({ projectId, userId, userName, body }: CreateCardPara
       .all()
       .reduce((max, r) => Math.max(max, r.pos), -1)
 
-    return db.insert(schema.cards).values({
+    const row = db.insert(schema.cards).values({
       statusId,
       projectId,
       title,
@@ -56,6 +64,18 @@ export function createCard({ projectId, userId, userName, body }: CreateCardPara
       position: maxPos + 1,
       createdById: userId
     }).returning().get()
+
+    for (const tag of tags) {
+      db.insert(schema.cardTags).values({ id: crypto.randomUUID(), cardId: row.id, tagId: tag.id }).run()
+    }
+    // Same events `PUT /cards/:id/tags` writes when a hand-made card is tagged.
+    recordCardEvents({ id: userId, name: userName }, tags.map(tag => ({
+      cardId: row.id,
+      field: 'tag' as const,
+      to: { id: tag.id, value: tag.name }
+    })))
+
+    return row
   })
 
   // Notifications: assignment + mentions on card creation
