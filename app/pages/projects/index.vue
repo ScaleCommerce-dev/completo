@@ -25,6 +25,16 @@ interface ProjectListItem {
 
 const { data: projects, refresh } = await useFetch<ProjectListItem[]>('/api/projects')
 const { refreshProjects } = useNavigation()
+const { user } = useUserSession()
+
+/**
+ * Owners, and every admin. `role` alone is not enough: the list reports an
+ * admin's real membership, so an admin who is a plain member reads 'member'
+ * here, while the project page grants them owner access and shows Settings.
+ */
+function canEditProject(project: ProjectListItem) {
+  return !!user.value?.isAdmin || project.role === 'owner'
+}
 
 /**
  * Starred first, then the rest — each alphabetical, which is the API's order.
@@ -190,7 +200,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
             -->
             <div class="relative z-10 flex items-center gap-0.5 -mt-1 -mr-1.5 shrink-0">
               <UButton
-                v-if="project.role === 'owner' || project.role === 'admin'"
+                v-if="canEditProject(project)"
                 :aria-label="`Settings for ${project.name}`"
                 icon="i-lucide-settings"
                 variant="ghost"
