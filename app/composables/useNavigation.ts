@@ -33,6 +33,11 @@ export function useNavigation() {
   const toast = useToast()
 
   const topItems = computed<NavItem[]>(() => [
+    // Here, not in the page header: they are the signed-in person's, on every
+    // page, and in the header they sat between a project's name and its
+    // Settings as if they belonged to the project. The unread count is added
+    // by the layout, which owns the poll.
+    { label: 'Notifications', icon: 'i-lucide-bell', to: '/notifications' },
     { label: 'My Tasks', icon: 'i-lucide-check-square', to: '/my-tasks' },
     { label: 'All Projects', icon: 'i-lucide-layout-grid', to: '/projects' },
     // In the top group rather than under Admin: people an admin allows

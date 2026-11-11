@@ -1,13 +1,9 @@
 <script setup lang="ts">
-const { unreadCount, refreshUnreadCount } = useNotifications()
-
-const unreadPoll = ref<ReturnType<typeof setInterval>>()
-onMounted(() => {
-  unreadPoll.value = setInterval(refreshUnreadCount, 30000)
-})
-onUnmounted(() => {
-  if (unreadPoll.value) clearInterval(unreadPoll.value)
-})
+/**
+ * The header bell, below `lg` only: from `lg` up, notifications are a sidebar
+ * row (see `ui/Page.vue`). The fallback poll moved to the layout with them.
+ */
+const { unreadCount } = useNotifications()
 </script>
 
 <template>

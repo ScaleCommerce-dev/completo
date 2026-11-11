@@ -10,11 +10,11 @@ interface NotificationEvent {
  * Live notifications for the signed-in user.
  *
  * Opens one `EventSource('/api/notifications/stream')` for the session and, on
- * each pushed notification, refreshes the bell's unread count and raises a toast.
+ * each pushed notification, refreshes the unread count and raises a toast.
  * Meant to be called once from the persistent app shell (`layouts/default.vue`)
  * so it survives page navigation rather than reconnecting on every route change.
  *
- * The 30s poll in `NotificationBell` stays as the fallback: if this connection
+ * The 30s poll in `layouts/default.vue` stays as the fallback: if this connection
  * drops, the count still catches up within a poll interval. Guarded to the
  * browser (`EventSource` is absent under SSR / the node test runner) and to a
  * signed-in session.

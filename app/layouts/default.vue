@@ -23,6 +23,32 @@ const colorMode = useColorMode()
 // navigations) rather than in NotificationBell, which remounts per page.
 useNotificationStream()
 
+/**
+ * The unread count rides on the sidebar's Notifications row. The 30s poll is the
+ * stream's fallback (see `useNotificationStream`) and lives here because the
+ * sidebar is the one place that never remounts.
+ */
+const { unreadCount, refreshUnreadCount } = useNotifications()
+let unreadPoll: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  unreadPoll = setInterval(refreshUnreadCount, 30000)
+})
+onUnmounted(() => clearInterval(unreadPoll))
+
+/** `slot` routes the row to `#notifications-leading`, which hangs the collapsed rail's dot. */
+const sidebarSections = computed(() => navSections.value.map(section => ({
+  ...section,
+  items: section.items.map(item => item.to === '/notifications'
+    ? {
+        ...item,
+        slot: 'notifications',
+        badge: unreadCount.value > 0
+          ? { label: unreadCount.value > 99 ? '99+' : String(unreadCount.value), color: 'primary' as const, variant: 'soft' as const }
+          : undefined
+      }
+    : item)
+})))
+
 /** The three states `UColorModeButton` cycles, as command-palette rows. */
 const COLOR_MODES = [
   { value: 'system', label: 'System theme', icon: 'i-lucide-monitor' },
@@ -282,7 +308,7 @@ watch(searchOpen, (open) => {
         </UDashboardSearchButton>
 
         <template
-          v-for="(section, i) in navSections"
+          v-for="(section, i) in sidebarSections"
           :key="i"
         >
           <UiSectionLabel
@@ -297,7 +323,22 @@ watch(searchOpen, (open) => {
             :tooltip="collapsed"
             orientation="vertical"
             :ui="{ link: 'font-medium' }"
-          />
+          >
+            <!-- Collapsed, the rail has no room for the count badge, so unread
+                 shows as a dot on the glyph instead. -->
+            <template #notifications-leading="{ item, ui, active }">
+              <UChip
+                :show="collapsed && unreadCount > 0"
+                size="sm"
+                inset
+              >
+                <UIcon
+                  :name="item.icon!"
+                  :class="ui.linkLeadingIcon({ active })"
+                />
+              </UChip>
+            </template>
+          </UNavigationMenu>
           <!--
             An empty section says how to fill it rather than vanishing — as a
             caption under its heading, not as a row. Dressed as a nav link in dim

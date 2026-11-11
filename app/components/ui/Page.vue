@@ -35,6 +35,13 @@ const WIDTHS = {
   default: 'max-w-5xl',
   wide: 'max-w-7xl'
 }
+
+/** The same measures as `WIDTHS`, for the navbar to end where the body does. */
+const MEASURES = {
+  narrow: 'var(--container-2xl)',
+  default: 'var(--container-5xl)',
+  wide: 'var(--container-7xl)'
+}
 </script>
 
 <template>
@@ -46,7 +53,14 @@ const WIDTHS = {
     }"
   >
     <template #header>
+      <!-- On a document page the navbar's controls end where the body column
+           ends. The bar spans the panel and the body is capped and left-aligned,
+           so on a wide screen Settings sat a few hundred pixels past the right
+           edge of everything it configures. The border still runs full width:
+           it divides chrome from page, it doesn't frame the content. -->
       <UDashboardNavbar
+        :class="variant === 'document' ? 'page-navbar' : undefined"
+        :style="variant === 'document' ? { '--page-measure': MEASURES[width] } : undefined"
         :title="title"
         :ui="{ title: 'text-base font-extrabold tracking-heading text-highlighted' }"
       >
@@ -88,10 +102,19 @@ const WIDTHS = {
           </slot>
         </template>
 
+        <!-- Everything here belongs to the page. Notifications are the signed-in
+             person's and live in the sidebar; in this row they sat between a
+             project's members and its Settings and read as the project's own.
+             Below `lg` the sidebar is behind the menu button, so the bell comes
+             back, last — after the page's actions, at the edge, where nothing
+             of the page's follows it. -->
         <template #right>
           <slot name="meta" />
-          <NotificationBell />
           <slot name="actions" />
+          <!-- Wrapped: the bell's root is a UTooltip, which renders no element of its own to take a class. -->
+          <span class="flex lg:hidden">
+            <NotificationBell />
+          </span>
         </template>
       </UDashboardNavbar>
 
@@ -114,3 +137,20 @@ const WIDTHS = {
     </template>
   </UDashboardPanel>
 </template>
+
+<style>
+/* End padding = panel width − body gutter − measure, so the right-hand controls
+   line up with the body column's right edge; never less than the navbar's own
+   gutter. The gutters are the navbar's `px-4 sm:px-6`, which match the body's
+   `p-4 sm:p-6`. Unlayered, so this wins over the theme's `px-*` utility. Not
+   scoped: the navbar root renders through a Reka `Primitive` inside the panel's
+   slot and never receives this file's scope attribute. */
+.page-navbar {
+  padding-inline-end: max(1rem, calc(100% - var(--page-measure) - 1rem));
+}
+@media (min-width: 40rem) {
+  .page-navbar {
+    padding-inline-end: max(1.5rem, calc(100% - var(--page-measure) - 1.5rem));
+  }
+}
+</style>

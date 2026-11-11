@@ -236,16 +236,26 @@ async function confirmDeleteTag(tagId: string) {
       />
     </template>
 
+    <!-- The project's own controls, and nothing else: who is in it, then its
+         settings. Members is open to everyone in the project, read-only for
+         those who cannot edit it. -->
     <template
-      v-if="project && (project.role === 'owner' || project.role === 'admin')"
+      v-if="project"
       #actions
     >
+      <ProjectMembersButton
+        :project-id="project.id"
+        :project-name="project.name"
+      />
       <UButton
+        v-if="isOwnerOrAdmin"
         :to="`/projects?edit=${project.id}`"
         icon="i-lucide-settings"
         label="Settings"
+        aria-label="Settings"
         variant="ghost"
         color="neutral"
+        :ui="{ label: 'max-sm:hidden' }"
       />
     </template>
 
@@ -540,9 +550,9 @@ async function confirmDeleteTag(tagId: string) {
         </div>
       </div>
 
-      <!-- Views + Members side by side -->
-      <div class="lg:grid lg:grid-cols-[2fr_1fr] lg:gap-8">
-        <!-- Views (Boards + Lists) -->
+      <!-- Views take the whole width. Members were a third column here, and moved
+           to the header (`ProjectMembersButton`). -->
+      <div>
         <div>
           <h2 class="flex items-center gap-1.5 text-sm font-bold text-muted uppercase tracking-label mb-2">
             <UIcon
@@ -555,7 +565,7 @@ async function confirmDeleteTag(tagId: string) {
             Boards and lists for viewing this project's cards
           </p>
 
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <!-- Link as a stretched overlay so the delete button is its sibling
                  rather than its child: a `<button>` inside an `<a>` is invalid
                  and there is no valid way to nest them. -->
@@ -645,24 +655,6 @@ async function confirmDeleteTag(tagId: string) {
               </div>
             </button>
           </div>
-        </div>
-
-        <!-- Members -->
-        <div class="max-lg:mt-8">
-          <h2 class="flex items-center gap-1.5 text-sm font-bold text-muted uppercase tracking-label mb-2">
-            <UIcon
-              name="i-lucide-users"
-              class="text-base"
-            />
-            Members
-          </h2>
-          <p class="text-xs text-dimmed mb-4">
-            People and agents with access to this project
-          </p>
-          <ProjectMembers
-            :project-id="project.id"
-            :project-name="project.name"
-          />
         </div>
       </div>
 

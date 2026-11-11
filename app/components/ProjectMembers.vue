@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui/runtime/components/DropdownMenu.vue'
 import type { Member } from '~/types/card'
-
-interface ProjectMember extends Member {
-  role: 'owner' | 'member'
-  /** Agents only: how many cards it holds here, which removing it unassigns. */
-  assignedCardCount?: number | null
-  /** Sent to owners and admins only: removing an admin keeps their agents here. */
-  isAdmin?: boolean
-}
+import type { ProjectMember } from '~/composables/useProjectMembers'
 
 interface ProjectInvitation {
   id: string
@@ -31,7 +24,7 @@ const props = defineProps<{
 const { user: currentUser } = useUserSession()
 const toast = useToast()
 
-const { data: members, refresh } = useFetch<ProjectMember[]>(`/api/projects/${props.projectId}/members`)
+const { data: members, refresh } = useProjectMembers(props.projectId)
 
 /** People only: agents have their own section below them. */
 const sortedMembers = computed(() => {
@@ -347,7 +340,6 @@ const agentMembers = computed(() => [...(members.value || [])]
   .sort((a, b) => (a.managedBy?.name ?? '').localeCompare(b.managedBy?.name ?? '') || a.name.localeCompare(b.name)))
 
 const AGENTS_SHOWN = 5
-const agentsOpen = ref(true)
 const showAllAgents = ref(false)
 const visibleAgents = computed(() => showAllAgents.value ? agentMembers.value : agentMembers.value.slice(0, AGENTS_SHOWN))
 
@@ -428,7 +420,6 @@ async function addAgent(agent: AgentCandidate) {
       body: { userId: agent.id }
     })
     addAgentOpen.value = false
-    agentsOpen.value = true
     await refresh()
     toast.add({ title: `${agent.name} added to project`, color: 'success' })
   } catch (e: unknown) {
@@ -457,298 +448,174 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
 </script>
 
 <template>
-  <div>
-    <div class="rounded-xl border border-default">
-      <div
-        v-for="(m, mIdx) in (sortedMembers)"
-        :key="m.id"
-        class="flex items-center gap-2 px-3 py-2 transition-colors group"
-        :class="[
-          mIdx % 2 === 0 ? 'bg-default' : 'bg-muted',
-          mIdx === 0 ? 'rounded-t-xl' : '',
-          mIdx === (sortedMembers).length - 1 && !showAgentsSection ? 'rounded-b-xl' : ''
-        ]"
-      >
-        <UiAvatar
-          :src="m.avatarUrl ?? undefined"
-          :alt="m.name"
-          :kind="m.kind"
-          :color="m.color"
-          size="xs"
+  <!-- Laid out for the Members dialog, which is its only host. The dialog is the
+       container, so there is no bordered box or zebra striping inside it. The add
+       field comes first because adding someone is why most people open the
+       dialog. Results sit in the flow under the field, not in a floating
+       dropdown: the dialog body scrolls, so a dropdown was clipped at its edge,
+       and the invite option, which is always the last row, was what got cut. -->
+  <div class="flex flex-col gap-5">
+    <!-- Add member (owner/admin only) -->
+    <div v-if="isOwnerOrAdmin">
+      <div class="relative">
+        <UIcon
+          name="i-lucide-user-plus"
+          class="absolute left-3 top-1/2 -translate-y-1/2 text-base text-dimmed pointer-events-none"
         />
-        <span class="text-base font-medium flex-1 truncate">
-          {{ m.name }}
-          <span
-            v-if="m.id === currentUser?.id"
-            class="text-xs text-dimmed font-normal"
-          >(you)</span>
-        </span>
-        <UDropdownMenu
-          v-if="canChangeRole(m)"
-          :items="roleMenuItems(m)"
+        <input
+          v-model="searchQuery"
+          type="text"
+          aria-label="Search people, or enter an email to invite"
+          placeholder="Add people by name, or invite by email"
+          class="w-full text-sm text-highlighted placeholder:text-dimmed bg-default border border-default rounded-lg pl-9 pr-9 py-2 transition-colors"
+          @focus="searchQuery.trim().length >= 2 && (showResults = true)"
+          @blur="onInputBlur"
+          @keydown="onInputKeydown"
         >
-          <button
-            type="button"
-            class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition hover:ring-2 hover:ring-primary/20 flex items-center gap-1"
-            :class="m.role === 'owner'
-              ? 'bg-primary/10 text-primary'
-              : 'bg-elevated text-muted'"
-            :disabled="changingRole === m.id"
-          >
-            <UIcon
-              v-if="changingRole === m.id"
-              name="i-lucide-loader-2"
-              class="text-2xs animate-spin"
-            />
-            <template v-else>
-              {{ m.role }}
-              <UIcon
-                name="i-lucide-chevron-down"
-                class="text-2xs opacity-60"
-              />
-            </template>
-          </button>
-        </UDropdownMenu>
-        <span
-          v-else
-          class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0"
-          :class="m.role === 'owner'
-            ? 'bg-primary/10 text-primary'
-            : 'bg-elevated text-muted'"
-        >
-          {{ m.role }}
-        </span>
+        <UIcon
+          v-if="searching"
+          name="i-lucide-loader-2"
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-base text-dimmed animate-spin"
+        />
       </div>
 
-      <!-- Agents, under the people. Collapsible, because a project can carry a
-           team's worth of them and the people are what this list is mostly for. -->
       <div
-        v-if="showAgentsSection"
-        class="border-t border-default"
+        v-if="showResults && searchQuery.trim().length >= 2"
+        class="mt-1 flex flex-col"
       >
-        <div
-          class="flex items-center gap-1.5 bg-default px-3 py-2"
-          :class="!isOwnerOrAdmin && !agentsOpen ? 'rounded-b-xl' : ''"
+        <button
+          v-for="(u, i) in searchResults"
+          :key="u.id"
+          type="button"
+          class="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md transition-colors text-left cursor-pointer"
+          :class="i === highlightIndex ? 'bg-elevated' : 'hover:bg-elevated'"
+          :disabled="adding"
+          @mousedown.prevent="addMember(u)"
+          @mouseenter="highlightIndex = i"
         >
-          <button
-            type="button"
-            class="flex items-center gap-1.5 min-w-0"
-            :aria-expanded="agentsOpen"
-            @click="agentsOpen = !agentsOpen"
-          >
+          <UiAvatar
+            :src="u.avatarUrl ?? undefined"
+            :alt="u.name"
+            size="xs"
+          />
+          <span class="text-sm font-medium text-highlighted truncate flex-1">{{ u.name }}</span>
+          <span class="text-xs text-dimmed shrink-0">Add</span>
+        </button>
+
+        <button
+          v-if="!searching && searchResults.length === 0 && isValidEmail(searchQuery.trim())"
+          type="button"
+          class="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md transition-colors text-left cursor-pointer hover:bg-elevated"
+          :disabled="adding"
+          @mousedown.prevent="inviteByEmail"
+        >
+          <span class="flex items-center justify-center size-6 rounded-full bg-primary/10 shrink-0">
             <UIcon
-              name="i-lucide-chevron-down"
-              class="text-sm text-dimmed transition-transform duration-150"
-              :class="agentsOpen ? '' : '-rotate-90'"
+              name="i-lucide-send"
+              class="text-xs text-primary"
             />
-            <UIcon
-              name="i-lucide-bot"
-              class="text-sm text-dimmed"
-            />
-            <span class="text-2xs font-bold text-dimmed uppercase tracking-label">Agents</span>
-            <span class="text-xs font-mono tabular-nums text-dimmed">{{ agentMembers.length }}</span>
-          </button>
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-medium text-primary truncate">Invite {{ searchQuery.trim() }}</span>
+            <span class="block text-xs text-dimmed">Sends an invitation email</span>
+          </span>
+        </button>
 
-          <UPopover
-            v-if="canAddAgents"
-            v-model:open="addAgentOpen"
-            :content="{ align: 'end' }"
+        <p
+          v-if="!searching && searchResults.length === 0 && !isValidEmail(searchQuery.trim())"
+          class="px-2 py-1.5 text-sm text-dimmed"
+        >
+          No one to add by that name. Enter a full email address to invite someone.
+        </p>
+      </div>
+
+      <UAlert
+        v-if="addError"
+        color="error"
+        variant="subtle"
+        icon="i-lucide-alert-circle"
+        :description="addError"
+        class="mt-2"
+      />
+    </div>
+
+    <!-- People, then the invitations still waiting to become people -->
+    <section>
+      <UiSectionLabel
+        label="People"
+        :count="sortedMembers.length"
+        class="mb-1"
+      />
+      <ul>
+        <li
+          v-for="m in sortedMembers"
+          :key="m.id"
+          class="flex items-center gap-2.5 py-1.5"
+        >
+          <UiAvatar
+            :src="m.avatarUrl ?? undefined"
+            :alt="m.name"
+            :kind="m.kind"
+            :color="m.color"
+            size="xs"
+          />
+          <span class="text-sm font-medium text-highlighted flex-1 truncate">
+            {{ m.name }}
+            <span
+              v-if="m.id === currentUser?.id"
+              class="text-xs text-dimmed font-normal"
+            >(you)</span>
+          </span>
+          <UDropdownMenu
+            v-if="canChangeRole(m)"
+            :items="roleMenuItems(m)"
           >
-            <UButton
-              label="Add agent"
-              icon="i-lucide-plus"
-              size="xs"
-              color="neutral"
-              variant="soft"
-              class="ml-auto"
-            />
-
-            <template #content>
-              <div class="w-80">
-                <!-- The shell owns the edge, so focus colours it; the input has no
-                     border of its own. Same arrangement as MentionPicker. -->
-                <div class="relative border-b border-default focus-within:border-primary">
-                  <UIcon
-                    name="i-lucide-search"
-                    class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-dimmed"
-                  />
-                  <input
-                    v-model="agentQuery"
-                    type="text"
-                    aria-label="Search agents"
-                    placeholder="Search agents"
-                    autofocus
-                    class="w-full pl-8 pr-3 py-2 text-sm text-default placeholder:text-dimmed bg-transparent border-0"
-                  >
-                </div>
-
-                <div class="max-h-80 overflow-y-auto thin-scroll p-1">
-                  <p
-                    v-if="loadingCandidates"
-                    class="px-2 py-3 text-xs text-dimmed text-center"
-                  >
-                    Loading agents…
-                  </p>
-                  <p
-                    v-else-if="!candidateGroups.length"
-                    class="px-2 py-3 text-xs text-dimmed text-center"
-                  >
-                    {{ agentQuery.trim() ? 'No agent matches' : 'No agent can join this project yet' }}
-                  </p>
-                  <div
-                    v-for="g in candidateGroups"
-                    v-else
-                    :key="g.key"
-                  >
-                    <div class="flex items-center gap-1.5 px-2 pt-2 pb-1 text-xs">
-                      <UiAvatar
-                        v-if="g.manager"
-                        :src="g.manager.avatarUrl"
-                        :alt="g.manager.name"
-                        size="3xs"
-                      />
-                      <span class="font-semibold text-muted truncate">{{ g.manager?.name ?? 'No manager' }}</span>
-                      <span
-                        v-if="g.isYou"
-                        class="text-dimmed shrink-0"
-                      >(you)</span>
-                      <span class="ml-auto font-mono tabular-nums text-dimmed">{{ g.agents.length }}</span>
-                    </div>
-                    <button
-                      v-for="a in g.shown"
-                      :key="a.id"
-                      type="button"
-                      class="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left text-sm text-default hover:bg-elevated transition-colors"
-                      :disabled="addingAgent === a.id"
-                      @click="addAgent(a)"
-                    >
-                      <UiAvatar
-                        :alt="a.name"
-                        kind="agent"
-                        :color="a.color"
-                        size="3xs"
-                        class="shrink-0"
-                      />
-                      <span class="font-medium truncate">{{ a.name }}</span>
-                      <span class="ml-auto text-xs text-dimmed truncate max-w-40">{{ a.description }}</span>
-                    </button>
-                    <button
-                      v-if="g.shown.length < g.agents.length"
-                      type="button"
-                      class="w-full px-2 py-1 text-left text-xs text-dimmed hover:text-toned transition-colors"
-                      @click="expandManager(g.key)"
-                    >
-                      Show {{ g.agents.length - g.shown.length }} more
-                    </button>
-                  </div>
-                </div>
-
-                <p class="border-t border-default px-3 py-2 text-xs text-dimmed leading-relaxed">
-                  Only agents whose manager is a member of {{ projectName || 'this project' }}, or an admin.
-                </p>
-              </div>
-            </template>
-          </UPopover>
-        </div>
-
-        <template v-if="agentsOpen">
-          <div
-            v-for="(a, aIdx) in visibleAgents"
-            :key="a.id"
-            class="flex items-center gap-2 px-3 py-1.5"
-            :class="[
-              aIdx % 2 === 0 ? 'bg-muted' : 'bg-default',
-              aIdx === visibleAgents.length - 1 && agentMembers.length <= visibleAgents.length && !isOwnerOrAdmin ? 'rounded-b-xl' : ''
-            ]"
-          >
-            <UiAvatar
-              :alt="a.name"
-              kind="agent"
-              :color="a.color"
-              size="2xs"
-            />
-            <span class="text-sm font-medium flex-1 truncate">{{ a.name }}</span>
-            <UBadge
-              v-if="a.suspended"
-              color="error"
-              label="Suspended"
-            />
-            <UTooltip :text="a.managedBy ? `Managed by ${a.managedBy.name}` : 'No manager'">
-              <UiAvatar
-                v-if="a.managedBy"
-                :src="a.managedBy.avatarUrl"
-                :alt="a.managedBy.name"
-                size="3xs"
-              />
-              <UIcon
-                v-else
-                name="i-lucide-user-x"
-                class="text-sm text-warning"
-              />
-            </UTooltip>
-            <UDropdownMenu
-              v-if="canRemoveAgent(a)"
-              :items="agentMenuItems(a)"
+            <button
+              type="button"
+              class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition hover:ring-2 hover:ring-primary/20 flex items-center gap-1"
+              :class="m.role === 'owner'
+                ? 'bg-primary/10 text-primary'
+                : 'bg-elevated text-muted'"
+              :disabled="changingRole === m.id"
             >
-              <button
-                type="button"
-                class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition hover:ring-2 hover:ring-primary/20 flex items-center gap-1 bg-elevated text-muted"
-                :aria-label="`Role of ${a.name}: member. Agents are always members`"
-              >
-                <UIcon
-                  name="i-lucide-lock"
-                  class="text-2xs"
-                />
-                Member
+              <UIcon
+                v-if="changingRole === m.id"
+                name="i-lucide-loader-2"
+                class="text-2xs animate-spin"
+              />
+              <template v-else>
+                {{ m.role }}
                 <UIcon
                   name="i-lucide-chevron-down"
                   class="text-2xs opacity-60"
                 />
-              </button>
-            </UDropdownMenu>
-            <span
-              v-else
-              class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 flex items-center gap-1 bg-elevated text-muted"
-            >
-              <UIcon
-                name="i-lucide-lock"
-                class="text-2xs"
-              />
-              Member
-            </span>
-          </div>
-
-          <button
-            v-if="agentMembers.length > visibleAgents.length"
-            type="button"
-            class="w-full px-3 py-1.5 bg-default border-t border-default text-left text-xs font-medium text-dimmed hover:text-toned transition-colors"
-            :class="!isOwnerOrAdmin ? 'rounded-b-xl' : ''"
-            @click="showAllAgents = true"
+              </template>
+            </button>
+          </UDropdownMenu>
+          <span
+            v-else
+            class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0"
+            :class="m.role === 'owner'
+              ? 'bg-primary/10 text-primary'
+              : 'bg-elevated text-muted'"
           >
-            Show {{ agentMembers.length - visibleAgents.length }} more
-          </button>
-          <p
-            v-if="!agentMembers.length"
-            class="bg-default px-3 pb-2 text-xs text-dimmed"
-          >
-            No agents in this project yet.
-          </p>
-        </template>
-      </div>
+            {{ m.role }}
+          </span>
+        </li>
 
-      <!-- Pending invitations (owner/admin only) -->
-      <template v-if="isOwnerOrAdmin && (invitations as ProjectInvitation[] | null)?.length">
-        <div class="border-t border-muted bg-default px-3 py-2">
-          <div
-            v-for="inv in (invitations as ProjectInvitation[] | null)"
+        <template v-if="isOwnerOrAdmin">
+          <li
+            v-for="inv in (invitations as ProjectInvitation[] | null) ?? []"
             :key="inv.id"
-            class="flex items-center gap-2 py-1.5 group/inv"
+            class="flex items-center gap-2.5 py-1.5"
           >
-            <UIcon
-              name="i-lucide-mail"
-              class="text-base text-warning shrink-0"
-            />
-            <span class="text-sm font-mono text-muted flex-1 truncate">{{ inv.email }}</span>
+            <span class="flex items-center justify-center size-6 rounded-full bg-warning/10 shrink-0">
+              <UIcon
+                name="i-lucide-mail"
+                class="text-xs text-warning"
+              />
+            </span>
+            <span class="text-sm text-muted flex-1 truncate">{{ inv.email }}</span>
             <UDropdownMenu :items="invitationMenuItems(inv)">
               <button
                 type="button"
@@ -769,125 +636,200 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
                 </template>
               </button>
             </UDropdownMenu>
-          </div>
-        </div>
-      </template>
+          </li>
+        </template>
+      </ul>
+    </section>
 
-      <!-- Add member section (owner/admin only) -->
-      <template v-if="isOwnerOrAdmin">
-        <div class="relative border-t border-muted bg-default rounded-b-xl px-3 py-2">
-          <div class="flex items-center gap-1.5 mb-2">
-            <UIcon
-              name="i-lucide-user-plus"
-              class="text-sm text-dimmed"
-            />
-            <span class="text-2xs font-bold text-dimmed uppercase tracking-label">Add Member</span>
-          </div>
-          <input
-            v-model="searchQuery"
-            type="text"
-            aria-label="Search people, or enter an email to invite"
-            placeholder="Search by name or enter email to invite..."
-            class="w-full text-base text-highlighted placeholder:text-dimmed bg-muted border border-default rounded-lg px-3 py-2 transition-colors"
-            @focus="searchQuery.trim().length >= 2 && (showResults = true)"
-            @blur="onInputBlur"
-            @keydown="onInputKeydown"
-          >
-          <UIcon
-            v-if="searching"
-            name="i-lucide-loader-2"
-            class="absolute right-6 bottom-4.5 text-base text-dimmed animate-spin"
+    <!-- Agents, under the people, sorted by manager. Five, then "Show more":
+         a project can carry a team's worth of them. -->
+    <section v-if="showAgentsSection">
+      <div class="flex items-center gap-2 mb-1">
+        <UiSectionLabel
+          label="Agents"
+          :count="agentMembers.length"
+        />
+        <UPopover
+          v-if="canAddAgents"
+          v-model:open="addAgentOpen"
+          :content="{ align: 'end' }"
+        >
+          <UButton
+            label="Add agent"
+            icon="i-lucide-plus"
+            size="xs"
+            color="neutral"
+            variant="soft"
+            class="ml-auto"
           />
 
-          <!-- Search results dropdown -->
-          <div
-            v-if="showResults && searchQuery.trim().length >= 2"
-            class="absolute z-50 left-3 right-3 mt-1 rounded-lg border border-accented bg-default shadow-float overflow-hidden"
-          >
-            <button
-              v-for="(u, i) in searchResults"
-              :key="u.id"
-              type="button"
-              class="flex items-center gap-2.5 w-full px-3 py-2 transition-colors text-left cursor-pointer"
-              :class="i === highlightIndex
-                ? 'bg-primary/10'
-                : 'hover:bg-elevated'"
-              :disabled="adding"
-              @mousedown.prevent="addMember(u)"
-              @mouseenter="highlightIndex = i"
-            >
-              <UiAvatar
-                :src="u.avatarUrl ?? undefined"
-                :alt="u.name"
-                size="xs"
-              />
-              <div class="min-w-0 flex-1">
-                <div class="text-base font-medium text-highlighted truncate">
-                  {{ u.name }}
-                </div>
-              </div>
-              <UIcon
-                name="i-lucide-plus"
-                class="text-base text-dimmed shrink-0"
-              />
-            </button>
-
-            <!-- Invite by email option when no results and valid email -->
-            <button
-              v-if="!searching && searchResults.length === 0 && isValidEmail(searchQuery.trim())"
-              type="button"
-              class="flex items-center gap-2.5 w-full px-3 py-2.5 transition-colors text-left cursor-pointer hover:bg-primary/10"
-              :disabled="adding"
-              @mousedown.prevent="inviteByEmail"
-            >
-              <div class="flex items-center justify-center w-6 h-6 rounded-full bg-primary/15">
+          <template #content>
+            <div class="w-80">
+              <!-- The shell owns the edge, so focus colours it; the input has no
+                   border of its own. Same arrangement as MentionPicker. -->
+              <div class="relative border-b border-default focus-within:border-primary">
                 <UIcon
-                  name="i-lucide-send"
-                  class="text-xs text-primary"
+                  name="i-lucide-search"
+                  class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-dimmed"
                 />
+                <input
+                  v-model="agentQuery"
+                  type="text"
+                  aria-label="Search agents"
+                  placeholder="Search agents"
+                  autofocus
+                  class="w-full pl-8 pr-3 py-2 text-sm text-default placeholder:text-dimmed bg-transparent border-0"
+                >
               </div>
-              <div class="min-w-0 flex-1">
-                <div class="text-base font-medium text-primary">
-                  Invite {{ searchQuery.trim() }}
-                </div>
-                <div class="text-xs text-dimmed">
-                  Send an invitation email
+
+              <div class="max-h-80 overflow-y-auto thin-scroll p-1">
+                <p
+                  v-if="loadingCandidates"
+                  class="px-2 py-3 text-xs text-dimmed text-center"
+                >
+                  Loading agents…
+                </p>
+                <p
+                  v-else-if="!candidateGroups.length"
+                  class="px-2 py-3 text-xs text-dimmed text-center"
+                >
+                  {{ agentQuery.trim() ? 'No agent matches' : 'No agent can join this project yet' }}
+                </p>
+                <div
+                  v-for="g in candidateGroups"
+                  v-else
+                  :key="g.key"
+                >
+                  <div class="flex items-center gap-1.5 px-2 pt-2 pb-1 text-xs">
+                    <UiAvatar
+                      v-if="g.manager"
+                      :src="g.manager.avatarUrl"
+                      :alt="g.manager.name"
+                      size="3xs"
+                    />
+                    <span class="font-semibold text-muted truncate">{{ g.manager?.name ?? 'No manager' }}</span>
+                    <span
+                      v-if="g.isYou"
+                      class="text-dimmed shrink-0"
+                    >(you)</span>
+                    <span class="ml-auto font-mono tabular-nums text-dimmed">{{ g.agents.length }}</span>
+                  </div>
+                  <button
+                    v-for="a in g.shown"
+                    :key="a.id"
+                    type="button"
+                    class="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left text-sm text-default hover:bg-elevated transition-colors"
+                    :disabled="addingAgent === a.id"
+                    @click="addAgent(a)"
+                  >
+                    <UiAvatar
+                      :alt="a.name"
+                      kind="agent"
+                      :color="a.color"
+                      size="3xs"
+                      class="shrink-0"
+                    />
+                    <span class="font-medium truncate">{{ a.name }}</span>
+                    <span class="ml-auto text-xs text-dimmed truncate max-w-40">{{ a.description }}</span>
+                  </button>
+                  <button
+                    v-if="g.shown.length < g.agents.length"
+                    type="button"
+                    class="w-full px-2 py-1 text-left text-xs text-dimmed hover:text-toned transition-colors"
+                    @click="expandManager(g.key)"
+                  >
+                    Show {{ g.agents.length - g.shown.length }} more
+                  </button>
                 </div>
               </div>
+
+              <p class="border-t border-default px-3 py-2 text-xs text-dimmed leading-relaxed">
+                Only agents whose manager is a member of {{ projectName || 'this project' }}, or an admin.
+              </p>
+            </div>
+          </template>
+        </UPopover>
+      </div>
+
+      <ul>
+        <li
+          v-for="a in visibleAgents"
+          :key="a.id"
+          class="flex items-center gap-2.5 py-1.5"
+        >
+          <UiAvatar
+            :alt="a.name"
+            kind="agent"
+            :color="a.color"
+            size="xs"
+          />
+          <span class="text-sm font-medium text-highlighted flex-1 truncate">{{ a.name }}</span>
+          <UBadge
+            v-if="a.suspended"
+            color="error"
+            label="Suspended"
+          />
+          <UTooltip :text="a.managedBy ? `Managed by ${a.managedBy.name}` : 'No manager'">
+            <UiAvatar
+              v-if="a.managedBy"
+              :src="a.managedBy.avatarUrl"
+              :alt="a.managedBy.name"
+              size="3xs"
+            />
+            <UIcon
+              v-else
+              name="i-lucide-user-x"
+              class="text-sm text-warning"
+            />
+          </UTooltip>
+          <UDropdownMenu
+            v-if="canRemoveAgent(a)"
+            :items="agentMenuItems(a)"
+          >
+            <button
+              type="button"
+              class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 cursor-pointer transition hover:ring-2 hover:ring-primary/20 flex items-center gap-1 bg-elevated text-muted"
+              :aria-label="`Role of ${a.name}: member. Agents are always members`"
+            >
               <UIcon
-                name="i-lucide-mail-plus"
-                class="text-base text-primary shrink-0"
+                name="i-lucide-lock"
+                class="text-2xs"
+              />
+              Member
+              <UIcon
+                name="i-lucide-chevron-down"
+                class="text-2xs opacity-60"
               />
             </button>
+          </UDropdownMenu>
+          <span
+            v-else
+            class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 flex items-center gap-1 bg-elevated text-muted"
+          >
+            <UIcon
+              name="i-lucide-lock"
+              class="text-2xs"
+            />
+            Member
+          </span>
+        </li>
+      </ul>
 
-            <div
-              v-if="!searching && searchResults.length === 0 && !isValidEmail(searchQuery.trim())"
-              class="px-3 py-3 text-center text-sm text-dimmed"
-            >
-              No users found — enter a full email to invite
-            </div>
-          </div>
-
-          <!-- Error -->
-          <UAlert
-            v-if="addError"
-            color="error"
-            variant="subtle"
-            icon="i-lucide-alert-circle"
-            :description="addError"
-            class="mt-2"
-          />
-        </div>
-      </template>
-    </div>
-
-    <div
-      v-if="!(sortedMembers)?.length"
-      class="py-4 text-center text-base text-dimmed"
-    >
-      No members
-    </div>
-
+      <button
+        v-if="agentMembers.length > visibleAgents.length"
+        type="button"
+        class="py-1.5 text-xs font-medium text-dimmed hover:text-toned transition-colors"
+        @click="showAllAgents = true"
+      >
+        Show {{ agentMembers.length - visibleAgents.length }} more
+      </button>
+      <p
+        v-if="!agentMembers.length"
+        class="py-1.5 text-xs text-dimmed"
+      >
+        No agents in this project yet.
+      </p>
+    </section>
     <!-- One click, no typed name: a membership is re-added from the field directly
          above this list, so it is the cheapest destructive action on the page.
          The glyph names the action rather than warning about it, for the same

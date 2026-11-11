@@ -126,7 +126,12 @@ const ui = computed(() => ({
       </div>
     </template>
 
-    <template #body>
+    <!-- Conditional: passed unconditionally, UModal drew an empty padded body
+         between the header and the footer of every one-click confirmation. -->
+    <template
+      v-if="$slots.body"
+      #body
+    >
       <slot name="body" />
     </template>
 
