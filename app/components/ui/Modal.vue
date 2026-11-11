@@ -65,9 +65,13 @@ const TONES = {
   success: 'bg-success/10 text-success'
 }
 
+// Nuxt UI's body is `p-4 sm:p-6`, and tailwind-merge only drops a class with the
+// same variant — so a bare `p-0` replaced `p-4` and left `sm:p-6` standing. Flush
+// dialogs were flush on a phone and padded twice (24px + their own px-5) from
+// 640px up, which is where they were designed and looked at.
 const ui = computed(() => ({
   content: WIDTHS[props.size],
-  body: props.flush ? 'p-0' : undefined
+  body: props.flush ? 'p-0 sm:p-0' : undefined
 }))
 </script>
 

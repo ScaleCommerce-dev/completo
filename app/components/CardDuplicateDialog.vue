@@ -3,8 +3,12 @@
  * Duplicate a card into a board of this or another of your projects — the "template card"
  * workflow (server/api/cards/[id]/duplicate.post.ts carries the rules).
  *
- * The title starts as "<title> (Copy)" and is selected on open, so typing
+ * The title is suggested per target project and selected on open, so typing
  * replaces it outright: a template is usually renamed for the run it starts.
+ * Only a copy into the *same* project gets " (Copy)" — there it sits beside its
+ * original and the two must be told apart. A copy into another project is the
+ * template being used, not a second one; a suffix there is just something to
+ * delete on every run. See `suggestedTitle`.
  * Picking a board prefills the tags with that board's tag filter, because a board
  * only shows cards carrying one of them; they stay editable.
  */
@@ -34,6 +38,7 @@ const tagIds = ref<string[]>([])
 const projects = ref<Array<{ slug: string, name: string }>>([])
 const boards = ref<BoardOption[]>([])
 const tags = ref<Array<{ id: string, name: string, color: string }>>([])
+const members = ref<Array<{ id: string, name: string }>>([])
 const projectKey = ref('TK')
 const loading = ref(false)
 const saving = ref(false)
@@ -55,8 +60,30 @@ const projectItems = computed(() => projects.value.map(p => ({ value: p.slug, la
 const boardItems = computed(() => boards.value.map(b => ({ value: b.id, label: b.name })))
 const tagItems = computed(() => tags.value.map(t => ({ value: t.id, label: t.name, color: t.color })))
 const selectedBoard = computed(() => boards.value.find(b => b.id === boardId.value))
-const boardFiltersByAssignee = computed(() => !!selectedBoard.value && asArray(selectedBoard.value.assigneeFilters).length > 0)
+
+/**
+ * What would keep the copy off the chosen board, in the card panel's own words
+ * (`unmatchedFilters`, the same predicates the board filters with). Only tags and
+ * assignee can fail: the server picks a status and a priority the board admits,
+ * so those two filters are left out rather than guessed at here. The copy has no
+ * assignee, so an assignee filter always fails until someone is assigned.
+ */
+const unmetFilters = computed(() => {
+  const board = selectedBoard.value
+  if (!board) return []
+  return describeUnmatchedFilters(
+    unmatchedFilters(
+      { statusId: '', priority: 'medium', assigneeId: null, tags: tagIds.value.map(id => ({ id })) },
+      { statusIds: [], priorities: [], assigneeIds: asArray(board.assigneeFilters), tagIds: new Set(asArray(board.tagFilters)) }
+    ),
+    { statuses: [], members: members.value, tags: tags.value }
+  )
+})
 const otherProject = computed(() => !!targetProjectSlug.value && targetProjectSlug.value !== props.projectSlug)
+
+function suggestedTitle(slug: string | undefined) {
+  return slug === props.projectSlug ? `${props.cardTitle} (Copy)` : props.cardTitle
+}
 const canSubmit = computed(() => !!title.value.trim() && !!boardId.value && !saving.value && !loading.value)
 
 watch(boardId, () => {
@@ -64,23 +91,32 @@ watch(boardId, () => {
 })
 
 /** Boards and tags belong to a project, so both reload when the target changes. */
-watch(targetProjectSlug, async (slug) => {
+watch(targetProjectSlug, async (slug, previous) => {
+  // The suggestion follows the project only while it is still untouched: a title
+  // the user typed is theirs, whichever project they pick afterwards.
+  if (slug && title.value === suggestedTitle(previous)) title.value = suggestedTitle(slug)
   boardId.value = undefined
   boards.value = []
   tags.value = []
+  members.value = []
   if (!slug) return
   loading.value = true
   error.value = ''
   try {
-    const project = await $fetch<{
-      key: string | null
-      boards: BoardOption[]
-      tags: Array<{ id: string, name: string, color: string }>
-    }>(`/api/projects/${slug}`)
+    // Members only name the people an assignee filter asks for.
+    const [project, projectMembers] = await Promise.all([
+      $fetch<{
+        key: string | null
+        boards: BoardOption[]
+        tags: Array<{ id: string, name: string, color: string }>
+      }>(`/api/projects/${slug}`),
+      $fetch<Array<{ id: string, name: string }>>(`/api/projects/${slug}/members`)
+    ])
     if (targetProjectSlug.value !== slug) return // switched again meanwhile
     projectKey.value = project.key || 'TK'
     boards.value = project.boards
     tags.value = project.tags
+    members.value = projectMembers
     if (boards.value.length === 1) boardId.value = boards.value[0]!.id
   } catch (e: unknown) {
     error.value = getErrorMessage(e, 'Failed to load the project\'s boards')
@@ -91,7 +127,7 @@ watch(targetProjectSlug, async (slug) => {
 
 watch(open, async (isOpen) => {
   if (!isOpen) return
-  title.value = `${props.cardTitle} (Copy)`
+  title.value = suggestedTitle(props.projectSlug)
   error.value = ''
   targetProjectSlug.value = undefined
   try {
@@ -205,12 +241,33 @@ async function submit() {
             The copy moves to another project: it takes that project's tags, and mentions only notify its members.
           </p>
 
-          <p
-            v-if="boardFiltersByAssignee"
-            class="text-xs text-warning leading-relaxed"
+          <!-- Same alert, title and wording as the card panel's create form: it is
+               the same situation, a card the chosen view will not draw. -->
+          <UAlert
+            v-if="unmetFilters.length"
+            color="warning"
+            variant="subtle"
+            icon="i-lucide-filter"
+            title="Won't appear on this board yet"
+            :ui="{ description: 'mt-1' }"
           >
-            This board only shows some people's cards. The copy has no assignee yet, so it appears there once you assign one of them.
-          </p>
+            <template #description>
+              <template v-if="unmetFilters.length === 1">
+                This board's filters need {{ unmetFilters[0] }}.
+              </template>
+              <template v-else>
+                This board's filters need:
+                <ul class="mt-1 list-disc ps-4 space-y-0.5">
+                  <li
+                    v-for="line in unmetFilters"
+                    :key="line"
+                  >
+                    {{ line }}
+                  </li>
+                </ul>
+              </template>
+            </template>
+          </UAlert>
         </div>
 
         <p
@@ -220,19 +277,17 @@ async function submit() {
           {{ error }}
         </p>
 
-        <div class="flex items-center justify-end gap-2 px-5 pt-4 pb-5 mt-4 border-t border-muted">
-          <UButton
-            label="Cancel"
-            variant="ghost"
-            color="neutral"
-            @click="open = false"
-          />
-          <UButton
-            type="submit"
-            label="Duplicate"
-            icon="i-lucide-copy-plus"
+        <!-- The form's own @submit is the only handler: the bar's `submit` event
+             would fire on the same click and send the request twice. No ⌘⏎ hint,
+             because nothing listens for it here. -->
+        <div class="px-5 pt-4 pb-5 mt-4 border-t border-muted">
+          <UiSaveBar
+            submit-label="Duplicate"
+            submit-type="submit"
+            :shortcut="false"
             :loading="saving"
             :disabled="!canSubmit"
+            @cancel="open = false"
           />
         </div>
       </form>

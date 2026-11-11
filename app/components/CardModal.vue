@@ -844,9 +844,9 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             </template>
           </div>
 
-          <!-- Same glyph and words as the corner of every board card and list
-               row — it is the same action, and two glyphs for one action makes
-               a reader wonder what the difference is. -->
+          <!-- The one card action in the panel header besides leaving it: it is
+               the template workflow's whole entry point, so it does not wait
+               behind a full-page visit the way Delete does. -->
           <UTooltip
             v-if="isEdit && projectSlug"
             text="Duplicate card"
@@ -861,6 +861,9 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             />
           </UTooltip>
 
+          <!-- Same glyph and words as the corner of every board card and list
+               row — it is the same action, and two glyphs for one action makes
+               a reader wonder what the difference is. -->
           <UTooltip
             v-if="isEdit && projectSlug"
             text="Open full page"

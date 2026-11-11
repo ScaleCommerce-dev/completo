@@ -1,4 +1,4 @@
-import { eq, and, asc } from 'drizzle-orm'
+import { eq, asc } from 'drizzle-orm'
 
 /**
  * Duplicate a card into a board — of its own project or of any other project the
@@ -39,14 +39,15 @@ export default defineEventHandler(async (event) => {
   // member of: reading the source is checked by resolveCard, writing into the
   // target is checked here. A board the caller can't see is a 404, not a 403, so
   // probing ids reveals nothing (same rule as every other project resource).
-  const board = db.select().from(schema.boards)
-    .where(eq(schema.boards.id, body.boardId))
-    .get()
-  const isTargetMember = !!board && (user.isAdmin || !!db.select({ id: schema.projectMembers.id })
-    .from(schema.projectMembers)
-    .where(and(eq(schema.projectMembers.projectId, board.projectId), eq(schema.projectMembers.userId, user.id)))
-    .get())
-  if (!board || !isTargetMember) {
+  const board = typeof body.boardId === 'string'
+    ? db.select().from(schema.boards).where(eq(schema.boards.id, body.boardId)).get()
+    : undefined
+  if (!board) {
+    throw createError({ statusCode: 404, message: 'Board not found' })
+  }
+  try {
+    requireProjectMember(board.projectId, user.id, { isAdmin: user.isAdmin })
+  } catch {
     throw createError({ statusCode: 404, message: 'Board not found' })
   }
   const targetProjectId = board.projectId
@@ -62,15 +63,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'This board has no column a card could go into' })
   }
 
-  const projectTagIds = new Set(
-    db.select({ id: schema.tags.id }).from(schema.tags)
+  const projectTags = new Map(
+    db.select({ id: schema.tags.id, name: schema.tags.name }).from(schema.tags)
       .where(eq(schema.tags.projectId, targetProjectId))
       .all()
-      .map(t => t.id)
+      .map(t => [t.id, t])
   )
   const requestedTagIds = Array.isArray(body.tagIds) ? body.tagIds : safeParseJson<string[]>(board.tagFilters, [])
   for (const tagId of requestedTagIds) {
-    if (typeof tagId !== 'string' || !projectTagIds.has(tagId)) {
+    if (typeof tagId !== 'string' || !projectTags.has(tagId)) {
       throw createError({ statusCode: 400, message: 'Tag does not belong to this project' })
     }
   }
@@ -90,19 +91,11 @@ export default defineEventHandler(async (event) => {
       title,
       description: resetTaskList(source.description) || undefined,
       priority
-    }
+    },
+    // In the card's own transaction: a copy that exists without the tags would be
+    // invisible on a board that filters by them.
+    tags: tagIds.map(id => projectTags.get(id)!)
   })
-
-  if (tagIds.length) {
-    db.transaction(() => {
-      for (const tagId of tagIds) {
-        db.insert(schema.cardTags).values({ id: crypto.randomUUID(), cardId: copy.id, tagId }).run()
-      }
-    })
-    // createCard already announced the card; announce it again now it carries
-    // the tags that decide which boards show it.
-    emitCardChange(copy.id, targetProjectId)
-  }
 
   setResponseStatus(event, 201)
   return { ...copy, tagIds, boardId: board.id, projectId: targetProjectId }

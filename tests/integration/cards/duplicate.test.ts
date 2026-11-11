@@ -92,6 +92,15 @@ describe('POST /api/cards/:id/duplicate', () => {
     expect(copy.priority).toBe('medium')
   })
 
+  it('records the copy\'s tags in its history, as tagging a new card by hand does', async () => {
+    const res = await duplicate(owner, templateId, { title: 'With history', boardId: eventsBoardId })
+    const { events } = await $fetch(`/api/cards/${(await res.json()).id}/history`, { headers: owner.headers }) as {
+      events: Array<{ field: string, from: unknown, to: { id: string | null, value: string } | null, actor: { id: string } | null }>
+    }
+    expect(events.filter(e => e.field !== 'created').map(e => ({ field: e.field, from: e.from, to: e.to, actor: e.actor?.id })))
+      .toEqual([{ field: 'tag', from: null, to: { id: eventsTagId, value: 'Events' }, actor: owner.id }])
+  })
+
   it('leaves the template untouched', async () => {
     const template = await getCard(owner, templateId)
     expect(template.description).toContain('- [x] Book venue')
