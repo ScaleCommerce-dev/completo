@@ -36,6 +36,24 @@ useSeoMeta({
 
 const isOwnerOrAdmin = computed(() => project.value?.role === 'owner' || project.value?.role === 'admin')
 
+// ─── Settings ───
+const showSettings = ref(false)
+const { refreshProjects } = useNavigation()
+
+/**
+ * The page is keyed by its slug, so a changed slug means a different URL: follow
+ * it, replacing this entry so Back doesn't land on a slug that no longer exists.
+ * Otherwise refresh in place. Either way the sidebar's name may have changed.
+ */
+async function onSettingsSaved({ slug: newSlug }: { slug: string }) {
+  refreshProjects()
+  if (newSlug && newSlug !== slug) {
+    await navigateTo(`/projects/${newSlug}`, { replace: true })
+    return
+  }
+  await refresh()
+}
+
 // Derived data
 const projectStatuses = computed(() => project.value?.statuses || [])
 const projectTags = computed(() => project.value?.tags || [])
@@ -249,13 +267,22 @@ async function confirmDeleteTag(tagId: string) {
       />
       <UButton
         v-if="isOwnerOrAdmin"
-        :to="`/projects?edit=${project.id}`"
         icon="i-lucide-settings"
         label="Settings"
         aria-label="Settings"
         variant="ghost"
         color="neutral"
         :ui="{ label: 'max-sm:hidden' }"
+        @click="showSettings = true"
+      />
+      <!-- In place, like Members. It used to link to All Projects and open
+           there, so closing it left you outside the project. -->
+      <ProjectSettingsDialog
+        v-if="isOwnerOrAdmin"
+        v-model:open="showSettings"
+        :project="project"
+        @saved="onSettingsSaved"
+        @deleted="navigateTo('/projects', { replace: true })"
       />
     </template>
 

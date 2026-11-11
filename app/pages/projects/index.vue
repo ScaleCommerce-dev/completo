@@ -55,109 +55,19 @@ function setRowStarred(projectId: string, starred: boolean) {
   projects.value = projects.value.map(p => p.id === projectId ? { ...p, starred } : p)
 }
 
-// Edit project
-interface EditProjectData {
-  id: string
-  name: string
-  key: string
-  slug: string
-  description: string | null
-  briefing: string | null
-  icon: string | null
-  doneStatusId: string | null
-  doneRetentionDays: number | null
-}
-
+// Edit project — the dialog is shared with the project page's Settings button.
 const showEditProject = ref(false)
-const editProjectData = ref<EditProjectData | undefined>(undefined)
-const editStatuses = ref<Array<{ id: string, name: string, color: string | null }>>([])
-const loadingStatuses = ref(false)
-const editError = ref('')
-const saving = ref(false)
-const deleting = ref(false)
+const editTarget = ref<ProjectListItem | null>(null)
 
-async function openEditProject(project: ProjectListItem, e?: Event) {
+function openEditProject(project: ProjectListItem, e?: Event) {
   e?.preventDefault()
   e?.stopPropagation()
-  editError.value = ''
-  saving.value = false
-  deleting.value = false
-  editProjectData.value = {
-    id: project.id,
-    name: project.name,
-    key: project.key || '',
-    slug: project.slug || '',
-    description: project.description || null,
-    briefing: project.briefing || null,
-    icon: project.icon || null,
-    doneStatusId: project.doneStatusId || null,
-    doneRetentionDays: project.doneRetentionDays ?? null
-  }
-  editStatuses.value = []
-  loadingStatuses.value = true
+  editTarget.value = project
   showEditProject.value = true
-
-  // Fetch project detail for statuses + latest briefing/done config
-  try {
-    const detail = await $fetch(`/api/projects/${project.id}`) as { statuses?: Array<{ id: string, name: string, color: string | null }>, doneStatusId?: string | null, doneRetentionDays?: number | null, briefing?: string | null }
-    editStatuses.value = detail.statuses || []
-    editProjectData.value = {
-      ...editProjectData.value!,
-      doneStatusId: detail.doneStatusId || null,
-      doneRetentionDays: detail.doneRetentionDays ?? null,
-      briefing: detail.briefing || null
-    }
-  } catch {
-    // ignore — statuses selector will be empty
-  } finally {
-    loadingStatuses.value = false
-  }
 }
 
-// Open edit modal via ?edit=projectId query param (from project detail settings icon)
-const route = useRoute()
-onMounted(() => {
-  const editParam = route.query.edit as string
-  if (editParam && projects.value) {
-    const project = projects.value.find(p => p.id === editParam)
-    if (project) openEditProject(project)
-  }
-})
-
-async function saveProject(data: Record<string, unknown>) {
-  if (!editProjectData.value?.id) return
-  saving.value = true
-  editError.value = ''
-  try {
-    await $fetch(`/api/projects/${editProjectData.value.id}` as string, {
-      method: 'PUT' as const,
-      body: data
-    })
-    showEditProject.value = false
-    await Promise.all([refresh(), refreshProjects()])
-    // If opened via ?edit= param (e.g. from project detail), navigate back
-    if (route.query.edit) {
-      await navigateTo(`/projects/${data.slug as string}`)
-    }
-  } catch (e: unknown) {
-    editError.value = getErrorMessage(e, 'Failed to update project')
-  } finally {
-    saving.value = false
-  }
-}
-
-async function deleteProject() {
-  if (!editProjectData.value?.id) return
-  deleting.value = true
-  try {
-    await $fetch(`/api/projects/${editProjectData.value.id}` as string, { method: 'DELETE' as const })
-    showEditProject.value = false
-    await Promise.all([refresh(), refreshProjects()])
-  } catch (e: unknown) {
-    editError.value = getErrorMessage(e, 'Failed to delete project')
-  } finally {
-    deleting.value = false
-  }
+async function onProjectChanged() {
+  await Promise.all([refresh(), refreshProjects()])
 }
 
 // Summary stats
@@ -385,29 +295,11 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
       </NuxtLink>
     </div>
 
-    <!-- `flush`, because `ProjectForm` carries its own padding and its own action
-         row: it is also the whole of `projects/new`, so it cannot assume a dialog
-         around it. One component, two placements. -->
-    <UiModal
+    <ProjectSettingsDialog
       v-model:open="showEditProject"
-      icon="i-lucide-folder-pen"
-      title="Edit project"
-      flush
-    >
-      <template #body>
-        <ProjectForm
-          mode="edit"
-          :initial-data="editProjectData"
-          :statuses="editStatuses"
-          :loading-statuses="loadingStatuses"
-          :loading="saving"
-          :deleting="deleting"
-          :error="editError"
-          @submit="saveProject"
-          @cancel="showEditProject = false"
-          @delete="deleteProject"
-        />
-      </template>
-    </UiModal>
+      :project="editTarget"
+      @saved="onProjectChanged"
+      @deleted="onProjectChanged"
+    />
   </UiPage>
 </template>
