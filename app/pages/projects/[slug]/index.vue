@@ -595,15 +595,26 @@ async function confirmDeleteTag(tagId: string) {
           </p>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <!-- Link as a stretched overlay so the delete button is its sibling
-                 rather than its child: a `<button>` inside an `<a>` is invalid
-                 and there is no valid way to nest them. -->
+            <!-- Link as a stretched layer *under* a click-through card, so the
+                 delete button is its sibling rather than its child: a `<button>`
+                 inside an `<a>` is invalid and there is no valid way to nest
+                 them. Not an overlay with the button lifted above it by `z-10`:
+                 `.lift` hovers with a transform, which traps that `z-10` inside
+                 the card, and the button was unreachable unless the user had
+                 Reduce Motion on (projects/index.vue has the full account). -->
             <div
               v-for="view in allViews"
               :key="view.id"
               class="group relative"
             >
-              <div class="lift relative overflow-hidden rounded-xl border border-default bg-default shadow-raise p-4 group-hover:border-accented">
+              <NuxtLink
+                :to="view._type === 'board'
+                  ? `/projects/${slug}/boards/${view.slug || view.id}`
+                  : `/projects/${slug}/lists/${view.slug || view.id}`"
+                class="absolute inset-0 rounded-xl"
+                :aria-label="view.name"
+              />
+              <div class="lift relative pointer-events-none overflow-hidden rounded-xl border border-default bg-default shadow-raise p-4 group-hover:border-accented">
                 <UiAccentBar :color="accentFor(view)" />
                 <UTooltip
                   v-if="canDeleteView(view)"
@@ -611,7 +622,7 @@ async function confirmDeleteTag(tagId: string) {
                 >
                   <button
                     :aria-label="`Delete ${view._type} ${view.name}`"
-                    class="absolute top-2 right-2 z-10 opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 p-1 rounded-md text-error hover:text-error hover:bg-error/10 transition"
+                    class="absolute top-2 right-2 pointer-events-auto opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 p-1 rounded-md text-error hover:text-error hover:bg-error/10 transition"
                     @click="openDeleteView(view, view._type, $event)"
                   >
                     <UIcon
@@ -655,14 +666,6 @@ async function confirmDeleteTag(tagId: string) {
                   </div>
                 </div>
               </div>
-
-              <NuxtLink
-                :to="view._type === 'board'
-                  ? `/projects/${slug}/boards/${view.slug || view.id}`
-                  : `/projects/${slug}/lists/${view.slug || view.id}`"
-                class="absolute inset-0 rounded-xl"
-                :aria-label="view.name"
-              />
             </div>
 
             <!-- Ghost "+ New View" card -->

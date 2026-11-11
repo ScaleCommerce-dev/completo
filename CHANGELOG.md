@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **The star and settings buttons on project cards work again, and so does deleting a board or list from a project's page.** Hovering a card covered its buttons with the card's own link, so a click opened the project or view instead, and no tooltip appeared. It only worked with the system's Reduce Motion setting turned on.
+
 ## v0.16.1 (2026-11-11)
 
 ### Upgrading

@@ -132,12 +132,23 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
     <!-- Project cards grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       <!--
-        The settings button is a sibling of the link, not a child of it.
-        A `<button>` inside an `<a>` is invalid HTML and screen readers flatten
-        it unpredictably — and there is no valid way to nest them, so the link
-        becomes a stretched overlay instead and the button sits above it. Layout
-        is unchanged: the overlay covers the card, so the card's own hover states
-        move to `group-hover`.
+        The settings and star buttons are siblings of the link, not children of
+        it. A `<button>` inside an `<a>` is invalid HTML and screen readers
+        flatten it unpredictably — and there is no valid way to nest them, so
+        the link becomes a stretched layer *under* the card instead.
+
+        Under, not over: the card is `pointer-events-none`, so a click anywhere
+        on it falls through to the link, and only its buttons take the pointer
+        back. The obvious arrangement — link on top, buttons lifted above it
+        with `z-10` — breaks on hover: `.lift` hovers with a `transform`, which
+        makes the card a stacking context, so the buttons' `z-10` only ranks
+        them inside the card and the later-painted link covers them. Every
+        click then opened the project and no tooltip showed. Only with
+        `prefers-reduced-motion`, where the transform is off, did it work —
+        so whoever built it with Reduce Motion on never saw it.
+
+        The card cannot receive `:hover` itself, so its hover states are
+        `group-hover`.
       -->
       <div
         v-for="(project, index) in orderedProjects"
@@ -145,7 +156,14 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         class="group relative rise-in"
         :style="{ animationDelay: staggerDelay(index * 40) }"
       >
-        <div class="lift relative overflow-hidden rounded-xl border border-default shadow-raise p-4 h-full group-hover:border-accented">
+        <!-- Named explicitly because a stretched link has no text of its own —
+             without this it would announce as an unnamed link. -->
+        <NuxtLink
+          :to="`/projects/${project.slug}`"
+          class="absolute inset-0 rounded-xl"
+          :aria-label="project.name"
+        />
+        <div class="lift relative pointer-events-none overflow-hidden rounded-xl border border-default shadow-raise p-4 h-full group-hover:border-accented">
           <UiAccentBar :color="accentFor(project)" />
           <!-- Top row: icon + name + key + settings -->
           <div class="flex items-start gap-3">
@@ -188,8 +206,8 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
 
               `-mt-1 -mr-1.5` puts the glyph, not the button, where it
               belongs: centred on the name's line, and flush with the content
-              edge the avatar stack below ends on. `relative z-10` lifts both
-              above the card's link overlay.
+              edge the avatar stack below ends on. `pointer-events-auto` takes
+              the pointer back from the click-through card (see the grid).
 
               Settings shows on `group-focus-within` as well as hover, the way
               `EMPTY_CELL_CLASS` does it: a control revealed only on hover is
@@ -198,19 +216,23 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
               in your sidebar is what you scan this grid for — and members
               only, since an admin's non-member project has nothing to star.
             -->
-            <div class="relative z-10 flex items-center gap-0.5 -mt-1 -mr-1.5 shrink-0">
-              <UButton
+            <div class="pointer-events-auto flex items-center gap-0.5 -mt-1 -mr-1.5 shrink-0">
+              <UTooltip
                 v-if="canEditProject(project)"
-                :aria-label="`Settings for ${project.name}`"
-                icon="i-lucide-settings"
-                variant="ghost"
-                color="neutral"
-                size="sm"
-                square
-                class="opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 text-dimmed hover:text-toned"
-                :ui="{ leadingIcon: 'size-4' }"
-                @click="openEditProject(project, $event)"
-              />
+                text="Project settings"
+              >
+                <UButton
+                  :aria-label="`Settings for ${project.name}`"
+                  icon="i-lucide-settings"
+                  variant="ghost"
+                  color="neutral"
+                  size="sm"
+                  square
+                  class="opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 text-dimmed hover:text-toned"
+                  :ui="{ leadingIcon: 'size-4' }"
+                  @click="openEditProject(project, $event)"
+                />
+              </UTooltip>
               <ProjectStarButton
                 v-if="project.role !== 'admin'"
                 :project-id="project.id"
@@ -273,15 +295,6 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
             </div>
           </div>
         </div>
-
-        <!-- The card's link. Last so it sits under the settings button, and
-             named explicitly because a stretched overlay has no text of its
-             own — without this it would announce as an unnamed link. -->
-        <NuxtLink
-          :to="`/projects/${project.slug}`"
-          class="absolute inset-0 rounded-xl"
-          :aria-label="project.name"
-        />
       </div>
 
       <!-- Ghost "+ New Project" card -->
