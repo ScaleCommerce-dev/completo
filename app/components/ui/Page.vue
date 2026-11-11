@@ -61,45 +61,60 @@ const MEASURES = {
       <UDashboardNavbar
         :class="variant === 'document' ? 'page-navbar' : undefined"
         :style="variant === 'document' ? { '--page-measure': MEASURES[width] } : undefined"
-        :title="title"
-        :ui="{ title: 'text-base font-extrabold tracking-heading text-highlighted' }"
       >
-        <!-- No UDashboardSidebarToggle here: UDashboardNavbar renders its own via
-             the `toggle` prop, and adding one produced two hamburgers on mobile. -->
-        <template
-          v-if="$slots.leading"
-          #leading
-        >
-          <slot name="leading" />
-        </template>
+        <!--
+          `#left` rather than the navbar's `#title`, which renders inside its
+          `<h1>`: everything put there — the star, the description — became part
+          of the page's heading, so a screen reader announced "My Project A sample
+          project to get started". The navbar's own toggle sits outside this slot,
+          so the mobile menu button is untouched (and no UDashboardSidebarToggle
+          here: adding one produced two hamburgers).
 
-        <!-- Title and description share one row. The description is the first
-             thing to go on a narrow screen — it explains, it doesn't identify. -->
-        <template
-          v-if="$slots.title || $slots['title-trailing'] || description"
-          #title
-        >
-          <slot name="title">
-            <span class="flex items-baseline gap-2.5 min-w-0">
-              <span class="text-base font-extrabold tracking-heading text-highlighted shrink-0">{{ title }}</span>
-              <!-- What belongs to the record rather than to the page, such as a
-                   project's star. Beside the name, not in `#right`: there, a
-                   chip and a toggle sat among page actions at three heights and
-                   read as actions themselves. Baseline-aligned like the
-                   description, so text here sits on the title's line; a control
-                   centres itself. -->
-              <span
-                v-if="$slots['title-trailing']"
-                class="flex items-baseline gap-1.5 shrink-0"
-              >
+          Spacing groups what belongs together, tightest first:
+            icon → name       10px  one identity
+            name → trailing    0    the star is a property of the name; the
+                                    button's own padding leaves ~6px to its glyph
+            name → description 14px the explanation, a separate thing
+          It used to run 6 / 16 / 16, loosening left to right, so the icon and
+          name were the most cramped pair and the star floated between name and
+          description, belonging to neither.
+
+          The name group is centred, so a control beside the name centres on it
+          (the star sat 3px high when the row was baseline-aligned); name and
+          description share a baseline. The description is regular weight: it
+          inherited the title's 800 and competed with the name.
+        -->
+        <template #left>
+          <div class="flex items-center gap-2.5 min-w-0">
+            <slot name="leading" />
+            <!-- 14px to the description, measured to what you see: a trailing
+                 control's padding already supplies 6 of it. -->
+            <div
+              class="flex items-baseline min-w-0"
+              :class="$slots['title-trailing'] ? 'gap-2' : 'gap-3.5'"
+            >
+              <div class="flex items-center min-w-0">
+                <h1 class="text-base font-extrabold tracking-heading text-highlighted truncate min-w-0">
+                  <slot name="title">
+                    {{ title }}
+                  </slot>
+                </h1>
+                <!-- What belongs to the record rather than to the page, such as a
+                     project's star. Beside the name, not in `#right`: there, a
+                     chip and a toggle sat among page actions at three heights and
+                     read as actions themselves. -->
                 <slot name="title-trailing" />
-              </span>
-              <span
+              </div>
+              <!-- The first thing to go on a narrow screen: it explains, it
+                   doesn't identify. -->
+              <p
                 v-if="description"
-                class="text-sm text-muted truncate max-lg:hidden"
-              >{{ description }}</span>
-            </span>
-          </slot>
+                class="text-sm font-normal text-muted truncate max-lg:hidden"
+              >
+                {{ description }}
+              </p>
+            </div>
+          </div>
         </template>
 
         <!-- Everything here belongs to the page. Notifications are the signed-in

@@ -206,10 +206,11 @@ async function confirmDeleteTag(tagId: string) {
       v-if="project"
       #leading
     >
+      <!-- 16px glyph in the 32px tile: at 14px the tile read as mostly tint. -->
       <span class="flex items-center justify-center size-8 rounded-lg bg-primary/10 text-primary shrink-0">
         <UIcon
           :name="`i-lucide-${project.icon || 'folder'}`"
-          class="text-base"
+          class="size-4"
         />
       </span>
     </template>
@@ -222,16 +223,15 @@ async function confirmDeleteTag(tagId: string) {
            shows no ticket ids for it to label. -->
       <!-- Here as well as in All Projects: arriving at an unstarred project
            through ⌘K or a notification is when you decide to keep it, and
-           leaving to find its card would make that a chore. `-my-1.5` keeps
-           the 28px hit area without letting it set the line's height: a row
-           of baseline-aligned text grows to its tallest item, and this one
-           lifted the title off the centre of the icon beside it. -->
+           leaving to find its card would make that a chore. UiPage centres it
+           on the name; `-my-1.5` keeps the 28px hit area without letting it
+           set the row's height. -->
       <ProjectStarButton
         v-if="project.isMember"
         :project-id="project.id"
         :project-name="project.name"
         :starred="project.starred"
-        class="self-center -my-1.5"
+        class="-my-1.5"
         @update:starred="project = { ...project, starred: $event }"
       />
     </template>
