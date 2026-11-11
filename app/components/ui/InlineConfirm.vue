@@ -77,7 +77,7 @@ function confirm() {
        consequence needs a sentence. -->
   <div
     v-if="confirmText"
-    class="rounded-lg border border-error/30 bg-error/5 p-3"
+    class="rounded-feedback border border-danger bg-danger-soft p-4"
   >
     <p class="text-sm font-medium text-error mb-2">
       {{ message }} Type <span class="font-bold">{{ confirmText }}</span> to confirm.
@@ -92,7 +92,7 @@ function confirm() {
         :aria-label="`Type ${confirmText} to confirm`"
         :placeholder="confirmText"
         autocomplete="off"
-        class="flex-1 min-w-0 text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-2.5 py-1.5 focus:border-error/60 transition-colors"
+        class="flex-1 min-w-0 text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-field min-h-11 px-3 py-2 focus:border-error/60 transition-colors"
         @keydown.enter.prevent="confirm"
       >
       <UButton

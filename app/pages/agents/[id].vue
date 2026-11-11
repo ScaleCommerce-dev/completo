@@ -230,21 +230,11 @@ function formatDate(iso: string) {
 </script>
 
 <template>
-  <UiPage width="wide">
-    <template #title>
-      <span class="flex items-baseline gap-2 min-w-0">
-        <NuxtLink
-          to="/agents"
-          class="text-sm font-semibold text-dimmed hover:text-toned shrink-0"
-        >Agents</NuxtLink>
-        <UIcon
-          name="i-lucide-chevron-right"
-          class="text-xs text-dimmed self-center shrink-0"
-        />
-        <span class="text-base font-extrabold tracking-heading text-highlighted truncate">{{ agent?.name }}</span>
-      </span>
-    </template>
-
+  <UiPage
+    width="wide"
+    :title="agent?.name"
+    :crumbs="[{ label: 'Agents', to: '/agents' }]"
+  >
     <template v-if="agent">
       <!-- Identity -->
       <div class="flex flex-wrap sm:flex-nowrap items-start gap-4">
@@ -338,7 +328,7 @@ function formatDate(iso: string) {
       <div class="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-6 items-start">
         <!-- Tokens -->
         <div class="rounded-xl border border-default bg-default shadow-raise overflow-hidden">
-          <div class="px-5 pt-4 pb-2 flex items-center gap-2">
+          <div class="px-card pt-4 pb-2 flex items-center gap-2">
             <UIcon
               name="i-lucide-key-round"
               class="text-base text-dimmed"
@@ -347,7 +337,7 @@ function formatDate(iso: string) {
             <span class="ml-auto font-mono tabular-nums text-xs text-dimmed">{{ tokens.length }}</span>
           </div>
 
-          <div class="px-5 pb-3">
+          <div class="px-card pb-3">
             <p class="text-sm text-dimmed leading-relaxed">
               Each token acts as {{ agent.name }}, inside {{ agent.name }}'s projects and nowhere else. Generate one per machine or pipeline, so you can revoke one without stopping the others.
             </p>
@@ -355,15 +345,18 @@ function formatDate(iso: string) {
 
           <p
             v-if="agent.suspended"
-            class="mx-5 rounded-lg border border-default bg-muted px-3 py-2.5 text-sm text-muted"
+            class="mx-card rounded-lg border border-default bg-muted px-3 py-2.5 text-sm text-muted"
           >
             Suspended, so it holds no tokens. Unsuspend it to generate one.
           </p>
           <div
             v-else
-            class="mx-5 rounded-lg border border-default overflow-hidden"
+            class="mx-card rounded-lg border border-default overflow-hidden"
           >
-            <div class="flex items-center gap-2 px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
+            <div
+              data-focus-field="inset"
+              class="flex items-center gap-2 px-3 py-2.5 bg-default border-b border-transparent"
+            >
               <input
                 ref="tokenInput"
                 v-model="tokenName"
@@ -406,7 +399,7 @@ function formatDate(iso: string) {
           <!-- One-time reveal -->
           <div
             v-if="createdToken"
-            class="mx-5 mt-3 rounded-lg border border-success/30 bg-success/5 p-3"
+            class="mx-card mt-3 rounded-lg border border-success/30 bg-success/5 p-3"
           >
             <div class="flex items-center gap-2 mb-2">
               <UIcon
@@ -474,7 +467,7 @@ function formatDate(iso: string) {
           <!-- Token list -->
           <div
             v-if="tokens.length"
-            class="mx-5 mt-3 mb-5 rounded-lg border border-default divide-y divide-default overflow-hidden"
+            class="mx-card mt-3 mb-5 rounded-lg border border-default divide-y divide-default overflow-hidden"
           >
             <div
               v-for="token in tokens"
@@ -523,7 +516,7 @@ function formatDate(iso: string) {
           </div>
           <div
             v-else
-            class="px-5 pb-5 pt-3 flex items-center gap-2 text-sm text-dimmed"
+            class="px-card pb-5 pt-3 flex items-center gap-2 text-sm text-dimmed"
           >
             <UIcon
               name="i-lucide-key-round"
@@ -536,7 +529,7 @@ function formatDate(iso: string) {
         <!-- Right column -->
         <div class="flex flex-col gap-4">
           <div class="rounded-xl border border-default bg-default shadow-raise overflow-hidden">
-            <div class="px-5 pt-4 pb-2 flex items-center gap-2">
+            <div class="px-card pt-4 pb-2 flex items-center gap-2">
               <UIcon
                 name="i-lucide-folder-kanban"
                 class="text-base text-dimmed"
@@ -546,7 +539,7 @@ function formatDate(iso: string) {
             </div>
             <div
               v-if="agent.projects.length"
-              class="mx-5 rounded-lg border border-default divide-y divide-default"
+              class="mx-card rounded-lg border border-default divide-y divide-default"
             >
               <div
                 v-for="p in agent.projects"
@@ -596,11 +589,11 @@ function formatDate(iso: string) {
             </div>
             <p
               v-else
-              class="mx-5 rounded-lg border border-default px-3 py-2.5 text-sm text-dimmed"
+              class="mx-card rounded-lg border border-default px-3 py-2.5 text-sm text-dimmed"
             >
               In no project yet.
             </p>
-            <p class="px-5 pt-2.5 pb-4 text-xs text-dimmed leading-relaxed">
+            <p class="px-card pt-2.5 pb-4 text-xs text-dimmed leading-relaxed">
               Project owners add {{ agent.name }} from a project's Members list, always as Member. An agent only joins projects its manager is in; an admin's agents may join any.
             </p>
           </div>

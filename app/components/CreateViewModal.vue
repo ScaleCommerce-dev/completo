@@ -258,7 +258,7 @@ const STEP_HEADINGS = computed(() => {
       <!-- Step 1: Pick type -->
       <div
         v-if="viewStep === 1"
-        class="px-5 py-4"
+        class="px-dialog pt-4 pb-dialog"
       >
         <div class="grid grid-cols-2 gap-3">
           <button
@@ -305,19 +305,22 @@ const STEP_HEADINGS = computed(() => {
         v-if="viewStep === 2"
         @submit.prevent="goToStep3"
       >
-        <div class="px-5 pt-2 pb-1">
+        <div class="px-dialog pt-2 pb-1">
           <input
             v-model="viewName"
             type="text"
             :aria-label="`${viewType === 'board' ? 'Board' : 'List'} name`"
             :placeholder="`${viewType === 'board' ? 'Board' : 'List'} name...`"
             autofocus
-            class="w-full text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent rounded-none tracking-name leading-snug py-2 transition-colors"
+            class="w-full min-h-11 text-base font-semibold text-highlighted placeholder:text-muted bg-default border border-default rounded-field px-3 py-2 transition-colors"
           >
         </div>
 
-        <div class="mx-5 mt-4 rounded-lg border border-accented divide-y divide-default overflow-hidden">
-          <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
+        <div class="mx-dialog mt-4 rounded-lg border border-accented divide-y divide-default overflow-hidden">
+          <div
+            data-focus-field="inset"
+            class="flex items-center px-3 py-2.5 bg-default border-b border-transparent"
+          >
             <div class="flex items-center gap-2 w-28 shrink-0">
               <UIcon
                 name="i-lucide-link"
@@ -353,7 +356,7 @@ const STEP_HEADINGS = computed(() => {
           </div>
         </div>
 
-        <div class="flex items-center justify-between px-5 pt-4 pb-5 mt-4 border-t border-muted">
+        <div class="flex items-center justify-between px-dialog pt-4 pb-7 mt-4">
           <div class="flex items-center gap-1.5">
             <span
               v-if="viewSlug && slugAvailable === false"
@@ -389,7 +392,7 @@ const STEP_HEADINGS = computed(() => {
 
       <!-- Step 3: Configure columns -->
       <div v-if="viewStep === 3">
-        <div class="px-5 py-4 max-h-[320px] overflow-y-auto">
+        <div class="px-dialog py-4 max-h-[320px] overflow-y-auto">
           <!-- Board: checkbox statuses -->
           <template v-if="viewType === 'board'">
             <!--
@@ -500,12 +503,12 @@ const STEP_HEADINGS = computed(() => {
           variant="subtle"
           icon="i-lucide-alert-circle"
           :description="createError"
-          class="mx-5 mt-1"
+          class="mx-dialog mt-1"
         />
 
         <!-- The selection count is the bar's `status` slot: left-aligned
                validation-or-summary text is exactly what it is for. -->
-        <div class="px-5 pt-4 pb-5 border-t border-muted">
+        <div class="px-dialog pt-4 pb-7">
           <UiSaveBar
             :status="selectionSummary"
             cancel-label="Back"

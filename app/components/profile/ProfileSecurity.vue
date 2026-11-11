@@ -30,13 +30,16 @@ async function signOut() {
     @submit.prevent="changePassword"
     @keydown="handlePasswordKeydown"
   >
-    <div class="px-5 pt-4 pb-2">
+    <div class="px-card pt-4 pb-2">
       <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Security</span>
     </div>
 
-    <div class="mx-5 mt-2 rounded-lg border border-default divide-y divide-default overflow-hidden">
+    <div class="mx-card mt-2 rounded-lg border border-default divide-y divide-default overflow-hidden">
       <!-- Current password -->
-      <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
+      <div
+        data-focus-field="inset"
+        class="flex items-center px-3 py-2.5 bg-default border-b border-transparent"
+      >
         <label
           for="password-current"
           class="flex items-center gap-2 w-28 shrink-0 cursor-pointer"
@@ -58,7 +61,10 @@ async function signOut() {
       </div>
 
       <!-- New password -->
-      <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
+      <div
+        data-focus-field="inset"
+        class="flex items-center px-3 py-2.5 bg-default border-b border-transparent"
+      >
         <label
           for="password-new"
           class="flex items-center gap-2 w-28 shrink-0 cursor-pointer"
@@ -80,7 +86,10 @@ async function signOut() {
       </div>
 
       <!-- Confirm password -->
-      <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
+      <div
+        data-focus-field="inset"
+        class="flex items-center px-3 py-2.5 bg-default border-b border-transparent"
+      >
         <label
           for="password-confirm"
           class="flex items-center gap-2 w-28 shrink-0 cursor-pointer"
@@ -109,13 +118,13 @@ async function signOut() {
       variant="subtle"
       icon="i-lucide-alert-circle"
       :description="passwordError"
-      class="mx-5 mt-3"
+      class="mx-card mt-3"
     />
 
     <!-- Password success -->
     <div
       v-if="passwordSuccess"
-      class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/30"
+      class="mx-card mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/30"
     >
       <UIcon
         name="i-lucide-check-circle"
@@ -125,7 +134,7 @@ async function signOut() {
     </div>
 
     <!-- Password actions -->
-    <div class="flex items-center justify-between px-5 pt-4 pb-5 mt-3 border-t border-muted">
+    <div class="flex items-center justify-between px-card pt-4 pb-5 mt-3 border-t border-muted">
       <div class="flex items-center gap-1.5">
         <span
           v-if="newPassword && newPassword.length < 6"
@@ -167,7 +176,7 @@ async function signOut() {
     </div>
 
     <!-- Sign out section -->
-    <div class="mx-5 mb-5 border-t border-muted pt-4">
+    <div class="mx-card mb-5 border-t border-muted pt-4">
       <div class="flex items-center justify-between">
         <div>
           <span class="text-sm font-medium text-toned">Session</span>

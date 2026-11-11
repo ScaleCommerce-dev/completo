@@ -19,7 +19,7 @@ const {
 
 <template>
   <div class="mt-6 rounded-xl border border-default bg-default shadow-raise overflow-hidden">
-    <div class="px-5 pt-4 pb-2 flex items-center gap-2">
+    <div class="px-card pt-4 pb-2 flex items-center gap-2">
       <UIcon
         name="i-lucide-key-round"
         class="text-base text-dimmed"
@@ -27,15 +27,18 @@ const {
       <span class="text-xs font-semibold uppercase tracking-label text-dimmed">API Tokens</span>
     </div>
 
-    <div class="px-5 pb-3">
+    <div class="px-card pb-3">
       <p class="text-sm text-dimmed leading-relaxed">
         Create personal access tokens to authenticate with the API, or to connect Claude through MCP at <code class="text-xs">/mcp</code>. Tokens have the same permissions as your account.
       </p>
     </div>
 
     <!-- Create token form -->
-    <div class="mx-5 rounded-lg border border-default overflow-hidden">
-      <div class="flex items-center gap-2 px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
+    <div class="mx-card rounded-lg border border-default overflow-hidden">
+      <div
+        data-focus-field="inset"
+        class="flex items-center gap-2 px-3 py-2.5 bg-default border-b border-transparent"
+      >
         <input
           v-model="tokenName"
           type="text"
@@ -80,14 +83,14 @@ const {
     <!-- Created token banner (one-time display) -->
     <div
       v-if="createdToken"
-      class="mx-5 mt-3 rounded-lg border border-success/30 bg-success/5 p-3"
+      class="mx-card mt-3 rounded-lg border border-success/30 bg-success/5 p-3"
     >
       <div class="flex items-center gap-2 mb-2">
         <UIcon
           name="i-lucide-check-circle"
           class="text-base text-success shrink-0"
         />
-        <span class="text-sm font-medium text-success">Token "{{ createdTokenName }}" created. Copy it now — it won't be shown again.</span>
+        <span class="text-sm font-medium text-success">Token "{{ createdTokenName }}" created. Copy it now. It won't be shown again.</span>
       </div>
       <div class="flex items-center gap-2">
         <code class="flex-1 text-xs font-mono text-default bg-default rounded-md px-2 py-1.5 border border-accented truncate select-all">{{ createdToken }}</code>
@@ -118,7 +121,7 @@ const {
     <!-- Token list -->
     <div
       v-if="tokens.length > 0"
-      class="mx-5 mt-3 mb-5 rounded-lg border border-default divide-y divide-default overflow-hidden"
+      class="mx-card mt-3 mb-5 rounded-lg border border-default divide-y divide-default overflow-hidden"
     >
       <!-- `group` is what makes the delete button's `group-hover` reveal fire. It
            was missing, so those classes had never once applied and an inline
@@ -185,7 +188,7 @@ const {
     <!-- Empty state -->
     <div
       v-else
-      class="px-5 pb-5 pt-2"
+      class="px-card pb-5 pt-2"
     >
       <div class="flex items-center gap-2 text-sm text-dimmed">
         <UIcon

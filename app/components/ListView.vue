@@ -22,6 +22,12 @@ const props = defineProps<{
   sortDirection?: 'asc' | 'desc' | null
   canSaveSort?: boolean
   readOnlyFields?: string[]
+  /**
+   * The list *is* the page body (the list view), so it starts at the content
+   * area's gutter like the page title above it. Off where the list is embedded
+   * in a card of its own (My Tasks), whose parent already holds the gutter.
+   */
+  gutter?: boolean
 }>()
 
 type ListCard = typeof props.cards[number]
@@ -29,6 +35,8 @@ type ListCard = typeof props.cards[number]
 const emit = defineEmits<{
   'card-click': [card: ListCard]
   'add-card': []
+  /** "No matches" offers the way out: the view settings, where the filters live. */
+  'open-settings': []
   'update': [cardId: number, updates: Record<string, unknown>]
   'update-tags': [cardId: number, tagIds: string[]]
   'sort': [field: string | null, direction: 'asc' | 'desc' | null]
@@ -263,12 +271,13 @@ const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.le
 </script>
 
 <template>
-  <!-- px-2 so the first and last columns are not clipped against the panel edge:
-       the table was full-bleed, and at 1512px the ID header sat under the sidebar
-       divider while the assignee column ran off the right. -->
+  <!-- Padded so the first and last columns are not clipped against the panel
+       edge: the table was full-bleed, and at 1512px the ID header sat under the
+       sidebar divider while the assignee column ran off the right. -->
   <div
     ref="scroller"
-    class="flex-1 overflow-auto thin-scroll board-scroll px-2"
+    class="flex-1 overflow-auto thin-scroll board-scroll"
+    :class="gutter ? 'content-gutter-x content-gutter-bottom' : 'px-2'"
     :style="fadeStyle"
     @scroll="updateFade"
   >
@@ -472,13 +481,15 @@ const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.le
               icon="i-lucide-filter-x"
               title="No cards match these filters"
               description="Clear a filter in view settings to see more."
+              :actions="[{ label: 'Edit filters', icon: 'i-lucide-sliders-horizontal', color: 'neutral', variant: 'outline', onClick: () => emit('open-settings') }]"
             />
             <UEmpty
               v-else
               icon="i-lucide-inbox"
               title="No cards yet"
               description="Add the first one and it shows up here."
-              :actions="[{ label: 'New card', icon: 'i-lucide-plus', variant: 'subtle', onClick: () => emit('add-card') }]"
+              class="c2s-empty-brand"
+              :actions="[{ label: 'New card', icon: 'i-lucide-plus', onClick: () => emit('add-card') }]"
             />
           </td>
         </tr>

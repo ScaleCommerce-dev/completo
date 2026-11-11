@@ -272,7 +272,7 @@ async function confirmDeleteTag(tagId: string) {
         icon="i-lucide-settings"
         label="Settings"
         aria-label="Settings"
-        variant="ghost"
+        variant="outline"
         color="neutral"
         :ui="{ label: 'max-sm:hidden' }"
         @click="showSettings = true"
@@ -305,7 +305,7 @@ async function confirmDeleteTag(tagId: string) {
 
     <template v-else>
       <!-- Statuses / Tags config bar -->
-      <div class="mb-8 rounded-lg bg-muted border border-muted overflow-hidden">
+      <div class="rounded-xl bg-default border border-default overflow-hidden">
         <!-- Tab header -->
         <div class="flex items-center border-b border-default px-3">
           <button
@@ -614,7 +614,7 @@ async function confirmDeleteTag(tagId: string) {
                 class="absolute inset-0 rounded-xl"
                 :aria-label="view.name"
               />
-              <div class="lift relative pointer-events-none overflow-hidden rounded-xl border border-default bg-default shadow-raise p-4 group-hover:border-accented">
+              <div class="lift relative pointer-events-none overflow-hidden rounded-xl border border-default bg-default shadow-raise p-card group-hover:border-accent">
                 <UiAccentBar :color="accentFor(view)" />
                 <UTooltip
                   v-if="canDeleteView(view)"
@@ -671,7 +671,7 @@ async function confirmDeleteTag(tagId: string) {
             <!-- Ghost "+ New View" card -->
             <button
               type="button"
-              class="rounded-xl border-2 border-dashed border-accented p-4 hover:border-primary hover:bg-primary/5 transition-colors group text-left"
+              class="rounded-xl border border-accented p-card hover:bg-action-hover transition-colors group text-left"
               @click="showNewView = true"
             >
               <div class="flex items-center gap-3">

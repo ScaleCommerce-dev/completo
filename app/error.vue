@@ -50,30 +50,14 @@ function goHome() {
   <!-- inline opacity:0 prevents FOUC — content stays invisible until
        the stylesheet loads and the error-reveal animation overrides it -->
   <div
-    class="error-page fixed inset-0 flex flex-col items-center justify-center p-6 overflow-hidden bg-muted"
+    class="error-page fixed inset-0 flex flex-col items-center justify-center p-6 overflow-hidden bg-canvas"
     style="opacity: 0"
   >
-    <!-- Dot pattern -->
-    <div class="absolute inset-0 auth-dots opacity-40 dark:opacity-15" />
-
-    <!-- Primary gradient wash -->
-    <div class="absolute inset-0 bg-gradient-to-br from-indigo-100/50 via-transparent to-violet-100/30 dark:from-indigo-950/25 dark:via-transparent dark:to-violet-950/20" />
-
-    <!-- Warm top gradient wash -->
-    <div class="absolute inset-0 bg-gradient-to-b from-amber-50/40 via-transparent to-transparent dark:from-amber-900/5 dark:via-transparent dark:to-transparent" />
-
-    <!-- Centered glow orb -->
-    <div class="auth-glow absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px]" />
-
-    <!-- Warm accent (top-right) -->
-    <div class="absolute -top-32 -right-32 w-[450px] h-[450px] rounded-full bg-gradient-to-br from-amber-200/30 to-orange-200/15 dark:from-amber-700/8 dark:to-orange-700/4 blur-3xl" />
-
-    <!-- Cool accent (bottom-left) -->
-    <div class="absolute -bottom-32 -left-32 w-[350px] h-[350px] rounded-full bg-gradient-to-tr from-indigo-200/25 to-sky-200/15 dark:from-indigo-700/8 dark:to-sky-700/4 blur-3xl" />
-
-    <!-- Noise texture overlay -->
-    <div class="absolute inset-0 noise-overlay pointer-events-none" />
-
+    <!-- The connect2scale canvas, nothing painted over it. The colour
+         washes, glow and noise were Completo's own brand moment and mirrored
+         the old sign-in page; under the company styleguide the brand gradient
+         lives on the access pages' image area, and a dead end gets the plain
+         content surface every other page has. -->
     <!-- Content -->
     <div class="relative z-10 w-full max-w-[380px] flex flex-col items-center text-center">
       <!-- Fallen card illustration -->

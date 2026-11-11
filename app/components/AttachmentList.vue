@@ -257,12 +257,12 @@ defineExpose({ upload, uploadFiles, uploading })
     <button
       v-if="canUpload"
       type="button"
-      class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border transition-colors text-left"
+      class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border-[1.5px] border-dashed transition-colors text-left"
       :class="[
         attachments.length ? 'mt-1.5' : '',
         dragging
-          ? 'border-dashed border-primary bg-primary/10 text-primary'
-          : 'border-default bg-default text-dimmed hover:bg-muted',
+          ? 'border-primary bg-primary/10 text-primary'
+          : 'border-accented bg-default text-dimmed hover:bg-action-hover',
         uploading ? 'cursor-default' : ''
       ]"
       :disabled="uploading"

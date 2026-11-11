@@ -171,18 +171,18 @@ async function submit() {
   >
     <template #body>
       <form @submit.prevent="submit">
-        <div class="px-5 pt-2 pb-1">
+        <div class="px-dialog pt-2 pb-1">
           <input
             ref="titleInput"
             v-model="title"
             type="text"
             aria-label="Title of the copy"
             placeholder="Title"
-            class="w-full text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent rounded-none tracking-name leading-snug py-2 transition-colors"
+            class="w-full min-h-11 text-base font-semibold text-highlighted placeholder:text-muted bg-default border border-default rounded-field px-3 py-2 transition-colors"
           >
         </div>
 
-        <div class="mx-5 mt-4 flex flex-col gap-3">
+        <div class="mx-dialog mt-4 flex flex-col gap-3">
           <div
             v-if="projects.length > 1"
             class="flex items-start gap-2"
@@ -193,7 +193,6 @@ async function submit() {
               :items="projectItems"
               value-key="value"
               placeholder="Choose a project"
-              size="sm"
               class="flex-1"
             />
           </div>
@@ -206,7 +205,6 @@ async function submit() {
               value-key="value"
               :loading="loading"
               placeholder="Choose a board"
-              size="sm"
               class="flex-1"
             />
           </div>
@@ -222,7 +220,6 @@ async function submit() {
               multiple
               value-key="value"
               placeholder="No tags"
-              size="sm"
               class="flex-1"
             >
               <template #item-leading="{ item }">
@@ -272,7 +269,7 @@ async function submit() {
 
         <p
           v-if="error"
-          class="mx-5 mt-3 text-xs font-medium text-error"
+          class="mx-dialog mt-3 text-xs font-medium text-error"
         >
           {{ error }}
         </p>
@@ -280,7 +277,7 @@ async function submit() {
         <!-- The form's own @submit is the only handler: the bar's `submit` event
              would fire on the same click and send the request twice. No ⌘⏎ hint,
              because nothing listens for it here. -->
-        <div class="px-5 pt-4 pb-5 mt-4 border-t border-muted">
+        <div class="px-dialog pt-4 pb-7 mt-4">
           <UiSaveBar
             submit-label="Duplicate"
             submit-type="submit"

@@ -28,7 +28,7 @@ defineEmits<{ click: [] }>()
   <UTooltip text="View settings">
     <UButton
       icon="i-lucide-settings"
-      variant="ghost"
+      variant="outline"
       color="neutral"
       aria-label="View settings"
       label="Settings"

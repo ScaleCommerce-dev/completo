@@ -28,7 +28,7 @@ const hasProviders = computed(() => enabledProviders.value.length > 0)
       v-for="(provider, i) in enabledProviders"
       :key="provider.key"
       :href="provider.href"
-      class="social-btn auth-field group relative flex items-center w-full py-2.5 rounded-xl text-sm font-semibold transition duration-200 active:scale-[0.97]"
+      class="social-btn group relative flex items-center w-full py-2.5 rounded-xl text-sm font-semibold transition duration-200 active:scale-[0.97]"
       :class="`social-btn--${provider.key}`"
       :style="{ animationDelay: `${i * 0.05}s` }"
     >
@@ -107,7 +107,7 @@ const hasProviders = computed(() => enabledProviders.value.length > 0)
 
     <!-- Divider -->
     <div
-      class="auth-field flex items-center gap-3 my-1"
+      class="flex items-center gap-3 my-1"
       :style="{ animationDelay: `${enabledProviders.length * 0.05}s` }"
     >
       <div class="flex-1 h-px bg-accented/60 dark:bg-gradient-to-r dark:from-transparent dark:via-border dark:to-transparent" />

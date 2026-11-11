@@ -1,59 +1,66 @@
+<script setup lang="ts">
+/**
+ * The access pages — sign in, register, password reset, account setup, OAuth
+ * consent (handoff `03-layout-navigation.md` › Seitentypen › Zugang): a form
+ * column on the left on the page surface, a dark image area on the right,
+ * and below 780px the form alone.
+ *
+ * The image area is the shell's near-black with the brand gradient as its one
+ * picture — the guideline's "designed surface" device, and the only brand
+ * moment on these pages. It replaced four colour washes, a glow orb, a noise
+ * overlay and a glassy card, which were Completo's own brand moment before the
+ * company styleguide; nothing in it loops, so there is nothing to stop
+ * offscreen or under reduced motion.
+ */
+const { phase } = useAuthTransition()
+</script>
+
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden bg-muted">
-    <!-- Dot pattern -->
-    <div class="absolute inset-0 auth-dots opacity-40 dark:opacity-15" />
+  <div
+    class="c2s-auth min-h-dvh grid bg-default"
+    :data-auth-phase="phase"
+  >
+    <main class="c2s-auth-form flex flex-col min-w-0 px-6 py-8 sm:px-12">
+      <NuxtLink
+        to="/login"
+        class="flex items-center gap-2.5 self-start"
+      >
+        <span class="brand-tile flex items-center justify-center size-7 rounded-lg shrink-0">
+          <img
+            src="/completo-icon.svg"
+            alt=""
+            class="size-5 invert"
+          >
+        </span>
+        <span class="text-base font-extrabold tracking-heading text-highlighted">Completo</span>
+      </NuxtLink>
 
-    <!-- Primary gradient wash -->
-    <div class="absolute inset-0 bg-gradient-to-br from-indigo-100/50 via-transparent to-violet-100/30 dark:from-indigo-950/25 dark:via-transparent dark:to-violet-950/20" />
-
-    <!-- Warm top gradient wash -->
-    <div class="absolute inset-0 bg-gradient-to-b from-amber-50/40 via-transparent to-transparent dark:from-amber-900/5 dark:via-transparent dark:to-transparent" />
-
-    <!-- Centered glow orb -->
-    <div class="auth-glow absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px]" />
-
-    <!-- Warm accent (top-right) -->
-    <div class="absolute -top-32 -right-32 w-[450px] h-[450px] rounded-full bg-gradient-to-br from-amber-200/30 to-orange-200/15 dark:from-amber-700/8 dark:to-orange-700/4 blur-3xl" />
-
-    <!-- Cool accent (bottom-left) -->
-    <div class="absolute -bottom-32 -left-32 w-[350px] h-[350px] rounded-full bg-gradient-to-tr from-indigo-200/25 to-sky-200/15 dark:from-indigo-700/8 dark:to-sky-700/4 blur-3xl" />
-
-    <!-- Noise texture overlay -->
-    <div class="absolute inset-0 noise-overlay pointer-events-none" />
-
-    <!-- Content -->
-    <div class="auth-entrance relative z-10 w-full max-w-[380px]">
-      <!-- Brand -->
-      <div class="mb-6 px-7 flex items-center gap-4">
-        <div class="relative flex-shrink-0">
-          <!-- Glow halo -->
-          <div class="absolute -inset-4 rounded-full bg-primary/20 blur-2xl auth-icon-glow" />
-          <!-- Icon -->
-          <div class="relative w-[72px] h-[72px] rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-float ring-1 ring-white/20">
-            <img
-              src="/completo-icon.svg"
-              alt="Completo"
-              class="w-14 h-14 invert"
-            >
-          </div>
-        </div>
-        <div>
-          <h1 class="text-3xl font-display font-bold tracking-display text-highlighted">
-            Completo
-          </h1>
-          <div class="mt-2 flex flex-col gap-px">
-            <!-- 0.1em, wider than `tracking-label`: this is the mono tagline
-                 under the wordmark, not a UI label, and it lives only here. -->
-            <p class="font-mono text-xs font-semibold uppercase tracking-[0.1em] text-primary/80">
-              All the toppings
-            </p>
-            <p class="font-mono text-xs font-medium uppercase tracking-[0.1em] text-muted">
-              None of the mess
-            </p>
-          </div>
+      <div class="flex-1 flex items-center py-10">
+        <div class="w-full max-w-[400px]">
+          <slot />
         </div>
       </div>
-      <slot />
-    </div>
+    </main>
+
+    <aside
+      class="c2s-auth-art dark c2s-shell relative overflow-hidden max-[780px]:hidden"
+      aria-hidden="true"
+    >
+      <div class="c2s-auth-picture absolute inset-6 rounded-content overflow-hidden flex flex-col justify-end p-10">
+        <span class="brand-tile flex items-center justify-center size-16 rounded-xl mb-8 ring-1 ring-on-accent/30">
+          <img
+            src="/completo-icon.svg"
+            alt=""
+            class="size-11 invert"
+          >
+        </span>
+        <p class="text-3xl font-display font-extrabold tracking-display text-on-accent">
+          All the toppings.
+        </p>
+        <p class="text-3xl font-display font-extrabold tracking-display text-on-accent/70">
+          None of the mess.
+        </p>
+      </div>
+    </aside>
   </div>
 </template>

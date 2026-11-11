@@ -118,7 +118,7 @@ const countLabel = computed(() =>
   <section
     class="rise-in flex flex-col w-column shrink-0 max-h-full rounded-xl bg-muted border border-default transition-colors"
     :class="dragOver ? 'column-drop-active' : ''"
-    :style="{ animationDelay: staggerDelay((index ?? 0) * 45) }"
+    :style="{ animationDelay: staggerDelay((index ?? 0) * STAGGER_STEP) }"
     :aria-label="`${column.name}, ${countLabel}`"
     @dragenter="onDragEnter"
     @dragleave="onDragLeave"
@@ -136,7 +136,7 @@ const countLabel = computed(() =>
       >
         {{ column.name }}
       </h3>
-      <span class="text-xs font-mono tabular-nums text-dimmed shrink-0">{{ cards.length }}</span>
+      <span class="c2s-count shrink-0">{{ cards.length }}</span>
 
       <!-- Icon-only, so it says out loud what it is. Without the tooltip the two
            add paths were indistinguishable until you clicked one. -->
@@ -214,7 +214,7 @@ const countLabel = computed(() =>
            it paints over the full-height list without adding content height. -->
       <div
         v-if="!localCards.length && !composing"
-        class="pointer-events-none absolute inset-x-2 top-0 bottom-2 flex items-center justify-center rounded-lg border border-dashed border-accented/70 text-xs text-dimmed"
+        class="pointer-events-none absolute inset-x-2 top-0 bottom-2 flex items-center justify-center rounded-lg border-[1.5px] border-dashed border-accented text-xs text-dimmed"
       >
         Drop a card here
       </div>
@@ -224,7 +224,8 @@ const countLabel = computed(() =>
     <div class="p-2 shrink-0">
       <div
         v-if="composing"
-        class="rounded-lg border border-accented focus-within:border-primary bg-default p-2 shadow-raise"
+        data-focus-field
+        class="rounded-lg border border-accented bg-default p-2 shadow-raise"
       >
         <textarea
           ref="draftInput"

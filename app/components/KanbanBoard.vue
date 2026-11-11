@@ -215,7 +215,7 @@ function onCardClick(columnId: string, card: BoardCard) {
 <template>
   <div
     ref="scroller"
-    class="flex gap-3 overflow-x-auto overflow-y-hidden px-4 py-4 flex-1 min-h-0 thin-scroll board-scroll"
+    class="flex gap-3 overflow-x-auto overflow-y-hidden content-gutter-x content-gutter-bottom flex-1 min-h-0 thin-scroll board-scroll"
     :style="fadeStyle"
     @scroll.passive="updateFade"
   >
@@ -243,7 +243,7 @@ function onCardClick(columnId: string, card: BoardCard) {
     >
       <button
         v-if="!showAddColumn"
-        class="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-default py-10 text-sm font-medium text-dimmed hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors"
+        class="w-full flex items-center justify-center gap-2 rounded-xl border border-accented py-10 text-sm font-medium text-dimmed hover:bg-action-hover hover:text-primary transition-colors"
         @click="openAddColumn"
       >
         <UIcon

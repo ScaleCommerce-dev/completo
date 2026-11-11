@@ -138,9 +138,6 @@ const countOf = (item: unknown) => (item as { count?: number }).count
       // put above it; without a search row the two are the same thing.
       content: 'min-w-[200px] max-h-80',
       viewport: 'thin-scroll',
-      // The search row's input has no edge of its own; the row's hairline is
-      // the boundary that turns primary, as on `MentionPicker`'s shell.
-      input: 'focus-within:border-primary',
       // The default check is `size-5` — taller than the 18px line box, so the
       // one selected row in every menu sat ~1px taller than its neighbours and
       // pushed its own leading mark off centre. At `size-4` it fits the line and

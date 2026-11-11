@@ -55,13 +55,13 @@ async function decide(decision: 'allow' | 'deny') {
 
 <template>
   <div class="auth-glass">
-    <div class="px-7 pt-7 pb-2">
-      <h2 class="text-base font-bold text-center tracking-heading">
+    <div class="pt-7 pb-2">
+      <h2 class="auth-title">
         {{ info ? `Connect ${info.clientName}` : 'Connect an app' }}
       </h2>
     </div>
 
-    <div class="px-7 pb-7 flex flex-col gap-5">
+    <div class="pb-7 flex flex-col gap-5">
       <AuthErrorBanner
         v-if="error"
         :message="error"

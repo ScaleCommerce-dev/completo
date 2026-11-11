@@ -698,15 +698,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
       // `bg-default` are both `bg-*` utilities, so which one won would come down
       // to stylesheet order.
       content: `sm:max-w-[var(--card-panel-w,620px)] ${dragging ? 'ring-2 ring-primary ring-inset' : ''}`,
-      // 40px in from the edges, which is the gap the board keeps between the
-      // sidebar and its first column — so the panel is inset by the same amount
-      // that separates the two surfaces beside it. The 24px it inherited was set
-      // when the panel was a fixed 620 and never grew with it, so as the panel
-      // widened the content drifted toward the edge. Mobile keeps 16: at 390 the
-      // panel *is* the screen, and 40 a side would take a fifth of it.
-      header: 'block sm:px-10',
+      // The dialog gutter, 32px (24px on a phone): the panel is an overlay like
+      // the dialogs, so it keeps their inset rather than a measure of its own.
+      // It was 40px, matched to the board's old gap before the sidebar.
+      header: 'block px-dialog sm:px-dialog',
       body: 'p-0 sm:p-0 panel-scroll',
-      footer: 'block sm:px-10'
+      footer: 'block px-dialog sm:px-dialog'
     }"
     @after:enter="onPanelOpen"
     @after:leave="unwatchBodyScroll"
@@ -907,7 +904,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         rows="1"
         :aria-label="isEdit ? 'Card title' : 'New card title'"
         placeholder="Card title..."
-        class="w-full mt-1.5 text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent rounded-none tracking-name leading-snug py-1.5 transition-colors resize-none overflow-hidden"
+        class="w-full mt-1.5 text-dialog font-bold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent rounded-none py-1.5 transition-colors resize-none overflow-hidden"
         @input="resizeTitle"
         @blur="flushTitle"
         @keydown.enter.prevent="isEdit ? flushTitle() : submit()"
@@ -973,7 +970,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
            `watchBodyScroll`; USlideover owns that element, not us. -->
       <div
         ref="bodyStart"
-        class="px-4 sm:px-10 pt-4"
+        class="px-dialog pt-4"
       >
         <!-- Create mode: always show editor -->
         <template v-if="!isEdit">
@@ -1021,7 +1018,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
       <!-- Attachments. One section gap, the same one the comments take: with the
            description's heading gone, spacing is what separates the body from
            what follows, so the two gaps can't be 12px and 24px any more. -->
-      <div class="mx-4 sm:mx-10 mt-6">
+      <div class="mx-dialog mt-6">
         <AttachmentList
           ref="attachmentsRef"
           :card-id="attachmentCardId"
@@ -1034,7 +1031,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
            while creating, and attachments' draft-card trick doesn't apply here. -->
       <div
         v-if="isEdit"
-        class="mx-4 sm:mx-10 pb-5"
+        class="mx-dialog pb-5"
       >
         <CommentList
           :card-id="props.card?.id"
@@ -1062,7 +1059,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         class="mb-3 rounded-lg border border-warning/30 bg-warning/5 p-3 flex flex-col gap-2"
       >
         <p class="text-xs font-medium text-warning leading-relaxed">
-          You have unsaved changes. Discard this card?
+          Discard changes? This card has not been created yet.
         </p>
         <div class="flex items-center gap-2">
           <UButton
@@ -1076,7 +1073,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             ref="keepEditingRef"
             color="neutral"
             variant="ghost"
-            label="Cancel"
+            label="Keep editing"
             size="sm"
             @click="cancelDiscardDraft"
           />

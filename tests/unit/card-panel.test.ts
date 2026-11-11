@@ -43,8 +43,12 @@ const PANEL_CLASS_LISTS = [
  * board keeps between the sidebar and its first column, so the panel is inset by
  * the same gap that separates the two surfaces either side of it.
  */
-const PANEL_INSET_STEP = Number(MODAL.match(/header: '[^']*\bsm:px-(\d+)\b/)?.[1])
-const PANEL_INSET = PANEL_INSET_STEP * 4
+/**
+ * The panel's inset, read from the stylesheet: the panel takes the dialog
+ * gutter (`--dialog-gutter`, its `sm:` value) rather than a step of its own.
+ */
+const MAIN_CSS = readFileSync(join(ROOT, 'app/assets/css/main.css'), 'utf8')
+const PANEL_INSET = Number(MAIN_CSS.match(/@media \(min-width: 640px\) \{\s*:root \{ --dialog-gutter: (\d+)px; \}/)?.[1])
 
 describe('cardPanelWidth', () => {
   it('takes everything the focused column does not need', () => {
@@ -160,24 +164,17 @@ describe('prose has a screen-reading ceiling', () => {
     expect(PROSE).toMatch(/> pre[\s\S]{0,120}max-width: none/)
   })
 
-  it('is inset by the same gap the board keeps beside it', () => {
-    // Not the 24px it inherited when the panel was a fixed 620 and never grew
-    // with it. Mobile keeps 16 — at 390 the panel is the screen.
-    //
-    // Stated as one value shared by every region rather than as the header's whole
-    // class string plus a blocklist: the version this replaces pinned
-    // `header: 'block sm:px-10'` exactly, so adding a utility to the header broke
-    // it, and forbade two dead values (`sm:px-6`, `sm:mx-6`) while passing on
-    // `sm:px-8`.
-    const insets = PANEL_CLASS_LISTS.flatMap(list => tokens(list).filter(t => /^sm:[pm]x-\d+$/.test(t)))
-
-    expect(PANEL_INSET_STEP).toBeGreaterThan(0)
-    // More than one region carries it — the header and the body's own sections —
-    // and every one of them carries the same step.
-    expect(insets.length).toBeGreaterThan(1)
-    expect(new Set(insets.map(t => t.replace(/^sm:[pm]x-/, '')))).toEqual(new Set([String(PANEL_INSET_STEP)]))
-    // And 16 below `sm`, on the section that holds the card's own body.
-    expect(PANEL_CLASS_LISTS.some(list => tokens(list).includes('px-4') && tokens(list).includes(`sm:px-${PANEL_INSET_STEP}`))).toBe(true)
+  it('is inset by the dialog gutter, in every region', () => {
+    // The panel is an overlay, so it keeps the dialogs' 32px (24px on a phone)
+    // rather than a measure of its own — `px-dialog` on the header, footer and
+    // the section holding the card's body. One token for all three, so they
+    // cannot drift apart the way a retyped step could.
+    expect(PANEL_INSET).toBeGreaterThan(0)
+    const carrying = PANEL_CLASS_LISTS.filter(list => tokens(list).includes('px-dialog'))
+    expect(carrying.length).toBeGreaterThan(1)
+    // And no region keeps a numeric inset of its own from `sm` up.
+    const stray = PANEL_CLASS_LISTS.flatMap(list => tokens(list).filter(t => /^sm:[pm]x-\d+$/.test(t)))
+    expect(stray).toEqual([])
   })
 
   it('never binds inside the card panel, at any width the panel takes', () => {

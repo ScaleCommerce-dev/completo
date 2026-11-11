@@ -9,13 +9,14 @@
  * The same shape is latent wherever a list can grow — projects, board columns.
  *
  * The cap keeps the effect where it actually reads, in the first handful of
- * items, and lets the rest arrive together. 300ms is one `rise-in` duration, so
- * the last staggered item lands as the capped ones begin: the sequence still
- * looks deliberate rather than truncated.
+ * items, and lets the rest arrive together. 180ms and a 36ms step are the
+ * connect2scale values (handoff `06-motion.md` › Sammlung betreten), so the
+ * stagger reaches five items before the rest land together.
  *
- * Callers keep their own rhythm — a column stagger is not a row stagger — and
- * pass the result straight to `animation-delay`.
+ * `STAGGER_STEP` is the one rhythm; callers multiply their index by it.
  */
-export function staggerDelay(ms: number, cap = 300): string {
+export const STAGGER_STEP = 36
+
+export function staggerDelay(ms: number, cap = 180): string {
   return `${Math.min(Math.max(ms, 0), cap)}ms`
 }

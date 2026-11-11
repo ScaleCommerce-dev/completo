@@ -87,13 +87,13 @@ const TD = `${TABLE_CELL_PAD} align-middle`
     <template v-if="!props.collapsed">
       <p
         v-if="!cards.length"
-        class="rounded-xl border border-default px-4 py-3 text-sm text-dimmed"
+        class="rounded-xl border border-default bg-default px-4 py-3 text-sm text-dimmed"
       >
         None of your agents holds a card right now. Assign one to hand it work.
       </p>
       <div
         v-else
-        class="rounded-xl border border-default overflow-x-auto"
+        class="rounded-xl border border-default bg-default overflow-x-auto"
       >
         <table class="w-full min-w-[720px] table-fixed text-left">
           <colgroup>

@@ -133,6 +133,17 @@ export default defineNuxtConfig({
     }
   },
 
+  // The connect2scale faces and weights (handoff `02-tokens.md`). @nuxt/fonts
+  // downloads them at build and serves them from the app's own origin, which is
+  // what the guideline asks for — no font CDN at runtime.
+  fonts: {
+    families: [
+      { name: 'Plus Jakarta Sans', weights: [400, 500, 600, 700, 800], styles: ['normal', 'italic'] },
+      { name: 'DM Mono', weights: [400, 500] },
+      { name: 'Inter', weights: [400, 500, 600, 700] }
+    ]
+  },
+
   icon: {
     clientBundle: {
       // The default glob is templates only (`**/*.{vue,jsx,tsx,md,mdc,mdx,yml,yaml}`), so

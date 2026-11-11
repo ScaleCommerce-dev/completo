@@ -50,7 +50,7 @@ const summary = computed(() => {
   <div class="flex">
     <UTooltip :text="summary">
       <UButton
-        variant="ghost"
+        variant="outline"
         color="neutral"
         :aria-label="`Members: ${summary}`"
         class="group/stack"

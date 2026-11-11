@@ -33,8 +33,8 @@ async function resetPassword() {
 
 <template>
   <div class="auth-glass">
-    <div class="px-7 pt-7 pb-2">
-      <h2 class="text-base font-bold text-center tracking-heading">
+    <div class="pt-7 pb-2">
+      <h2 class="auth-title">
         Set a new password
       </h2>
       <p class="text-sm text-center text-muted mt-1">
@@ -43,13 +43,11 @@ async function resetPassword() {
     </div>
 
     <form
-      class="px-7 pb-7 flex flex-col gap-5"
+      class="pb-7 flex flex-col gap-5"
       @submit.prevent="resetPassword"
     >
       <UFormField
         label="New Password"
-        class="auth-field"
-        style="animation-delay: 0.05s"
       >
         <UInput
           v-model="password"
@@ -64,10 +62,7 @@ async function resetPassword() {
 
       <AuthErrorBanner :message="error" />
 
-      <div
-        class="auth-field"
-        style="animation-delay: 0.1s"
-      >
+      <div>
         <UButton
           type="submit"
           label="Reset Password & Sign In"
@@ -79,7 +74,7 @@ async function resetPassword() {
       </div>
     </form>
 
-    <div class="px-7 pb-6 pt-1">
+    <div class="pb-6 pt-1">
       <div class="border-t border-muted pt-4">
         <p class="text-sm text-center text-muted">
           Link expired?

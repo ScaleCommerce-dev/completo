@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **Completo now wears the connect2scale design.** A dark sidebar and top bar frame the page, the accent is the connect2scale magenta, and the type is Plus Jakarta Sans with DM Mono for ticket IDs. Every page has a large title with its actions beside it, and a breadcrumb in the top bar. Dialogs, buttons, fields and notifications follow the company styleguide, in light and dark.
+- **The sidebar keeps your place.** A starred project stays highlighted while you are on its boards and cards. The sidebar keeps a fixed width, narrows on smaller screens, and becomes a menu below 980px.
+- **Your account menu and the theme switch moved to the top bar.** The account menu also links straight to sign-in and security settings.
+- **Profile has a section menu** that follows as you scroll.
+- **After signing in you land on the page you were trying to open**, not always on All Projects.
+- **Keyboard focus is easier to see.** Tabbing draws a clear accent outline on every control; clicking into a field shows a quieter one.
+- **Notifications stay as long as you need to read them.** Short ones stay 5 seconds, longer ones longer, and errors stay until you close them.
+- **The sign-in pages have a new layout**, with the form on the left and a branded panel on the right.
+
 ## v0.16.2 (2026-11-11)
 
 ### App

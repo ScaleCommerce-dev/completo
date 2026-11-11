@@ -668,7 +668,10 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
             <div class="w-80">
               <!-- The shell owns the edge, so focus colours it; the input has no
                    border of its own. Same arrangement as MentionPicker. -->
-              <div class="relative border-b border-default focus-within:border-primary">
+              <div
+                data-focus-field="inset"
+                class="relative border-b border-default"
+              >
                 <UIcon
                   name="i-lucide-search"
                   class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-dimmed"

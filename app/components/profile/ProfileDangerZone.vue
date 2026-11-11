@@ -35,11 +35,11 @@ async function deleteAccount() {
     v-if="!user?.isAdmin"
     class="mt-6 mb-8 rounded-xl border border-error/30 bg-default shadow-raise overflow-hidden"
   >
-    <div class="px-5 pt-4 pb-2">
+    <div class="px-card pt-4 pb-2">
       <span class="text-xs font-semibold uppercase tracking-label text-error">Danger Zone</span>
     </div>
 
-    <div class="px-5 pb-4">
+    <div class="px-card pb-4">
       <p class="text-sm text-muted leading-relaxed">
         Permanently delete your account and all associated data. This removes your project memberships and unassigns you from any cards. This action cannot be undone.
       </p>
@@ -72,7 +72,7 @@ async function deleteAccount() {
             type="email"
             aria-label="Your email address"
             placeholder="Your email address"
-            class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-2.5 py-1.5 focus:border-error/60 transition-colors"
+            class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-field min-h-11 px-3 py-2 focus:border-error/60 transition-colors"
           >
           <input
             v-model="deletePassword"
@@ -80,7 +80,7 @@ async function deleteAccount() {
             aria-label="Your password"
             placeholder="Your password"
             autocomplete="current-password"
-            class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-lg px-2.5 py-1.5 focus:border-error/60 transition-colors"
+            class="w-full text-base text-highlighted placeholder:text-dimmed bg-default border border-error/30 rounded-field min-h-11 px-3 py-2 focus:border-error/60 transition-colors"
           >
         </div>
 

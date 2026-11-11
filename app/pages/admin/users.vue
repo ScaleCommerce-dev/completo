@@ -386,7 +386,7 @@ const TABLE_UI = {
     width="wide"
   >
     <template #meta>
-      <span class="text-sm font-mono tabular-nums text-dimmed">{{ users?.length || 0 }}</span>
+      <span class="c2s-count">{{ users?.length || 0 }}</span>
     </template>
     <template #actions>
       <UButton
@@ -397,7 +397,7 @@ const TABLE_UI = {
     </template>
 
     <!-- Suspended rows keep the error tint; `meta.class.tr` is resolved per row. -->
-    <div class="rounded-xl border border-default overflow-hidden">
+    <div class="rounded-xl border border-default bg-default overflow-hidden">
       <UTable
         :data="users || []"
         :columns="userColumns"
@@ -514,7 +514,7 @@ const TABLE_UI = {
         <p class="text-sm text-muted mt-1 mb-3">
           These people have been invited to projects but haven't registered yet.
         </p>
-        <div class="rounded-xl border border-default overflow-hidden">
+        <div class="rounded-xl border border-default bg-default overflow-hidden">
           <UTable
             :data="pendingInvitations"
             :columns="invitationColumns"
@@ -558,7 +558,6 @@ const TABLE_UI = {
       tone="primary"
       title="Create user"
       description="They get an email to set their own password."
-      size="sm"
     >
       <template #body>
         <form
@@ -619,7 +618,6 @@ const TABLE_UI = {
       tone="error"
       title="Delete user"
       description="This cannot be undone."
-      size="sm"
     >
       <template #body>
         <div

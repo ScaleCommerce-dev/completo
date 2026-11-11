@@ -135,7 +135,7 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
       <UiSettingsButton @click="showColumnConfig = true" />
     </template>
 
-    <div class="flex-1 overflow-auto p-4 flex flex-col gap-4 thin-scroll">
+    <div class="flex-1 overflow-auto content-gutter-x content-gutter-bottom flex flex-col gap-4 thin-scroll">
       <div
         v-for="group in groups"
         :key="group.project.id"
@@ -159,7 +159,7 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
           <span class="text-base font-bold tracking-name text-default">
             {{ group.project.name }}
           </span>
-          <span class="text-xs font-mono text-dimmed tabular-nums">
+          <span class="c2s-count">
             {{ group.cards.length }}
           </span>
         </button>
@@ -167,7 +167,7 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
         <!-- ListView table -->
         <div
           v-if="!collapsedProjectIds.has(group.project.id)"
-          class="rounded-xl border border-default overflow-hidden"
+          class="rounded-xl border border-default bg-default overflow-hidden"
         >
           <ListView
             :columns="columns"
@@ -192,11 +192,11 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
            opposite of what had happened. -->
       <UEmpty
         v-if="!groups.length"
-        class="py-16"
+        class="c2s-empty-brand py-16"
         icon="i-lucide-circle-check"
         title="Nothing assigned to you"
-        description="Cards assigned to you show up here — from projects you belong to. Join a project, or ask someone to assign you a card."
-        :actions="[{ label: 'Browse projects', icon: 'i-lucide-layout-grid', variant: 'subtle', to: '/projects' }]"
+        description="Cards assigned to you show up here, from projects you belong to. Join a project, or ask someone to assign you a card."
+        :actions="[{ label: 'Browse projects', icon: 'i-lucide-layout-grid', to: '/projects' }]"
       />
 
       <AgentsMyAgentsWork

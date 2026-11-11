@@ -28,6 +28,8 @@ const oauthError = computed(() => {
   return ''
 })
 
+const { enterApp } = useAuthTransition()
+
 async function login() {
   loading.value = true
   error.value = ''
@@ -39,10 +41,12 @@ async function login() {
       body: { email: email.value, password: password.value }
     })
     await refreshSession()
-    // Only the consent page may be returned to: anything else in `redirect`
-    // would make this an open redirect off a sign-in form.
-    const back = route.query.redirect
-    await navigateTo(typeof back === 'string' && back.startsWith('/oauth/authorize') ? back : '/projects')
+    // Back to the page that sent you here, as long as it is a path on this
+    // site — anything else would make this an open redirect off a sign-in form.
+    const target = safeReturnPath(route.query.redirect)
+    await enterApp(async () => {
+      await navigateTo(target)
+    })
   } catch (e: unknown) {
     const msg = getErrorMessage(e, 'Login failed')
     error.value = msg
@@ -75,14 +79,14 @@ async function resendVerification() {
 
 <template>
   <div class="auth-glass">
-    <div class="px-7 pt-7 pb-2">
-      <h2 class="text-base font-bold text-center tracking-heading">
+    <div class="pt-7 pb-2">
+      <h2 class="auth-title">
         Sign in to your account
       </h2>
     </div>
 
     <form
-      class="px-7 pb-7 flex flex-col gap-5"
+      class="pb-7 flex flex-col gap-5"
       @submit.prevent="login"
     >
       <AuthErrorBanner
@@ -118,8 +122,6 @@ async function resendVerification() {
 
       <UFormField
         label="Email"
-        class="auth-field"
-        style="animation-delay: 0.05s"
       >
         <UInput
           v-model="email"
@@ -134,8 +136,6 @@ async function resendVerification() {
 
       <UFormField
         label="Password"
-        class="auth-field"
-        style="animation-delay: 0.1s"
       >
         <UInput
           v-model="password"
@@ -149,8 +149,7 @@ async function resendVerification() {
       </UFormField>
 
       <div
-        class="auth-field flex justify-end -mt-2"
-        style="animation-delay: 0.12s"
+        class="flex justify-end -mt-2"
       >
         <NuxtLink
           to="/auth/forgot-password"
@@ -177,10 +176,7 @@ async function resendVerification() {
         >Verification email sent.</span>
       </AuthErrorBanner>
 
-      <div
-        class="auth-field"
-        style="animation-delay: 0.15s"
-      >
+      <div>
         <UButton
           type="submit"
           label="Sign in"
@@ -191,7 +187,7 @@ async function resendVerification() {
       </div>
     </form>
 
-    <div class="px-7 pb-6 pt-1">
+    <div class="pb-6 pt-1">
       <div class="border-t border-muted pt-4">
         <p class="text-sm text-center text-muted">
           Don't have an account?

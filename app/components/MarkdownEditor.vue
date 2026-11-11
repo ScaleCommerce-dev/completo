@@ -145,7 +145,8 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
 
 <template>
   <div
-    class="rounded-lg border border-default transition-colors focus-within:border-primary"
+    data-focus-field
+    class="rounded-lg border border-default transition-colors"
     :class="overlayOpen ? 'overflow-visible' : 'overflow-hidden'"
   >
     <!-- Tabs -->

@@ -29,14 +29,14 @@ async function requestReset() {
     class="auth-glass"
   >
     <!-- Success state -->
-    <div class="px-7 py-7 flex flex-col items-center gap-4 text-center">
+    <div class="py-7 flex flex-col items-center gap-4 text-center">
       <div class="w-12 h-12 rounded-full bg-success/15 flex items-center justify-center">
         <UIcon
           name="i-lucide-mail-check"
           class="text-success text-xl"
         />
       </div>
-      <h2 class="text-base font-bold tracking-heading">
+      <h2 class="auth-title">
         Check your email
       </h2>
       <p class="text-sm text-muted">
@@ -60,8 +60,8 @@ async function requestReset() {
     class="auth-glass"
   >
     <!-- Request form -->
-    <div class="px-7 pt-7 pb-2">
-      <h2 class="text-base font-bold text-center tracking-heading">
+    <div class="pt-7 pb-2">
+      <h2 class="auth-title">
         Reset your password
       </h2>
       <p class="text-sm text-center text-muted mt-1">
@@ -70,13 +70,11 @@ async function requestReset() {
     </div>
 
     <form
-      class="px-7 pb-7 flex flex-col gap-5"
+      class="pb-7 flex flex-col gap-5"
       @submit.prevent="requestReset"
     >
       <UFormField
         label="Email"
-        class="auth-field"
-        style="animation-delay: 0.05s"
       >
         <UInput
           v-model="email"
@@ -91,10 +89,7 @@ async function requestReset() {
 
       <AuthErrorBanner :message="error" />
 
-      <div
-        class="auth-field"
-        style="animation-delay: 0.1s"
-      >
+      <div>
         <UButton
           type="submit"
           label="Send Reset Link"
@@ -105,7 +100,7 @@ async function requestReset() {
       </div>
     </form>
 
-    <div class="px-7 pb-6 pt-1">
+    <div class="pb-6 pt-1">
       <div class="border-t border-muted pt-4">
         <p class="text-sm text-center text-muted">
           Remember your password?

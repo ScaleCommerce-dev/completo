@@ -77,14 +77,14 @@ async function register() {
     class="auth-glass"
   >
     <!-- Check your email confirmation -->
-    <div class="px-7 py-7 flex flex-col items-center gap-4 text-center">
+    <div class="py-7 flex flex-col items-center gap-4 text-center">
       <div class="w-12 h-12 rounded-full bg-success/15 flex items-center justify-center">
         <UIcon
           name="i-lucide-mail-check"
           class="text-success text-xl"
         />
       </div>
-      <h2 class="text-base font-bold tracking-heading">
+      <h2 class="auth-title">
         Check your email
       </h2>
       <p class="text-sm text-muted">
@@ -108,8 +108,8 @@ async function register() {
     class="auth-glass"
   >
     <!-- Registration form -->
-    <div class="px-7 pt-7 pb-2">
-      <h2 class="text-base font-bold text-center tracking-heading">
+    <div class="pt-7 pb-2">
+      <h2 class="auth-title">
         Create your account
       </h2>
     </div>
@@ -129,7 +129,7 @@ async function register() {
     </div>
 
     <form
-      class="px-7 pb-7 flex flex-col gap-5"
+      class="pb-7 flex flex-col gap-5"
       @submit.prevent="register"
     >
       <!-- OAuth error banner -->
@@ -140,8 +140,6 @@ async function register() {
 
       <UFormField
         label="Name"
-        class="auth-field"
-        style="animation-delay: 0.05s"
       >
         <UInput
           v-model="name"
@@ -155,8 +153,6 @@ async function register() {
 
       <UFormField
         label="Email"
-        class="auth-field"
-        style="animation-delay: 0.1s"
       >
         <UInput
           v-model="email"
@@ -172,8 +168,6 @@ async function register() {
 
       <UFormField
         label="Password"
-        class="auth-field"
-        style="animation-delay: 0.15s"
       >
         <UInput
           v-model="password"
@@ -188,10 +182,7 @@ async function register() {
 
       <AuthErrorBanner :message="error" />
 
-      <div
-        class="auth-field"
-        style="animation-delay: 0.2s"
-      >
+      <div>
         <UButton
           type="submit"
           label="Create account"
@@ -202,7 +193,7 @@ async function register() {
       </div>
     </form>
 
-    <div class="px-7 pb-6 pt-1">
+    <div class="pb-6 pt-1">
       <div class="border-t border-muted pt-4">
         <p class="text-sm text-center text-muted">
           Already have an account?

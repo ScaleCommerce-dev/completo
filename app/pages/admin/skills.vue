@@ -124,11 +124,11 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
 
     <UEmpty
       v-if="!skills?.length"
-      class="py-16"
+      class="c2s-empty-brand py-16"
       icon="i-lucide-sparkles"
       title="No AI skills yet"
       description="Skills give the AI writer a house style for card descriptions and comments."
-      :actions="[{ label: 'Add a skill', icon: 'i-lucide-plus', variant: 'subtle', onClick: openCreate }]"
+      :actions="[{ label: 'Add a skill', icon: 'i-lucide-plus', onClick: openCreate }]"
     />
 
     <!-- Skills grid -->
@@ -139,7 +139,7 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
       <div
         v-for="skill in skills"
         :key="skill.id"
-        class="lift group rounded-xl border border-default shadow-raise hover:border-accented p-4"
+        class="lift group rounded-xl border border-default bg-default shadow-raise hover:border-accent p-card"
       >
         <div class="flex items-start justify-between gap-2 mb-2">
           <div class="flex items-center gap-2 min-w-0">

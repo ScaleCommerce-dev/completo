@@ -260,16 +260,19 @@ describe('empty sections are their own invitation', () => {
     expect(rows[1]).toEqual(rows[0])
   })
 
-  it('spends the dashed border on the drag state, not on resting', () => {
-    // It was permanently dashed, which at 1px reads as *fainter* rather than as a
-    // different kind of thing — two solid rows and one dashed 24px apart looked
-    // like an inconsistency. The dash now arrives with the primary border and
-    // "Drop to upload", where it is legible and means something.
+  it('is a dropzone at rest, and turns primary under a drag', () => {
+    // connect2scale's dropzone is a 1.5px dashed edge in the action-card colour
+    // (handoff `04` › Karten › Dropzone). It used to be solid at rest because
+    // a *1px* dash read fainter than the solid rows beside it; at 1.5px in the
+    // action-card colour it reads as a target, which removed that premise. The
+    // drag state keeps the dash and turns it primary, with "Drop to upload".
     const attachments = read('app/components/AttachmentList.vue')
-    const rest = attachments.match(/: '(border-default[^']*)'/)?.[1] ?? ''
+    const base = attachments.match(/class="(w-full flex items-center gap-2\.5[^"]*)"/)?.[1] ?? ''
 
-    expect(rest).not.toContain('border-dashed')
-    expect(attachments).toMatch(/dragging\s*\?\s*'border-dashed border-primary/)
+    expect(base).toContain('border-dashed')
+    expect(base).toContain('border-[1.5px]')
+    expect(attachments).toMatch(/: '(border-accented[^']*)'/)
+    expect(attachments).toMatch(/dragging\s*\?\s*'border-primary/)
   })
 
   it('leaves the empty sections unlabelled, so no heading sits over a void', () => {
@@ -681,8 +684,9 @@ describe('the card page rail is one stack', () => {
   it('states the ticket ID once, where the eye already reads it', () => {
     // The rail carried a copyable pill in a bordered section of its own, 60px
     // below a breadcrumb already ending in TK-27 — and only the further-away one
-    // could be clicked.
-    expect(CARD_PAGE).toMatch(/#item-label/)
+    // could be clicked. On the connect2scale detail page the card's title is
+    // the heading and the ID is the metadata beside it — UiPage's `#leading`.
+    expect(CARD_PAGE).toMatch(/<template #leading>[\s\S]*?<TicketIdCopy[\s\S]*?<\/template>/)
     expect(CARD_PAGE.match(/<TicketIdCopy/g) || []).toHaveLength(1)
   })
 

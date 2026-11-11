@@ -613,7 +613,8 @@ defineExpose({
 
 <template>
   <div
-    class="relative rounded-lg border border-default transition-colors focus-within:border-primary"
+    data-focus-field
+    class="relative rounded-lg border border-default transition-colors"
     :class="mentionOpen ? 'overflow-visible' : 'overflow-hidden'"
     :style="{
       '--prose-editor-min': `${minHeight}px`,

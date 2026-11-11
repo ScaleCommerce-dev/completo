@@ -102,7 +102,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
 
     <!-- Summary stats bar -->
     <div
-      class="flex items-center gap-4 mb-6 mt-4 px-3 py-2 rounded-lg bg-muted border border-muted"
+      class="flex items-center gap-4 px-card py-3 rounded-xl bg-default border border-default"
     >
       <div class="flex items-center gap-1.5 text-sm font-medium text-muted">
         <UIcon
@@ -130,7 +130,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
     </div>
 
     <!-- Project cards grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5">
       <!--
         The settings and star buttons are siblings of the link, not children of
         it. A `<button>` inside an `<a>` is invalid HTML and screen readers
@@ -154,7 +154,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         v-for="(project, index) in orderedProjects"
         :key="project.id"
         class="group relative rise-in"
-        :style="{ animationDelay: staggerDelay(index * 40) }"
+        :style="{ animationDelay: staggerDelay(index * STAGGER_STEP) }"
       >
         <!-- Named explicitly because a stretched link has no text of its own —
              without this it would announce as an unnamed link. -->
@@ -163,7 +163,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
           class="absolute inset-0 rounded-xl"
           :aria-label="project.name"
         />
-        <div class="lift relative pointer-events-none overflow-hidden rounded-xl border border-default shadow-raise p-4 h-full group-hover:border-accented">
+        <div class="lift relative pointer-events-none overflow-hidden rounded-xl border border-default bg-default shadow-raise p-card h-full group-hover:border-accent">
           <UiAccentBar :color="accentFor(project)" />
           <!-- Top row: icon + name + key + settings -->
           <div class="flex items-start gap-3">
@@ -302,7 +302,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
         to="/projects/new"
         class="group block"
       >
-        <div class="rounded-xl border-2 border-dashed border-accented p-4 h-full hover:border-primary hover:bg-primary/5 transition-colors flex items-center">
+        <div class="rounded-xl border border-accented p-card h-full hover:bg-action-hover transition-colors flex items-center">
           <div class="flex items-center gap-3">
             <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-elevated text-dimmed group-hover:bg-primary/10 group-hover:text-primary transition-colors shrink-0">
               <UIcon

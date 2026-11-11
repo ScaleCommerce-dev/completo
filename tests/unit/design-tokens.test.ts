@@ -103,6 +103,54 @@ function ruleBlock(css: string, selector: string): string {
 }
 
 /**
+ * A `--c2s-*` token's value in one theme, read out of the connect2scale tokens
+ * file the app imports verbatim.
+ *
+ * `main.css` maps its own vocabulary onto the company tokens (`--ui-bg:
+ * var(--c2s-surface)`, `--text-2xl: var(--c2s-text-page-title)`), so a guard
+ * that read numbers out of `main.css` alone would find a `var()` and nothing to
+ * compute. Resolving through the file is what keeps those guards recomputing:
+ * retune a company token and every contrast and ladder figure here re-derives.
+ *
+ * Theme blocks layer the way the cascade does — `:root`, then `.c2s-theme`,
+ * then `.c2s-theme[data-theme='dark']` for dark — and `var()` chains inside
+ * the file are followed.
+ */
+const C2S = readFileSync(join(ROOT, 'app/assets/css/connect2scale-tokens.css'), 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+
+function c2sBlock(selector: string): Map<string, string> {
+  const esc = selector.replace(/[.()[\]'=]/g, '\\$&')
+  const body = C2S.match(new RegExp(`^${esc}\\s*\\{([^}]*)\\}`, 'm'))?.[1]
+  expect(body, `\`${selector}\` in connect2scale-tokens.css`).toBeDefined()
+
+  return new Map([...body!.matchAll(/(--c2s-[\w-]+):\s*([^;]+);/g)].map(m => [m[1]!, m[2]!.trim()]))
+}
+
+function c2sToken(name: string, theme: 'light' | 'dark'): string {
+  const layers = [':root', '.c2s-theme', ...(theme === 'dark' ? ['.c2s-theme[data-theme=\'dark\']'] : [])]
+  const merged = new Map(layers.flatMap(sel => [...c2sBlock(sel)]))
+  let value = merged.get(name)
+  expect(value, `${name} (${theme})`).toBeDefined()
+  for (let ref; (ref = value!.match(/^var\((--c2s-[\w-]+)\)$/)?.[1]);) value = merged.get(ref)
+
+  return value!
+}
+
+/** `var(--c2s-x)` resolved; anything else passed through untouched. */
+function resolveC2s(value: string, theme: 'light' | 'dark' = 'light'): string {
+  const ref = value.trim().match(/^var\((--c2s-[\w-]+)\)$/)?.[1]
+
+  return ref ? c2sToken(ref, theme) : value.trim()
+}
+
+function hexToRgb(hex: string): RGB {
+  const h = hex.length === 4 ? `#${[...hex.slice(1)].map(c => c + c).join('')}` : hex
+
+  return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255) as RGB
+}
+
+/**
  * One `oklch(from var(--swatch) L [calc(c * K)] h)` channel recipe: the lightness
  * this stylesheet forces, and how much of the source colour's chroma it keeps.
  *
@@ -149,9 +197,16 @@ function applyChannel(hex: string, ch: Channel): RGB {
  * contrast test measure the wrong rule and pass.
  */
 function uiBg(css: string, selector: string): RGB {
-  const m = ruleBlock(css, selector).match(/--ui-bg: oklch\(([\d.]+)% ([\d.]+) ([\d.]+)\)/)
-  expect(m, `--ui-bg in \`${selector}\``).not.toBeNull()
+  const value = ruleBlock(css, selector).match(/--ui-bg: ([^;]+);/)?.[1]
+  expect(value, `--ui-bg in \`${selector}\``).toBeDefined()
 
+  // The mapping block is theme-agnostic (`var(--c2s-surface)`); which theme it
+  // resolves in is the selector's.
+  const resolved = resolveC2s(value!, selector === '.dark' ? 'dark' : 'light')
+  if (resolved.startsWith('#')) return hexToRgb(resolved)
+
+  const m = resolved.match(/oklch\(([\d.]+)% ([\d.]+) ([\d.]+)\)/)
+  expect(m, `--ui-bg in \`${selector}\` resolves to a colour`).not.toBeNull()
   const [L, C, H] = [Number(m![1]) / 100, Number(m![2]), Number(m![3]) * Math.PI / 180]
 
   return toRgb([L, C * Math.cos(H), C * Math.sin(H)])
@@ -296,14 +351,10 @@ describe('semantic surface tokens', () => {
    * not to the file: only a gradient colour stop is forgiven, so the tinted
    * error panel that used to sit in `error.vue` would still fail here.
    */
-  const GRADIENT_BRAND_MOMENTS: Record<string, string> = {
-    'app/layouts/auth.vue':
-      'the auth brand moment: four full-bleed washes and the icon tile, on a screen with no work on it to compete with',
-    'app/error.vue':
-      'mirrors the auth washes, and for the same reason — nothing on the page to compete with',
-    'app/layouts/default.vue':
-      'the logo tile, the only gradient in the app chrome'
-  }
+  // Empty since connect2scale: the brand gradient is a token
+  // (`--c2s-brand-gradient`) used through CSS, so no template paints one from
+  // raw palette stops. A new entry still needs its reason here.
+  const GRADIENT_BRAND_MOMENTS: Record<string, string> = {}
 
   /** `from-`/`via-`/`to-`, under any variant chain. A stop, not a surface. */
   const IS_STOP = /(?:^|:)(?:from|via|to)-/
@@ -396,7 +447,7 @@ describe('one utility per property', () => {
     if (/^bg-(none|cover|contain|auto|center|top|bottom|left|right|fixed|local|scroll)$/.test(u)) return null
     if (/^bg-/.test(u)) return 'background-color'
     // `text-` is overloaded: size, alignment and wrapping share the prefix.
-    if (/^text-(\d|xs|sm|base|lg|xl|\dxl|2xs|\[|left|right|center|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip)/.test(u)) return null
+    if (/^text-(\d|xs|sm|base|lg|xl|\dxl|2xs|dialog$|\[|left|right|center|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip)/.test(u)) return null
     if (/^text-/.test(u)) return 'color'
     if (/^border(-[xylrtbse])?$/.test(u)) return null
     if (/^border-([xylrtbse]-)?\d+(\.\d+)?$/.test(u) || /^border-([xylrtbse]-)?\[/.test(u)) return null
@@ -478,7 +529,7 @@ describe('one utility per property', () => {
  * asked whether an opt-out had a replacement, so the twenty dead `outline-none`
  * and the two rings on every `UInput` were all invisible to it.
  */
-describe('focus lands on text entry, and only there', () => {
+describe('focus is stated once, by the connect2scale model', () => {
   /** Utilities that paint a focus marker. `opacity` is excluded on purpose: a
    *  control that fades in on focus is the control appearing, not a ring. */
   const PAINTS_ON_FOCUS = /(^|[\s"'`])focus(-visible|-within)?:(border|ring|outline|shadow|bg)[\w./[\]-]*/g
@@ -486,53 +537,21 @@ describe('focus lands on text entry, and only there', () => {
    *  `error` for the type-the-name-to-delete confirmations, `secondary` for the
    *  agent-briefing field on a section already labelled violet. */
   const NAMED_EXCEPTIONS = /^focus:border-(error(\/\d+)?|secondary)$/
-  /** Where a field owns no line of its own, the thing that owns one states focus
-   *  for it — still a border, because focus is never a fill. Two structures:
-   *  a composite control (markdown editor, quick-add card, mention popover) has
-   *  a shell; and a field that is a *cell* in a row-table has the row, whose
-   *  separator is the line beneath it. The row-tables dropped `divide-y` for
-   *  exactly this: a separator drawn as the *next* row's top border cannot be
-   *  reached by the focused row, so each row now draws the line beneath itself. */
-  const SHELL = /^focus-within:border-primary$/
 
-  /** Focus utilities in `src` that are neither a shell nor a named exception. */
+  /** Focus utilities in `src` that are not a named exception. A composite
+   *  field's shell no longer paints its own focus line — it carries
+   *  `data-focus-field` and `main.css` draws the guideline's outline round it. */
   function strayMarkers(src: string): string[] {
     return src.split('\n').flatMap((line, i) =>
       [...line.matchAll(PAINTS_ON_FOCUS)]
         // The match carries its leading boundary character, which is a quote as
         // often as a space — the utility that opens a `class="` attribute.
         .map(m => m[0].replace(/^[\s"'`]+/, ''))
-        .filter(util => !SHELL.test(util) && !NAMED_EXCEPTIONS.test(util))
+        .filter(util => !NAMED_EXCEPTIONS.test(util))
         .map(util => `${i + 1}  ${util}`))
   }
 
-  /** Text controls in `src` with no edge for `main.css` to colour. */
-  function edgelessFields(src: string): number[] {
-    const CONTROL_TYPES = /type="(checkbox|radio|file|submit|button|reset|image|hidden)"/
-    // The component owns something that states focus for its fields — a
-    // composite control's shell, or a row-table row. Scoped to the file rather
-    // than to nearby lines: `MarkdownEditor` declares its shell at the top of
-    // the template and its textarea ~150 lines below, so any proximity window
-    // wide enough to catch that is wide enough to be noise.
-    if (/focus-within:border-primary/.test(src)) return []
-
-    const out: number[] = []
-    for (const m of src.matchAll(/<(input|textarea)\b/g)) {
-      const end = src.indexOf('>', m.index!)
-      const tag = src.slice(m.index!, end === -1 ? m.index! + 700 : end)
-      if (CONTROL_TYPES.test(tag)) continue
-
-      const tokens = (tag.match(/class="([\s\S]*?)"/)?.[1] ?? '').split(/\s+/)
-      // Its own edge: a full border, or a reserved single side. `border-0` is
-      // the absence of one, and `border-transparent` is a colour, not a width.
-      if (tokens.some(t => /^border(-[btlrxy])?(-\d+)?$/.test(t) && t !== 'border-0')) continue
-
-      out.push(src.slice(0, m.index!).split('\n').length)
-    }
-    return out
-  }
-
-  it('no markup paints a focus marker except the shells and the two named colours', () => {
+  it('no markup paints a focus marker except the two named colours', () => {
     const offenders = vueFiles().flatMap(f =>
       strayMarkers(markup(f)).map(hit => `${f.replace(ROOT + '/', '')}:${hit}`))
     expect(offenders, 'focus is stated once, in main.css — not per element').toEqual([])
@@ -551,44 +570,6 @@ describe('focus lands on text entry, and only there', () => {
     expect(offenders, 'the reset already clears these').toEqual([])
   })
 
-  it('every text field has a boundary that can turn primary', () => {
-    // The half of the invariant the markup owns. `main.css` colours a border it
-    // cannot create: an input with `border-0` and no reserved edge shows nothing
-    // at all on focus, which is exactly how fourteen fields — three of them
-    // password fields — ended up with no focus state under the old ring too.
-    const offenders = vueFiles().flatMap(f =>
-      edgelessFields(markup(f)).map(line => `${f.replace(ROOT + '/', '')}:${line}`))
-    expect(offenders, 'these fields have no edge to colour, so focus shows nothing').toEqual([])
-  })
-
-  /** Fields that draw a line *and* sit in something drawing one for them. */
-  function doubledFields(src: string): number[] {
-    const out: number[] = []
-    for (const m of src.matchAll(/<(input|textarea)\b/g)) {
-      const end = src.indexOf('>', m.index!)
-      const tag = src.slice(m.index!, end === -1 ? m.index! + 700 : end)
-      if (!/border-b border-transparent/.test(tag)) continue
-      // The element that wraps it, which for a row-table row or an inline chip
-      // is within a few lines. Deliberately narrow: a shell further away in the
-      // file belongs to some other field, which is the shape of every false
-      // positive here — three seamless titles whose component also owns a table.
-      const above = src.slice(0, m.index!).split('\n').slice(-6).join('\n')
-      if (/focus-within:border-primary/.test(above)) {
-        out.push(src.slice(0, m.index!).split('\n').length)
-      }
-    }
-    return out
-  }
-
-  it('no field draws a line and sits in something drawing one for it', () => {
-    // The API token field reserved its own underline *and* sat in a row that
-    // states focus, so focusing it drew two lines a row apart. Whichever owns
-    // the boundary states it — never both.
-    const offenders = vueFiles().flatMap(f =>
-      doubledFields(markup(f)).map(line => `${f.replace(ROOT + '/', '')}:${line}`))
-    expect(offenders, 'two lines for one focus').toEqual([])
-  })
-
   /** `flex-1` text controls that can still refuse to shrink. */
   function unshrinkableFields(src: string): number[] {
     const out: number[] = []
@@ -604,15 +585,26 @@ describe('focus lands on text entry, and only there', () => {
   }
 
   it('a flex-1 field can actually shrink', () => {
-    // Not a focus rule, but this is how the focus border surfaced it. A flex
-    // item defaults to `min-width: auto`, and an `<input>`'s intrinsic width is
-    // its ~20-character `size`, so `flex-1` alone does not let it shrink. The
+    // Not a focus rule, but this is how a focus line surfaced it. A flex item
+    // defaults to `min-width: auto`, and an `<input>`'s intrinsic width is its
+    // ~20-character `size`, so `flex-1` alone does not let it shrink. The
     // add-status and add-tag fields sat in a `w-52` popover and overflowed its
-    // right edge by 20px — invisible until a focused border was drawn crossing
-    // the panel wall.
+    // right edge by 20px — invisible until a focus line was drawn crossing the
+    // panel wall.
     const offenders = vueFiles().flatMap(f =>
       unshrinkableFields(markup(f)).map(line => `${f.replace(ROOT + '/', '')}:${line}`))
     expect(offenders, 'flex-1 without min-w-0 overflows a narrow container').toEqual([])
+  })
+
+  it('marks every composite field with the guideline attribute, never a value', () => {
+    // `data-focus-field` is bare (outline outside the edge) or `"inset"` (inside
+    // it, for a row in a rounded group that clips). Any other value matches no
+    // rule in main.css and silently draws nothing round the shell.
+    const offenders = vueFiles().flatMap(f =>
+      [...markup(f).matchAll(/data-focus-field(?:="([^"]*)")?/g)]
+        .filter(m => m[1] !== undefined && m[1] !== 'inset')
+        .map(m => `${f.replace(ROOT + '/', '')}  ${m[0]}`))
+    expect(offenders).toEqual([])
   })
 
   it('recognises each violation when it sees one', () => {
@@ -620,38 +612,31 @@ describe('focus lands on text entry, and only there', () => {
     expect(unshrinkableFields('<input class="flex-1 min-w-0 px-2">')).toHaveLength(0)
     expect(unshrinkableFields('<input class="w-full px-2">')).toHaveLength(0)
 
-    expect(doubledFields('<div class="focus-within:border-primary">\n<input class="border-0 border-b border-transparent">')).toHaveLength(1)
-    // A shell far above belongs to a different field, not to this one.
-    expect(doubledFields('<div class="focus-within:border-primary" />' + '\n'.repeat(9) + '<input class="border-0 border-b border-transparent">')).toHaveLength(0)
-
-    // All three guards above report an empty array either way, so each needs a
+    // The guards above report an empty array either way, so each needs a
     // synthetic case to prove the mechanism still bites — otherwise a typo in a
     // regex retires the guard silently and the file still reads as protected.
     expect(strayMarkers('<div class="focus-visible:ring-2 ring-primary" />')).toHaveLength(1)
     expect(strayMarkers('<input class="focus:border-primary">')).toHaveLength(1)
     expect(strayMarkers('<div class="focus-within:ring-1" />')).toHaveLength(1)
-    // …and passes the shapes that are legitimately there.
-    expect(strayMarkers('<div class="focus-within:border-primary" />')).toHaveLength(0)
-    // Focus is never a fill — a background was tried for the row-tables and
-    // dropped, because it made a second visual language out of one sentence.
+    // The old shell spelling is now a stray: the shell says `data-focus-field`.
+    expect(strayMarkers('<div class="focus-within:border-primary" />')).toHaveLength(1)
     expect(strayMarkers('<div class="focus-within:bg-elevated" />')).toHaveLength(1)
     expect(strayMarkers('<input class="focus:border-error/60">')).toHaveLength(0)
     expect(strayMarkers('<textarea class="focus:border-secondary" />')).toHaveLength(0)
     expect(strayMarkers('<button class="focus-visible:opacity-100" />')).toHaveLength(0)
-
-    expect(edgelessFields('<input class="bg-transparent border-0">')).toHaveLength(1)
-    expect(edgelessFields('<textarea class="p-2" />')).toHaveLength(1)
-    // A reserved edge, a full border, and a shell each satisfy it.
-    expect(edgelessFields('<input class="border-0 border-b border-transparent">')).toHaveLength(0)
-    expect(edgelessFields('<input class="border border-default">')).toHaveLength(0)
-    expect(edgelessFields('<div class="focus-within:border-primary"><textarea /></div>')).toHaveLength(0)
-    // Controls carry their focus in their type, not in a border.
-    expect(edgelessFields('<input type="checkbox" class="size-4">')).toHaveLength(0)
   })
 })
 
 describe('the focus rules in main.css', () => {
   const css = readFileSync(join(ROOT, 'app/assets/css/main.css'), 'utf8')
+
+  /** The declarations of the first rule whose selector is exactly `selector`. */
+  function declarations(selector: string): string {
+    const esc = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const body = css.match(new RegExp(`^${esc}\\s*\\{([^}]*)\\}`, 'm'))?.[1]
+    expect(body, `a rule for \`${selector}\``).toBeDefined()
+    return body!
+  }
 
   it('clears the outline on pseudo-elements too', () => {
     // Nuxt UI's `UNavigationMenu` hangs its focus halo on a `::before` rather
@@ -662,27 +647,40 @@ describe('the focus rules in main.css', () => {
     expect(reset).toMatch(/outline:\s*none/)
   })
 
-  it('keeps the text-entry rule between a resting border and a per-field override', () => {
-    // The rule has to beat `.border-default` (0,1,0) and lose to
-    // `.focus\:border-error\/60:focus` (0,2,0), which puts it at (0,1,1) — one
-    // element plus one pseudo-class, and nothing else that counts.
-    //
-    // Both halves of that have already been got wrong here. In `@layer base` it
-    // lost to the resting `border-default` on every field in the app and did
-    // nothing, which is indistinguishable from working if you only test a field
-    // that has no border class. And a bare `:not([type="checkbox"], …)` adds
-    // (0,1,0) of its own, landing the rule at (0,2,1) — beating the per-field
-    // overrides it exists to lose to. `:where()` is what zeroes it.
-    const rule = css.match(/@layer utilities \{[\s\S]*?input:not\([\s\S]*?\}\s*\}/)?.[0]
-    expect(rule, 'the text-entry rule must be in @layer utilities').toBeDefined()
-    expect(rule!, 'the :not() must be wrapped in :where() to stay at (0,1,1)')
-      .toMatch(/input:not\(:where\(/)
-    expect(rule!).toMatch(/border-color:\s*var\(--ui-primary\)/)
+  it('draws the marker from the company tokens, by input modality', () => {
+    // Keyboard: 2px accent, 2px offset. Pointer: 1px neutral. Both read the
+    // `--c2s-*` tokens rather than restating them, and the tokens must exist in
+    // both themes — a focus colour missing in dark mode inherits the light one,
+    // which is #d4006a on #252533 and under 3:1.
+    expect(declarations(':root[data-input-modality=\'keyboard\'] :focus-visible'))
+      .toMatch(/outline:\s*var\(--c2s-focus-width\) solid var\(--c2s-focus\)/)
+    expect(declarations(':root[data-input-modality=\'pointer\'] :focus-visible'))
+      .toMatch(/outline:\s*var\(--c2s-focus-pointer-width\) solid var\(--c2s-focus-pointer\)/)
 
-    // And it must not have grown a second declaration: the whole point is that
-    // focus is a border colour, so nothing reflows and nothing clips.
-    const body = rule!.slice(rule!.lastIndexOf('{') + 1, rule!.indexOf('}', rule!.lastIndexOf('{')))
-    expect(body.split(';').filter(d => d.trim()), 'focus is one declaration').toHaveLength(1)
+    for (const theme of ['light', 'dark'] as const) {
+      const focus = hexToRgb(c2sToken('--c2s-focus', theme))
+      const surface = hexToRgb(c2sToken('--c2s-surface', theme))
+      // A focus indicator is a graphical object: 3:1 against what it sits on.
+      expect(ratio(focus, surface), `--c2s-focus on --c2s-surface (${theme})`).toBeGreaterThanOrEqual(3)
+    }
+  })
+
+  it('outranks the reset on specificity, not on source order', () => {
+    // The reset is `*:focus-visible`, (0,1,0). Every rule that draws a marker
+    // starts `:root[…]`, which is (0,2,0) before the `:focus-visible` — so a
+    // reordering of this file cannot silently put the reset back on top.
+    const drawing = [...css.matchAll(/^(:root\[data-input-modality[^{]*)\{([^}]*)\}/gm)]
+      .filter(m => /outline:\s*var/.test(m[2]!))
+    expect(drawing.length, 'marker rules found').toBeGreaterThanOrEqual(3)
+  })
+
+  it('gives a composite field one line, round the shell', () => {
+    // The guideline's own wording: exactly one focus line round the whole
+    // field, never one round the inner input as well.
+    expect(declarations(':root[data-input-modality] [data-focus-field] :focus-visible'))
+      .toMatch(/outline:\s*none/)
+    expect(declarations(':root[data-input-modality=\'keyboard\'] [data-focus-field]:has(:focus-visible)'))
+      .toMatch(/outline:\s*var\(--c2s-focus-width\) solid var\(--c2s-focus\)/)
   })
 })
 
@@ -856,7 +854,13 @@ describe('type scale', () => {
     const ALLOWED: Record<string, string> = {
       'app/error.vue': 'a dead end — one headline, one line of copy, one way out',
       'app/layouts/auth.vue': 'the wordmark, over a page whose only job is one form',
-      'app/components/profile/ProfileActivity.vue': 'a single stat readout, and it is a number'
+      'app/components/profile/ProfileActivity.vue': 'a single stat readout, and it is a number',
+      // An exception the mechanism above does not produce: it is imposed. The
+      // connect2scale guideline fixes the page title (h1) at 26px on every page,
+      // as a binding token (handoff `02-tokens.md`), working surfaces included.
+      // It is one heading in the page header, above the work rather than inside
+      // it, which is the closest this rule's premise comes to holding.
+      'app/components/ui/Page.vue': 'the connect2scale page title — 26px by company rule, in the header above the work'
     }
 
     // The other half of the rule, and the half an exemption list cannot state:
@@ -988,12 +992,17 @@ describe('type scale', () => {
 
     // Pinned, for the same reason the display tier is: a derivation that silently
     // came back empty would turn this guard into a rule that passes everything.
-    expect([...RAMP].sort(), 'the declared elevation ramp').toEqual(['drag', 'float', 'raise'])
+    // `dialog` is connect2scale's dialog shadow (`--c2s-shadow-dialog`).
+    expect([...RAMP].sort(), 'the declared elevation ramp').toEqual(['dialog', 'drag', 'float', 'raise'])
 
     // One entry per site that stays, with the reason it is not a migration.
     // Empty: all 20 migrated, and the two that carried a red glow on a solid red
     // delete button lost the markup entirely when the button became a `UButton`.
-    const OFF_RAMP: string[] = []
+    //
+    // `shadow-none` on the pill-tab indicator clears Nuxt UI's own `shadow-xs`:
+    // the connect2scale segment switch marks the active segment by colour alone.
+    // It draws nothing, so it cannot drift from the ramp.
+    const OFF_RAMP: string[] = ['app/app.config.ts  shadow-none']
 
     // `shadow-[…]` is the arbitrary form, which the test above owns; matching it
     // here would report one site twice under two different claims.
@@ -1049,7 +1058,14 @@ describe('type scale', () => {
     // ascending, with no two names for one size — two names for one size is how
     // 726 inline values across nineteen sizes grew in the first place — and a
     // body step nobody has to lean in for.
-    const steps = [...css.matchAll(/--text-(\w+):\s*([\d.]+)rem/g)].map(m => ({ name: m[1]!, rem: Number(m[2]) }))
+    // A step is a rem value of ours or a connect2scale token (in px), resolved.
+    const toRem = (v: string) => {
+      const r = resolveC2s(v)
+      return r.endsWith('rem') ? Number.parseFloat(r) : Number.parseFloat(r) / 16
+    }
+    const steps = [...css.matchAll(/--text-([\w]+):\s*([^;]+);/g)]
+      .filter(m => !m[1]!.includes('--'))
+      .map(m => ({ name: m[1]!, rem: toRem(m[2]!) }))
     expect(steps.length, 'redefined type steps').toBeGreaterThan(0)
 
     const rems = steps.map(s => s.rem)
@@ -1071,7 +1087,7 @@ describe('type scale', () => {
       expect(step, `--text-${name}, a declared display step`).toBeDefined()
       expect(step!.rem * 16, `--text-${name} against the 14px body`).toBeGreaterThanOrEqual(14 * 1.75)
 
-      const leading = Number(css.match(new RegExp(`--text-${name}--line-height:\\s*([\\d.]+)`))?.[1])
+      const leading = Number(resolveC2s(css.match(new RegExp(`--text-${name}--line-height:\\s*([^;]+);`))?.[1] ?? ''))
       expect(leading, `--text-${name} leading`).toBeGreaterThanOrEqual(1.05)
       expect(leading, `--text-${name} leading`).toBeLessThanOrEqual(1.2)
     }

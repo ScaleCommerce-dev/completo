@@ -189,6 +189,7 @@ async function handleDeleteList() {
 
     <ListView
       v-else
+      gutter
       :columns="columnsData"
       :cards="filteredCards"
       :statuses="statusesData"
@@ -204,6 +205,7 @@ async function handleDeleteList() {
       :can-save-sort="canSaveSort"
       @card-click="openCardDetail"
       @add-card="openCreateCard"
+      @open-settings="showColumnConfig = true"
       @update="handleInlineUpdate"
       @update-tags="handleInlineTagUpdate"
       @sort="handleSort"

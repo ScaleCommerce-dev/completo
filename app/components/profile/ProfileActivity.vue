@@ -26,12 +26,12 @@ function priorityCount(priority: string): number {
 
 <template>
   <div class="mt-6 rounded-xl border border-default bg-default shadow-raise overflow-hidden">
-    <div class="px-5 pt-4 pb-2">
+    <div class="px-card pt-4 pb-2">
       <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Activity</span>
     </div>
 
     <!-- Priority breakdown -->
-    <div class="px-5 pt-2 pb-4">
+    <div class="px-card pt-2 pb-4">
       <div class="flex items-baseline gap-2 mb-3">
         <span class="text-4xl font-display font-bold tabular-nums tracking-display text-highlighted">{{ profileData.totalOpen }}</span>
         <span class="text-sm font-medium text-dimmed">open {{ profileData.totalOpen === 1 ? 'card' : 'cards' }} assigned</span>
@@ -82,10 +82,10 @@ function priorityCount(priority: string): number {
       v-if="profileData.projects?.length"
       class="border-t border-muted"
     >
-      <div class="px-5 pt-3 pb-1">
+      <div class="px-card pt-3 pb-1">
         <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Projects</span>
       </div>
-      <div class="px-5 pb-4 pt-1 space-y-1">
+      <div class="px-card pb-4 pt-1 space-y-1">
         <NuxtLink
           v-for="project in profileData.projects"
           :key="project.id"
@@ -128,7 +128,7 @@ function priorityCount(priority: string): number {
     <!-- Empty state -->
     <div
       v-else-if="profileData.totalOpen === 0 && !profileData.projects?.length"
-      class="px-5 pb-4"
+      class="px-card pb-4"
     >
       <div class="flex items-center gap-2 text-sm text-dimmed">
         <UIcon

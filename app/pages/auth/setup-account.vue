@@ -34,8 +34,8 @@ async function setupAccount() {
 
 <template>
   <div class="auth-glass">
-    <div class="px-7 pt-7 pb-2">
-      <h2 class="text-base font-bold text-center tracking-heading">
+    <div class="pt-7 pb-2">
+      <h2 class="auth-title">
         Set up your account
       </h2>
       <p class="text-sm text-center text-muted mt-1">
@@ -44,13 +44,11 @@ async function setupAccount() {
     </div>
 
     <form
-      class="px-7 pb-7 flex flex-col gap-5"
+      class="pb-7 flex flex-col gap-5"
       @submit.prevent="setupAccount"
     >
       <UFormField
         label="Name"
-        class="auth-field"
-        style="animation-delay: 0.05s"
       >
         <UInput
           v-model="name"
@@ -63,8 +61,6 @@ async function setupAccount() {
 
       <UFormField
         label="Password"
-        class="auth-field"
-        style="animation-delay: 0.1s"
       >
         <UInput
           v-model="password"
@@ -79,10 +75,7 @@ async function setupAccount() {
 
       <AuthErrorBanner :message="error" />
 
-      <div
-        class="auth-field"
-        style="animation-delay: 0.15s"
-      >
+      <div>
         <UButton
           type="submit"
           label="Set Password & Sign In"
@@ -94,7 +87,7 @@ async function setupAccount() {
       </div>
     </form>
 
-    <div class="px-7 pb-6 pt-1">
+    <div class="pb-6 pt-1">
       <div class="border-t border-muted pt-4">
         <p class="text-sm text-center text-muted">
           Already have a password?

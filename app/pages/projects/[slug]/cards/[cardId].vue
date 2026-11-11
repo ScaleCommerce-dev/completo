@@ -276,35 +276,42 @@ async function confirmDelete() {
 </script>
 
 <template>
-  <UiPage width="wide">
+  <UiPage
+    width="wide"
+    :title="card ? formatTicketId(projectKey, card.id) : undefined"
+    :crumbs="[{ label: 'All Projects', to: '/projects' }, { label: cardData?.project?.name || '', to: `/projects/${projectSlug}` }]"
+  >
     <!--
-      The breadcrumb's last crumb *is* the ticket ID control.
-
-      The rail used to carry a copyable `TK-27` pill in a bordered section of its
-      own, 60px below a breadcrumb already ending in `TK-27` — the page stated the
-      same identifier twice, and only the further-away one could be clicked. The
-      pill earns its place on the card *panel*, which has no breadcrumb; here the
-      breadcrumb is where the eye already reads the number, so the copy goes there
-      and the section goes away.
+      A detail page (handoff `03` › Seitentypen › Detail): the record's own title
+      is the page heading, and its ticket ID is the metadata beside it — the copy
+      control, so the number you read is the one you can click. It was the other
+      way round: "TK-1" as the 26px heading over the real title at 16px.
     -->
+    <template #leading>
+      <TicketIdCopy
+        v-if="card"
+        :project-key="projectKey"
+        :project-slug="projectSlug"
+        :card-id="card.id"
+        :copy-buttons="false"
+      />
+    </template>
     <template #title>
-      <UBreadcrumb
-        :items="[
-          { label: cardData?.project?.name || '', to: `/projects/${projectSlug}`, icon: 'i-lucide-folder' },
-          { label: card ? formatTicketId(projectKey, card.id) : '', icon: 'i-lucide-square-check-big' }
-        ]"
-      >
-        <template #item-label="{ item, index }">
-          <TicketIdCopy
-            v-if="index === 1 && card"
-            :project-key="projectKey"
-            :project-slug="projectSlug"
-            :card-id="card.id"
-            :copy-buttons="false"
-          />
-          <span v-else>{{ item.label }}</span>
-        </template>
-      </UBreadcrumb>
+      <!-- A textarea, so a long title wraps rather than running off the edge.
+           See CardModal — Enter still commits. It takes the page title's size
+           and tracking from the `h1` it sits in. -->
+      <textarea
+        v-if="card"
+        ref="titleInput"
+        v-model="title"
+        rows="1"
+        aria-label="Card title"
+        placeholder="Card title..."
+        class="title-field block w-full text-highlighted placeholder:text-dimmed bg-transparent border-0 rounded-none p-0 resize-none overflow-hidden"
+        @input="resizeTitle"
+        @blur="flushTitle"
+        @keydown.enter.prevent="flushTitle"
+      />
     </template>
 
     <div
@@ -485,26 +492,9 @@ async function confirmDelete() {
            sight. -->
       <div
         ref="dropRoot"
-        class="flex-1 min-w-0 order-1 rounded-xl transition-shadow"
+        class="flex-1 min-w-0 order-1 rounded-xl border border-default bg-default shadow-raise p-6 transition-shadow"
         :class="dragging ? 'ring-2 ring-primary ring-offset-4 ring-offset-default' : ''"
       >
-        <!-- Title -->
-        <!-- A textarea, so a long title wraps rather than running off the edge.
-             See CardModal — Enter still commits. The -0.015em is this input's
-             own: it is `text-xl`, a step above every `tracking-name` site and a
-             step below `tracking-display`, and no other file uses it. -->
-        <textarea
-          ref="titleInput"
-          v-model="title"
-          rows="1"
-          aria-label="Card title"
-          placeholder="Card title..."
-          class="w-full text-xl font-bold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent rounded-none tracking-name leading-snug py-2 mb-4 transition-colors resize-none overflow-hidden"
-          @input="resizeTitle"
-          @blur="flushTitle"
-          @keydown.enter.prevent="flushTitle"
-        />
-
         <!-- No heading over the card's own body — see CardModal for why the other
              two sections keep theirs and this one never had a claim to one. -->
 

@@ -37,7 +37,7 @@ const props = withDefaults(defineProps<{
   /** Tints the icon. `error` for destructive, `secondary` for AI surfaces. */
   tone?: 'neutral' | 'primary' | 'error' | 'warning' | 'success' | 'secondary'
   /** sm 400px · md 520px · lg 640px · xl 780px */
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'md' | 'lg' | 'xl'
   /** Drop the body padding when the content manages its own (e.g. a card form). */
   flush?: boolean
   dismissible?: boolean
@@ -49,9 +49,12 @@ const props = withDefaults(defineProps<{
 
 const open = defineModel<boolean>('open', { required: true })
 
+// `md` is the connect2scale dialog, min(510px, 100% − 32px) — every form and
+// confirmation in the app. There is no narrower one: the guideline gives
+// dialogs one width, so a confirmation is not a smaller kind of thing. The
+// wider two are for content that is genuinely a table or a two-pane layout.
 const WIDTHS = {
-  sm: 'sm:max-w-[400px]',
-  md: 'sm:max-w-[520px]',
+  md: 'sm:max-w-(--c2s-dialog-width)',
   lg: 'sm:max-w-[640px]',
   xl: 'sm:max-w-[780px]'
 }
@@ -95,23 +98,28 @@ const ui = computed(() => ({
          has no visible dismiss affordance at all. -->
     <template #header="{ close }">
       <div class="flex items-start gap-3 w-full">
+        <!-- A destructive confirmation gets the guideline's danger tile: 52px
+             on the danger-soft surface (handoff `04` › Dialoge). Every other
+             tone keeps the small tile, which only labels the dialog. -->
         <div
           v-if="icon"
-          class="flex items-center justify-center size-9 rounded-lg shrink-0"
-          :class="TONES[tone]"
+          class="flex items-center justify-center shrink-0"
+          :class="tone === 'error' ? 'size-13 rounded-xl bg-danger-soft text-error' : ['size-9 rounded-lg', TONES[tone]]"
         >
           <UIcon
             :name="icon"
-            class="text-base"
+            :class="tone === 'error' ? 'size-6' : 'text-base'"
           />
         </div>
         <div class="min-w-0 flex-1">
-          <h2 class="text-base font-bold tracking-heading text-highlighted">
+          <!-- The connect2scale dialog title: 22px, −0.6px tracking, carried
+               by the `text-dialog` step. -->
+          <h2 class="text-dialog font-bold text-highlighted">
             {{ title }}
           </h2>
           <p
             v-if="description"
-            class="text-sm text-muted mt-0.5"
+            class="text-base leading-dialog text-muted mt-1"
           >
             {{ description }}
           </p>
@@ -123,8 +131,9 @@ const ui = computed(() => ({
           variant="ghost"
           color="neutral"
           size="sm"
+          square
           aria-label="Close"
-          class="shrink-0 -mr-1 -mt-1"
+          class="size-8 justify-center shrink-0 -mr-1 -mt-1"
           @click="close"
         />
       </div>

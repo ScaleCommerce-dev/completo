@@ -113,24 +113,24 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
     </template>
 
     <!-- Notification groups -->
-    <div class="flex-1 overflow-auto p-4 flex flex-col gap-5">
+    <div class="flex-1 overflow-auto content-gutter-x content-gutter-bottom flex flex-col gap-5">
       <div
         v-for="(group, gi) in grouped"
         :key="group.label"
       >
         <!-- Group label -->
-        <div class="flex items-center gap-2 mb-2 px-1">
+        <div class="flex items-center gap-2 mb-2">
           <span class="text-xs font-semibold uppercase tracking-label text-dimmed">
             {{ group.label }}
           </span>
           <div class="flex-1 h-px bg-elevated" />
-          <span class="text-xs font-mono text-dimmed tabular-nums">
+          <span class="c2s-count">
             {{ group.items.length }}
           </span>
         </div>
 
         <!-- Notification cards -->
-        <div class="rounded-xl border border-default overflow-hidden divide-y divide-default">
+        <div class="rounded-xl border border-default bg-default overflow-hidden divide-y divide-default">
           <button
             v-for="(n, ni) in group.items"
             :key="n.id"
@@ -140,7 +140,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
                 ? 'bg-default hover:bg-muted'
                 : 'bg-primary/5 hover:bg-primary/15'
             ]"
-            :style="{ animationDelay: staggerDelay(gi * 60 + ni * 40) }"
+            :style="{ animationDelay: staggerDelay((gi + ni) * STAGGER_STEP) }"
             @click="handleClick(n)"
           >
             <!-- Unread indicator -->
@@ -217,7 +217,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
 
       <UEmpty
         v-if="!notifications.length"
-        class="py-16"
+        class="c2s-empty-brand py-16"
         icon="i-lucide-bell-off"
         title="No notifications"
         description="Mentions, assignments and membership changes land here."

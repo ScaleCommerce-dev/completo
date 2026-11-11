@@ -289,14 +289,16 @@ onUnmounted(() => {
  * 84 characters. Our audience reads GitHub issues all day, so 79 was the outlier
  * here, not the safe choice.
  *
- * 52rem is 832px, about 114 characters at our 14px. It is deliberately inert
+ * 53rem is 848px, about 116 characters at our 14px. It is deliberately inert
  * inside the card panel at every width the panel actually takes — prose fills it
  * — and exists for the card *page*, whose main column runs past 1100px and would
- * otherwise reach ~150. The generous 1.7 line-height is what makes a measure
- * this wide comfortable: long lines want more leading, and these have it.
+ * otherwise reach ~150. It was 52rem until the panel moved to the dialog's 32px
+ * gutter, which widened the panel's text to 836px. The generous 1.7 line-height
+ * is what makes a measure this wide comfortable: long lines want more leading,
+ * and these have it.
  */
 .prose-description :deep(> *) {
-  max-width: var(--prose-measure, 52rem);
+  max-width: var(--prose-measure, 53rem);
 }
 
 /* What the extra width is actually for. These have no measure to blow. */

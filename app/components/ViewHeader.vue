@@ -78,54 +78,43 @@ const viewOptions = computed<FieldMenuOption[]>(() => [
 </script>
 
 <template>
-  <UiPage variant="surface">
+  <!-- The project is an ancestor, so it is a topbar crumb; the view is the
+       page, so it is the page title — and still the switcher, because picking
+       another view is what you do with this name. -->
+  <UiPage
+    variant="surface"
+    :title="viewName"
+    :crumbs="[{ label: 'All Projects', to: '/projects' }, { label: projectName, to: `/projects/${projectSlug}` }]"
+  >
     <template #title>
-      <nav class="flex items-center gap-1.5 text-sm min-w-0">
-        <!-- The project crumb is the first thing to go on a narrow screen: the
-             view name identifies where you are, the project is context. -->
-        <NuxtLink
-          :to="`/projects/${projectSlug}`"
-          class="flex items-center gap-1.5 text-muted hover:text-default transition-colors min-w-0 max-md:hidden"
-        >
-          <UIcon
-            name="i-lucide-folder"
-            class="size-4 shrink-0"
-          />
-          <span class="truncate max-w-40">{{ projectName }}</span>
-        </NuxtLink>
-        <UIcon
-          name="i-lucide-chevron-right"
-          class="size-3.5 text-dimmed shrink-0 max-md:hidden"
-        />
-        <FieldMenu
-          label="Views"
-          :options="viewOptions"
-        >
-          <UTooltip text="Switch view">
-            <button
-              type="button"
-              class="group/name flex items-center gap-1.5 font-bold tracking-name text-highlighted hover:text-primary transition-colors min-w-0"
-              :aria-label="`Switch view — currently ${viewName}`"
-            >
-              <UIcon
-                :name="KIND_ICON[viewKind]"
-                class="size-4 shrink-0 text-dimmed"
-              />
-              <span class="truncate max-w-60">{{ viewName }}</span>
-              <!--
+      <FieldMenu
+        label="Views"
+        :options="viewOptions"
+      >
+        <UTooltip text="Switch view">
+          <button
+            type="button"
+            class="group/name flex items-center gap-2 text-highlighted hover:text-primary transition-colors min-w-0"
+            :aria-label="`Switch view, currently ${viewName}`"
+          >
+            <UIcon
+              :name="KIND_ICON[viewKind]"
+              class="size-5 shrink-0 text-dimmed"
+            />
+            <span class="truncate max-w-60">{{ viewName }}</span>
+            <!--
                 Steady, not `opacity-40` fading in on hover. This is the only
                 thing marking the view name as a control, and a project's header
                 carries exactly one of them — the quiet-until-hovered treatment
                 belongs to the list cells, where there are dozens per screen.
               -->
-              <UIcon
-                name="i-lucide-chevron-down"
-                class="size-3 shrink-0 text-dimmed group-hover/name:text-primary transition-colors"
-              />
-            </button>
-          </UTooltip>
-        </FieldMenu>
-      </nav>
+            <UIcon
+              name="i-lucide-chevron-down"
+              class="size-4 shrink-0 text-dimmed group-hover/name:text-primary transition-colors"
+            />
+          </button>
+        </UTooltip>
+      </FieldMenu>
     </template>
 
     <template #meta>

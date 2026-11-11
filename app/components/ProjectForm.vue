@@ -220,30 +220,30 @@ function confirmDelete() {
     @submit.prevent="onSubmit"
   >
     <!-- Name input -->
-    <div class="px-5 pt-5 pb-1">
+    <div class="px-dialog pt-5 pb-1">
       <input
         v-model="formName"
         type="text"
         aria-label="Project name"
         placeholder="Project name..."
         autofocus
-        class="w-full text-lg font-semibold text-highlighted placeholder:text-dimmed bg-transparent border-0 border-b border-transparent rounded-none tracking-name leading-snug py-2 transition-colors"
+        class="w-full min-h-11 text-base font-semibold text-highlighted placeholder:text-muted bg-default border border-default rounded-field px-3 py-2 transition-colors"
       >
     </div>
 
     <!-- Description -->
-    <div class="px-5 pt-1">
+    <div class="px-dialog pt-1">
       <textarea
         v-model="formDescription"
         aria-label="Project description"
         placeholder="What is this project about?"
         rows="2"
-        class="w-full text-base text-toned placeholder:text-dimmed bg-muted border border-default rounded-lg px-3 py-2.5 transition-colors resize-none leading-relaxed"
+        class="w-full text-base text-toned placeholder:text-muted bg-default border border-default rounded-field px-3 py-2.5 transition-colors resize-none leading-relaxed"
       />
     </div>
 
     <!-- Agent Briefing -->
-    <div class="px-5 pt-2">
+    <div class="px-dialog pt-2">
       <button
         v-if="!showBriefingEditor"
         type="button"
@@ -266,7 +266,7 @@ function confirmDelete() {
             Agent Briefing
           </span>
           <span class="text-2xs text-dimmed">
-            — sent as context to AI
+            Sent as context to AI
           </span>
         </div>
         <textarea
@@ -274,18 +274,21 @@ function confirmDelete() {
           aria-label="Project briefing"
           placeholder="Describe the project scope, tech stack, conventions, goals... This context helps AI write better card descriptions."
           rows="6"
-          class="w-full text-base text-toned placeholder:text-dimmed bg-muted border border-default rounded-lg px-3 py-2.5 focus:border-secondary transition-colors resize-none leading-relaxed"
+          class="w-full text-base text-toned placeholder:text-muted bg-default border border-default rounded-field px-3 py-2.5 focus:border-secondary transition-colors resize-none leading-relaxed"
         />
       </template>
     </div>
 
     <!-- Properties -->
-    <div class="mx-5 mt-4 rounded-lg border border-accented divide-y divide-default overflow-hidden">
+    <div class="mx-dialog mt-4 rounded-lg border border-accented divide-y divide-default overflow-hidden">
       <!-- Icon row -->
       <ProjectIconPicker v-model="formIcon" />
 
       <!-- Key row -->
-      <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
+      <div
+        data-focus-field="inset"
+        class="flex items-center px-3 py-2.5 bg-default border-b border-transparent"
+      >
         <div class="flex items-center gap-2 w-28 shrink-0">
           <UIcon
             name="i-lucide-key-round"
@@ -330,7 +333,10 @@ function confirmDelete() {
       </div>
 
       <!-- Slug row -->
-      <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
+      <div
+        data-focus-field="inset"
+        class="flex items-center px-3 py-2.5 bg-default border-b border-transparent"
+      >
         <div class="flex items-center gap-2 w-28 shrink-0">
           <UIcon
             name="i-lucide-link"
@@ -366,7 +372,10 @@ function confirmDelete() {
       </div>
 
       <!-- Done status row — inline retention -->
-      <div class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary">
+      <div
+        data-focus-field="inset"
+        class="flex items-center px-3 py-2.5 bg-default border-b border-transparent"
+      >
         <div class="flex items-center gap-2 w-28 shrink-0">
           <UIcon
             name="i-lucide-circle-check-big"
@@ -441,7 +450,7 @@ function confirmDelete() {
       variant="subtle"
       icon="i-lucide-alert-circle"
       :description="error"
-      class="mx-5 mt-3"
+      class="mx-dialog mt-3"
     />
 
     <!-- Inline, not a dialog: in edit mode this form *is* the dialog's body, and a
@@ -454,7 +463,7 @@ function confirmDelete() {
       :confirm-text="formName"
       message="This will permanently delete the project, all boards, statuses, and cards."
       :loading="deleting"
-      class="mx-5 mt-3"
+      class="mx-dialog mt-3"
       @confirm="confirmDelete"
       @cancel="showDeleteConfirm = false"
     />
@@ -462,7 +471,7 @@ function confirmDelete() {
     <!-- Actions -->
     <!-- `submit-type="submit"` keeps Enter-in-a-field submitting the form, which
          is the native behaviour the bar has to preserve to be usable here. -->
-    <div class="px-5 pt-4 pb-5 mt-4 border-t border-muted">
+    <div class="px-dialog pt-4 pb-7 mt-4">
       <UiSaveBar
         :destructive-label="mode === 'edit' && !showDeleteConfirm ? 'Delete' : undefined"
         :submit-label="mode === 'create' ? 'Create' : 'Save'"

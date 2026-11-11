@@ -94,7 +94,7 @@ function applyFilterAsIcon() {
         v-if="filteredIcons.length === 0"
         class="text-center py-2 text-xs text-dimmed"
       >
-        No matching icons — press Enter to use "{{ iconFilter }}"
+        No matching icons. Press Enter to use "{{ iconFilter }}"
       </div>
       <p class="text-xs text-dimmed">
         Can't find what you need? Find a name on

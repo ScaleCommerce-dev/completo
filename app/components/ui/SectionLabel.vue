@@ -43,7 +43,7 @@ withDefaults(defineProps<{
 
     <span
       v-if="count !== null && count !== undefined"
-      class="text-xs font-mono tabular-nums text-dimmed shrink-0"
+      class="c2s-count shrink-0"
     >{{ count }}</span>
 
     <slot name="actions" />

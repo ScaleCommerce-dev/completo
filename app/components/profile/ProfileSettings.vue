@@ -40,7 +40,7 @@ function formatDate(iso: string): string {
   >
     <div class="rounded-xl border border-default bg-default shadow-raise overflow-hidden">
       <!-- Identity header: Avatar + Name + Email -->
-      <div class="flex items-center gap-4 px-5 pt-5 pb-4">
+      <div class="flex items-center gap-4 px-card pt-5 pb-4">
         <!-- The initials fallback was a hand-rolled gradient circle; UAvatar
              already resolves src-or-initials, and the brand gradient belongs to
              the logo and the drag, not to every avatar. -->
@@ -98,14 +98,14 @@ function formatDate(iso: string): string {
       </div>
 
       <!-- Divider -->
-      <div class="mx-5 border-t border-muted" />
+      <div class="mx-card border-t border-muted" />
 
       <!-- Settings rows -->
-      <div class="px-5 pt-3 pb-1">
+      <div class="px-card pt-3 pb-1">
         <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Preferences</span>
       </div>
 
-      <div class="mx-5 mt-2 rounded-lg border border-default divide-y divide-default overflow-hidden">
+      <div class="mx-card mt-2 rounded-lg border border-default divide-y divide-default overflow-hidden">
         <!-- Avatar row: Gravatar detected (not overriding) -->
         <div
           v-if="hasGravatar && !gravatarOverride"
@@ -132,7 +132,8 @@ function formatDate(iso: string): string {
         <!-- Avatar URL row: no Gravatar or overriding -->
         <div
           v-else-if="hasGravatar === false || gravatarOverride"
-          class="flex items-center px-3 py-2.5 bg-default border-b border-transparent focus-within:border-primary"
+          data-focus-field="inset"
+          class="flex items-center px-3 py-2.5 bg-default border-b border-transparent"
         >
           <label
             for="profile-avatar-url"
@@ -228,13 +229,13 @@ function formatDate(iso: string): string {
         variant="subtle"
         icon="i-lucide-alert-circle"
         :description="profileError"
-        class="mx-5 mt-3"
+        class="mx-card mt-3"
       />
 
       <!-- Profile success -->
       <div
         v-if="profileSuccess"
-        class="mx-5 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/30"
+        class="mx-card mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-success/10 border border-success/30"
       >
         <UIcon
           name="i-lucide-check-circle"
@@ -244,7 +245,7 @@ function formatDate(iso: string): string {
       </div>
 
       <!-- Profile actions -->
-      <div class="flex items-center justify-end px-5 pt-4 pb-5 mt-3 border-t border-muted">
+      <div class="flex items-center justify-end px-card pt-4 pb-5 mt-3 border-t border-muted">
         <div class="flex items-center gap-2">
           <UButton
             type="submit"

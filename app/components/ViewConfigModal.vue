@@ -519,14 +519,12 @@ const showDeleteConfirm = ref(false)
             v-model="editName"
             :placeholder="`${KIND.noun} name...`"
             :aria-label="`${KIND.noun} name`"
-            size="sm"
             class="flex-1"
           />
           <UButton
             type="submit"
             icon="i-lucide-check"
             label="Rename"
-            size="sm"
             :disabled="!nameChanged"
           />
         </form>
@@ -648,13 +646,11 @@ const showDeleteConfirm = ref(false)
                 v-model="newColumnName"
                 placeholder="New column name (project-wide)"
                 class="flex-1"
-                size="sm"
               />
               <UButton
                 type="submit"
                 icon="i-lucide-plus"
                 label="Add"
-                size="sm"
               />
             </form>
 
@@ -783,7 +779,6 @@ const showDeleteConfirm = ref(false)
                   ignore-filter
                   value-key="value"
                   placeholder="Any member"
-                  size="sm"
                   class="flex-1"
                 >
                   <template #default>
@@ -825,7 +820,6 @@ const showDeleteConfirm = ref(false)
                   multiple
                   value-key="value"
                   placeholder="Any tag"
-                  size="sm"
                   class="flex-1"
                 >
                   <template #item-leading="{ item }">
@@ -894,7 +888,7 @@ const showDeleteConfirm = ref(false)
       v-if="isView"
       #footer
     >
-      <div class="w-full px-5 pt-4 pb-5 border-t border-muted">
+      <div class="w-full px-dialog pt-4 pb-7">
         <UiInlineConfirm
           v-if="showDeleteConfirm"
           :label="`this ${KIND.noun}`"

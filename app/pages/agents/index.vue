@@ -226,7 +226,7 @@ const TD = `${TABLE_CELL_PAD} text-sm text-default align-middle`
         size="xs"
         aria-label="Whose agents"
       />
-      <span class="text-sm font-mono tabular-nums text-dimmed">{{ filtered.length }}</span>
+      <span class="c2s-count">{{ filtered.length }}</span>
     </template>
     <template #actions>
       <UButton
@@ -291,8 +291,7 @@ const TD = `${TABLE_CELL_PAD} text-sm text-default align-middle`
           icon="i-lucide-search"
           placeholder="Search agents"
           aria-label="Search agents"
-          size="sm"
-          class="w-full sm:w-64"
+          class="w-full sm:w-72 max-w-[360px]"
         />
         <USelectMenu
           v-if="isAdmin && scope === 'all'"
@@ -301,7 +300,6 @@ const TD = `${TABLE_CELL_PAD} text-sm text-default align-middle`
           value-key="value"
           placeholder="Any manager"
           icon="i-lucide-user"
-          size="sm"
           :search-input="{ placeholder: 'Search managers' }"
           clear
           class="w-48"
@@ -326,7 +324,6 @@ const TD = `${TABLE_CELL_PAD} text-sm text-default align-middle`
           value-key="value"
           placeholder="Any status"
           icon="i-lucide-circle-dot"
-          size="sm"
           :search-input="false"
           clear
           class="w-40"
@@ -344,7 +341,7 @@ const TD = `${TABLE_CELL_PAD} text-sm text-default align-middle`
 
     <UEmpty
       v-if="status !== 'pending' && !agents.length"
-      class="py-16"
+      class="c2s-empty-brand py-16"
       icon="i-lucide-bot"
       :title="scope === 'all' ? 'No agents yet' : 'You have no agents yet'"
       description="An agent is an account for an AI tool: its own name, its own tokens, and only the projects it is added to. Its work shows as its own."
@@ -353,7 +350,7 @@ const TD = `${TABLE_CELL_PAD} text-sm text-default align-middle`
 
     <div
       v-else-if="agents.length"
-      class="rounded-xl border border-default overflow-x-auto"
+      class="rounded-xl border border-default bg-default overflow-x-auto"
     >
       <table class="w-full min-w-[720px] table-fixed">
         <colgroup>
@@ -454,7 +451,7 @@ const TD = `${TABLE_CELL_PAD} text-sm text-default align-middle`
                     v-if="g.isYou"
                     class="text-xs text-dimmed shrink-0"
                   >(you)</span>
-                  <span class="font-mono tabular-nums text-xs text-dimmed shrink-0">{{ g.agents.length }}</span>
+                  <span class="c2s-count shrink-0">{{ g.agents.length }}</span>
                   <span
                     v-if="!g.manager"
                     class="text-xs text-warning shrink-0"

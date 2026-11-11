@@ -16,7 +16,7 @@ useHead({
 })
 
 useSeoMeta({
-  title: 'Completo — All the Toppings. None of the Mess.',
+  title: 'Completo: All the Toppings. None of the Mess.',
   description: 'Drag. Drop. Completo.'
 })
 </script>

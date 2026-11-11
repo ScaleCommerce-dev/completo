@@ -95,7 +95,6 @@ function confirm() {
     tone="error"
     :title="title"
     :description="description"
-    size="sm"
   >
     <template
       v-if="needsTyping || $slots.body"

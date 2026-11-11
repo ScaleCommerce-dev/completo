@@ -40,7 +40,7 @@ function when(iso: string | null): string {
 
 <template>
   <div class="mt-6 rounded-xl border border-default bg-default shadow-raise overflow-hidden">
-    <div class="px-5 pt-4 pb-2 flex items-center gap-2">
+    <div class="px-card pt-4 pb-2 flex items-center gap-2">
       <UIcon
         name="i-lucide-plug-zap"
         class="text-base text-dimmed"
@@ -48,7 +48,7 @@ function when(iso: string | null): string {
       <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Connected apps</span>
     </div>
 
-    <div class="px-5 pb-4">
+    <div class="px-card pb-4">
       <p class="text-sm text-dimmed leading-relaxed">
         Apps that signed in to your account through Claude's connector sign-in. Each one acts as you until you disconnect it here.
       </p>
@@ -56,7 +56,7 @@ function when(iso: string | null): string {
 
     <div
       v-if="grants.length"
-      class="mx-5 mb-5 rounded-lg border border-default divide-y divide-default overflow-hidden"
+      class="mx-card mb-5 rounded-lg border border-default divide-y divide-default overflow-hidden"
     >
       <div
         v-for="grant in grants"

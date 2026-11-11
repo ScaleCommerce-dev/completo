@@ -69,5 +69,5 @@ withDefaults(defineProps<{
   <span
     v-else
     :class="emptyOnHover && !emptyLabel ? EMPTY_CELL_CLASS : 'text-dimmed text-sm'"
-  >{{ emptyLabel || '—' }}</span>
+  >{{ emptyLabel || '-' }}</span>
 </template>

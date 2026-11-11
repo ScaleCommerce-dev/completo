@@ -156,7 +156,10 @@ defineExpose({ focus })
   <div class="rounded-lg border border-default bg-default shadow-float overflow-hidden">
     <!-- The shell owns the edge, so focus colours it. See the focus rule in main.css:
          the input itself has no border to light up. -->
-    <div class="relative border-b border-default focus-within:border-primary">
+    <div
+      data-focus-field="inset"
+      class="relative border-b border-default"
+    >
       <UIcon
         name="i-lucide-search"
         class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-dimmed"

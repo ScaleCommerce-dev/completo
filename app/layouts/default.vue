@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CommandPaletteItem } from '@nuxt/ui'
+import type { CommandPaletteItem, NavigationMenuItem } from '@nuxt/ui'
 import { matchSegments } from '#shared/utils/card-search'
 
 /**
@@ -14,10 +14,11 @@ import { matchSegments } from '#shared/utils/card-search'
  * Pages now render `<UiPage>`, which owns the navbar. Everything global —
  * notifications, search, the user menu — lives here, once.
  */
-const { user, clear } = useUserSession()
 const { navSections, paletteItems } = useNavigation()
-const router = useRouter()
 const colorMode = useColorMode()
+const logout = useSignOut()
+// The app's half of the sign-in / sign-out timeline (`useAuthTransition`).
+const { phase: authPhase } = useAuthTransition()
 
 // Live notifications for the whole session — opened here (persistent across
 // navigations) rather than in NotificationBell, which remounts per page.
@@ -35,10 +36,34 @@ onMounted(() => {
 })
 onUnmounted(() => clearInterval(unreadPoll))
 
+const sidebarCollapsed = useCookie<boolean>('sidebar-collapsed', { default: () => false })
+const route = useRoute()
+
+/**
+ * Which row is active: the one whose address is the longest prefix of the
+ * current path. A starred project stays lit on its own boards and cards, and a
+ * project that is not starred lights All Projects — one row, never two.
+ *
+ * Nuxt UI's own matching is exact, so on a board *no* row was lit. The
+ * guideline's alternative — the area marked as an ancestor with the opened
+ * project inserted beneath it — was built and removed: it put a second copy of
+ * a starred project under All Projects, so clicking a star moved the highlight
+ * away from the row you clicked. Recorded in `docs/connect2scale.md`.
+ */
+const activeTo = computed(() => {
+  const all = navSections.value.flatMap(s => s.items.map(i => i.to))
+  const hits = all.filter(to => route.path === to || route.path.startsWith(`${to}/`))
+  return hits.sort((a, b) => b.length - a.length)[0]
+})
+
+function withActive(items: NavigationMenuItem[]): NavigationMenuItem[] {
+  return items.map(item => ({ ...item, active: item.to === activeTo.value }))
+}
+
 /** `slot` routes the row to `#notifications-leading`, which hangs the collapsed rail's dot. */
 const sidebarSections = computed(() => navSections.value.map(section => ({
   ...section,
-  items: section.items.map(item => item.to === '/notifications'
+  items: withActive(section.items.map(item => item.to === '/notifications'
     ? {
         ...item,
         slot: 'notifications',
@@ -46,8 +71,43 @@ const sidebarSections = computed(() => navSections.value.map(section => ({
           ? { label: unreadCount.value > 99 ? '99+' : String(unreadCount.value), color: 'primary' as const, variant: 'soft' as const }
           : undefined
       }
-    : item)
+    : item))
 })))
+
+/**
+ * The sliding active indicator (handoff `06-motion.md` › Navigationsindikator):
+ * one fill per group that travels to the active entry. Measured after each
+ * render that can move it; a group animates only when it already had an
+ * indicator, so the first placement — and a jump into another group — is
+ * instant rather than a flight. `main.css` › "The sliding indicator".
+ */
+function placeIndicators() {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  for (const group of document.querySelectorAll<HTMLElement>('.c2s-shell .nav-group')) {
+    const active = group.querySelector<HTMLElement>('[data-slot="link"][data-active]')
+    if (!active) {
+      delete group.dataset.indicator
+      delete group.dataset.animate
+      continue
+    }
+    const g = group.getBoundingClientRect()
+    const a = active.getBoundingClientRect()
+    if ('indicator' in group.dataset && !reduce) group.dataset.animate = ''
+    else delete group.dataset.animate
+    // The entry's own fill is inset 1px top and bottom (`before:inset-y-px`).
+    group.style.setProperty('--nav-y', `${a.top - g.top + 1}px`)
+    group.style.setProperty('--nav-h', `${a.height - 2}px`)
+    group.dataset.indicator = ''
+  }
+}
+watch([() => route.fullPath, sidebarSections, sidebarCollapsed], () => {
+  nextTick(() => requestAnimationFrame(placeIndicators))
+}, { flush: 'post' })
+onMounted(() => {
+  requestAnimationFrame(placeIndicators)
+  window.addEventListener('resize', placeIndicators)
+})
+onUnmounted(() => window.removeEventListener('resize', placeIndicators))
 
 /** The three states `UColorModeButton` cycles, as command-palette rows. */
 const COLOR_MODES = [
@@ -55,35 +115,6 @@ const COLOR_MODES = [
   { value: 'light', label: 'Light theme', icon: 'i-lucide-sun' },
   { value: 'dark', label: 'Dark theme', icon: 'i-lucide-moon' }
 ] as const
-
-const sidebarCollapsed = useCookie<boolean>('sidebar-collapsed', { default: () => false })
-
-async function logout() {
-  await $fetch('/auth/logout', { method: 'POST' })
-  await clear()
-  await router.push('/login')
-}
-
-const userMenuItems = computed(() => [
-  [{
-    label: user.value?.name || 'Account',
-    type: 'label' as const
-  }],
-  [{
-    label: 'Profile',
-    icon: 'i-lucide-user',
-    to: '/profile'
-  }, {
-    label: 'API docs',
-    icon: 'i-lucide-book-open',
-    onSelect: () => window.open('/api/docs', '_blank')
-  }],
-  [{
-    label: 'Sign out',
-    icon: 'i-lucide-log-out',
-    onSelect: logout
-  }]
-])
 
 /**
  * Command palette contents. There was previously no global search anywhere, and
@@ -223,15 +254,45 @@ watch(searchOpen, (open) => {
 </script>
 
 <template>
-  <UDashboardGroup>
+  <UDashboardGroup
+    unit="px"
+    storage-key="c2s-dashboard"
+    :data-auth-phase="authPhase"
+  >
+    <!-- `unit="px"` lives on the group: Nuxt UI sizes the sidebar in the
+         *group's* unit and ignores one passed to the sidebar, which rendered the
+         64px rail as 64% of the window. A fresh `storage-key`, because the old
+         one holds a saved size of 17 that would now read as 17px. -->
+    <!-- The skip link (handoff `04-komponenten.md` › Skip-Link): the first
+         focusable thing on every page, landing on `UiPage`'s content area. -->
+    <a
+      href="#content"
+      class="skip-link"
+    >Skip to content</a>
+
+    <!--
+      The shell (handoff `03-layout-navigation.md`): always dark, in both
+      themes — `dark c2s-shell` on the root and on the mobile menu's content,
+      which is portaled and would otherwise miss it. A fixed 224px rather than
+      the resizable percentage it was: the guideline fixes the width (204px
+      under 1150px, 64px collapsed), and a sidebar that resizes per person is
+      a shell that differs per person.
+    -->
     <UDashboardSidebar
       v-model:collapsed="sidebarCollapsed"
       collapsible
-      resizable
-      :min-size="14"
-      :default-size="17"
-      :max-size="26"
-      :ui="{ root: 'overflow-visible z-10', header: 'relative overflow-visible', footer: 'border-t border-default gap-1' }"
+      :default-size="224"
+      :min-size="224"
+      :max-size="224"
+      :collapsed-size="64"
+      class="dark c2s-shell"
+      :ui="{
+        root: 'c2s-sidebar border-e-0 z-10',
+        content: 'dark c2s-shell',
+        header: 'h-auto pt-5 pb-3',
+        body: 'gap-1 px-3',
+        footer: 'px-3 py-3'
+      }"
     >
       <template #header="{ collapsed }">
         <NuxtLink
@@ -239,12 +300,13 @@ watch(searchOpen, (open) => {
           class="flex items-center gap-2.5 min-w-0"
           :class="collapsed ? 'justify-center w-full' : ''"
         >
-          <!-- The logo is one of only three places the brand gradient appears. -->
-          <span class="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-raise shrink-0">
+          <!-- The product logo, 28px tall (handoff › Sidebar). Its tile is the
+               connect2scale brand gradient — the one brand moment in the shell. -->
+          <span class="brand-tile flex items-center justify-center size-7 rounded-lg shrink-0">
             <img
               src="/completo-icon.svg"
               alt=""
-              class="size-[22px] invert"
+              class="size-5 invert"
             >
           </span>
           <span
@@ -257,33 +319,6 @@ watch(searchOpen, (open) => {
             <span class="sidebar-brand font-extrabold text-base leading-none text-highlighted mt-1">Completo</span>
           </span>
         </NuxtLink>
-
-        <!--
-          On the seam, not in the header. The panel-left glyph next to the
-          wordmark competed with the logo and read as a second brand mark.
-          A chevron on the divider is the old Completo control and the one
-          Linear/Notion trained people to look for.
-
-          The seam is the same seam in both states. Collapsed, this used `right-1`,
-          which tucks the chevron *inside* the 64px rail — landing on top of the
-          right half of the logo tile, which is the only other thing in the header
-          at that width. Straddling the divider is the whole idea of the control,
-          so it does that whether the sidebar is 300px or 64px wide; the sidebar
-          root and header are already `overflow-visible` for exactly this.
-
-          Wrapped: UButton's theme is `relative`, which wins a class-merge
-          against `absolute` on the button itself.
-        -->
-        <span class="absolute top-1/2 right-0 z-20 -translate-y-1/2 translate-x-1/2">
-          <UDashboardSidebarCollapse
-            :icon="collapsed ? 'i-lucide-chevron-right' : 'i-lucide-chevron-left'"
-            size="xs"
-            color="neutral"
-            variant="outline"
-            square
-            class="size-6 rounded-full bg-default shadow-raise hover:bg-elevated"
-          />
-        </span>
       </template>
 
       <template #default="{ collapsed }">
@@ -322,6 +357,7 @@ watch(searchOpen, (open) => {
             :collapsed="collapsed"
             :tooltip="collapsed"
             orientation="vertical"
+            class="nav-group"
             :ui="{ link: 'font-medium' }"
           >
             <!-- Collapsed, the rail has no room for the count badge, so unread
@@ -333,7 +369,7 @@ watch(searchOpen, (open) => {
                 inset
               >
                 <UIcon
-                  :name="item.icon!"
+                  :name="(item as NavigationMenuItem).icon!"
                   :class="ui.linkLeadingIcon({ active })"
                 />
               </UChip>
@@ -371,37 +407,23 @@ watch(searchOpen, (open) => {
         </template>
       </template>
 
+      <!--
+        The collapse switch, at the sidebar's foot and at least 44px tall
+        (handoff › Sidebar). It used to straddle the sidebar's right edge; the
+        shell has no divider there now — the content area's rounded corner is
+        the seam — so a control on it would float over nothing. The account
+        menu and theme switch that lived here moved to the topbar with every
+        other global action.
+      -->
       <template #footer="{ collapsed }">
-        <UDropdownMenu
-          :items="userMenuItems"
-          :content="{ align: 'start', side: 'top' }"
-          class="min-w-0"
-          :class="collapsed ? '' : 'flex-1'"
-        >
-          <UButton
-            :label="collapsed ? undefined : (user?.name || 'Account')"
-            variant="ghost"
-            color="neutral"
-            class="w-full"
-            :class="collapsed ? 'justify-center' : 'justify-start'"
-            :ui="{ label: 'truncate' }"
-          >
-            <template #leading>
-              <UiAvatar
-                :src="user?.avatarUrl || undefined"
-                :alt="user?.name || 'Account'"
-                size="2xs"
-              />
-            </template>
-          </UButton>
-        </UDropdownMenu>
-
-        <!-- Reachable when collapsed too. This was `v-if="!collapsed"`, so
-             collapsing the sidebar hid the only theme switch in the app. -->
-        <UColorModeButton
-          variant="ghost"
+        <UDashboardSidebarCollapse
+          :icon="collapsed ? 'i-lucide-panel-left-open' : 'i-lucide-panel-left-close'"
+          :label="collapsed ? undefined : 'Collapse'"
           color="neutral"
-          class="shrink-0"
+          variant="ghost"
+          :square="collapsed"
+          class="min-h-11"
+          :class="collapsed ? 'justify-center w-full' : 'w-full'"
         />
       </template>
     </UDashboardSidebar>
@@ -463,7 +485,7 @@ watch(searchOpen, (open) => {
             placeholder="Search cards, projects and actions..."
             :input="{ fixed: true }"
             close
-            class="flex-1 min-w-0"
+            class="command-palette flex-1 min-w-0"
             @update:model-value="onSearchSelect"
             @update:open="searchOpen = $event"
             @highlight="onSearchHighlight"
@@ -473,7 +495,7 @@ watch(searchOpen, (open) => {
                  the palette's `labelHtml`, so no markup is ever built out of a
                  card title. See `matchSegments`. -->
             <template #card-label="{ item }">
-              <span class="text-default shrink-0">{{ item.prefix }}</span>
+              <span class="card-id text-muted shrink-0">{{ item.prefix }}</span>
               <span class="text-highlighted">
                 <span
                   v-for="(seg, i) in matchSegments(String(item.label), searchTerm)"

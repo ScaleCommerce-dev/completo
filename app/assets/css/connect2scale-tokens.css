@@ -1,0 +1,236 @@
+/* connect2scale Design-Tokens
+   Quelle für alle Produkt-Frontends. Werte nur hier ändern.
+   Shell-Tokens gelten global und wechseln nie mit dem Theme.
+   Inhalts-Tokens gelten unter .c2s-theme[data-theme=light|dark],
+   auch an Portalen (Dialoge, Menüs, Tooltips) am body. */
+
+:root {
+  /* Shell */
+  --c2s-shell: #0e0e18;
+  --c2s-shell-text: #adadbf;
+  --c2s-shell-text-strong: #eeeef5;
+  --c2s-shell-label: #9494a8;
+  --c2s-shell-hover: #ffffff0b;
+  --c2s-shell-ancestor: #ffffff14;
+  --c2s-shell-divider: #ffffff19;
+  --c2s-shell-focus: #fff;
+  --c2s-scroll-thumb-shell: #68687f;
+
+  /* Layout */
+  --c2s-sidebar-width: 224px;
+  --c2s-sidebar-width-medium: 204px;
+  --c2s-sidebar-width-collapsed: 64px;
+  --c2s-topbar-height: 52px;
+  --c2s-topbar-height-phone: 64px;
+  --c2s-toc-width: 240px;
+  --c2s-settings-card-max: 720px;
+  --c2s-dialog-width: min(510px, calc(100% - 32px));
+  --c2s-control-min-height: 44px;
+
+  /* Typografie */
+  --c2s-font-sans: 'Plus Jakarta Sans', sans-serif;
+  --c2s-font-mono: 'DM Mono', ui-monospace, monospace;
+  --c2s-font-figures: 'Inter', sans-serif;
+  --c2s-text-small: 13px;
+  --c2s-text-body: 14px;
+  --c2s-text-title: 16px;
+  --c2s-text-section: 18px;
+  --c2s-text-page-title: 26px;
+  --c2s-text-dialog-title: 22px;
+  --c2s-heading-line-height: 1.2;
+
+  /* Radien */
+  --c2s-radius-xs: 4px;
+  --c2s-radius-sm: 6px;
+  --c2s-radius-md: 8px;
+  --c2s-radius-field: 9px;
+  --c2s-radius-lg: 10px;
+  --c2s-radius-card: 12px;
+  --c2s-radius-card-lg: 14px;
+  --c2s-radius-dialog: 16px;
+  --c2s-radius-content: 18px;
+  --c2s-radius-pill: 999px;
+
+  /* Schatten */
+  --c2s-shadow-menu: 0 8px 24px #0e0e1820;
+  --c2s-shadow-popover: 0 10px 30px #1616291a;
+  --c2s-shadow-dialog: 0 24px 100px #0003;
+  --c2s-backdrop: #0e0e1888;
+  --c2s-backdrop-blur: 4px;
+
+  /* Fokus */
+  --c2s-focus-width: 2px;
+  --c2s-focus-pointer-width: 1px;
+  --c2s-focus-offset: 2px;
+
+  /* Motion */
+  --c2s-ease-out: cubic-bezier(.22, 1, .36, 1);
+  --c2s-ease-standard: cubic-bezier(.4, 0, .2, 1);
+  --c2s-ease-entrance: cubic-bezier(.25, .8, .25, 1);
+  --c2s-ease-emphasis: cubic-bezier(.16, 1, .3, 1);
+  --c2s-duration-fast: 180ms;
+  --c2s-duration-base: 200ms;
+  --c2s-duration-medium: 280ms;
+  --c2s-duration-slow: 420ms;
+
+  font-synthesis: none;
+  text-wrap-style: pretty;
+}
+
+h1, h2, h3, h4, h5, h6 { line-height: var(--c2s-heading-line-height); }
+
+@media (max-width: 620px) {
+  :root {
+    --c2s-text-page-title: 23px;
+    --c2s-radius-content: 16px;
+  }
+}
+
+/* Inhalt: hell */
+.c2s-theme {
+  color-scheme: light;
+
+  --c2s-accent: #d4006a;
+  --c2s-accent-hover-fill: #b8005a;
+  --c2s-accent-text: #a60053;
+  --c2s-accent-soft: #fff1f7;
+  --c2s-accent-hover: #f6d5e5;
+  --c2s-accent-border: #edb8d2;
+  --c2s-segment-active-bg: var(--c2s-accent-soft);
+  --c2s-segment-active-text: var(--c2s-accent-text);
+
+  --c2s-canvas: #e5eaf3;
+  --c2s-surface: #fff;
+  --c2s-card-surface: #fff;
+  --c2s-surface-subtle: #f5f5f9;
+  --c2s-row-hover: #f8fafc;
+  --c2s-table-header: #f2f5fa;
+
+  --c2s-text: #0f0f14;
+  --c2s-muted: #6b6b7e;
+  --c2s-subtle: #858596;
+
+  --c2s-border: #e2e2eb;
+  --c2s-button-border: #828296;
+  --c2s-action-card-border: #a6adbc;
+  --c2s-action-card-hover: color-mix(in srgb, var(--c2s-accent) 6%, transparent);
+
+  --c2s-badge: #d2d9e6;
+  --c2s-badge-text: #484b60;
+
+  --c2s-button-disabled-bg: #eceef3;
+  --c2s-button-disabled-text: #737789;
+  --c2s-button-disabled-border: #d9dce5;
+
+  --c2s-danger: #b4233b;
+  --c2s-danger-fill: #b4233b;
+  --c2s-danger-hover-fill: #921a2e;
+  --c2s-danger-soft: #fff1f3;
+  --c2s-danger-border: #e9b8c1;
+
+  --c2s-success: #25673e;
+  --c2s-success-soft: #eaf7ef;
+  --c2s-success-border: #c8e7d2;
+
+  --c2s-focus: #d4006a;
+  --c2s-focus-pointer: #b8bfcc;
+  --c2s-scroll-thumb: #9999ac;
+
+  /* System-Tags: Komplementärfarbe zum Akzent, folgt Akzentänderungen */
+  --c2s-system-tag-text: oklch(from var(--c2s-accent) 0.40 0.065 calc(h + 180));
+  --c2s-system-tag-soft: oklch(from var(--c2s-accent) 0.97 0.015 calc(h + 180));
+  --c2s-system-tag-border: oklch(from var(--c2s-accent) 0.80 0.045 calc(h + 180));
+  --c2s-system-tag-hover: oklch(from var(--c2s-accent) 0.92 0.025 calc(h + 180));
+
+  --c2s-shadow-contact: rgb(22 28 48 / .035);
+  --c2s-shadow-mid: rgb(22 28 48 / .045);
+  --c2s-shadow-ambient: rgb(22 28 48 / .065);
+
+  --c2s-brand-gradient:
+    radial-gradient(ellipse at 8% 12%, #f3ae9e 0%, #f3ae9e00 54%),
+    radial-gradient(ellipse at 88% 88%, #5364b5 0%, #5364b500 62%),
+    radial-gradient(ellipse at 92% 5%, #bd82c3 0%, #bd82c300 56%),
+    radial-gradient(ellipse at 22% 100%, #ca5689 0%, #ca568900 58%),
+    linear-gradient(125deg, #dc8fa9, #937cc3 58%, #748ac6);
+  --c2s-brand-card-background:
+    linear-gradient(rgb(255 255 255 / .28), rgb(255 255 255 / .28)),
+    radial-gradient(ellipse at 8% 12%, #ffd0ad 0%, #ffd0ad00 54%),
+    radial-gradient(ellipse at 88% 88%, #9cbcff 0%, #9cbcff00 62%),
+    radial-gradient(ellipse at 92% 5%, #e6b5ff 0%, #e6b5ff00 56%),
+    radial-gradient(ellipse at 22% 100%, #ffa8d1 0%, #ffa8d100 58%),
+    linear-gradient(125deg, #ffc0d6, #d3b8ff 58%, #b0caff);
+  --c2s-brand-card-text: #0f0f14;
+  --c2s-brand-card-divider: #0f0f1433;
+
+  color: var(--c2s-text);
+  font-family: var(--c2s-font-sans);
+}
+
+/* Inhalt: dunkel */
+.c2s-theme[data-theme='dark'] {
+  color-scheme: dark;
+
+  --c2s-accent-text: #ffb3d5;
+  --c2s-accent-soft: #382337;
+  --c2s-accent-hover: #503048;
+  --c2s-accent-border: #784761;
+  --c2s-segment-active-bg: rgb(255 255 255 / .09);
+  --c2s-segment-active-text: var(--c2s-text);
+
+  --c2s-canvas: #2a2e40;
+  --c2s-surface: #252533;
+  --c2s-card-surface: #212334;
+  --c2s-surface-subtle: #2d2d3e;
+  --c2s-row-hover: #2c2f40;
+  --c2s-table-header: #2c2f40;
+
+  --c2s-text: #f5f5f7;
+  --c2s-muted: #c5c5ce;
+  --c2s-subtle: #b2b2bf;
+
+  --c2s-border: #3b3b50;
+  --c2s-button-border: #7d8099;
+  --c2s-action-card-border: #70768b;
+
+  --c2s-badge: #454b65;
+  --c2s-badge-text: #eef0f8;
+
+  --c2s-button-disabled-bg: #323545;
+  --c2s-button-disabled-text: #9a9daf;
+  --c2s-button-disabled-border: #434759;
+
+  --c2s-danger: #ff99aa;
+  --c2s-danger-soft: #3d2530;
+  --c2s-danger-border: #805062;
+
+  --c2s-success: #8cdeb0;
+  --c2s-success-soft: #1c362c;
+  --c2s-success-border: #3b6953;
+
+  --c2s-focus: #ff8fc3;
+  --c2s-focus-pointer: #626a7d;
+
+  --c2s-system-tag-text: oklch(from var(--c2s-accent) 0.83 0.065 calc(h + 180));
+  --c2s-system-tag-soft: oklch(from var(--c2s-accent) 0.29 0.025 calc(h + 180));
+  --c2s-system-tag-border: oklch(from var(--c2s-accent) 0.48 0.045 calc(h + 180));
+  --c2s-system-tag-hover: oklch(from var(--c2s-accent) 0.35 0.035 calc(h + 180));
+
+  --c2s-shadow-contact: rgb(0 0 0 / .32);
+  --c2s-shadow-mid: rgb(0 0 0 / .28);
+  --c2s-shadow-ambient: rgb(0 0 0 / .24);
+
+  --c2s-brand-card-background:
+    linear-gradient(color-mix(in srgb, var(--c2s-surface) 65%, transparent), color-mix(in srgb, var(--c2s-surface) 65%, transparent)),
+    linear-gradient(rgb(255 255 255 / .09), rgb(255 255 255 / .09)),
+    radial-gradient(ellipse at 8% 12%, #743957 0%, #74395700 54%),
+    radial-gradient(ellipse at 88% 88%, #304c87 0%, #304c8700 62%),
+    radial-gradient(ellipse at 92% 5%, #603d83 0%, #603d8300 56%),
+    radial-gradient(ellipse at 22% 100%, #79345f 0%, #79345f00 58%),
+    linear-gradient(125deg, #60364f, #493764 58%, #354975);
+  --c2s-brand-card-text: #f3f3f8;
+  --c2s-brand-card-divider: #f3f3f84d;
+}
+
+@media (forced-colors: active) {
+  :root, .c2s-theme { --c2s-focus-pointer: CanvasText; }
+}

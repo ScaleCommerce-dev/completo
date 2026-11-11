@@ -1,5 +1,10 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+/* The connect2scale company tokens, copied verbatim from the design handoff
+   (`connect2scale-design-handoff/tokens/`). The handoff's rule is "names and
+   values stay the same", so that file is never edited here: Completo's own
+   vocabulary is *mapped onto* it in the CONNECT2SCALE block below. */
+@import "./connect2scale-tokens.css";
 @plugin "@tailwindcss/typography";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -11,32 +16,37 @@
    one-offs), and shadows were light-mode-only black alphas that vanished on a
    dark surface.
 
-   Brand colours live in `app/app.config.ts` (`primary: indigo`, `neutral: zinc`)
-   and reach us as Nuxt UI's `--ui-*` variables, which is why semantic
+   Brand colours come from the connect2scale tokens, mapped onto Nuxt UI's
+   `--ui-*` variables in the CONNECT2SCALE block below, which is why semantic
    utilities — text-muted, bg-elevated, border-default — are the only correct
    way to paint a surface here. Reaching for `zinc-500` directly re-introduces
    the drift this block removes.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @theme static {
-  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  /* The three connect2scale faces, and only those (handoff `02-tokens.md`):
+     Plus Jakarta Sans for UI, DM Mono for code, ids and keys, Inter for
+     figures. `nuxt.config.ts` › `fonts` serves all three from the app's own
+     origin — the guideline forbids a font CDN.
+
+     Spelled out rather than `var(--c2s-font-sans)`: @nuxt/fonts decides what to
+     download by reading font-family *values* in the CSS, and a `var()` hides
+     the name from it — measured, the page fell back to Helvetica. The stacks
+     are the token file's, character for character. */
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+  --font-figures: 'Inter', sans-serif;
 
   /* Display is a role, not a face. Call sites say `font-display`, so the face
-     can be replaced without touching one of them; today it resolves to the mono
-     stack the app already loads.
+     can be replaced without touching one of them.
 
-     Mono, and not a display serif, for four reasons. Three of the four surfaces
-     that want display type render a number or a technical string — an error
-     code, a stat readout, a wordmark — and mono is the correct type for all
-     three. It adds no network request and no FOUT risk. It extends an axis the
-     app already has, since `card-id`, `tabular-nums` counts and `.code-lang`
-     are all mono, so display type joins an existing role rather than inventing
-     a fourth. And the app is an instrument panel: a tight heavy mono at 26–38px
-     reads as a readout, where Instrument Serif or Fraunces would read as
-     editorial — a second font load and a fourth type role to say something this
-     app does not say. */
-  --font-display: 'JetBrains Mono', ui-monospace, monospace;
+     It was JetBrains Mono, chosen because the app loaded it anyway and display
+     moments were readouts. Under connect2scale the app loads exactly three
+     faces, and the guideline's own display moments — the 26px page title and
+     the 36px/800 access-page title — are set in the UI face at a heavy weight.
+     A fourth face would break the "three faces, no substitutes" rule, and DM
+     Mono is reserved for code and ids, so display is the UI face. */
+  --font-display: 'Plus Jakarta Sans', sans-serif;
 }
 
 @theme {
@@ -69,6 +79,25 @@
   --text-lg: 1rem;                    /* 16px */
   --text-lg--line-height: 1.4;
 
+  /* connect2scale's section heading is 18px (`--c2s-text-section`), where
+     Tailwind's `xl` was 20. The guideline's steps are binding, so `xl` takes its
+     value rather than a seventh working step sitting 2px from it. */
+  --text-xl: var(--c2s-text-section);  /* 18px */
+  --text-xl--line-height: var(--c2s-heading-line-height);
+
+  /* The dialog title, 22px with −0.6px tracking (handoff `02-tokens.md`). A
+     step of its own because nothing else in the guideline sits there, and it
+     is the one heading every dialog shares — `app.config.ts` › `modal.title`
+     is its only call site. */
+  --text-dialog: var(--c2s-text-dialog-title);
+  --text-dialog--line-height: var(--c2s-heading-line-height);
+  --text-dialog--letter-spacing: -0.6px;
+  /* Dialog body copy runs at 1.8 (handoff › Typografie), looser than any other
+     text in the app — a dialog is read, not scanned. */
+  --leading-dialog: 1.8;
+  /* Feedback copy, 1.6 (same section). */
+  --leading-feedback: 1.6;
+
   /* ─── Type scale: the display tier ─────────────────────────────────────────
      The working ladder stops at `xl`, 20px. That is a 2× total range whose
      largest adjacent step is 1.25× (16→20), so no surface in this app could
@@ -96,8 +125,9 @@
      a full stop, not a place where someone is doing something. That is the
      whole rule, and it is a mechanism rather than a list: the moment a surface
      grows a second thing to look at, its display step is wrong. */
-  --text-2xl: 1.625rem;               /* 26px */
-  --text-2xl--line-height: 1.2;
+  --text-2xl: var(--c2s-text-page-title); /* 26px, 23px on a phone */
+  --text-2xl--line-height: var(--c2s-heading-line-height);
+  --text-2xl--letter-spacing: -0.9px;     /* the page title's own tracking */
   --text-3xl: 2rem;                   /* 32px */
   --text-3xl--line-height: 1.1;
   --text-4xl: 2.375rem;               /* 38px */
@@ -139,16 +169,24 @@
   --tracking-name: -0.01em;           /* a record's own name, and its edit field */
 
   /* ─── Radius ───────────────────────────────────────────────────────────────
-     Three steps, and only three. `--ui-radius` alone was not enough: UButton
-     hardcodes `rounded-md` in its theme rather than deriving from it, so the
-     radius language has to live in Tailwind's own scale to reach both Nuxt UI
-     components and our markup.
-       md (6px)  dense inline controls — chips, table affordances
-       lg (10px) buttons, inputs, cards, popovers
-       xl (14px) panels, modals, board columns
-       full      avatars, status dots, tag pills */
-  --radius-lg: 0.625rem;
-  --radius-xl: 0.875rem;
+     Containment depth, on connect2scale's values. `--ui-radius` alone was not
+     enough: UButton hardcodes `rounded-md` in its theme rather than deriving
+     from it, so the radius language has to live in Tailwind's own scale to
+     reach both Nuxt UI components and our markup.
+       md    (6px)  dense inline controls — chips, menu items, small icon buttons
+       lg    (8px)  buttons, menus, nav items, notices      (`--c2s-radius-md`)
+       field (9px)  text fields, search, the primary button (`--c2s-radius-field`)
+       xl    (12px) cards, board columns                    (`--c2s-radius-card`)
+       2xl   (16px) dialogs                                 (`--c2s-radius-dialog`)
+       content      the content area's top-left corner      (18px, phone 16px)
+       full         avatars, status dots, tag pills */
+  --radius-md: var(--c2s-radius-sm);
+  --radius-lg: var(--c2s-radius-md);
+  --radius-field: var(--c2s-radius-field);
+  --radius-xl: var(--c2s-radius-card);
+  --radius-2xl: var(--c2s-radius-dialog);
+  --radius-feedback: var(--c2s-radius-lg);  /* 10px: feedback, suggestion lists */
+  --radius-content: var(--c2s-radius-content);
 
   /* ─── Elevation ────────────────────────────────────────────────────────────
      Indirected through `--elevation-*` (defined per colour mode below) so a
@@ -185,82 +223,490 @@
   --spacing-cell: 1.375rem;           /* 22px */
   --spacing-row: 2.625rem;            /* 42px */
 
-  --ui-radius: 0.625rem;
+  --ui-radius: var(--c2s-radius-md);
+
+  /* The shell's geometry (handoff `03-layout-navigation.md`). */
+  --spacing-sidebar: var(--c2s-sidebar-width);
+  --spacing-topbar: var(--c2s-topbar-height);
+  /* The dialog's inner gutter: 32px, 24px on a phone (handoff `04` › Dialoge
+     says 25; 24 is the spacing step beside it). One name, because a flush
+     dialog's body — `ProjectForm`, `CreateViewModal` — has to start at the
+     same x as the dialog's own header, and both used to spell 20px apart. */
+  --spacing-dialog: var(--dialog-gutter);
+  --container-settings: var(--c2s-settings-card-max);  /* 720px, settings cards */
+  /* A standard card's padding, 23px (handoff `04` › Karten). */
+  --spacing-card: 23px;
+
+  /* The guideline's two non-semantic surfaces. `canvas` is the content area
+     behind cards; `shell` is the always-dark frame around it. Named as
+     background colours only, so neither becomes a text or border utility. */
+  --background-color-canvas: var(--c2s-canvas);
+  --background-color-shell: var(--c2s-shell);
+
+  /* The one accent fill. `bg-primary` is the *text-safe* primary (see the
+     CONNECT2SCALE block), which in dark mode is a light pink — right for a
+     link, wrong for the primary button, which the guideline fills with the
+     brand magenta and white text in both themes. */
+  --background-color-accent: var(--c2s-accent);
+  --background-color-accent-hover: var(--c2s-accent-hover-fill);
+  --background-color-danger-fill: var(--c2s-danger-fill);
+  --background-color-danger-hover: var(--c2s-danger-hover-fill);
+  --color-on-accent: #fff;
+
+  /* Disabled buttons: neutral at full opacity (handoff › Buttons), not a faded
+     copy of their variant. */
+  --background-color-disabled: var(--c2s-button-disabled-bg);
+  --text-color-disabled: var(--c2s-button-disabled-text);
+  --ring-color-disabled: var(--c2s-button-disabled-border);
+
+  /* The secondary button's edge, deliberately stronger than a card's
+     hairline — it is a control, and has to read as one on a white card. */
+  --ring-color-control: var(--c2s-button-border);
+
+  --background-color-backdrop: var(--c2s-backdrop);
+
+  /* Card and tile states (handoff `04` › Karten): a standard card's border
+     turns the accent on hover; a create tile fills with 6% accent. */
+  --border-color-accent: var(--c2s-accent);
+  --background-color-action-hover: var(--c2s-action-card-hover);
+
+  /* Feedback surfaces (handoff `04` › Feedback). `-edge` rather than
+     `-border` so the utility reads `ring-success-edge`, not a doubled word. */
+  --background-color-success-soft: var(--c2s-success-soft);
+  --ring-color-success-edge: var(--c2s-success-border);
+  --background-color-danger-soft: var(--c2s-danger-soft);
+  --ring-color-danger-edge: var(--c2s-danger-border);
+  --border-color-danger: var(--c2s-danger-border);
+
+  /* Tables: an opaque header and the row hover (handoff `04` › Tabellen). */
+  --background-color-table-header: var(--c2s-table-header);
+  --background-color-row-hover: var(--c2s-row-hover);
+
+  /* Segment switches and the section navigation (`04` › Segment-Schalter,
+     `03` › Inhaltsnavigation). `text-accent` is the *text-safe* accent
+     (`--c2s-accent-text`), unlike `bg-accent`, which is the fill. */
+  --background-color-segment: var(--c2s-segment-active-bg);
+  --text-color-segment: var(--c2s-segment-active-text);
+  --background-color-accent-soft: var(--c2s-accent-soft);
+  --text-color-accent: var(--c2s-accent-text);
+
+  /* The guideline moves the sidebar into a dialog at 980px and below, where
+     Nuxt UI's own switch is `lg` (1024px). `nav:` is the guideline's edge. */
+  --breakpoint-nav: 61.3125rem;       /* 981px */
+  --shadow-dialog: var(--c2s-shadow-dialog);
+
+  --ease-out: var(--c2s-ease-out);
+  --ease-standard: var(--c2s-ease-standard);
+
+  /* The two families `app.config.ts` names. Nuxt UI wants a 50–950 ramp per
+     role; the guideline names individual values instead, so each ramp is built
+     *through* them — every guideline colour sits on a step, and the steps
+     between are interpolated. The semantic tokens (`--ui-primary`, `--ui-bg`…)
+     are then pinned to the guideline values directly in the CONNECT2SCALE
+     block, so these ramps only reach Nuxt UI internals that ask for a shade.
+
+       berry  500 = --c2s-accent, 600 = hover fill, 700 = accent text,
+              50 = accent soft, 200 = dark accent text, 300 = dark focus
+       ink    50 surface-subtle, 100 disabled bg, 200 border, 300 focus-pointer,
+              400 subtle, 500 muted, 700 dark border, 800 dark subtle surface,
+              900 dark surface, 950 the shell */
+  --color-berry-50: #fff1f7;
+  --color-berry-100: #ffe0ef;
+  --color-berry-200: #ffb3d5;
+  --color-berry-300: #ff8fc3;
+  --color-berry-400: #f0479a;
+  --color-berry-500: #d4006a;
+  --color-berry-600: #b8005a;
+  --color-berry-700: #a60053;
+  --color-berry-800: #7d0040;
+  --color-berry-900: #5c0030;
+  --color-berry-950: #3a001e;
+
+  --color-ink-50: #f5f5f9;
+  --color-ink-100: #eceef3;
+  --color-ink-200: #e2e2eb;
+  --color-ink-300: #b8bfcc;
+  --color-ink-400: #858596;
+  --color-ink-500: #6b6b7e;
+  --color-ink-600: #4a4a5c;
+  --color-ink-700: #3b3b50;
+  --color-ink-800: #2d2d3e;
+  --color-ink-900: #252533;
+  --color-ink-950: #0e0e18;
 }
 
-:root {
-  --elevation-raise:
-    0 1px 2px -1px oklch(0 0 0 / 0.06),
-    0 2px 6px -2px oklch(0 0 0 / 0.05);
-  --elevation-float:
-    0 4px 12px -4px oklch(0 0 0 / 0.1),
-    0 12px 32px -12px oklch(0 0 0 / 0.12);
-  --elevation-drag:
-    0 18px 44px -12px oklch(0.45 0.16 275 / 0.28),
-    0 4px 12px -4px oklch(0 0 0 / 0.12);
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONNECT2SCALE
 
-  /* Neutral scrim used by scrollbars and drag ghosts. */
-  --track-thumb: oklch(0.6 0 0 / 0.18);
-  --track-thumb-hover: oklch(0.5 0 0 / 0.32);
+   Nuxt UI paints everything through `--ui-*`; the company guideline names its
+   roles `--c2s-*`. This block is the whole mapping, so a component — ours or
+   Nuxt UI's — never has to know which brand it is wearing.
+
+   **Why the mapping is restated on `.dark` / `.light` and not just `:root`.**
+   A custom property's `var()` is resolved where it is *declared*, and the
+   descendants inherit the resolved colour. Declared on `:root` alone, a
+   `.dark` subtree inside a light page (the shell) would inherit light values.
+   The `--c2s-*` tokens themselves switch per element through
+   `.c2s-theme[data-theme]`, so re-declaring the mapping on every theme root
+   re-resolves it there. `plugins/c2s-theme.client.ts` keeps `<html>`'s
+   `data-theme` in step with the colour mode.
+
+   Text steps. The guideline has three text roles (text / muted / subtle);
+   Nuxt UI has five. The guideline's three land on highlighted / muted /
+   dimmed, and the two between are interpolated — `default` is body copy a
+   step under the heading ink, `toned` sits halfway to `muted`.
+
+   Surfaces. `bg-default` is `--c2s-surface` (cards, dialogs, fields, menus);
+   `bg-muted` is `--c2s-surface-subtle` (hints, menu hover); `bg-elevated` is
+   the disabled-button fill, the guideline's next neutral step, so a hover on
+   `bg-muted` still moves; `bg-accented` is the hairline's own colour. The
+   page itself is `bg-canvas`, behind every surface.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.c2s-theme {
+  /* `text-primary` in dark mode. The guideline keeps the accent *fill* at
+     #d4006a in both themes, but as text on #252533 that is 3:1 — under AA —
+     which is what `--c2s-accent-text` exists for. Nuxt UI uses one variable
+     for both jobs, so the text-safe colour wins it and the fills that need the
+     brand magenta say `bg-accent` explicitly. Light mode keeps the accent
+     itself, at 5.25:1 on white. Dark takes `--c2s-focus` (#ff8fc3) rather
+     than `--c2s-accent-text` (#ffb3d5): both pass, and the focus value is the
+     one the guideline already uses as "the accent, on dark". */
+  --primary-ui: var(--c2s-accent);
+}
+.c2s-theme[data-theme='dark'] {
+  --primary-ui: var(--c2s-focus);
 }
 
+:root,
+.light,
 .dark {
-  /* ─── Dark surface ramp ────────────────────────────────────────────────────
-     Nuxt UI's dark defaults collapse six semantic tokens onto three values:
-     `--ui-bg-muted`, `--ui-bg-elevated` and `--ui-border` are all
-     `oklch(27.4% 0.006 286.033)` (zinc-800), and `--ui-bg-accented` and
-     `--ui-border-accented` are both `oklch(37% …)` (zinc-700). Light mode has five
-     distinct steps; dark had three, so the app's whole surface vocabulary —
-     recessed, raised, emphasis, hairline, emphasis-hairline — lost the ability to
-     express itself on half the screens it runs on.
+  --ui-primary: var(--primary-ui);
+  --ui-error: var(--c2s-danger);
+  --ui-success: var(--c2s-success);
 
-     Two things this actually broke, both measured rather than theorised:
+  --ui-text-highlighted: var(--c2s-text);
+  --ui-text: color-mix(in oklab, var(--c2s-text) 88%, var(--c2s-muted));
+  --ui-text-toned: color-mix(in oklab, var(--c2s-text) 45%, var(--c2s-muted));
+  --ui-text-muted: var(--c2s-muted);
+  --ui-text-dimmed: var(--c2s-subtle);
+  --ui-text-inverted: var(--c2s-surface);
 
-     - **Every board column's border was invisible.** `KanbanColumn` is
-       `bg-muted border border-default`; in dark mode `getComputedStyle` returned
-       `oklch(0.274 0.006 286.033)` for *both*, so the hairline round the app's
-       flagship surface drew itself in the surface's own colour.
-     - **`hover:bg-elevated` on a `bg-muted` surface did nothing at all** — a
-       0-delta hover, the same class of defect as the invisible comment-row
-       highlight, in 27 files.
+  --ui-bg: var(--c2s-surface);
+  --ui-bg-muted: var(--c2s-surface-subtle);
+  --ui-bg-elevated: var(--c2s-button-disabled-bg);
+  --ui-bg-accented: var(--c2s-border);
+  --ui-bg-inverted: var(--c2s-text);
 
-     CLAUDE.md documented the collision and prescribed remembering it
-     ("use `--ui-border-accented` where a border must survive on a recessed
-     surface"), which is a per-call-site tax that nothing enforces and that spends
-     the *emphasis* border on being merely visible. Repairing the ramp once here
-     retires the workaround and gives the emphasis step back.
+  --ui-border: var(--c2s-border);
+  --ui-border-muted: var(--c2s-border);
+  --ui-border-accented: var(--c2s-action-card-border);
+  --ui-border-inverted: var(--c2s-text);
 
-     Steps are chosen to mirror light mode's ordering and its restraint: light's
-     recessed surface is 1.5% off the page, so dark's is 3.4% rather than the 6.4%
-     it was — a recess in dark mode reads *lighter*, and 6.4% made it shout. The
-     hairline then sits above both surfaces it has to survive on (7.6% over muted,
-     11% over the page). `--ui-border` landing 2% under `--ui-bg-accented` mirrors
-     light mode, where the two are the same value.
-     `--ui-bg` is restated at the value Nuxt UI already computes for it, so the
-     ramp reads as a ramp in one place rather than five sixths of one. It also
-     gives the swatch contrast assertion a page colour to derive from: without it
-     the test would have to restate the near-black itself, which is the
-     guard-mirrors-the-value defect this file's own standard warns about.
-     ────────────────────────────────────────────────────────────────────────── */
-  --ui-bg: oklch(21% 0.006 285.885);
-  --ui-bg-muted: oklch(24.4% 0.005 286);
-  --ui-bg-elevated: oklch(28.5% 0.006 286);
-  --ui-bg-accented: oklch(34% 0.009 286);
-  --ui-border: oklch(32% 0.008 286);
-  --ui-border-accented: oklch(41% 0.012 286);
+  --ui-header-height: var(--c2s-topbar-height);
 
+  /* Card elevation is the guideline's three-layer shadow; menus and popovers
+     take its menu shadow. The geometry of the three layers is not in the
+     handoff (only the colours are), so it is set here: contact, mid, ambient
+     at growing blur. */
   --elevation-raise:
-    0 1px 2px -1px oklch(0 0 0 / 0.4),
-    0 2px 6px -2px oklch(0 0 0 / 0.3);
+    0 1px 1px var(--c2s-shadow-contact),
+    0 2px 6px var(--c2s-shadow-mid),
+    0 6px 18px -6px var(--c2s-shadow-ambient);
   --elevation-float:
-    0 4px 12px -4px oklch(0 0 0 / 0.5),
-    0 12px 32px -12px oklch(0 0 0 / 0.45);
+    0 1px 2px var(--c2s-shadow-contact),
+    var(--c2s-shadow-menu);
   --elevation-drag:
-    0 18px 44px -12px oklch(0 0 0 / 0.6),
-    0 0 0 1px oklch(0.62 0.18 275 / 0.35);
+    0 18px 44px -12px var(--c2s-shadow-ambient),
+    0 4px 12px -4px var(--c2s-shadow-mid),
+    0 0 0 1px color-mix(in srgb, var(--c2s-accent) 35%, transparent);
 
-  --track-thumb: oklch(0.75 0 0 / 0.18);
-  --track-thumb-hover: oklch(0.85 0 0 / 0.3);
+  /* Scrollbars: the guideline's thumb, transparent track. */
+  --track-thumb: var(--c2s-scroll-thumb, #9999ac);
+  --track-thumb-hover: var(--c2s-subtle);
+}
+
+/* ─── The shell ───────────────────────────────────────────────────────────────
+   Sidebar and topbar are always dark (`--c2s-shell`), in both themes. They
+   carry `dark c2s-theme c2s-shell` with `data-theme="dark"`: `dark` so Nuxt
+   UI's `dark:` variants and our mapping resolve dark inside, and the overrides
+   here so the shell's own five values — not the dark *content* theme's — are
+   what its controls paint with. */
+.c2s-shell {
+  --ui-bg: var(--c2s-shell);
+  --ui-bg-muted: var(--c2s-shell-hover);
+  --ui-bg-elevated: var(--c2s-shell-ancestor);
+  --ui-bg-accented: var(--c2s-shell-divider);
+  --ui-border: var(--c2s-shell-divider);
+  --ui-border-muted: var(--c2s-shell-divider);
+  --ui-border-accented: var(--c2s-shell-divider);
+  --ui-text-highlighted: var(--c2s-shell-text-strong);
+  --ui-text: var(--c2s-shell-text-strong);
+  --ui-text-toned: var(--c2s-shell-text);
+  --ui-text-muted: var(--c2s-shell-text);
+  --ui-text-dimmed: var(--c2s-shell-label);
+  --ui-text-inverted: var(--c2s-shell);
+  /* The shell never takes the content theme, so its text-safe accent is the
+     dark one whatever the page is: #d4006a as text on #0e0e18 is 3.3:1. */
+  --ui-primary: var(--color-berry-300);
+  --track-thumb: var(--c2s-scroll-thumb-shell);
+
+  /* The secondary button hovers to the canvas — a *content* rule (handoff
+     `04` › Buttons). Inside the shell the canvas is the light #e5eaf3 under
+     light shell text, which made the sidebar's search button unreadable on
+     hover. The shell's own hover is `--c2s-shell-hover` (`03` › Sidebar), and
+     its edges are the shell divider. Overridden at the utility's variable,
+     because `bg-canvas` resolves `--background-color-canvas` on `:root`. */
+  --background-color-canvas: var(--c2s-shell-hover);
+  --ring-color-control: var(--c2s-shell-divider);
+
+  background-color: var(--c2s-shell);
+  color: var(--c2s-shell-text);
+}
+
+/* Counters on navigation entries: a 10px/600 pill (handoff › Sidebar). */
+.c2s-shell [data-slot='link'] [data-slot='linkTrailingBadge'] {
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: var(--c2s-radius-pill);
+}
+
+/* Navigation entries (handoff `03` › Sidebar): 12px on 13×12px padding,
+   radius 8px, icon gap 11px. Active is a filled accent with white 700 text;
+   hover is the shell's 4% white.
+
+   Here rather than in `app.config.ts` because the sidebar is the only
+   `UNavigationMenu` and these values are the shell's, not the menu's. Nuxt UI
+   paints the active fill on `::before`, so that is what this colours. */
+.c2s-shell [data-slot='link'] {
+  font-size: 12px;
+  padding: 13px 12px;
+  gap: 11px;
+  color: var(--c2s-shell-text);
+}
+.c2s-shell [data-slot='link']::before {
+  border-radius: var(--c2s-radius-md);
+}
+.c2s-shell [data-slot='link']:not([data-active]):hover::before {
+  background-color: var(--c2s-shell-hover);
+}
+.c2s-shell [data-slot='link']:not([data-active]):hover {
+  color: var(--c2s-shell-text-strong);
+}
+.c2s-shell [data-slot='link'][data-active] {
+  color: #fff;
+  font-weight: 700;
+}
+.c2s-shell [data-slot='link'][data-active]::before {
+  background-color: var(--c2s-accent);
+}
+.c2s-shell [data-slot='link'][data-active] [data-slot='linkLeadingIcon'] {
+  color: #fff;
+}
+
+:root { --dialog-gutter: 24px; }
+@media (min-width: 640px) {
+  :root { --dialog-gutter: 32px; }
+}
+
+/* The content area: canvas, with the rounded top-left corner that is the
+   guideline's one signature of "shell around content". */
+.c2s-content {
+  background-color: var(--c2s-canvas);
+  border-top-left-radius: var(--c2s-radius-content);
+  container-type: inline-size;
+}
+
+/* The content area's inner spacing (handoff › Maße): 34px top, 36px sides,
+   22px bottom; 42/52 from 1500px; 28/24 under 1150px; 26/18 on a phone. The
+   page header sits 30px above what follows it.
+
+   Classes rather than utilities because the four breakpoints are the
+   guideline's own (1500 / 1150 / 620), which Tailwind's ramp does not have, and
+   because three elements in `UiPage` share them — header, toolbar and body
+   have to start at one x. */
+.c2s-content {
+  --gutter-top: 34px;
+  --gutter-x: 36px;
+  --gutter-bottom: 22px;
+}
+@media (min-width: 1500px) {
+  .c2s-content { --gutter-top: 42px; --gutter-x: 52px; }
+}
+@media (max-width: 1150px) {
+  .c2s-content { --gutter-top: 28px; --gutter-x: 24px; }
+}
+@media (max-width: 620px) {
+  .c2s-content { --gutter-top: 26px; --gutter-x: 18px; }
+}
+.content-gutter {
+  padding: var(--gutter-top) var(--gutter-x) 0;
+}
+.content-gutter-x {
+  padding-inline: var(--gutter-x);
+}
+.content-gutter-bottom {
+  padding-bottom: var(--gutter-bottom);
+}
+.page-head {
+  margin-bottom: 30px;
+}
+/* The same 30px for a scrolling page, as padding inside its scroller — see
+   `UiPage` for why sticky content needs it there. */
+.page-body-start {
+  padding-top: 30px;
+}
+
+/* ─── Sidebar geometry and motion ─────────────────────────────────────────────
+   204px between the mobile switch and 1150px (handoff › Maße). Width animates
+   200ms when collapsing or expanding; a transition only runs on a *change*, so
+   the first placement does not animate. */
+@media (min-width: 981px) and (max-width: 1150px) {
+  .c2s-sidebar:not([data-collapsed='true']) {
+    width: var(--c2s-sidebar-width-medium);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .c2s-sidebar {
+    transition: width var(--c2s-duration-base) ease;
+  }
+}
+
+/* The sliding indicator (handoff `06` › Navigationsindikator): one fill per
+   group that travels to the active entry, 200ms on the standard curve, never
+   between groups. The layout sets `--nav-y` / `--nav-h` on the group and
+   `data-indicator` once it has measured; until then — and with reduced motion
+   — the entry's own `::before` fill shows, so the first placement is static. */
+.c2s-shell .nav-group {
+  position: relative;
+  isolation: isolate;
+}
+.c2s-shell .nav-group[data-indicator]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--nav-h);
+  transform: translateY(var(--nav-y));
+  border-radius: var(--c2s-radius-md);
+  background: var(--c2s-accent);
+  z-index: -1;
+}
+.c2s-shell .nav-group[data-indicator] [data-slot='link'][data-active]::before {
+  background-color: transparent;
+}
+.c2s-shell .nav-group[data-indicator][data-animate]::before {
+  transition: transform var(--c2s-duration-base) var(--c2s-ease-standard), height var(--c2s-duration-base) var(--c2s-ease-standard);
+}
+
+/* ─── Phones: one scroller ────────────────────────────────────────────────────
+   At 620px and below only the topbar stays put; the content area — header,
+   toolbar, body — scrolls as one (handoff › Scrollen). The panel becomes the
+   scroller and every inner one gives its height back. The topbar is 64px. */
+@media (max-width: 620px) {
+  .c2s-panel {
+    overflow-y: auto;
+  }
+  .c2s-panel > .c2s-shell {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    min-height: var(--c2s-topbar-height-phone);
+  }
+  .c2s-panel .c2s-content,
+  .c2s-panel .c2s-scroll {
+    flex: none;
+    overflow: visible;
+    min-height: auto;
+  }
+}
+
+/* ─── Section navigation (handoff `03` › Inhaltsnavigation) ─────────────────
+   240px beside cards of at most 720px; on a phone it sits above them and
+   scrolls sideways rather than truncating a label. */
+.c2s-toc-layout {
+  display: grid;
+  grid-template-columns: var(--c2s-toc-width) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+.c2s-toc {
+  position: sticky;
+  top: 24px;
+}
+.c2s-toc-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--c2s-radius-md);
+  font-size: var(--c2s-text-small);
+  font-weight: 500;
+  color: var(--ui-text-muted);
+  /* Room for the bold active state, so the row does not reflow on change. */
+  min-width: max-content;
+}
+.c2s-toc-link:hover {
+  background: var(--c2s-accent-soft);
+  color: var(--c2s-accent-text);
+}
+.c2s-toc-link[aria-current='location'] {
+  background: var(--c2s-surface);
+  color: var(--c2s-accent-text);
+  font-weight: 700;
+}
+.c2s-theme[data-theme='dark'] .c2s-toc-link[aria-current='location'] {
+  color: #fff;
+}
+@media (max-width: 900px) {
+  .c2s-toc-layout { grid-template-columns: minmax(0, 1fr); }
+  .c2s-toc { position: static; overflow-x: auto; }
+  .c2s-toc ul { flex-direction: row; }
+}
+
+/* A field that edits a heading in place takes the heading's type — size,
+   weight, tracking, leading — from the element it sits in, so the card page's
+   title reads as the 26px page title it is. Form controls do not inherit font
+   by default, which is why this is spelled out. */
+.title-field {
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+/* ─── Counters beside titles (handoff `02` › Farben › Badge) ─────────────────
+   A count next to a heading is a small pill on the badge colours, so it reads
+   as "how many" rather than as a second, dimmer title. */
+.c2s-count {
+  display: inline-flex;
+  align-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  justify-content: center;
+  border-radius: var(--c2s-radius-pill);
+  background: var(--c2s-badge);
+  color: var(--c2s-badge-text);
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* ─── Empty states ────────────────────────────────────────────────────────────
+   "Nothing here yet" is a designed surface on the brand card background
+   (handoff `04` › Leerzustände), never confused with "no matches", which stays
+   a plain hint with a reset. */
+.c2s-empty-brand {
+  background: var(--c2s-brand-card-background);
+  color: var(--c2s-brand-card-text);
+  border-radius: var(--c2s-radius-card);
+}
+.c2s-empty-brand [data-slot='title'] {
+  color: var(--c2s-brand-card-text);
+}
+.c2s-empty-brand [data-slot='description'] {
+  color: color-mix(in srgb, var(--c2s-brand-card-text) 78%, transparent);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -441,143 +887,88 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   FOCUS
+   FOCUS — the connect2scale model (handoff `07-barrierefreiheit.md`)
 
-   Focus is shown where text is being typed, and nowhere else.
+   Focus follows how it arrived. `plugins/c2s-theme.client.ts` keeps
+   `data-input-modality` on `<html>`:
 
-   The previous rule was the opposite — one 2px full-saturation ring on
-   *everything* focusable — and it was unlayered, which is the part that did the
-   damage. Unlayered CSS beats `@layer utilities` at any specificity, so it did
-   not sit under the components; it overrode every focus decision they made:
+     keyboard   2px `--c2s-focus` outline, 2px offset — on every control
+     pointer    1px neutral `--c2s-focus-pointer` outline — a click into a
+                field still shows where you are, without shouting
+     shell      white, 3px offset, in the always-dark sidebar and topbar
 
-   - Nuxt UI's entire focus language is a soft `outline-3` at 25% opacity
-     (`outline-primary/25 focus-visible:outline-3`, halo at offset 0). Ours
-     replaced it with a hard 2px line at 2px offset — on top of the 1px inset
-     ring the component keeps — so every `UInput` drew two concentric boxes.
-   - `UCommandPalette` sets `focus:outline-none` on its input on purpose. Ours
-     reinstated a box around the input, which sits in the left column of a
-     two-column dialog and so read as covering half of it. The palette is also
-     the one text field that wants no marker at all, and the reason generalises:
-     a focus marker announces a *change* to something already on screen, and a
-     summoned surface has no before-state — the palette exists only because you
-     asked to type. Its affordance is the highlighted row instead.
-   - `MarkdownEditor` states focus on the shell (`focus-within:ring-1`), which
-     is the honest unit — toolbar, tabs and textarea are one control. Ours added
-     a second box around the textarea alone, clipped by the shell's
-     `overflow-hidden`.
-   - `border-radius: var(--radius-md)` did not round the outline, it *mutated
-     the element*: every `rounded-full` control (the sidebar collapse chevron,
-     avatar buttons, pills) snapped from a circle to a 6px square on focus.
+   This replaces Completo's own rule ("focus on text entry only, as a primary
+   border"), because the guideline makes the focus model binding and forbids a
+   product its own per-field focus styles. What carried over from that rule is
+   its one hard-won lesson: **a composite field gets exactly one line**. The
+   markdown editor, the quick-add card, a search row in a menu — the unit you
+   are in is the shell, not the textarea inside it. The guideline spells that
+   `data-focus-field` on the shell; the inner element's marker is suppressed
+   and the shell draws it instead. `data-focus-field="inset"` draws it inside
+   the edge, for a row in a rounded group whose `overflow-hidden` would clip
+   an outline drawn outside.
 
-   So the ring is gone from everything that is not text entry, including Nuxt
-   UI's own halos — hence the `::before` in the reset, because `UNavigationMenu`
-   and friends hang their halo on a pseudo-element rather than the link.
-
-   What text entry gets instead is the boundary it already has: `border-color`
-   goes primary. It works identically for a boxed field and for a seamless
-   inline title, because the seamless ones already reserve a transparent border
-   for exactly this — which is why there is no longer a title exception. No
-   offset, so nothing clips inside `overflow-hidden`; no ring, so nothing
-   reflows; and the caret is doing most of the work regardless.
-
-   Two structures own no line of their own and so state focus one level up, and
-   both still do it with a border — focus is never a fill. A composite control —
-   the markdown editor, the quick-add card, the mention popover — puts
-   `focus-within:border-primary` on its shell, which is the honest unit. A field
-   that is a *cell* in a row-table uses the row's separator: an underline on the
-   input begins after the label column and reads as a line floating mid-row.
-
-   The row reserves a transparent `border-b` and colours that, rather than
-   colouring the separator, because `divide-y` draws each separator as the *next*
-   row's top border — unreachable from the focused row. Making every row own its
-   separator instead was tried and reverted: with the group then needing
-   `border-b-0`, its rounded bottom corners lost their arcs. So the focus line
-   sits directly above the hairline rather than replacing it.
-
-   A background fill was tried here first and dropped. It worked, but it made a
-   second visual language out of one sentence — and it does not generalise: a
-   fill behind a seamless title breaks the premise that the title reads as text
-   until you touch it, and on a boxed field sitting on `bg-muted` it is close to
-   invisible. Focus is a line, everywhere.
-
-   One trap this hit in review: `hover:border-default` is (0,2,0) and beats the
-   focus rule at (0,1,1), so on the profile name the underline appeared only
-   after the pointer left the field. A hover that dresses a field as editable
-   means "not while you are in it", and now says so: `hover:not-focus-visible:`.
-
-   `design-tokens.test.ts` › `focus lands on text entry, and only there` is the
-   guard: it fails on any focus utility outside the allowlist below, in either
-   direction — a control that re-adds a ring, and a text field that hand-rolls
-   its own treatment instead of inheriting this one.
+   The unlayered reset stays, and for the same reason it was written: Nuxt UI
+   hangs a soft `outline-3` halo on its controls — on `::before` for
+   `UNavigationMenu` — which would draw a second ring beside ours. The rules
+   below are (0,3,0) and up, so they win over the reset on specificity, not on
+   source order.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* The reset has to be unlayered to reach Nuxt UI's `focus-visible:outline-3`,
-   and `::before` because `UNavigationMenu` hangs its halo on a pseudo-element
-   rather than on the link — found by diffing computed styles across the sidebar,
-   not by reading the theme. `::after` is the same shape and costs nothing; no
-   component in the app uses it today. It clears `outline` and nothing else. */
 *:focus-visible,
 *:focus-visible::before,
 *:focus-visible::after {
   outline: none;
 }
 
-/* One non-text control states focus, and it is named here rather than on the
-   element because `design-tokens.test.ts` › `focus lands on text entry, and only
-   there` bans a focus utility in markup — correctly. Focus has one home; this is
-   it.
-
-   Why this control and not the other 71 raw `<button>`s: `CellTrigger` is the
-   list's inline-editor trigger, and all five of those cells were `<div>`s until
-   someone converted them specifically so the editors stopped being "unreachable
-   without a mouse" (its docstring). That conversion is half a feature while the
-   focused cell looks identical to the unfocused one — it is reachable and
-   invisible. Every other raw button is reached by pointer or by shortcut: the
-   board's arrow keys, ⌘K, Escape. None of those walk the tab order, so a marker
-   on them would be paint for a journey nobody takes.
-
-   Unlayered, because the reset above is unlayered and `@layer utilities` loses to
-   it outright. `.cell-trigger:focus-visible` is (0,2,0) against the reset's
-   (0,1,0), so it wins on specificity rather than on source order.
-
-   An outline rather than a border, which is the one place this departs from the
-   text-entry sentence: the trigger owns no border, and giving it one moves its
-   text off the `min-h-cell` rhythm that the component exists to hold. Offset 0,
-   so it cannot clip inside a row with `overflow-hidden`, and `outline` follows
-   `border-radius`, so the `rounded-md` corners survive. Still an edge, never a
-   fill. */
-.cell-trigger:focus-visible {
-  outline: 2px solid var(--ui-primary);
-  outline-offset: 0;
+:root[data-input-modality='keyboard'] :focus-visible {
+  outline: var(--c2s-focus-width) solid var(--c2s-focus);
+  outline-offset: var(--c2s-focus-offset);
+}
+:root[data-input-modality='pointer'] :focus-visible {
+  outline: var(--c2s-focus-pointer-width) solid var(--c2s-focus-pointer);
+  outline-offset: var(--c2s-focus-offset);
+}
+/* A pointer focus on a control that is not a field says nothing a click did
+   not already say; only text entry keeps its 1px line after a click. */
+:root[data-input-modality='pointer'] :focus-visible:not(input, textarea, select, [contenteditable='true']) {
+  outline: none;
 }
 
-/* Text entry states focus on `border-color`. Different property from the reset
-   above, so the two never contend — what decides this one is *specificity*, and
-   it is picked to slot between the two things that also set `border-color`:
+:root[data-input-modality='keyboard'] .c2s-shell :focus-visible {
+  outline-color: var(--c2s-shell-focus);
+  outline-offset: 3px;
+}
 
-     .border-default                 (0,1,0)   resting utility  — must lose
-     input:focus-visible             (0,1,1)   this rule
-     .focus\:border-error\/60:focus  (0,2,0)   per-field override — must win
+/* Composite fields: one line round the shell, none round its parts. */
+:root[data-input-modality] [data-focus-field] :focus-visible {
+  outline: none;
+}
+:root[data-input-modality='keyboard'] [data-focus-field]:has(:focus-visible) {
+  outline: var(--c2s-focus-width) solid var(--c2s-focus);
+  outline-offset: var(--c2s-focus-offset);
+}
+:root[data-input-modality='pointer'] [data-focus-field]:has(:focus-visible:is(input, textarea, [contenteditable='true'])) {
+  outline: var(--c2s-focus-pointer-width) solid var(--c2s-focus-pointer);
+  outline-offset: var(--c2s-focus-offset);
+}
+:root[data-input-modality] [data-focus-field='inset']:has(:focus-visible) {
+  outline-offset: calc(var(--c2s-focus-width) * -1);
+}
 
-   So it lives in `@layer utilities` rather than `@layer base`. In `base` it lost
-   to the resting `border-default` on every field in the app and did nothing at
-   all, which looks identical to working if you only check a field that has no
-   border class. Unlayered would have been the other failure: it would beat the
-   `focus:` overrides too, which is exactly the mistake this block replaced.
+/* One field without a marker: the command palette's search. It is focused
+   for as long as the palette is open, so the outline marks no change — the
+   caret and the highlighted row are where you are — and drawn outside the
+   field it crossed the dialog's rounded corner. A recorded deviation from the
+   guideline's focus model (`docs/connect2scale.md`). */
+:root[data-input-modality] .command-palette input:focus-visible {
+  outline: none;
+}
 
-   Nuxt UI's inputs draw their boundary with `ring-inset` rather than a border,
-   so this rule is a no-op there and their own `focus-visible:ring-primary`
-   carries it. Same sentence either way: the boundary the field already has
-   turns primary. */
-@layer utilities {
-  /* Both arms are exactly (0,1,1). The `:not()` is wrapped in `:where()` to keep
-     it that way — bare, `:not([type="checkbox"], …)` contributes (0,1,0) of its
-     own and the rule lands at (0,2,1), which would beat the per-field `focus:`
-     overrides it is supposed to lose to. The excluded types render as a control
-     rather than a field, and have no caret. */
-  input:not(:where([type="checkbox"], [type="radio"], [type="file"], [type="submit"], [type="button"], [type="reset"], [type="image"], [type="hidden"])):focus-visible,
-  textarea:focus-visible {
-    border-color: var(--ui-primary);
+@media (forced-colors: active) {
+  :root[data-input-modality] :focus-visible,
+  :root[data-input-modality] [data-focus-field]:has(:focus-visible) {
+    outline-color: Highlight;
   }
 }
 
@@ -608,11 +999,29 @@
    SCROLL SURFACES
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* The guideline's scrollbar (handoff `03` › Scrollen): thin, 8px, transparent
+   track, the `--c2s-scroll-thumb` thumb — on a mouse device only while the
+   pointer is over the scroller, always on touch. Forced colours fall back to
+   the system's. Applied to every scroller, not just `.thin-scroll`, because
+   the guideline asks for one scrollbar app-wide. */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--track-thumb) transparent;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    * { scrollbar-color: transparent transparent; }
+    *:hover { scrollbar-color: var(--track-thumb) transparent; }
+  }
+  @media (forced-colors: active) {
+    * { scrollbar-color: auto; }
+  }
+}
+
 .thin-scroll {
   scrollbar-width: thin;
-  scrollbar-color: var(--track-thumb) transparent;
 }
-.thin-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.thin-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
 .thin-scroll::-webkit-scrollbar-track { background: transparent; }
 .thin-scroll::-webkit-scrollbar-thumb {
   background: var(--track-thumb);
@@ -700,11 +1109,34 @@
    whole column.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-@keyframes rise-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* Dialog enter and leave (handoff `06-motion.md` › Katalog). The leave is
+   shorter than the enter, and moves less: a dialog goes away faster than it
+   arrives. Reduced motion collapses both via the block at the end. */
+@keyframes c2s-dialog-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
 }
-.rise-in { animation: rise-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) both; }
+@keyframes c2s-dialog-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(6px) scale(0.99); }
+}
+
+/* A collection entering (handoff `06-motion.md` › Sammlung betreten): from
+   4px down at .992, 420ms on the entrance curve, staggered 36ms per item to at
+   most 180ms (`staggerDelay`). `backwards`, not `both`: the end state is the
+   element's own, so nothing is pinned once it has arrived. */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.992); }
+  to   { opacity: 1; transform: none; }
+}
+.rise-in { animation: rise-in var(--c2s-duration-slow) var(--c2s-ease-entrance) backwards; }
+
+/* Tab content (`06` › Tab-Inhalt wechseln): from .55 opacity, 4px down. */
+@keyframes c2s-tab-in {
+  from { opacity: 0.55; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+.c2s-tab-in { animation: c2s-tab-in var(--c2s-duration-medium) var(--c2s-ease-out); }
 
 /* `.rise-in` is the only entrance animation, and its delay is capped by
    `staggerDelay` — `both` holds the from-state, so an uncapped delay is time an
@@ -776,102 +1208,113 @@
 .notification-bell:hover .bell-ring { animation: bell-ring 0.6s ease-in-out; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   AUTH — the app's one decorative surface
-
-   Kept deliberately expressive: it's the first thing a new user sees and the
-   only screen with no work on it to compete with. Colours now derive from the
-   brand rather than hardcoded violet hues.
+   ACCESS PAGES (handoff `03` › Zugang, `02` › Typografie)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.auth-dots {
-  background-image: radial-gradient(circle, var(--ui-border-accented) 1px, transparent 1px);
-  background-size: 20px 20px;
-  opacity: 0.5;
+.c2s-auth {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+@media (max-width: 780px) {
+  .c2s-auth { grid-template-columns: minmax(0, 1fr); }
 }
 
-@keyframes auth-entrance {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* The access-page title: 36px / 800 / −1.4px, 34px on a phone. A class, not a
+   step on the type ladder: it is one heading on one page type, and the ladder's
+   display tier is tuned for other jobs. */
+.auth-title {
+  margin-bottom: 28px;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1.4px;
+  line-height: var(--c2s-heading-line-height);
+  color: var(--ui-text-highlighted);
 }
-.auth-entrance { animation: auth-entrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-@keyframes auth-glow-drift {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
-  50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
-}
-.auth-glow {
-  background: radial-gradient(
-    circle,
-    color-mix(in oklab, var(--ui-primary) 20%, transparent),
-    color-mix(in oklab, var(--ui-primary) 8%, transparent),
-    transparent 70%
-  );
-  animation: auth-glow-drift 10s ease-in-out infinite;
-}
-.dark .auth-glow {
-  background: radial-gradient(
-    circle,
-    color-mix(in oklab, var(--ui-primary) 14%, transparent),
-    color-mix(in oklab, var(--ui-primary) 5%, transparent),
-    transparent 70%
-  );
+@media (max-width: 620px) {
+  .auth-title { font-size: 34px; }
 }
 
+/* The page's form block. Was a glass card on a decorated page; on a plain
+   form column the card's edge had nothing to separate it from. */
 .auth-glass {
   position: relative;
-  overflow: hidden;
-  border-radius: var(--radius-xl);
-  backdrop-filter: blur(24px) saturate(1.8);
-  background: color-mix(in oklab, var(--ui-bg) 82%, transparent);
-  border: 1px solid color-mix(in oklab, var(--ui-border-accented) 60%, transparent);
-  box-shadow: var(--elevation-float);
-}
-.auth-glass::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 24px;
-  right: 24px;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in oklab, var(--ui-primary) 70%, transparent),
-    /* `--ui-secondary`, not `--color-violet-500`: app.config already names
-       secondary as violet, so the literal was a second copy of that decision
-       that a palette change would have left behind. */
-    color-mix(in oklab, var(--ui-secondary) 70%, transparent),
-    transparent
-  );
-  z-index: 10;
-}
-.dark .auth-glass {
-  background: color-mix(in oklab, var(--ui-bg-muted) 65%, transparent);
 }
 
-@keyframes auth-field-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+.c2s-auth-picture {
+  background: var(--c2s-brand-gradient);
 }
-.auth-field { animation: auth-field-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-@keyframes auth-icon-glow {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.15); }
+/* ─── The sign-in / sign-out timeline (`06` › Anmeldung und Abmeldung) ────────
+   Driven by `useAuthTransition`, which sets `data-auth-phase` on both
+   layouts. Approximated from the handoff's timings; its keyframes are in the
+   reference source, which the handoff does not ship. */
+@media (prefers-reduced-motion: no-preference) {
+  .c2s-auth[data-auth-phase='leaving-auth'] .c2s-auth-form > * {
+    transition: transform 380ms ease-in, opacity 380ms ease-in;
+    transform: translateX(-52px);
+    opacity: 0;
+  }
+  .c2s-auth[data-auth-phase='leaving-auth'] .c2s-auth-picture {
+    transition: transform 720ms var(--c2s-ease-standard);
+    transform: scale(1.04);
+  }
+  .c2s-auth[data-auth-phase='leaving-auth'] {
+    transition: background-color 720ms var(--c2s-ease-standard);
+    background-color: var(--c2s-shell);
+  }
+  [data-auth-phase='arriving-app'] .c2s-panel {
+    animation: c2s-app-arrive 800ms var(--c2s-ease-emphasis) both;
+  }
+  [data-auth-phase='leaving-app'] .c2s-panel {
+    animation: c2s-app-arrive 720ms var(--c2s-ease-standard) reverse both;
+  }
+  .c2s-auth[data-auth-phase='arriving-auth'] .c2s-auth-form > * {
+    animation: c2s-form-arrive 380ms var(--c2s-ease-out) both;
+  }
 }
-.auth-icon-glow { animation: auth-icon-glow 6s ease-in-out infinite; }
-
-.noise-overlay::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0.03;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 0;
+@media (prefers-reduced-motion: reduce) {
+  .c2s-auth[data-auth-phase='leaving-auth'],
+  [data-auth-phase='leaving-app'] .c2s-panel {
+    transition: opacity 140ms linear;
+    opacity: 0;
+  }
+}
+@keyframes c2s-app-arrive {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes c2s-form-arrive {
+  from { opacity: 0; transform: translateX(-52px); }
+  to   { opacity: 1; transform: none; }
 }
 
 .sidebar-brand { letter-spacing: -0.03em; }
+
+/* The logo tile's fill — connect2scale's brand gradient, which the guideline
+   says is never replaced by a single stand-in colour. It was an indigo→violet
+   Tailwind gradient spelled in the template. */
+.brand-tile { background: var(--c2s-brand-gradient); }
+
+/* Off-screen until focused, then at the content area's top-left corner. */
+.skip-link {
+  position: fixed;
+  top: calc(var(--c2s-topbar-height) + 8px);
+  left: calc(var(--c2s-sidebar-width) + 8px);
+  /* Under the palette's 50 (`stacking.test.ts`); above everything else. */
+  z-index: 40;
+  padding: 10px 14px;
+  border-radius: var(--c2s-radius-md);
+  background: var(--c2s-surface, #fff);
+  color: var(--c2s-text, #0f0f14);
+  font-size: var(--c2s-text-small);
+  font-weight: 600;
+  box-shadow: var(--c2s-shadow-menu);
+}
+/* Out of view by position, not by a translate: a percentage translate is a
+   multiple of the link's own height, and it sits 60px down — measured, -200%
+   left its lower half showing over the topbar. */
+.skip-link:not(:focus-visible) {
+  top: -100px;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    THE COMMAND PALETTE IS ALWAYS THE TOP SURFACE
@@ -920,6 +1363,7 @@
 
   .lift:hover,
   .group:hover > .lift { transform: none; }
+  .rise-in, .c2s-tab-in { animation: none; }
   .sortable-drag { transform: none; }
 }
 

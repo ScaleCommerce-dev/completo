@@ -18,16 +18,28 @@
  * That also settles scroll ownership, which used to be ambiguous: pages declared
  * `h-full overflow-y-auto` *inside* an already-scrolling panel.
  */
-withDefaults(defineProps<{
+interface Crumb {
+  label: string
+  to?: string
+}
+
+const props = withDefaults(defineProps<{
   title?: string
   description?: string
   /** Body layout. See the note above. */
   variant?: 'document' | 'surface'
   /** Reading width for `document`. `wide` suits card grids, `narrow` suits forms. */
   width?: 'narrow' | 'default' | 'wide'
+  /**
+   * The topbar breadcrumb's ancestors — everything before the current page.
+   * Defaults to the top-level section the route sits in; the current page's own
+   * crumb is the title, appended when there is one.
+   */
+  crumbs?: Crumb[]
 }>(), {
   variant: 'document',
-  width: 'default'
+  width: 'default',
+  crumbs: undefined
 })
 
 const WIDTHS = {
@@ -36,136 +48,196 @@ const WIDTHS = {
   wide: 'max-w-7xl'
 }
 
-/** The same measures as `WIDTHS`, for the navbar to end where the body does. */
-const MEASURES = {
-  narrow: 'var(--container-2xl)',
-  default: 'var(--container-5xl)',
-  wide: 'var(--container-7xl)'
+/**
+ * The top-level section each first path segment belongs to — the root of the
+ * breadcrumb when a page names no ancestors of its own. The labels are the
+ * sidebar's, so the breadcrumb and the active sidebar row always agree.
+ */
+const SECTIONS: Record<string, Crumb> = {
+  'projects': { label: 'All Projects', to: '/projects' },
+  'my-tasks': { label: 'My Tasks', to: '/my-tasks' },
+  'notifications': { label: 'Notifications', to: '/notifications' },
+  'agents': { label: 'Agents', to: '/agents' },
+  'admin': { label: 'Admin' },
+  'profile': { label: 'Profile', to: '/profile' }
 }
+
+const route = useRoute()
+const trail = computed<Crumb[]>(() => {
+  const ancestors = props.crumbs ?? [SECTIONS[route.path.split('/')[1] ?? '']].filter((c): c is Crumb => !!c)
+  // A section's own index page (All Projects at `/projects`) is the section:
+  // its title would only repeat the crumb in other words.
+  const last = ancestors.at(-1)
+  if (last?.to === route.path) return ancestors
+  return props.title?.trim() && props.title !== last?.label
+    ? [...ancestors, { label: props.title }]
+    : ancestors
+})
 </script>
 
 <template>
-  <UDashboardPanel
-    :ui="{
-      body: variant === 'surface'
-        ? 'p-0 gap-0 overflow-hidden'
-        : 'p-4 sm:p-6 gap-4 sm:gap-6'
-    }"
-  >
-    <template #header>
-      <!-- On a document page the navbar's controls end where the body column
-           ends. The bar spans the panel and the body is capped and left-aligned,
-           so on a wide screen Settings sat a few hundred pixels past the right
-           edge of everything it configures. The border still runs full width:
-           it divides chrome from page, it doesn't frame the content. -->
-      <UDashboardNavbar
-        :class="variant === 'document' ? 'page-navbar' : undefined"
-        :style="variant === 'document' ? { '--page-measure': MEASURES[width] } : undefined"
-      >
-        <!--
-          `#left` rather than the navbar's `#title`, which renders inside its
-          `<h1>`: everything put there — the star, the description — became part
-          of the page's heading, so a screen reader announced "My Project A sample
-          project to get started". The navbar's own toggle sits outside this slot,
-          so the mobile menu button is untouched (and no UDashboardSidebarToggle
-          here: adding one produced two hamburgers).
+  <!--
+    The connect2scale shell (handoff `03-layout-navigation.md`):
 
-          Spacing groups what belongs together, tightest first:
-            icon → name       10px  one identity
-            name → trailing    0    the star is a property of the name; the
-                                    button's own padding leaves ~6px to its glyph
-            name → description 14px the explanation, a separate thing
-          It used to run 6 / 16 / 16, loosening left to right, so the icon and
-          name were the most cramped pair and the star floated between name and
-          description, belonging to neither.
+      ┌ topbar ─ breadcrumb ················· bell · theme │ account ┐  shell, always dark
+      ╭ content ─────────────────────────────────────────────────────┤  canvas, rounded top-left
+      │ page header  h1 26px · description ············ meta · actions│
+      │ toolbar                                                       │
+      │ body                                                          │
 
-          The name group is centred, so a control beside the name centres on it
-          (the star sat 3px high when the row was baseline-aligned); name and
-          description share a baseline. The description is regular weight: it
-          inherited the title's 800 and competed with the name.
-        -->
-        <template #left>
-          <div class="flex items-center gap-2.5 min-w-0">
-            <slot name="leading" />
-            <!-- 14px to the description, measured to what you see: a trailing
-                 control's padding already supplies 6 of it. -->
-            <div
-              class="flex items-baseline min-w-0"
-              :class="$slots['title-trailing'] ? 'gap-2' : 'gap-3.5'"
+    The navbar *is* the topbar, so it carries what belongs to every page —
+    where you are, and the global actions. Everything that belongs to *this*
+    page — its title, its record's trailing controls, its actions — moved down
+    into the page header inside the content area, where the guideline puts it.
+
+    `UDashboardPanel`'s default slot replaces its header/body pair, because the
+    content area has to wrap the page header, the toolbar *and* the body in one
+    rounded canvas, and the panel's own body slot only reaches the last of them.
+  -->
+  <UDashboardPanel :ui="{ root: 'c2s-panel bg-shell lg:not-last:border-e-0' }">
+    <UDashboardNavbar
+      class="dark c2s-shell"
+      :ui="{ root: 'border-b-0 min-h-topbar h-auto', right: 'gap-2' }"
+    >
+      <template #left>
+        <nav
+          aria-label="Breadcrumb"
+          class="min-w-0"
+        >
+          <ol class="flex items-center gap-1.5 text-xs min-w-0">
+            <li
+              v-for="(crumb, i) in trail"
+              :key="i"
+              class="flex items-center gap-1.5 min-w-0"
+              :class="i < trail.length - 1 ? 'max-md:hidden' : ''"
             >
-              <div class="flex items-center min-w-0">
-                <h1 class="text-base font-extrabold tracking-heading text-highlighted truncate min-w-0">
-                  <slot name="title">
-                    {{ title }}
-                  </slot>
-                </h1>
-                <!-- What belongs to the record rather than to the page, such as a
-                     project's star. Beside the name, not in `#right`: there, a
-                     chip and a toggle sat among page actions at three heights and
-                     read as actions themselves. -->
-                <slot name="title-trailing" />
-              </div>
-              <!-- The first thing to go on a narrow screen: it explains, it
-                   doesn't identify. -->
-              <p
-                v-if="description"
-                class="text-sm font-normal text-muted truncate max-lg:hidden"
-              >
-                {{ description }}
-              </p>
-            </div>
-          </div>
-        </template>
+              <UIcon
+                v-if="i > 0"
+                name="i-lucide-chevron-right"
+                class="size-3.5 text-dimmed shrink-0"
+              />
+              <NuxtLink
+                v-if="crumb.to && i < trail.length - 1"
+                :to="crumb.to"
+                class="truncate text-muted hover:text-highlighted transition-colors"
+              >{{ crumb.label }}</NuxtLink>
+              <span
+                v-else
+                class="truncate"
+                :class="i === trail.length - 1 ? 'font-medium text-highlighted' : 'text-muted'"
+                :aria-current="i === trail.length - 1 ? 'page' : undefined"
+              >{{ crumb.label }}</span>
+            </li>
+          </ol>
+        </nav>
+      </template>
 
-        <!-- Everything here belongs to the page. Notifications are the signed-in
-             person's and live in the sidebar; in this row they sat between a
-             project's members and its Settings and read as the project's own.
-             Below `lg` the sidebar is behind the menu button, so the bell comes
-             back, last — after the page's actions, at the edge, where nothing
-             of the page's follows it. -->
-        <template #right>
+      <template #right>
+        <!-- Below `lg` the sidebar is behind the menu button, so the bell
+             comes back here. Wrapped: the bell's root is a UTooltip, which
+             renders no element of its own to take a class. -->
+        <span class="flex lg:hidden">
+          <NotificationBell />
+        </span>
+        <ThemeSwitch />
+        <span
+          class="h-5.5 w-px bg-accented"
+          aria-hidden="true"
+        />
+        <AccountMenu />
+      </template>
+    </UDashboardNavbar>
+
+    <div
+      id="content"
+      class="c2s-content flex flex-col flex-1 min-h-0 overflow-hidden"
+    >
+      <!--
+        The page header. Spacing groups what belongs together, tightest first:
+          icon → name       10px  one identity
+          name → trailing    0    the star is a property of the name; the
+                                  button's own padding leaves ~6px to its glyph
+          name → description  4px under it, one block
+      -->
+      <header
+        class="content-gutter flex flex-wrap items-center justify-between gap-x-4 gap-y-3"
+        :class="[variant === 'document' ? WIDTHS[width] : '', variant === 'surface' || $slots.toolbar ? 'page-head' : '']"
+      >
+        <div class="flex flex-1 items-center gap-2.5 min-w-0">
+          <slot name="leading" />
+          <div class="flex flex-1 flex-col gap-1 min-w-0">
+            <div class="flex items-center min-w-0">
+              <!-- Not `truncate` on the heading itself: a page may put an
+                   editable title here (the card page), whose focus line the
+                   clipping would cut off. The plain title truncates instead. -->
+              <h1
+                class="text-2xl font-extrabold text-highlighted min-w-0"
+                :class="$slots['title-trailing'] ? '' : 'flex-1'"
+              >
+                <slot name="title">
+                  <span class="block truncate">{{ title }}</span>
+                </slot>
+              </h1>
+              <!-- What belongs to the record rather than to the page, such as a
+                   project's star. -->
+              <slot name="title-trailing" />
+            </div>
+            <p
+              v-if="description"
+              class="text-sm text-muted truncate"
+            >
+              {{ description }}
+            </p>
+          </div>
+        </div>
+
+        <div
+          v-if="$slots.meta || $slots.actions"
+          class="flex items-center gap-2 shrink-0"
+        >
           <slot name="meta" />
           <slot name="actions" />
-          <!-- Wrapped: the bell's root is a UTooltip, which renders no element of its own to take a class. -->
-          <span class="flex lg:hidden">
-            <NotificationBell />
-          </span>
-        </template>
-      </UDashboardNavbar>
+        </div>
+      </header>
 
-      <UDashboardToolbar v-if="$slots.toolbar">
+      <!-- The toolbar belongs to the page header (handoff › Seitentypen ›
+           Übersicht: header, then toolbar, then content) — it stays put while
+           the body scrolls, and it draws no rule of its own: the 30px gaps
+           either side do the separating. -->
+      <UDashboardToolbar
+        v-if="$slots.toolbar"
+        class="content-gutter-x"
+        :ui="{ root: 'border-b-0 min-h-0 py-0 overflow-visible' }"
+      >
         <slot name="toolbar" />
       </UDashboardToolbar>
-    </template>
 
-    <template #body>
-      <!-- Left-aligned, not centred: the navbar title sits at the left edge, and a
+      <!-- Left-aligned, not centred: the title sits at the left edge, and a
            centred body under a left-aligned title reads as a misalignment. -->
       <div
         v-if="variant === 'document'"
-        class="w-full flex flex-col gap-4 sm:gap-6"
-        :class="WIDTHS[width]"
+        class="c2s-scroll flex-1 overflow-y-auto thin-scroll"
+      >
+        <!-- The 30px under the page header lives *inside* the scroller here,
+             as padding, not as the header's margin. A sticky element (the card
+             page's property rail, Profile's section nav) measures its `top`
+             from the scroller's edge, so with the gap outside, its offset
+             pushed it down at rest — but only where its row was taller than
+             it and left room to move: a card with a long description was
+             16px out of line with its rail, a short one was not. -->
+        <div
+          class="content-gutter-x content-gutter-bottom page-body-start w-full flex flex-col gap-4 sm:gap-6"
+          :class="WIDTHS[width]"
+        >
+          <slot />
+        </div>
+      </div>
+      <div
+        v-else
+        class="flex flex-col flex-1 min-h-0 overflow-hidden"
       >
         <slot />
       </div>
-      <slot v-else />
-    </template>
+    </div>
   </UDashboardPanel>
 </template>
-
-<style>
-/* End padding = panel width − body gutter − measure, so the right-hand controls
-   line up with the body column's right edge; never less than the navbar's own
-   gutter. The gutters are the navbar's `px-4 sm:px-6`, which match the body's
-   `p-4 sm:p-6`. Unlayered, so this wins over the theme's `px-*` utility. Not
-   scoped: the navbar root renders through a Reka `Primitive` inside the panel's
-   slot and never receives this file's scope attribute. */
-.page-navbar {
-  padding-inline-end: max(1rem, calc(100% - var(--page-measure) - 1rem));
-}
-@media (min-width: 40rem) {
-  .page-navbar {
-    padding-inline-end: max(1.5rem, calc(100% - var(--page-measure) - 1.5rem));
-  }
-}
-</style>

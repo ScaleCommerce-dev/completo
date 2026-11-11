@@ -12,15 +12,50 @@
 // call site. `slots` entries are merged into the theme with tailwind-merge, so a
 // class here overrides the theme's equivalent (e.g. `rounded-lg` beats the
 // theme's `rounded-md`) and anything not mentioned is left alone.
+/**
+ * Nuxt UI's fields mark focus by turning their inset ring primary. Under the
+ * connect2scale focus model the marker is the outline `main.css` draws, so a
+ * ring that also changed would be the doubled focus line the guideline rules
+ * out ("genau eine Fokuslinie"). The resting ring stays where it was.
+ */
+const FIELD_FOCUS = [{ color: 'primary' as const, class: 'focus-visible:ring-accented focus-visible:outline-0' }]
+
 export default defineAppConfig({
   ui: {
+    // tailwind-merge resolves a conflict only between classes it knows belong
+    // to one group, and it does not know this app's own token names: it read
+    // `shadow-dialog` as a shadow *colour*, so the theme's `shadow-lg` survived
+    // beside it, and it would read `text-dialog` as a text colour and drop it
+    // in favour of `text-highlighted`. Registering the names makes a themed
+    // override actually override.
+    tv: {
+      twMergeConfig: {
+        extend: {
+          theme: {
+            spacing: ['dialog', 'card']
+          },
+          classGroups: {
+            'shadow': [{ shadow: ['raise', 'float', 'drag', 'dialog'] }],
+            'font-size': [{ text: ['2xs', 'dialog'] }],
+            'rounded': [{ rounded: ['field', 'content', 'feedback'] }],
+            'leading': [{ leading: ['dialog', 'feedback'] }],
+            'bg-color': [{ bg: ['accent', 'accent-hover', 'accent-soft', 'canvas', 'shell', 'disabled', 'backdrop', 'danger-fill', 'danger-hover', 'action-hover', 'success-soft', 'danger-soft', 'table-header', 'row-hover', 'segment'] }]
+          }
+        }
+      }
+    },
+
+    // connect2scale: `berry` is the company accent ramp (500 = #d4006a) and
+    // `ink` the company neutrals, both declared in `main.css`. The semantic
+    // tokens are pinned to the guideline's exact values there; these names only
+    // decide what a Nuxt UI internal gets when it asks for a shade.
     colors: {
-      primary: 'indigo',
+      primary: 'berry',
       // Violet marks AI-assisted features (the write button, skill pickers, the
       // AI review bar). It was already being used for exactly that, hardcoded in
       // four files; naming it means those surfaces stay in step with each other.
       secondary: 'violet',
-      neutral: 'zinc',
+      neutral: 'ink',
       // All six roles are named, not just the ones whose default was wrong.
       // Nuxt UI defaults `success` to green and `warning` to yellow, while every
       // success surface in the app was hand-written emerald and every warning
@@ -68,14 +103,55 @@ export default defineAppConfig({
     // is the correct call, so it belongs here rather than at twelve call sites.
     // `hover:` and not `hover:not-focus-visible:` because this is a colour, not
     // a border — it cannot outrank the focus rule, which never paints a fill.
+    //
+    // connect2scale (handoff `04-komponenten.md` › Buttons):
+    //  - md is the action size: at least 44px tall (the touch target), 9px icon
+    //    gap. `xs`/`sm` stay as they were — they are the dense inline controls
+    //    on cards and list cells, which the guideline's page-level buttons do
+    //    not describe (recorded as a deviation in `docs/connect2scale.md`).
+    //  - Primary is the brand magenta with white 700 text, in *both* themes,
+    //    9px corners, #b8005a on hover. `bg-accent`, not `bg-primary`: the
+    //    latter is the text-safe pink in dark mode (see main.css).
+    //  - Secondary (neutral outline) has the deliberately strong
+    //    `--c2s-button-border` edge and fills with the canvas on hover.
+    //  - Danger is the fixed danger fill, the same in both themes.
+    //  - Disabled filled/outlined buttons go neutral at full opacity rather
+    //    than fading, and that beats every variant and hover rule.
     button: {
       slots: {
         base: 'rounded-lg font-semibold disabled:opacity-45 aria-disabled:opacity-45 focus-visible:ring-accented'
+      },
+      variants: {
+        size: {
+          md: {
+            base: 'min-h-11 px-3.75 py-2 gap-2.25'
+          },
+          lg: {
+            base: 'min-h-11 px-4 py-2.5 gap-2.25'
+          }
+        }
       },
       compoundVariants: [{
         color: 'neutral',
         variant: 'ghost',
         class: 'text-dimmed hover:text-toned'
+      }, {
+        color: 'primary',
+        variant: 'solid',
+        class: 'bg-accent hover:bg-accent-hover active:bg-accent-hover text-on-accent font-bold rounded-field disabled:opacity-100 aria-disabled:opacity-100 disabled:bg-disabled aria-disabled:bg-disabled disabled:text-disabled aria-disabled:text-disabled'
+      }, {
+        color: 'primary',
+        variant: 'solid',
+        size: 'md',
+        class: 'px-4.25'
+      }, {
+        color: 'error',
+        variant: 'solid',
+        class: 'bg-danger-fill hover:bg-danger-hover active:bg-danger-hover text-on-accent font-bold disabled:opacity-100 aria-disabled:opacity-100 disabled:bg-disabled aria-disabled:bg-disabled disabled:text-disabled aria-disabled:text-disabled'
+      }, {
+        color: 'neutral',
+        variant: 'outline',
+        class: 'ring-control hover:bg-canvas active:bg-canvas disabled:opacity-100 aria-disabled:opacity-100 disabled:bg-disabled aria-disabled:bg-disabled disabled:text-disabled aria-disabled:text-disabled disabled:ring-disabled aria-disabled:ring-disabled'
       }],
       defaultVariants: {
         size: 'md'
@@ -92,29 +168,76 @@ export default defineAppConfig({
       }
     },
 
+    // A standard card: 12px corners, 23px padding (handoff `04` › Karten).
     card: {
       slots: {
         root: 'rounded-xl',
-        header: 'px-4 py-3 sm:px-5',
-        body: 'p-4 sm:p-5',
-        footer: 'px-4 py-3 sm:px-5'
+        header: 'px-card sm:px-card py-3',
+        body: 'p-card sm:p-card',
+        footer: 'px-card sm:px-card py-3'
       }
     },
 
+    // Dialogs (handoff › Dialoge): 16px corners, 32px padding (25px on a
+    // phone), the 22px title, body copy at 14px/1.8 in `muted`, actions to the
+    // right 10px apart, the dialog shadow, and the shell-tinted backdrop with a
+    // 4px blur. No rules between header, body and footer — the 32px gutters do
+    // that work. Enter 280ms ease-out from 10px down at .98; leave 180ms
+    // ease-in (handoff `06-motion.md`), keyframes in main.css.
     modal: {
       slots: {
-        content: 'rounded-xl',
-        header: 'px-5 py-4 min-h-0 gap-3',
-        title: 'text-base font-bold tracking-heading text-highlighted',
-        description: 'text-sm text-muted mt-0.5',
-        body: 'px-5 py-4',
-        footer: 'px-5 py-4 justify-end gap-2'
+        content: 'divide-y-0',
+        header: 'px-dialog sm:px-dialog pt-dialog pb-0 min-h-0 gap-3',
+        title: 'text-dialog font-bold text-highlighted',
+        description: 'text-base leading-dialog text-muted mt-1',
+        body: 'px-dialog sm:px-dialog py-5 sm:py-5 text-base text-muted',
+        // `sm:` restated: the theme pads `p-4 sm:px-6`, and tailwind-merge only
+        // replaces a class with the same variant, so a bare `px-dialog` lost to
+        // `sm:px-6` from 640px up (measured: header 24px, body 32px).
+        footer: 'px-dialog sm:px-dialog pb-7 pt-2 justify-end gap-2.5',
+        close: 'top-5 end-5 sm:top-6 sm:end-6'
+      },
+      // The shape lives on the `fullscreen: false` variant because that is
+      // where the theme puts its own `rounded-lg shadow-lg ring`, and a variant
+      // class lands after the slot's — set on the slot, the radius lost the
+      // merge and every dialog rendered at 8px (measured with getComputedStyle).
+      variants: {
+        fullscreen: {
+          false: {
+            content: 'rounded-2xl shadow-dialog ring-0'
+          }
+        },
+        overlay: {
+          true: {
+            overlay: 'bg-backdrop backdrop-blur-xs'
+          }
+        },
+        transition: {
+          true: {
+            overlay: 'data-[state=open]:animate-[fade-in_180ms_ease-out] data-[state=closed]:animate-[fade-out_180ms_ease-in]',
+            content: 'data-[state=open]:animate-[c2s-dialog-in_280ms_var(--c2s-ease-out)] data-[state=closed]:animate-[c2s-dialog-out_180ms_ease-in]'
+          }
+        }
       }
     },
 
+    // Fields (handoff › Eingabefelder): surface fill, 9px corners, at least
+    // 44px tall at the default size, 14px text, placeholder in `muted` at
+    // full opacity rather than the theme's `dimmed`.
     input: {
       slots: {
-        base: 'rounded-lg'
+        base: 'rounded-field placeholder:text-muted'
+      },
+      compoundVariants: FIELD_FOCUS,
+      variants: {
+        size: {
+          md: {
+            base: 'min-h-11 px-3 py-2 text-base'
+          },
+          lg: {
+            base: 'min-h-11 px-3.5 py-2.5 text-base'
+          }
+        }
       },
       defaultVariants: {
         size: 'md'
@@ -123,20 +246,35 @@ export default defineAppConfig({
 
     textarea: {
       slots: {
-        base: 'rounded-lg'
-      }
+        base: 'rounded-field placeholder:text-muted'
+      },
+      compoundVariants: FIELD_FOCUS
     },
 
     select: {
       slots: {
-        base: 'rounded-lg'
-      }
+        base: 'rounded-field'
+      },
+      variants: {
+        size: {
+          md: { base: 'min-h-11 px-3 py-2 text-base' },
+          lg: { base: 'min-h-11 px-3.5 py-2.5 text-base' }
+        }
+      },
+      compoundVariants: FIELD_FOCUS
     },
 
     selectMenu: {
       slots: {
-        base: 'rounded-lg'
-      }
+        base: 'rounded-field'
+      },
+      variants: {
+        size: {
+          md: { base: 'min-h-11 px-3 py-2 text-base' },
+          lg: { base: 'min-h-11 px-3.5 py-2.5 text-base' }
+        }
+      },
+      compoundVariants: FIELD_FOCUS
     },
 
     formField: {
@@ -219,12 +357,71 @@ export default defineAppConfig({
       }
     },
 
-    // Menus and popovers share one floating surface.
+    // Menus and popovers share one floating surface. Context menus are at
+    // least 210px wide with 12×10px entries (handoff `04` › Karten ›
+    // Kontextmenü); a destructive entry is `color: 'error'` at its call site.
     dropdownMenu: {
       slots: {
-        content: 'rounded-lg shadow-float',
-        item: 'text-sm'
+        content: 'rounded-lg shadow-float min-w-[210px]'
+      },
+      // On the size variant, because that is where the theme pads the item —
+      // set on the slot, the variant's `p-1.5` landed after it and won.
+      variants: {
+        size: {
+          md: {
+            // Not `label`: the due-date picker hand-builds a header from the
+            // upstream label classes, and `menu-placement.test.ts` keeps it so.
+            item: 'px-2.5 py-3 text-sm gap-2.5'
+          }
+        }
       }
+    },
+
+    // The command palette (⌘K). The dialog chrome comes from `modal`; this is
+    // its list (handoff `04` › Select, Suche): the search field 44px, group
+    // labels in the sidebar's 10px uppercase, rows on the menu's 12×10px
+    // padding, the highlighted row on the menu hover (`--c2s-surface-subtle`)
+    // and the current page's row at 600 — the guideline's "selected option".
+    commandPalette: {
+      slots: {
+        label: 'text-2xs font-semibold uppercase tracking-label text-dimmed'
+      },
+      variants: {
+        size: {
+          md: {
+            input: '[&>input]:h-11',
+            label: 'px-2.5 pt-3 pb-1.5 text-2xs gap-1.5',
+            item: 'px-2.5 py-2.5 text-sm gap-2.5'
+          }
+        },
+        active: {
+          true: {
+            item: 'text-highlighted font-semibold before:bg-muted'
+          },
+          false: {
+            item: 'text-default data-highlighted:not-data-disabled:text-highlighted data-highlighted:not-data-disabled:before:bg-muted'
+          }
+        }
+      }
+    },
+
+    // The card panel. The guideline has no side panel, so it takes the
+    // dialog's surface: the dialog shadow, and the dark backdrop tint at the
+    // dialog's timings (enter 280ms ease-out, leave 180ms ease-in). Not the
+    // dialog's blur — the panel exists so the board beside it stays readable
+    // (`KanbanBoard.revealColumn`), and a blurred board is the thing it avoids.
+    slideover: {
+      slots: {
+        overlay: 'bg-backdrop',
+        content: 'sm:ring-0 sm:shadow-dialog'
+      },
+      compoundVariants: [{
+        transition: true,
+        side: 'right',
+        class: {
+          content: 'data-[state=open]:animate-[slide-in-from-right_280ms_var(--c2s-ease-out)] data-[state=closed]:animate-[slide-out-to-right_180ms_ease-in]'
+        }
+      }]
     },
 
     popover: {
@@ -233,9 +430,80 @@ export default defineAppConfig({
       }
     },
 
+    // The shell's mobile switch at the guideline's 980px rather than Nuxt UI's
+    // 1024px (handoff `03` › Breakpoints). Added beside the theme's `lg:`
+    // classes, which agree with these from 1024px up.
+    dashboardSidebar: {
+      slots: {
+        root: 'nav:flex',
+        content: 'nav:hidden',
+        overlay: 'nav:hidden'
+      }
+    },
+    dashboardSidebarToggle: {
+      base: 'nav:hidden'
+    },
+
+    // Feedback (handoff `04` › Feedback): success and error on their soft
+    // surfaces with their own edge and text colour, 10px corners, 16px
+    // padding, 14px/1.6 text. Display time is set per toast by
+    // `plugins/toast-duration.client.ts`.
+    toast: {
+      slots: {
+        root: 'rounded-feedback p-4 shadow-float',
+        title: 'text-base leading-feedback',
+        description: 'text-base leading-feedback'
+      },
+      compoundVariants: [{
+        color: 'success',
+        class: { root: 'bg-success-soft ring-success-edge', title: 'text-success', description: 'text-success', icon: 'text-success' }
+      }, {
+        color: 'error',
+        class: { root: 'bg-danger-soft ring-danger-edge', title: 'text-error', description: 'text-error', icon: 'text-error' }
+      }]
+    },
+
+    // Tables (handoff `04` › Tabellen): an opaque header that sticks while the
+    // table scrolls, row hover, 16px cell padding.
+    table: {
+      slots: {
+        thead: 'sticky top-0 z-[1] bg-table-header',
+        th: 'px-4',
+        td: 'px-4',
+        tbody: '[&>tr]:hover:bg-row-hover'
+      }
+    },
+
+    // Segment switches (handoff `04` › Segment-Schalter): a hairline frame,
+    // 8px corners, 3px padding, the active segment on the segment colours.
+    tabs: {
+      compoundVariants: [{
+        color: 'primary',
+        variant: 'pill',
+        class: {
+          list: 'bg-transparent ring ring-default rounded-lg p-[3px]',
+          indicator: 'bg-segment shadow-none',
+          trigger: 'data-[state=active]:text-segment'
+        }
+      }],
+      // Tab content enters at opacity .55 from 4px down, 280ms ease-out
+      // (handoff `06-motion.md`); keyframes in main.css.
+      slots: {
+        content: 'c2s-tab-in'
+      }
+    },
+
+    // Switches carry the brand fill, not the text-safe pink, when on.
+    switch: {
+      compoundVariants: [{
+        color: 'primary',
+        class: { base: 'data-[state=checked]:bg-accent' }
+      }]
+    },
+
     tooltip: {
       slots: {
-        content: 'rounded-md text-xs font-medium'
+        content: 'rounded-md text-xs font-medium text-balance'
       }
     },
 
