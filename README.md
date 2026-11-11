@@ -59,6 +59,7 @@ You didn't want that. You wanted a board with columns and cards. So that's what 
 
 - **Boards** — Create as many as you need. Configure the columns yourself. Done.
 - **Cards** — Title. Description you can actually format. Assignee. Priority. Drag it. That's the feature list.
+- **Templates** — Keep a card with the checklist you always need. Duplicate it into any board, in any project, every box unchecked.
 - **Comments** — Discuss the work where the work is. Markdown, `@mentions`, notifications. No second tool.
 - **History**: Every card shows who moved, assigned, retitled or retagged it, and when, right beside the comments.
 - **Projects** — Separate your work. Invite your team. Keep things tidy. Star the ones you work in, and the sidebar shows only those.
