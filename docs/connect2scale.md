@@ -41,6 +41,7 @@ Evidenz nach `01-grundsaetze.md`: **B** im Browser geprüft, **T** technisch gep
 | Fokus | Eingabeart-Modul: Tastatur 2px `--c2s-focus` Offset 2px, Maus 1px neutral nur auf Textfeldern, Shell weiß Offset 3px, `data-focus-field` für zusammengesetzte Felder, Forced Colors `Highlight` | B, T |
 | Skip-Link | erster fokussierbarer Punkt, springt zur Inhaltsfläche | B |
 | Texte | keine Halbgeviert- und Geviertstriche in UI-Texten und E-Mails, auch nicht als HTML-Entität | T |
+| Logo | Das Completo-Zeichen bleibt unverändert; die Kachel (Sidebar, Zugangsseiten, Favicons, App-Icons, E-Mails) ist einfarbig `--c2s-accent` (#d4006a); ein Verlauf senkte den Kontrast des weißen Zeichens und wurde verworfen | B |
 | E-Mails | Kopf in Shell-Farbe mit Logo auf Akzent-Kachel, Inhaltskarte 12px auf Canvas, Titel 22px, Text 14px/1,8 `--c2s-muted`, Primäraktion Akzent/weiß/700 mit 9px-Ecken (Outlook über VML), Hervorhebungen `--c2s-accent-text`, Buttons in Satzschreibung; alle sieben Vorlagen in Mailpit geprüft | B |
 
 ## Abweichungen von der Guideline

@@ -1301,10 +1301,11 @@
 
 .sidebar-brand { letter-spacing: -0.03em; }
 
-/* The logo tile's fill — connect2scale's brand gradient, which the guideline
-   says is never replaced by a single stand-in colour. It was an indigo→violet
-   Tailwind gradient spelled in the template. */
-.brand-tile { background: var(--c2s-brand-gradient); }
+/* The logo tile: the connect2scale accent, solid. A gradient was tried (the
+   accent into the brand gradient's blue-violet) and dropped: it lowered the
+   white mark's contrast toward the violet corner and made the logo read less
+   clearly at small sizes, for no gain. `public/favicon.svg` uses the same fill. */
+.brand-tile { background: var(--c2s-accent, #d4006a); }
 
 /* Off-screen until focused, then at the content area's top-left corner. */
 .skip-link {
