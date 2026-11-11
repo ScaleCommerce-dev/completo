@@ -243,12 +243,12 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
                 <h3 class="font-bold text-base tracking-name truncate">
                   {{ project.name }}
                 </h3>
-                <!-- The key is for the CLI, ticket IDs and URLs — the same judgment as
-                     TK-27 on a board card. As a filled chip in the project's own accent
-                     it competed with the name it sits beside. -->
-                <span class="font-mono text-2xs font-medium text-dimmed tracking-wide shrink-0">
-                  {{ project.key }}
-                </span>
+                <!-- No project key here, deliberately. Its one job is to prefix
+                     ticket ids, and it is printed wherever one appears (cards, the
+                     panel, the list's ID column, ⌘K). It is not what the CLI takes
+                     — that is the slug — and finding "SCC-2" needs no legend,
+                     because ⌘K resolves a ticket id by its number. The key is set
+                     and shown in the project's settings. -->
               </div>
               <!-- No "No description". A vacant sentence in the slot where a real one
                    would go is worse than the gap it fills. -->

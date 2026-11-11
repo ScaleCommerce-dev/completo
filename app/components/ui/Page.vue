@@ -68,11 +68,12 @@ const WIDTHS = {
           <slot name="title">
             <span class="flex items-baseline gap-2.5 min-w-0">
               <span class="text-base font-extrabold tracking-heading text-highlighted shrink-0">{{ title }}</span>
-              <!-- What belongs to the record rather than to the page — its key,
-                   its star. Beside the name, not in `#right`: there, a chip and a
-                   toggle sat among page actions at three heights and read as
-                   actions themselves. Baseline-aligned like the description, so
-                   text here sits on the title's line; a control centres itself. -->
+              <!-- What belongs to the record rather than to the page, such as a
+                   project's star. Beside the name, not in `#right`: there, a
+                   chip and a toggle sat among page actions at three heights and
+                   read as actions themselves. Baseline-aligned like the
+                   description, so text here sits on the title's line; a control
+                   centres itself. -->
               <span
                 v-if="$slots['title-trailing']"
                 class="flex items-baseline gap-1.5 shrink-0"

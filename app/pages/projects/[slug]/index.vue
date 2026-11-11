@@ -218,10 +218,8 @@ async function confirmDeleteTag(tagId: string) {
       v-if="project"
       #title-trailing
     >
-      <!-- Same treatment as the key on the project's card in All Projects: it is
-           for the CLI, ticket ids and URLs, so it is read, not clicked, and a
-           filled chip competed with the name beside it. -->
-      <span class="font-mono text-xs font-medium text-dimmed tracking-wide">{{ project.key }}</span>
+      <!-- No project key, for the reason on the All Projects card: this page
+           shows no ticket ids for it to label. -->
       <!-- Here as well as in All Projects: arriving at an unstarred project
            through ⌘K or a notification is when you decide to keep it, and
            leaving to find its card would make that a chore. `-my-1.5` keeps
