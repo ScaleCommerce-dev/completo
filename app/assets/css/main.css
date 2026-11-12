@@ -1251,8 +1251,166 @@
   position: relative;
 }
 
-.c2s-auth-picture {
-  background: var(--c2s-brand-gradient);
+/* ─── The image area ──────────────────────────────────────────────────────────
+   The shell, lit: one bloom of the accent high on the right, one of the brand's
+   blue-violet low on the left, and a fine grain so the dark reads as a surface
+   rather than as a hole. Both blooms stay under 40% so the white copy keeps
+   its contrast against the lightest point (measured 13:1 for the headline). */
+.c2s-auth-art {
+  /* `size`, not just `inline-size`: the board image is in flow and taller than
+     a short window, and it would otherwise stretch the page — measured, the
+     sign-up page scrolled 84px at 900px tall. The panel takes its height from
+     the row and clips what bleeds. */
+  container-type: size;
+  background:
+    radial-gradient(60% 45% at 92% 8%, color-mix(in srgb, var(--c2s-accent) 38%, transparent), transparent 70%),
+    radial-gradient(55% 45% at 0% 100%, color-mix(in srgb, #5364b5 34%, transparent), transparent 70%),
+    var(--c2s-shell);
+}
+.c2s-auth-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+
+/* The product, bleeding off the right and bottom edges: the app continues
+   past the frame. Sized from the panel (container units), so it stays the same
+   crop at every width the panel takes. */
+.c2s-auth-stage {
+  position: relative;
+  --stage-w: max(880px, 152cqw);
+  margin-top: 64px;
+  margin-left: 12cqw;
+  width: var(--stage-w);
+}
+.c2s-auth-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--c2s-radius-card-lg);
+  box-shadow:
+    0 0 0 1px var(--c2s-shell-divider),
+    0 40px 120px -20px rgb(0 0 0 / 0.7);
+}
+
+/* The signature: one card lifted out of the board, drawn as one of the
+   board's own cards rather than as a sticker on top of a photo. Three things
+   make that true, and each was the visible seam before:
+
+   - **Scale.** It is the screenshot's card at the screenshot's scale: the
+     capture is 1440px wide and the stage is `--stage-w`, so a capture pixel
+     is `--stage-w / 1440`. The card was 29% of the
+     stage with 14px type — half again the size of the cards around it.
+   - **Surface.** The board's dark card: `--c2s-surface` with the
+     `--c2s-border` hairline, the 8px card radius — the panel carries
+     `data-theme="dark"`, so these are the dark values.
+   - **Drag.** The app's own `.sortable-drag` — 1.5° and 1.03, and
+     `--elevation-drag`, which is the dark drag shadow with its accent ring —
+     a short drag out of its slot toward To Do — far enough that the empty
+     slot shows almost whole, over cards and never over a column header. */
+.c2s-auth-stage {
+  --px: calc(var(--stage-w) / 1440);
+}
+.c2s-auth-lifted {
+  position: absolute;
+  left: 32%;
+  top: 27.5%;
+  /* The original card's box in the capture, 285×149, so the slot it left
+     (below) is its exact footprint. */
+  width: calc(285 * var(--px));
+  height: calc(149 * var(--px));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: calc(12 * var(--px));
+  font-size: calc(13 * var(--px));
+  border-radius: var(--c2s-radius-md);
+  background: var(--c2s-surface);
+  box-shadow: inset 0 0 0 1px var(--c2s-border), var(--elevation-drag);
+  /* A touch past the app's 1.03, so the lift reads at this scale too. */
+  transform: rotate(1.5deg) scale(1.06);
+}
+.c2s-auth-lifted-title {
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ui-text-highlighted);
+}
+.c2s-auth-lifted-text {
+  margin-top: 0.3em;
+  font-size: 0.92em;
+  line-height: 1.5;
+  color: var(--ui-text-muted);
+}
+.c2s-auth-lifted-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.77em;
+  color: var(--ui-text-dimmed);
+}
+.c2s-auth-lifted-tag {
+  display: inline-block;
+  margin-top: 0.55em;
+  padding: 0.05em 0.6em;
+  border-radius: var(--c2s-radius-pill);
+  font-size: 0.77em;
+  font-weight: 500;
+}
+.c2s-auth-lifted-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: var(--c2s-radius-pill);
+  font-size: 1em;
+  font-weight: 600;
+}
+
+/* Where the lifted card came from: the board's own `.sortable-ghost` — 8%
+   accent with a 30% accent edge — over the card's box in the 1440×900
+   capture, as percentages, so it tracks the image at any width. */
+.c2s-auth-ghost {
+  position: absolute;
+  left: 18.75%;
+  top: 22.9%;
+  width: 19.8%;
+  height: 16.6%;
+  border-radius: var(--c2s-radius-md);
+  background: color-mix(in oklab, var(--c2s-accent) 8%, var(--c2s-surface));
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--c2s-accent) 30%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The large-preview entrance (handoff `06` › große Vorschau): from y 38px,
+     .94, rotateX 5°, rotateZ −.6° in a 1200px perspective, 820ms on the
+     emphasis curve, 70ms late from 1024px. Then the lifted card arrives. */
+  .c2s-auth-stage {
+    perspective: 1200px;
+  }
+  .c2s-auth-preview {
+    animation: c2s-preview-in 820ms var(--c2s-ease-emphasis) both;
+    transform-origin: 50% 0;
+  }
+  @media (min-width: 1024px) {
+    .c2s-auth-preview { animation-delay: 70ms; }
+  }
+  .c2s-auth-lifted {
+    animation: c2s-lift-in 420ms var(--c2s-ease-out) 620ms both;
+  }
+}
+@keyframes c2s-preview-in {
+  from { opacity: 0; transform: translateY(38px) scale(0.94) rotateX(5deg) rotateZ(-0.6deg); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes c2s-lift-in {
+  from { opacity: 0; transform: translateY(10px) rotate(0deg) scale(1); }
+  to   { opacity: 1; transform: rotate(1.5deg) scale(1.06); }
 }
 
 /* ─── The sign-in / sign-out timeline (`06` › Anmeldung und Abmeldung) ────────
@@ -1265,7 +1423,7 @@
     transform: translateX(-52px);
     opacity: 0;
   }
-  .c2s-auth[data-auth-phase='leaving-auth'] .c2s-auth-picture {
+  .c2s-auth[data-auth-phase='leaving-auth'] .c2s-auth-stage {
     transition: transform 720ms var(--c2s-ease-standard);
     transform: scale(1.04);
   }

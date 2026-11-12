@@ -853,7 +853,7 @@ describe('type scale', () => {
     // one does, so that adding to it means arguing the mechanism.
     const ALLOWED: Record<string, string> = {
       'app/error.vue': 'a dead end — one headline, one line of copy, one way out',
-      'app/layouts/auth.vue': 'the wordmark, over a page whose only job is one form',
+      'app/layouts/auth.vue': 'the logo as the form column\'s headline, on a page whose only job is one form',
       'app/components/profile/ProfileActivity.vue': 'a single stat readout, and it is a number',
       // An exception the mechanism above does not produce: it is imposed. The
       // connect2scale guideline fixes the page title (h1) at 26px on every page,

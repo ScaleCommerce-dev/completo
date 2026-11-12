@@ -34,7 +34,7 @@ Evidenz nach `01-grundsaetze.md`: **B** im Browser geprüft, **T** technisch gep
 | Suche in Toolbars | 44px, max. 360px | B |
 | Feedback | Erfolg/Fehler auf Soft-Fläche mit Rahmen und Textfarbe, Radius 10px, 16px, 14px/1,6; Anzeigedauer nach Regel (5s / 10s / 2,5s + 300ms je Wort / Fehler bleiben), ohne Fortschrittsbalken bei bleibenden Meldungen | B, T |
 | Leerzustände | „Noch nichts vorhanden" auf `--c2s-brand-card-background` mit Primäraktion; „Keine Treffer" schlicht mit Weg zu den Filtern | B |
-| Zugangsseiten | Formularspalte links, dunkler Bildbereich mit Markenverlauf rechts, bis 780px nur Formular; Titel 36px/800/−1,4px (Phone 34px) | B |
+| Zugangsseiten | Formularspalte links, dunkler Bildbereich rechts, bis 780px nur Formular; Titel 36px/800/−1,4px (Phone 34px). Bildbereich: echte Board-Ansicht (Demo-Projekt „Spring Launch", Dark Mode, `public/auth/board-preview.jpg`) über den Rand hinaus, darüber eine Karte im Ziehen mit Ghost-Platz, wie das Board sie zeichnet; Eintritt nach Motion-Katalog „große Vorschau" | B |
 | Zugang, Routing | Nach der Anmeldung zurück zum ursprünglichen Ziel (nur Pfade dieser Site) | T |
 | Motion | Sammlungseintritt 420ms, Staffel 36ms bis 180ms; Tab-Inhalt 280ms; Dialog; Theme-Schalter 180ms; Reduced Motion schaltet alles ab | Q |
 | Anmelde-/Abmeldeübergang | gemeinsame Zeitachse über `useAuthTransition`, Doppelauslösung gesperrt, Reduced Motion 140ms Überblendung | B (Reduced Motion), Q (volle Bewegung) |
