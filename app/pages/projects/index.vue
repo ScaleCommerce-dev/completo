@@ -163,7 +163,7 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
           class="absolute inset-0 rounded-xl"
           :aria-label="project.name"
         />
-        <div class="lift relative pointer-events-none overflow-hidden rounded-xl border border-default bg-default shadow-raise p-card h-full group-hover:border-accent">
+        <div class="lift accent-edge relative pointer-events-none overflow-hidden rounded-xl border border-default bg-default shadow-raise p-card h-full group-hover:border-accent">
           <UiAccentBar :color="accentFor(project)" />
           <!-- Top row: icon + name + key + settings -->
           <div class="flex items-start gap-3">

@@ -280,7 +280,7 @@ function confirmDelete() {
     </div>
 
     <!-- Properties -->
-    <div class="mx-dialog mt-4 rounded-lg border border-accented divide-y divide-default overflow-hidden">
+    <div class="mx-dialog mt-4 rounded-lg border border-default divide-y divide-default overflow-hidden">
       <!-- Icon row -->
       <ProjectIconPicker v-model="formIcon" />
 

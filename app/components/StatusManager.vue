@@ -405,7 +405,7 @@ async function setDoneStatus(statusId: string | null) {
               aria-label="New status name"
               type="text"
               placeholder="Status name..."
-              class="flex-1 min-w-0 text-sm font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-accented rounded-md px-2 py-1 transition-colors"
+              class="flex-1 min-w-0 text-sm font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-default rounded-md px-2 py-1 transition-colors"
               @keydown.enter.prevent="addProjectStatus(); showAddColPopover = false"
             >
           </div>

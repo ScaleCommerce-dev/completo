@@ -96,7 +96,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
         v-if="unreadCount > 0"
         icon="i-lucide-check-check"
         label="Mark all read"
-        variant="ghost"
+        variant="outline"
         color="neutral"
         @click="markAllRead"
       />
@@ -105,7 +105,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
           v-if="hasRead"
           icon="i-lucide-trash-2"
           label="Clean up"
-          variant="ghost"
+          variant="outline"
           color="neutral"
           @click="cleanup"
         />

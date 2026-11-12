@@ -225,7 +225,7 @@ const countLabel = computed(() =>
       <div
         v-if="composing"
         data-focus-field
-        class="rounded-lg border border-accented bg-default p-2 shadow-raise"
+        class="rounded-lg border border-default bg-default p-2 shadow-raise"
       >
         <textarea
           ref="draftInput"

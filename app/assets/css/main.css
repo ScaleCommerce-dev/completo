@@ -620,6 +620,12 @@
     overflow: visible;
     min-height: auto;
   }
+  /* The canvas still reaches the bottom of the screen: it gives up scrolling,
+     not its height. With `flex: none` a short page (an agent list of one row)
+     ended the canvas halfway down and showed the shell under it. */
+  .c2s-panel .c2s-content {
+    flex: 1 0 auto;
+  }
 }
 
 /* ─── Section navigation (handoff `03` › Inhaltsnavigation) ─────────────────
@@ -1178,6 +1184,19 @@
 .group:active > .lift {
   transform: translateY(0);
   box-shadow: var(--elevation-raise);
+}
+
+/* A card with an edge bar keeps its hover border off that edge. The bar is a
+   child clipped *inside* the border (`UiAccentBar`), so an accent border on all
+   four sides drew a 1px magenta line directly beside a 2.5px line in the
+   record's own colour: two saturated stripes, and on a red or pink project
+   they read as one smeared edge. The left side stays the resting hairline;
+   the hover is stated on the three sides that carry no data. Unlayered on
+   purpose, so it outranks the `hover:border-accent` utility on the same
+   element instead of racing it. */
+.accent-edge:hover,
+.group:hover > .accent-edge {
+  border-left-color: var(--ui-border);
 }
 
 /* Ticket identifiers are tabular and must not wrap mid-token. */

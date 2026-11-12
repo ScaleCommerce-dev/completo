@@ -121,7 +121,7 @@ defineExpose({ upload, uploadFiles, uploading })
 
     <div
       v-if="attachments.length"
-      class="rounded-lg border border-accented bg-default divide-y divide-default"
+      class="rounded-lg border border-default bg-default divide-y divide-default"
     >
       <div
         v-for="attachment in attachments"

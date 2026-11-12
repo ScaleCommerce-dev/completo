@@ -507,7 +507,11 @@ const TD = `${TABLE_CELL_PAD} text-sm text-default align-middle`
                     >
                       {{ agent.name }}
                     </NuxtLink>
-                    <span class="text-xs text-dimmed truncate">{{ agent.description }}</span>
+                    <!-- `flex-1` (zero basis): the description takes what the
+                         name leaves, and is the one that gives way. As two
+                         equal `truncate` siblings they shrank together, so a
+                         narrow column showed "C." beside half a sentence. -->
+                    <span class="flex-1 min-w-0 text-xs text-dimmed truncate">{{ agent.description }}</span>
                   </div>
                 </td>
                 <td

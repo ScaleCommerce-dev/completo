@@ -333,6 +333,7 @@ function toggleTag(tagId: string) {
 <template>
   <div
     class="kanban-card lift group relative cursor-pointer overflow-hidden rounded-lg bg-default border border-default shadow-raise hover:border-accent"
+    :class="shows('priority') && priorityBarClass(card.priority) ? 'accent-edge' : ''"
     @click="$emit('click')"
     @pointerenter="armed = true"
     @focusin="armed = true"

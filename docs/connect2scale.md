@@ -18,9 +18,9 @@ Evidenz nach `01-grundsaetze.md`: **B** im Browser geprüft, **T** technisch gep
 | Seitenkopf | h1 26px / −0,9px, Beschreibung, Aktionen rechts, 30px zum Inhalt, umbrechend | B |
 | Scrollen | ein Scroller pro Ebene; bis 620px scrollt die ganze Inhaltsfläche unter fester Topbar; Scrollbars 8px, Thumb `--c2s-scroll-thumb`, auf Mausgeräten nur bei Hover, Forced Colors systemeigen | B |
 | Inhaltsnavigation | Profil: 240px, sticky, folgt der Scrollposition, `aria-current="location"`, weiches Scrollen, ersetzt nur den Hash | B |
-| Buttons | Primär Akzent/weiß/700/Radius 9, Hover #b8005a; Sekundär mit `--c2s-button-border`, Hover Canvas (in der Shell Shell-Hover); Danger gefüllt; Deaktiviert neutral bei voller Deckkraft; `md`/`lg` min. 44px | B |
-| Felder | Radius 9px, `md`/`lg` min. 44px, 14px, Platzhalter `--c2s-muted` | B |
-| Karten | Standardkarte Hover-Rahmen Akzent; Erstellen-Karten 1px `--c2s-action-card-border`, Hover 6 % Akzent; Dropzone 1,5px gestrichelt | B |
+| Buttons | Primär Akzent/weiß/700/Radius 9, Hover #b8005a; Sekundär mit `--c2s-button-border`, Hover Canvas (in der Shell Shell-Hover); Danger gefüllt; Danger-Outline (Rahmen `--c2s-danger-border`, Hover `--c2s-danger-soft`) als Einstieg in jede destruktive Aktion; Deaktiviert neutral bei voller Deckkraft; `md`/`lg` min. 44px | B |
+| Felder | Rahmen `--c2s-border` (auch selbst gebaute Felder, Eigenschaftsfelder und Kopierfelder; `--c2s-action-card-border` bleibt Erstellen-Karten und Dropzones vorbehalten), Radius 9px, `md`/`lg` min. 44px, 14px, Platzhalter `--c2s-muted` | B |
+| Karten | Standardkarte Hover-Rahmen Akzent, auch die Auswahlkacheln „Board" / „List"; Erstellen-Karten (New Project, New View, Add column) 1px durchgezogen `--c2s-action-card-border`, Hover 6 % Akzent; Dropzones (Anhänge, leere Board-Spalte) 1,5px gestrichelt | B |
 | Tabellen | deckender, sticky Kopf `--c2s-table-header`, Zeilen-Hover `--c2s-row-hover`, 16px Zellabstand | Q |
 | Segment-Schalter, Switch | Rahmen, 3px Innenabstand, aktiv `--c2s-segment-active-*`; Switch an = Akzentfläche | B |
 | Dialoge | eine Breite `min(510px, 100% − 32px)`, Radius 16px, 32px Innenabstand (Phone 24px) für Kopf, Inhalt und Aktionen über ein Token, keine Trennlinie über den Aktionen, Aktionen 28px über dem Ende, Titel 22px, Text 14px/1,8, Felder und Aktionen 44px, Schatten, Backdrop mit Blur, Ein 280ms / Aus 180ms; Löschbestätigung mit 52px-Danger-Kachel, Bestätigung im Dialog auf Danger-Soft; „Discard changes?" mit „Keep editing" / „Discard" | B |
@@ -28,7 +28,8 @@ Evidenz nach `01-grundsaetze.md`: **B** im Browser geprüft, **T** technisch gep
 | Karten-Detailseite | Kartentitel ist der 26px-Seitentitel (an Ort und Stelle bearbeitbar), Ticket-ID als kopierbare Metadaten davor; Hauptspalte und Eigenschaften als Karten auf der Inhaltsfläche | B |
 | Kontomenü | Einträge 44px, min. 210px, Chevron dreht 180° in 200ms | B |
 | Zähler | Zähler neben Titeln (Abschnitte, Board-Spalten) als Pille auf `--c2s-badge` | B |
-| Seitenkopf-Aktionen | Sekundäraktionen (Members, Settings) als Sekundär-Button mit `--c2s-button-border` | B |
+| Status- und Rollenmarken | alle `UBadge` als Pille (Radius 999px) wie die Rollenmarken der Projektkarten | B |
+| Seitenkopf-Aktionen | Sekundäraktionen (Members, Settings, Mark all read, Clean up) als Sekundär-Button mit `--c2s-button-border` | B |
 | Menüs | min. 210px, Einträge 12×10px, Löschen in `--c2s-danger` | B |
 | Befehlspalette | Dialog-Hülle (Radius 16px, Dialogschatten, Backdrop mit Blur), Suchfeld 44px, Gruppenlabels 10px uppercase, Zeilen 12×10px, Hervorhebung `--c2s-surface-subtle`, aktuelle Seite 600 | B |
 | Suche in Toolbars | 44px, max. 360px | B |
@@ -57,6 +58,7 @@ Evidenz nach `01-grundsaetze.md`: **B** im Browser geprüft, **T** technisch gep
 | `04` Tags | Tags behalten ihre Nutzerfarbe (`.swatch`) statt Akzent-Soft; Form (Pille) wie Guideline | Completo-Tags sind Daten mit vom Nutzer gewählter Farbe; die Farbe trägt Bedeutung | offen | `design-tokens.test.ts` › swatches |
 | `04` Karten: Hover | Kanban-Karten heben sich zusätzlich an (`.lift`) | Signatur-Interaktion „Drag. Drop."; der Akzentrahmen der Guideline ist zusätzlich umgesetzt | offen | `main.css` › CARD SURFACE |
 | `03` Sidebar: Vorfahr-Markierung mit Unterpfaden | Aktiv ist der Eintrag mit dem längsten passenden Pfad (ein favorisiertes Projekt bleibt auf seinen Boards aktiv); keine eingefügten Unterpfad-Einträge | Gebaut und auf Wunsch entfernt: Es fügte ein favorisiertes Projekt ein zweites Mal unter „All Projects" ein, sodass ein Klick auf den Stern-Eintrag die Markierung von diesem Eintrag wegnahm | Produkt, 12.11.2026 | `layouts/default.vue` › `activeTo` |
+| `04` Karten: Hover-Rahmen Akzent | Karten mit farbiger Kante links (Projekt, Ansicht, Ticket mit Priorität) zeigen den Akzentrahmen nur oben, rechts und unten | Die Kante trägt die Farbe des Datensatzes; ein Akzentstrich direkt daneben ergab zwei gesättigte Linien nebeneinander | Produkt, 12.11.2026 | `main.css` › `.accent-edge` |
 | `04` Dialoge: Backdrop-Blur | Das Karten-Panel tönt, unscharf wird nichts | Das Panel existiert, damit das Board daneben lesbar bleibt (`KanbanBoard.revealColumn`) | offen | `app.config.ts` › `slideover` |
 | `02` Eingabefelder | Titel, die in einem Panel oder auf einer Seite den Datensatz selbst bearbeiten (Kartentitel, Profilname, Agentname), bleiben nahtlos; in Dialogen sind Namensfelder Kästen | Ein Titel, der an Ort und Stelle bearbeitet wird, liest sich als Überschrift, nicht als Formularfeld | offen | — |
 | `07` Fokusmodell: jedes Feld zeigt Fokus | Das Suchfeld der Befehlspalette (⌘K) zeigt keine Fokuslinie | Es ist fokussiert, solange die Palette offen ist; die Linie markiert keinen Wechsel, Einfügemarke und hervorgehobene Zeile zeigen die Position. Außerhalb des Felds gezeichnet schnitt sie die runde Dialogecke | offen | `main.css` › FOCUS |

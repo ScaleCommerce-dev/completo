@@ -18,7 +18,17 @@
  * ring that also changed would be the doubled focus line the guideline rules
  * out ("genau eine Fokuslinie"). The resting ring stays where it was.
  */
-const FIELD_FOCUS = [{ color: 'primary' as const, class: 'focus-visible:ring-accented focus-visible:outline-0' }]
+const FIELD_FOCUS = [{ color: 'primary' as const, class: 'focus-visible:ring-default focus-visible:outline-0' }]
+
+/**
+ * A field's edge is `--c2s-border`, the same hairline a card has (handoff `04`
+ * › Eingabefelder). Nuxt UI rests its fields on `ring-accented`, which this app
+ * maps to `--c2s-action-card-border` — the create-card and dropzone edge — so a
+ * search field read as the same object as a "New project" tile. The stronger
+ * edges belong to things that are not fields: `ring-control` on a secondary
+ * button, `border-accented` on a create tile or a dropzone.
+ */
+const FIELD_EDGE = { variant: { outline: 'ring-default' } }
 
 export default defineAppConfig({
   ui: {
@@ -149,6 +159,15 @@ export default defineAppConfig({
         variant: 'solid',
         class: 'bg-danger-fill hover:bg-danger-hover active:bg-danger-hover text-on-accent font-bold disabled:opacity-100 aria-disabled:opacity-100 disabled:bg-disabled aria-disabled:bg-disabled disabled:text-disabled aria-disabled:text-disabled'
       }, {
+        // Danger-Outline (handoff `04` › Buttons): the way *into* a destructive
+        // flow, where the filled danger button is its confirmation. Nuxt UI's
+        // `subtle` rests on a 10% red fill, which made the entry point as loud
+        // as the commit; the guideline rests it on the surface with a
+        // `--c2s-danger-border` edge and fills `--c2s-danger-soft` on hover.
+        color: 'error',
+        variant: 'subtle',
+        class: 'bg-transparent ring-danger-edge hover:bg-danger-soft active:bg-danger-soft disabled:bg-transparent aria-disabled:bg-transparent'
+      }, {
         color: 'neutral',
         variant: 'outline',
         class: 'ring-control hover:bg-canvas active:bg-canvas disabled:opacity-100 aria-disabled:opacity-100 disabled:bg-disabled aria-disabled:bg-disabled disabled:text-disabled aria-disabled:text-disabled disabled:ring-disabled aria-disabled:ring-disabled'
@@ -158,9 +177,22 @@ export default defineAppConfig({
       }
     },
 
+    // The pill is restated per size because that is where the theme puts its
+    // own `rounded-sm` / `rounded-md`, and a variant class lands after the
+    // slot's: set on the slot alone, every badge rendered at 4px (measured with
+    // getComputedStyle) beside the hand-built role pills on the project cards.
     badge: {
       slots: {
         base: 'rounded-full font-bold uppercase tracking-wide'
+      },
+      variants: {
+        size: {
+          xs: { base: 'rounded-full' },
+          sm: { base: 'rounded-full px-2' },
+          md: { base: 'rounded-full px-2.5' },
+          lg: { base: 'rounded-full px-2.5' },
+          xl: { base: 'rounded-full px-3' }
+        }
       },
       defaultVariants: {
         size: 'sm',
@@ -230,6 +262,7 @@ export default defineAppConfig({
       },
       compoundVariants: FIELD_FOCUS,
       variants: {
+        ...FIELD_EDGE,
         size: {
           md: {
             base: 'min-h-11 px-3 py-2 text-base'
@@ -248,6 +281,7 @@ export default defineAppConfig({
       slots: {
         base: 'rounded-field placeholder:text-muted'
       },
+      variants: FIELD_EDGE,
       compoundVariants: FIELD_FOCUS
     },
 
@@ -256,6 +290,7 @@ export default defineAppConfig({
         base: 'rounded-field'
       },
       variants: {
+        ...FIELD_EDGE,
         size: {
           md: { base: 'min-h-11 px-3 py-2 text-base' },
           lg: { base: 'min-h-11 px-3.5 py-2.5 text-base' }
@@ -269,6 +304,7 @@ export default defineAppConfig({
         base: 'rounded-field'
       },
       variants: {
+        ...FIELD_EDGE,
         size: {
           md: { base: 'min-h-11 px-3 py-2 text-base' },
           lg: { base: 'min-h-11 px-3.5 py-2.5 text-base' }

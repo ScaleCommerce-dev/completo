@@ -93,7 +93,7 @@ const {
         <span class="text-sm font-medium text-success">Token "{{ createdTokenName }}" created. Copy it now. It won't be shown again.</span>
       </div>
       <div class="flex items-center gap-2">
-        <code class="flex-1 text-xs font-mono text-default bg-default rounded-md px-2 py-1.5 border border-accented truncate select-all">{{ createdToken }}</code>
+        <code class="flex-1 text-xs font-mono text-default bg-default rounded-md px-2 py-1.5 border border-default truncate select-all">{{ createdToken }}</code>
         <!-- `text-success!` rather than `text-success`: the variant already sets a
              colour, and an explicit winner is what keeps stylesheet order out of
              it. Same spelling as the description's copy button. -->

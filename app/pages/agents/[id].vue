@@ -437,7 +437,7 @@ function formatDate(iso: string) {
               <span class="text-sm font-medium text-success">Token "{{ createdTokenName }}" created. Copy it now, it won't be shown again.</span>
             </div>
             <div class="flex items-center gap-2">
-              <code class="flex-1 min-w-0 text-xs font-mono text-default bg-default rounded-md px-2 py-1.5 border border-accented truncate select-all">{{ createdToken }}</code>
+              <code class="flex-1 min-w-0 text-xs font-mono text-default bg-default rounded-md px-2 py-1.5 border border-default truncate select-all">{{ createdToken }}</code>
               <UButton
                 :label="tokenCopied ? 'Copied!' : 'Copy'"
                 :icon="tokenCopied ? 'i-lucide-check' : 'i-lucide-copy'"
@@ -689,7 +689,7 @@ function formatDate(iso: string) {
                 icon="i-lucide-trash-2"
                 size="sm"
                 color="error"
-                variant="soft"
+                variant="subtle"
                 @click="showDelete = true"
               />
             </div>

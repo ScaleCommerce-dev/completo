@@ -263,7 +263,7 @@ const STEP_HEADINGS = computed(() => {
         <div class="grid grid-cols-2 gap-3">
           <button
             type="button"
-            class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 border-default"
+            class="rounded-xl border border-default p-4 text-left transition-colors hover:border-accent hover:bg-action-hover"
             @click="selectViewType('board')"
           >
             <div class="flex items-center gap-3 mb-2">
@@ -281,7 +281,7 @@ const STEP_HEADINGS = computed(() => {
           </button>
           <button
             type="button"
-            class="rounded-xl border-2 p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 border-default"
+            class="rounded-xl border border-default p-4 text-left transition-colors hover:border-accent hover:bg-action-hover"
             @click="selectViewType('list')"
           >
             <div class="flex items-center gap-3 mb-2">
@@ -316,7 +316,7 @@ const STEP_HEADINGS = computed(() => {
           >
         </div>
 
-        <div class="mx-dialog mt-4 rounded-lg border border-accented divide-y divide-default overflow-hidden">
+        <div class="mx-dialog mt-4 rounded-lg border border-default divide-y divide-default overflow-hidden">
           <div
             data-focus-field="inset"
             class="flex items-center px-3 py-2.5 bg-default border-b border-transparent"

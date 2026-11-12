@@ -551,7 +551,7 @@ async function confirmDeleteTag(tagId: string) {
                       aria-label="Tag name"
                       type="text"
                       placeholder="Tag name..."
-                      class="flex-1 min-w-0 text-sm font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-accented rounded-md px-2 py-1 transition-colors"
+                      class="flex-1 min-w-0 text-sm font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-default rounded-md px-2 py-1 transition-colors"
                       @keydown.enter.prevent="addProjectTag"
                     >
                   </div>
@@ -614,7 +614,7 @@ async function confirmDeleteTag(tagId: string) {
                 class="absolute inset-0 rounded-xl"
                 :aria-label="view.name"
               />
-              <div class="lift relative pointer-events-none overflow-hidden rounded-xl border border-default bg-default shadow-raise p-card group-hover:border-accent">
+              <div class="lift accent-edge relative pointer-events-none overflow-hidden rounded-xl border border-default bg-default shadow-raise p-card group-hover:border-accent">
                 <UiAccentBar :color="accentFor(view)" />
                 <UTooltip
                   v-if="canDeleteView(view)"

@@ -312,7 +312,7 @@ defineExpose({
                   v-for="att in imageAttachments"
                   :key="att.id"
                   type="button"
-                  class="aspect-square rounded-md overflow-hidden border border-accented hover:border-primary hover:ring-1 hover:ring-primary/30 transition-colors"
+                  class="aspect-square rounded-md overflow-hidden border border-default hover:border-primary hover:ring-1 hover:ring-primary/30 transition-colors"
                   :title="att.originalName"
                   @click="selectAttachmentImage(att)"
                 >
@@ -336,7 +336,7 @@ defineExpose({
                 type="text"
                 aria-label="Image URL"
                 placeholder="https://..."
-                class="flex-1 min-w-0 text-sm text-default placeholder:text-dimmed bg-muted border border-accented rounded-md px-2 py-1.5 transition-colors"
+                class="flex-1 min-w-0 text-sm text-default placeholder:text-dimmed bg-muted border border-default rounded-md px-2 py-1.5 transition-colors"
                 @keydown.enter.prevent="insertUrlImage"
                 @keydown.escape.prevent="closeImagePicker"
               >

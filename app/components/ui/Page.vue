@@ -163,7 +163,14 @@ const trail = computed<Crumb[]>(() => {
         class="content-gutter flex flex-wrap items-center justify-between gap-x-4 gap-y-3"
         :class="[variant === 'document' ? WIDTHS[width] : '', variant === 'surface' || $slots.toolbar ? 'page-head' : '']"
       >
-        <div class="flex flex-1 items-center gap-2.5 min-w-0">
+        <!-- `basis-48`, not `flex-1`'s zero basis: with nothing to claim, the
+             title block never wrapped, so on a phone it was crushed to a few
+             letters beside the actions ("Sprint Boa" under its own counter).
+             With 192px to claim, the actions drop to their own row as soon as
+             both no longer fit (handoff `03`: under 900px the header stacks),
+             while a short pair such as "Projects" + "New project" still
+             shares one. -->
+        <div class="flex grow shrink basis-48 items-center gap-2.5 min-w-0">
           <slot name="leading" />
           <div class="flex flex-1 flex-col gap-1 min-w-0">
             <div class="flex items-center min-w-0">

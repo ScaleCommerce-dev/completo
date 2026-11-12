@@ -173,7 +173,9 @@ function formatDate(iso: string): string {
             />
             <span class="text-sm font-medium text-muted">Theme</span>
           </div>
-          <div class="flex gap-1">
+          <!-- Both rows wrap: at phone width the third theme and the "Off"
+               toggle were clipped by the box's `overflow-hidden`. -->
+          <div class="flex flex-wrap gap-1">
             <button
               v-for="option in [{ value: 'system', label: 'System', icon: 'i-lucide-monitor' }, { value: 'light', label: 'Light', icon: 'i-lucide-sun' }, { value: 'dark', label: 'Dark', icon: 'i-lucide-moon' }]"
               :key="option.value"
@@ -199,9 +201,9 @@ function formatDate(iso: string): string {
             />
             <span class="text-sm font-medium text-muted">Emails</span>
           </div>
-          <div class="flex flex-1 items-center justify-between gap-3">
+          <div class="flex flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 min-w-0">
             <span class="text-xs text-dimmed">When you're assigned or mentioned</span>
-            <div class="flex gap-1">
+            <div class="flex gap-1 shrink-0">
               <button
                 v-for="option in [{ value: true, label: 'On', icon: 'i-lucide-bell' }, { value: false, label: 'Off', icon: 'i-lucide-bell-off' }]"
                 :key="option.label"
