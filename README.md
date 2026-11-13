@@ -65,6 +65,7 @@ You didn't want that. You wanted a board with columns and cards. So that's what 
 - **Projects** — Separate your work. Invite your team. Keep things tidy. Star the ones you work in, and the sidebar shows only those.
 - **My Tasks** — One checklist. Everything assigned to you. Across all projects. Check it off. Go home.
 - **Search** — `⌘K`. Title, description or ticket ID, across every project you're in. Type `TK-42` and you're there.
+- **Tracker interface**: Rather work issue first? An admin flips the workspace under Settings › Interface. Projects become Overview, Issues and Activity, issues get sub-issues, blocking and related issues and milestones, and every board is still one List/Board switch away. Same data either way, so switching back loses nothing.
 - **SSO** — Sign in with your existing identity provider. No new password to forget and then reset and then forget again.
 
 ### What it doesn't do
