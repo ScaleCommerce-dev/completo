@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import type { DateResolution, ProjectState } from '#shared/utils/workflow'
+import type { IssueOrdering } from '~/utils/issue-list'
+
 definePageMeta({ layout: 'default' })
 
 const route = useRoute()
@@ -21,6 +24,14 @@ interface ProjectDetail {
   tags: Array<{ id: string, name: string, color: string }>
   boards: Array<{ id: string, name: string, slug: string, position: number, cardCount: number, lastActivity: string | null, createdBy: { id: string, name: string } | null }>
   lists: Array<{ id: string, name: string, slug: string, position: number, cardCount: number, lastActivity: string | null, createdBy: { id: string, name: string } | null }>
+  /** The tracker interface's project properties (`TrackerProjectPanel`). */
+  leadId: string | null
+  state: ProjectState
+  priority: string | null
+  startDate: string | null
+  startDateResolution: DateResolution | null
+  targetDate: string | null
+  targetDateResolution: DateResolution | null
 }
 const toast = useToast()
 const { data: project, error: fetchError, refresh } = await useFetch<ProjectDetail>(`/api/projects/${slug}`)
@@ -35,6 +46,42 @@ useSeoMeta({
 })
 
 const isOwnerOrAdmin = computed(() => project.value?.role === 'owner' || project.value?.role === 'admin')
+
+// ─── Tracker interface ───
+/**
+ * In the tracker interface the project is three tabs: Overview
+ * (this page's standard body: statuses, tags and views), Issues (the grouped
+ * list with the project panel, or the project's board) and Activity. The tab
+ * lives in the query so a reload keeps it. A project whose issues were last
+ * shown on its board opens there, unless a tab was asked for by name.
+ */
+const { isTracker } = useWorkspaceSettings()
+const router = useRouter()
+const TRACKER_TABS = [
+  { label: 'Overview', value: 'overview' },
+  { label: 'Issues', value: 'issues' },
+  { label: 'Activity', value: 'activity' }
+]
+const tab = computed({
+  get: () => ['overview', 'activity'].includes(route.query.tab as string) ? route.query.tab as string : 'issues',
+  set: value => router.replace({ query: { ...route.query, tab: value } })
+})
+const ordering = useLocalPref<IssueOrdering>('tracker:issue-ordering', 'manual')
+const panelOpen = useLocalPref('tracker:project-panel-open', true)
+const boardPath = computed(() => firstBoardPath(slug, project.value?.boards))
+const creatingIssue = ref(false)
+const trackerIssues = ref<{ refresh: () => Promise<unknown> }>()
+const trackerActivity = ref<{ refresh: () => Promise<unknown> }>()
+
+if (isTracker.value && !route.query.tab && boardPath.value && useProjectView(slug).value === 'board') {
+  await navigateTo(boardPath.value, { replace: true })
+}
+
+/** A panel edit changes the project, and maybe the feed. */
+async function onTrackerChanged() {
+  await refresh()
+  trackerActivity.value?.refresh()
+}
 
 // ─── Settings ───
 const showSettings = ref(false)
@@ -219,6 +266,7 @@ async function confirmDeleteTag(tagId: string) {
   <UiPage
     :title="project?.name || ' '"
     :description="project?.description || undefined"
+    :variant="isTracker && tab === 'issues' ? 'surface' : 'document'"
   >
     <template
       v-if="project"
@@ -263,6 +311,14 @@ async function confirmDeleteTag(tagId: string) {
       v-if="project"
       #actions
     >
+      <UButton
+        v-if="isTracker"
+        label="New issue"
+        icon="i-lucide-square-pen"
+        color="neutral"
+        variant="outline"
+        @click="creatingIssue = true"
+      />
       <ProjectMembersButton
         :project-id="project.id"
         :project-name="project.name"
@@ -288,6 +344,38 @@ async function confirmDeleteTag(tagId: string) {
       />
     </template>
 
+    <template
+      v-if="isTracker && project"
+      #toolbar
+    >
+      <span class="flex flex-1 items-center gap-3 min-w-0">
+        <TrackerPillTabs
+          v-model="tab"
+          :items="TRACKER_TABS"
+        />
+        <TrackerViewToggle
+          v-if="tab === 'issues'"
+          :project-slug="slug"
+          current="list"
+          :board-path="boardPath"
+        />
+      </span>
+      <template v-if="tab === 'issues'">
+        <TrackerOrderingToggle v-model="ordering" />
+        <UTooltip :text="panelOpen ? 'Hide details' : 'Show details'">
+          <UButton
+            icon="i-lucide-panel-right"
+            :variant="panelOpen ? 'soft' : 'ghost'"
+            color="neutral"
+            size="sm"
+            square
+            aria-label="Toggle project details"
+            @click="panelOpen = !panelOpen"
+          />
+        </UTooltip>
+      </template>
+    </template>
+
     <!-- Loading skeleton. The page previously reimplemented its own header,
          stats bar and card grid here, so every layout change had to be made
          twice inside this one file. USkeleton keeps it to shapes. -->
@@ -301,6 +389,23 @@ async function confirmDeleteTag(tagId: string) {
           class="h-20"
         />
       </div>
+    </template>
+
+    <template v-else-if="isTracker && tab === 'issues'">
+      <TrackerProjectIssues
+        ref="trackerIssues"
+        :project="project"
+        :ordering="ordering"
+        :panel-open="panelOpen"
+        @changed="onTrackerChanged"
+      />
+    </template>
+
+    <template v-else-if="isTracker && tab === 'activity'">
+      <TrackerProjectActivity
+        ref="trackerActivity"
+        :project-id="project.id"
+      />
     </template>
 
     <template v-else>
@@ -718,5 +823,12 @@ async function confirmDeleteTag(tagId: string) {
         @confirm="deleteView"
       />
     </template>
+
+    <TrackerNewIssueDialog
+      v-if="isTracker && project"
+      v-model:open="creatingIssue"
+      :default-project-id="project.id"
+      @created="trackerIssues?.refresh()"
+    />
   </UiPage>
 </template>

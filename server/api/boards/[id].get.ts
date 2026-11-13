@@ -1,4 +1,4 @@
-import { eq, or, and, inArray } from 'drizzle-orm'
+import { eq, or, and, inArray, isNull } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
@@ -67,7 +67,8 @@ export default defineEventHandler(async (event) => {
   const cardRows = statusIds.length
     ? db.select().from(schema.cards)
         .leftJoin(schema.users, eq(schema.cards.assigneeId, schema.users.id))
-        .where(inArray(schema.cards.statusId, statusIds))
+        // Archived cards are out of every board, list and count.
+        .where(and(inArray(schema.cards.statusId, statusIds), isNull(schema.cards.archivedAt)))
         .all()
     : []
   const members = db.select(memberRefColumns())

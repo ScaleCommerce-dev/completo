@@ -1,9 +1,10 @@
 /**
  * One option in a field menu — see `FieldMenu.vue`.
  *
- * Exactly one of `swatch` / `icon` / `avatar` carries the option's mark. They all
- * render into the same 16px box, which is what keeps a status dot, a priority
- * glyph and a member's face on the same left edge across all four menus.
+ * Exactly one of `swatch` / `icon` / `avatar` / `status` / `priorityMark`
+ * carries the option's mark. They all render into the same 16px box, which
+ * is what keeps a status dot, a priority glyph and a member's face on the
+ * same left edge across all four menus.
  */
 export interface FieldMenuOption {
   label: string
@@ -17,6 +18,10 @@ export interface FieldMenuOption {
   iconClass?: string
   /** A person's face, or an agent's square: `kind` and `color` go to `UiAvatar`. */
   avatar?: { src?: string, alt?: string, kind?: 'human' | 'agent', color?: string | null }
+  /** The tracker interface's status glyph (`TrackerStatusIcon`): shape by category, colour by status. */
+  status?: { category: string, color: string | null }
+  /** The tracker interface's priority glyph (`TrackerPriorityIcon`); `null` is "No priority". */
+  priorityMark?: { priority: string | null }
   onSelect: () => void
 }
 

@@ -1,3 +1,4 @@
+import type { StatusCategory } from '#shared/utils/workflow'
 import type { Member, PersonRef } from '~/types/card'
 
 interface MyTasksGroup {
@@ -12,19 +13,19 @@ interface MyTasksGroup {
   }
   /** The viewer's role in *this* project — see my-tasks.get.ts for why it is never synthetic. */
   role: string
-  statuses: Array<{ id: string, name: string, color: string | null }>
+  statuses: Array<{ id: string, name: string, color: string | null, category: StatusCategory }>
   tags: Array<{ id: string, name: string, color: string }>
   members: Member[]
   cards: Array<{
     id: number
     title: string
     description: string | null
-    priority: string
+    priority: string | null
     statusId: string
     assigneeId: string | null
     position: number
     assignee: PersonRef | null
-    status: { id: string, name: string, color: string | null } | null
+    status: { id: string, name: string, color: string | null, category: StatusCategory } | null
     tags: Array<{ id: string, name: string, color: string }>
     dueDate: string | null
     // Returned by the endpoint since it started sharing `fetchCardMetadata` and

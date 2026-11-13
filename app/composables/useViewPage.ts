@@ -12,7 +12,7 @@ interface ViewPageOptions<T extends BaseCard = BaseCard> {
   members: ComputedRef<{ id: string, name: string }[]>
   tags: ComputedRef<{ id: string, name: string }[]>
   updateCardTags: (cardId: number, tagIds: string[]) => Promise<void>
-  createCard: (statusId: string, title: string, opts?: { description?: string, priority?: string, assigneeId?: string, dueDate?: string | null }) => Promise<unknown>
+  createCard: (statusId: string, title: string, opts?: { description?: string, priority?: string | null, assigneeId?: string, dueDate?: string | null }) => Promise<unknown>
   updateCard: (cardId: number, updates: Partial<BaseCard>) => Promise<unknown>
   deleteCard: (cardId: number) => Promise<void>
 }
@@ -83,7 +83,7 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
   // Create card modal
   const showCreateCard = ref(false)
 
-  async function createCardFromFormData(data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }): Promise<number> {
+  async function createCardFromFormData(data: { title: string, description: string, priority: string | null, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }): Promise<number> {
     const newCard = await createCard(data.statusId, data.title, {
       description: data.description || undefined,
       priority: data.priority,
@@ -97,11 +97,11 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
     return cardId
   }
 
-  async function ensureCardForDraft(data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }): Promise<number> {
+  async function ensureCardForDraft(data: { title: string, description: string, priority: string | null, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }): Promise<number> {
     return createCardFromFormData(data)
   }
 
-  async function handleCreateCard(data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) {
+  async function handleCreateCard(data: { title: string, description: string, priority: string | null, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) {
     await createCardFromFormData(data)
     showCreateCard.value = false
   }

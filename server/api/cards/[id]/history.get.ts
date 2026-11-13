@@ -3,12 +3,22 @@ import { and, asc, count, desc, eq, gt, inArray, lt } from 'drizzle-orm'
 const DEFAULT_LIMIT = 200
 const MAX_LIMIT = 500
 
+interface HistoryEntrySide {
+  id: string | null
+  value: string
+  /** For a side that names another card: that card as `cardRefs` shows it, title only where the viewer can read it. */
+  card?: CardRef
+}
+
+/** Fields whose sides name another card by its id. */
+const CARD_FIELDS = new Set<string>(['parent', 'blocks', 'blockedBy', 'relates'])
+
 interface HistoryEntry {
   /** 0 for the creation, which is read off the card and has no row. */
   id: number
   field: CardHistoryField | 'created'
-  from: { id: string | null, value: string } | null
-  to: { id: string | null, value: string } | null
+  from: HistoryEntrySide | null
+  to: HistoryEntrySide | null
   /** Null once the account is gone; `actorName` still says who it was. */
   actor: UserRef | null
   actorName: string | null
@@ -34,7 +44,7 @@ interface HistoryEntry {
  * by the name stored with the event once that row is gone.
  */
 export default defineEventHandler(async (event) => {
-  const { card } = await resolveCard(event)
+  const { user, card } = await resolveCard(event)
   const query = getQuery(event)
 
   const limit = query.limit === undefined ? DEFAULT_LIMIT : Number(query.limit)
@@ -74,16 +84,26 @@ export default defineEventHandler(async (event) => {
     .filter(r => fields.includes(r.event.field))
     .flatMap(r => [r.event.fromId, r.event.toId])
     .filter((id): id is string => !!id))]
-  const names = (table: typeof schema.statuses | typeof schema.tags | typeof schema.users, ids: string[]) => ids.length
+  const names = (table: typeof schema.statuses | typeof schema.tags | typeof schema.users | typeof schema.milestones, ids: string[]) => ids.length
     ? new Map(db.select({ id: table.id, name: table.name }).from(table).where(inArray(table.id, ids)).all().map(r => [r.id, r.name]))
     : new Map<string, string>()
   const current: Record<string, Map<string, string>> = {
     status: names(schema.statuses, idsOf(['status'])),
     assignee: names(schema.users, idsOf(['assignee'])),
-    tag: names(schema.tags, idsOf(['tag']))
+    tag: names(schema.tags, idsOf(['tag'])),
+    milestone: names(schema.milestones, idsOf(['milestone']))
   }
-  const side = (field: string, id: string | null, value: string | null) => {
+  const refs = cardRefs(idsOf([...CARD_FIELDS]).map(Number), visibleProjectIds(user))
+  const side = (field: string, id: string | null, value: string | null): HistoryEntrySide | null => {
     if (id === null && value === null) return null
+    if (CARD_FIELDS.has(field) && id) {
+      const ref = refs.get(Number(id))
+      // The ticket id as it reads now where the viewer can read the card. A card in
+      // a project they cannot read shows its number only: the stored `KEY-n` would
+      // name that project. A deleted card keeps the value as stored.
+      if (ref?.hidden) return { id, value: `#${id}`, card: ref }
+      return ref ? { id, value: ref.ticket ?? value ?? '', card: ref } : { id, value: value ?? '' }
+    }
     return { id, value: (id && current[field]?.get(id)) ?? value ?? '' }
   }
 

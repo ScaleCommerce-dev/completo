@@ -11,6 +11,12 @@
  *
  * `created` is not here: the creation is read off the card, never stored.
  */
-export const CARD_HISTORY_FIELDS = ['status', 'assignee', 'priority', 'dueDate', 'title', 'description', 'tag', 'attachment'] as const
+export const CARD_HISTORY_FIELDS = [
+  'status', 'assignee', 'priority', 'dueDate', 'title', 'description', 'tag', 'attachment',
+  // Sub-issues, milestones, relations and the archive. A side that names
+  // another card carries its id and `KEY-<id>` as the value, never its title:
+  // the history outlives access to that card's project.
+  'parent', 'milestone', 'blocks', 'blockedBy', 'relates', 'archived'
+] as const
 
 export type CardHistoryField = typeof CARD_HISTORY_FIELDS[number]

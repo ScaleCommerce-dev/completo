@@ -44,5 +44,16 @@ export function setSetting(key: string, value: unknown): void {
 
 /** Well-known setting keys */
 export const SETTINGS_KEYS = {
-  ALLOWED_EMAIL_DOMAINS: 'allowedEmailDomains'
+  ALLOWED_EMAIL_DOMAINS: 'allowedEmailDomains',
+  ISSUE_TEMPLATE: 'issueTemplate',
+  INTERFACE_MODE: 'interfaceMode'
 } as const
+
+/** The settings every signed-in user may read, with their defaults applied. */
+export function workspaceSettings(): { interfaceMode: InterfaceMode, issueTemplate: string } {
+  const mode = getSetting<string>(SETTINGS_KEYS.INTERFACE_MODE, DEFAULT_INTERFACE_MODE)
+  return {
+    interfaceMode: INTERFACE_MODES.find(m => m === mode) ?? DEFAULT_INTERFACE_MODE,
+    issueTemplate: getSetting<string>(SETTINGS_KEYS.ISSUE_TEMPLATE, DEFAULT_ISSUE_TEMPLATE)
+  }
+}

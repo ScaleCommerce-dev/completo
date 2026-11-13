@@ -48,6 +48,11 @@ const props = withDefaults(defineProps<{
   searchable?: boolean
   /** The caller filters (via `searchTerm`); the menu shows what it is given. */
   ownFilter?: boolean
+  /**
+   * The menu does not open. A native `disabled` on the trigger is not enough:
+   * the trigger opens on pointerdown, which is the menu's own business.
+   */
+  disabled?: boolean
 }>(), {
   // Vue reads an absent Boolean prop as `false` unless it has a default, which
   // would leave the count below unreachable.
@@ -129,6 +134,7 @@ const countOf = (item: unknown) => (item as { count?: number }).count
   <UDropdownMenu
     v-model:open="open"
     v-model:search-term="searchTerm"
+    :disabled="disabled"
     :items="items"
     :filter="showSearch ? { placeholder: `Search ${label.toLowerCase()}…` } : false"
     :ignore-filter="ownFilter"
@@ -159,8 +165,17 @@ const countOf = (item: unknown) => (item as { count?: number }).count
         v-if="opt(item)"
         class="flex items-center justify-center w-4 h-[1lh] shrink-0"
       >
+        <TrackerStatusIcon
+          v-if="opt(item)!.status"
+          :category="opt(item)!.status!.category"
+          :color="opt(item)!.status!.color"
+        />
+        <TrackerPriorityIcon
+          v-else-if="opt(item)!.priorityMark"
+          :priority="opt(item)!.priorityMark!.priority"
+        />
         <UiStatusDot
-          v-if="opt(item)!.swatch !== undefined || opt(item)!.done"
+          v-else-if="opt(item)!.swatch !== undefined || opt(item)!.done"
           :color="opt(item)!.swatch"
           :done="opt(item)!.done"
           size="sm"

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 const props = defineProps<{
-  priority: string
+  priority: string | null
   popoverOpen: boolean
 }>()
 
 const emit = defineEmits<{
-  'select': [priority: string]
+  'select': [priority: string | null]
   'update:popoverOpen': [open: boolean]
 }>()
 

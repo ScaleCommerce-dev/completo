@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     ))
     .get()
 
-  const target = db.select({ kind: schema.users.kind, managedById: schema.users.managedById, isAdmin: schema.users.isAdmin })
+  const target = db.select({ name: schema.users.name, kind: schema.users.kind, managedById: schema.users.managedById, isAdmin: schema.users.isAdmin })
     .from(schema.users)
     .where(eq(schema.users.id, userId!))
     .get()
@@ -39,6 +39,11 @@ export default defineEventHandler(async (event) => {
     if (ownerCount <= 1) {
       throw createError({ statusCode: 400, message: 'Cannot remove the last owner' })
     }
+  }
+
+  // The project's activity feed says who left, whichever path removes them below.
+  if (targetMembership && target) {
+    recordProjectActivity(project.id, user.id, 'member_removed', { userId, name: target.name })
   }
 
   if (target?.kind === 'agent') {
@@ -66,6 +71,7 @@ export default defineEventHandler(async (event) => {
         eq(schema.projectMembers.userId, userId!)
       ))
       .run()
+    clearProjectLead(project.id, userId!)
   } else if (targetMembership) {
     ownCards = removeFromProject(userId!, project.id, user)
   }

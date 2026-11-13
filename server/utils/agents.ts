@@ -278,6 +278,7 @@ export function removeFromProject(memberId: string, projectId: string, actor: Hi
     db.delete(schema.projectMembers)
       .where(and(eq(schema.projectMembers.projectId, projectId), eq(schema.projectMembers.userId, memberId)))
       .run()
+    clearProjectLead(projectId, memberId)
     const cards = db.update(schema.cards)
       .set({ assigneeId: null, updatedAt: new Date() })
       .where(and(eq(schema.cards.projectId, projectId), eq(schema.cards.assigneeId, memberId)))

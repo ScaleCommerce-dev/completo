@@ -41,7 +41,7 @@ const props = defineProps<{
     /** Where this card sits in the walked ordering — the walker's "2/7". */
     position?: { index: number, count: number } | null
   }
-  onEnsureCard?: (data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) => Promise<number>
+  onEnsureCard?: (data: { title: string, description: string, priority: string | null, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) => Promise<number>
   /**
    * The host view's filters, so a card being created here can say up front that
    * it will not appear here. Absent on My Tasks and on the card's own page,
@@ -92,7 +92,7 @@ const open = computed({
 })
 
 const emit = defineEmits<{
-  create: [data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }]
+  create: [data: { title: string, description: string, priority: string | null, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }]
   /** Omit `tagIds` unless tags actually changed — passing them costs a second request. */
   update: [cardId: number, updates: Record<string, unknown>, tagIds?: string[]]
   updateTags: [cardId: number, tagIds: string[]]
@@ -113,7 +113,8 @@ function onDuplicated(copy: { id: number, projectKey: string, projectSlug: strin
 
 const title = ref('')
 const description = ref('')
-const priority = ref('medium')
+// Null is "No priority". Creating starts at medium, the API's own default.
+const priority = ref<string | null>('medium')
 const selectedStatusId = ref('')
 const UNASSIGNED = '__unassigned__'
 const selectedAssigneeId = ref(UNASSIGNED)
@@ -333,7 +334,9 @@ const descriptionDraft = useTextDraft(
 function populateFromCard(card: NonNullable<typeof props.card>) {
   title.value = card.title || ''
   description.value = card.description || ''
-  priority.value = card.priority || 'medium'
+  // Not `|| 'medium'`: the save-on-change watcher would write that back onto
+  // a card that has no priority (useCardFieldSync).
+  priority.value = card.priority ?? null
   selectedStatusId.value = card.statusId || ''
   selectedAssigneeId.value = card.assigneeId || UNASSIGNED
   selectedTagIds.value = (card.tags || []).map((t: { id: string }) => t.id)

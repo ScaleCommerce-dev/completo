@@ -35,6 +35,8 @@ export interface CardStatus {
   id: string
   name: string
   color: string | null
+  /** The tracker's status category, where the API sends it (`shared/utils/workflow.ts`). */
+  category?: string
 }
 
 export interface BaseCard {
@@ -44,7 +46,8 @@ export interface BaseCard {
   title: string
   description: string | null
   assigneeId: string | null
-  priority: string
+  /** Null is "No priority" (the tracker interface, or the API); never coerced to a default. */
+  priority: string | null
   dueDate: string | null
   position: number
   assignee: Member | null

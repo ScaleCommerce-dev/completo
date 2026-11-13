@@ -214,3 +214,17 @@ export function getMaxMyTasksColumnPosition(userId: string): number {
     .all()
     .reduce((max, r) => Math.max(max, r.pos), -1)
 }
+
+/** Fetch milestone by ID + project member check (404 for non-members). */
+export async function resolveMilestone(event: H3Event) {
+  const { user } = await resolveAuth(event)
+  const id = getRouterParam(event, 'id')!
+  const milestone = db.select().from(schema.milestones).where(eq(schema.milestones.id, id)).get()
+  if (!milestone) throw createError({ statusCode: 404, message: 'Milestone not found' })
+  try {
+    requireProjectMember(milestone.projectId, user.id, { isAdmin: user.isAdmin })
+  } catch {
+    throw createError({ statusCode: 404, message: 'Milestone not found' })
+  }
+  return { user, milestone }
+}

@@ -291,6 +291,16 @@ const tipOff = (name: Control) => openControl.value === name || suppressed.value
 const reveal = computed(() => openControl.value ? 'transition-opacity' : REVEAL)
 
 /**
+ * The tracker interface marks priority as its lists do: its glyph, always
+ * shown in the footer, and no edge bar beside it, so one fact keeps one mark.
+ */
+const { isTracker } = useWorkspaceSettings()
+const edgeBar = computed(() => !isTracker.value && shows('priority') && !!priorityBarClass(props.card.priority))
+
+// No hover lift in the tracker: the 2px rise moves the card off a pointer resting on its bottom edge, which then flickers.
+const cardClass = computed(() => [isTracker.value ? '' : 'lift', edgeBar.value ? 'accent-edge' : ''])
+
+/**
  * All four menus open in the same place on every card.
  *
  * They are end-aligned, which keeps a 200px menu over the card rather than
@@ -332,15 +342,15 @@ function toggleTag(tagId: string) {
 
 <template>
   <div
-    class="kanban-card lift group relative cursor-pointer overflow-hidden rounded-lg bg-default border border-default shadow-raise hover:border-accent"
-    :class="shows('priority') && priorityBarClass(card.priority) ? 'accent-edge' : ''"
+    class="kanban-card group relative cursor-pointer overflow-hidden rounded-lg bg-default border border-default shadow-raise hover:border-accent"
+    :class="cardClass"
     @click="$emit('click')"
     @pointerenter="armed = true"
     @focusin="armed = true"
   >
     <!-- Priority edge bar. High and urgent only. -->
     <span
-      v-if="shows('priority') && priorityBarClass(card.priority)"
+      v-if="edgeBar"
       class="absolute left-0 top-0 bottom-0 w-accent-bar"
       :class="[priorityBarClass(card.priority), card.priority === 'urgent' ? 'priority-urgent-pulse' : '']"
       aria-hidden="true"
@@ -543,7 +553,7 @@ function toggleTag(tagId: string) {
             :open="openControl === 'priority'"
             :content="menuPlacement"
             @update:open="(v: boolean) => setOpen('priority', !!v)"
-            @select="(p: string) => emit('update', card.id, { priority: p })"
+            @select="(p: string | null) => emit('update', card.id, { priority: p })"
           >
             <component
               :is="wrap(UTooltip)"
@@ -552,13 +562,19 @@ function toggleTag(tagId: string) {
             >
               <button
                 type="button"
-                :class="[SLOT, reveal, 'rounded-md text-dimmed']"
-                :aria-label="priorityFieldLabel(card.priority)"
+                :class="[SLOT, isTracker ? '' : reveal, 'rounded-md text-dimmed']"
+                :aria-label="priorityFieldLabel(card.priority, isTracker)"
                 @blur="releaseTip('priority')"
                 @pointerleave="releaseTip('priority')"
                 @click.stop="armFor('priority')"
               >
+                <TrackerPriorityIcon
+                  v-if="isTracker"
+                  :priority="card.priority"
+                  :size="12"
+                />
                 <UIcon
+                  v-else
                   name="i-lucide-signal"
                   class="text-xs"
                 />

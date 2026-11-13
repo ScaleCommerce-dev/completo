@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **A tracker interface, chosen per workspace.** Admins switch between Standard and Tracker under Settings › Interface; both work on the same data, so switching back loses nothing. In the tracker interface the sidebar reads Inbox, My issues, Projects, Issues and your favorite projects; Issues lists every issue you can read grouped by status, with Active, Backlog and All tabs; Projects is a table with lead, target date (day, month, quarter, half or year), issue count and progress, which admins drag into order; My issues shows open issues with closed ones one tab away; and New issue opens a dialog with project, status, priority (including No priority) and assignee. A project opens on Overview, Issues and Activity tabs: Issues is the grouped list, dragged into your own order or sorted by priority, beside a panel for the project's status, priority, lead, dates and milestones, and a List/Board switch opens the project's board and remembers which you used. A card's own page adds its parent, sub-issues (added in place), blocking, blocked-by and related cards, its project and milestone, Archive, J/K to step through the project's issues, and ticket IDs in the description turn into links that show the other card's status and title. Settings also gain an issue template that every new issue starts with.
+- **Sub-issues, relations, milestones and archived cards, in the API and over MCP.** A card can be a sub-issue of another, block, be blocked by or relate to cards in any project you can read, and belong to one of its project's milestones; a card's history records each of these. Archiving takes a card out of every board, list and count while it stays reachable by its ID and in search; it is archived and restored from its page in the tracker interface. Projects gain a lead, a state, start and target dates, a priority and an activity feed, statuses gain a category (backlog, unstarted, started, completed, canceled, duplicate) that drives progress. New MCP tools: `list_issues`, `link_cards`, `unlink_cards` and `list_milestones`; `create_card` and `update_card` take a parent, a milestone and a project to move to. The board interface is unchanged.
+
+### Upgrading
+
+- **Existing statuses get a category from their name** (Backlog, In Progress, Review, Done and so on; anything unrecognised counts as open work), and each project's done status counts as completed. Change a category with `PUT /api/statuses/:id` if one is wrong.
+
 ## v0.17.0 (2026-11-12)
 
 ### App

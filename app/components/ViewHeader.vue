@@ -44,6 +44,19 @@ useSeoMeta({
 const KIND_ICON = { board: 'i-lucide-layout-dashboard', list: 'i-lucide-list' } as const
 
 /**
+ * The tracker interface reaches a board as its project's Board (`TrackerViewToggle`),
+ * so a board carries the toggle back to the List, and the project crumb opens the
+ * project's Overview: its bare address would reopen the board the project was
+ * last left on.
+ */
+const { isTracker } = useWorkspaceSettings()
+const route = useRoute()
+const projectCrumb = computed(() => ({
+  label: props.projectName,
+  to: isTracker.value ? `/projects/${props.projectSlug}?tab=overview` : `/projects/${props.projectSlug}`
+}))
+
+/**
  * Switching view is the same act as picking a status — one from a list, the
  * current one marked — so it is the same menu. See `FieldMenu`.
  *
@@ -84,7 +97,7 @@ const viewOptions = computed<FieldMenuOption[]>(() => [
   <UiPage
     variant="surface"
     :title="viewName"
-    :crumbs="[{ label: 'All Projects', to: '/projects' }, { label: projectName, to: `/projects/${projectSlug}` }]"
+    :crumbs="[{ label: isTracker ? trackerNavLabel('/projects') : 'All Projects', to: '/projects' }, projectCrumb]"
   >
     <template #title>
       <FieldMenu
@@ -118,6 +131,12 @@ const viewOptions = computed<FieldMenuOption[]>(() => [
     </template>
 
     <template #meta>
+      <TrackerViewToggle
+        v-if="isTracker && viewKind === 'board'"
+        :project-slug="projectSlug"
+        current="board"
+        :board-path="route.path"
+      />
       <UTooltip :text="activeFilterCount > 0 ? `${cardCount} of the project's cards match this view` : `${cardCount} cards`">
         <UBadge
           :label="String(cardCount)"

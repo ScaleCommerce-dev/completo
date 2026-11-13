@@ -106,7 +106,7 @@ export function useViewData<T extends ViewDataResponse>(
   })
 
   // ─── Card CRUD (identical across views) ───
-  async function createCard(statusId: string, title: string, cardOpts?: { description?: string, priority?: string, assigneeId?: string, dueDate?: string | null }) {
+  async function createCard(statusId: string, title: string, cardOpts?: { description?: string, priority?: string | null, assigneeId?: string, dueDate?: string | null }) {
     const card = await mutate(
       () => $fetch(`/api/projects/${data.value!.project!.id}/cards`, {
         method: 'POST',

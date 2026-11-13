@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, or } from 'drizzle-orm'
 
 /**
  * A card's change history: who changed what on it, and exactly when.
@@ -73,6 +73,24 @@ function dueSide(date: Date | null | undefined): HistorySide | null {
 
 const valueSide = (value: string | null | undefined): HistorySide | null => (value == null ? null : { value })
 
+/**
+ * Another card, as its ticket id and nothing else: the history outlives the
+ * reader's access to that card's project, so it never stores a title.
+ */
+export function cardSide(id: number | null | undefined): HistorySide | null {
+  if (!id) return null
+  const row = db.select({ key: schema.projects.key }).from(schema.cards)
+    .innerJoin(schema.projects, eq(schema.cards.projectId, schema.projects.id))
+    .where(eq(schema.cards.id, id)).get()
+  return { id: String(id), value: row ? `${row.key}-${id}` : `#${id}` }
+}
+
+export function milestoneSide(id: string | null | undefined): HistorySide | null {
+  if (!id) return null
+  const row = db.select({ name: schema.milestones.name }).from(schema.milestones).where(eq(schema.milestones.id, id)).get()
+  return { id, value: row?.name ?? '' }
+}
+
 type CardRow = typeof schema.cards.$inferSelect
 
 /**
@@ -87,6 +105,9 @@ export function cardFieldChanges(before: CardRow, after: {
   priority?: string | null
   statusId?: string
   dueDate?: Date | null
+  parentId?: number | null
+  milestoneId?: string | null
+  archived?: boolean
 }): CardChange[] {
   const changes: CardChange[] = []
   const cardId = before.id
@@ -113,7 +134,54 @@ export function cardFieldChanges(before: CardRow, after: {
   if (after.description !== undefined && (after.description ?? '') !== (before.description ?? '')) {
     changes.push({ cardId, field: 'description' })
   }
+  if (after.parentId !== undefined && (after.parentId ?? null) !== before.parentId) {
+    changes.push({ cardId, field: 'parent', from: cardSide(before.parentId), to: cardSide(after.parentId) })
+  }
+  if (after.milestoneId !== undefined && (after.milestoneId ?? null) !== before.milestoneId) {
+    changes.push({ cardId, field: 'milestone', from: milestoneSide(before.milestoneId), to: milestoneSide(after.milestoneId) })
+  }
+  if (after.archived !== undefined && after.archived !== !!before.archivedAt) {
+    changes.push(after.archived
+      ? { cardId, field: 'archived', to: { value: 'archived' } }
+      : { cardId, field: 'archived', from: { value: 'archived' } })
+  }
   return changes
+}
+
+/**
+ * A relation, added or removed, as each of its two cards reads it: `blocks`
+ * from the blocking card, `blockedBy` from the blocked one, `relates` from both.
+ */
+export function relationChanges(relation: { type: RelationType, fromCardId: number, toCardId: number }, added: boolean): CardChange[] {
+  const [fromField, toField] = relation.type === 'relates' ? ['relates', 'relates'] as const : ['blocks', 'blockedBy'] as const
+  const side = (field: CardHistoryField, cardId: number, other: number): CardChange => added
+    ? { cardId, field, to: cardSide(other) }
+    : { cardId, field, from: cardSide(other) }
+  return [side(fromField, relation.fromCardId, relation.toCardId), side(toField, relation.toCardId, relation.fromCardId)]
+}
+
+/**
+ * Deleting a card changes other cards through foreign keys no handler writes:
+ * its sub-issues lose their parent (`set null`) and the cards it was related to
+ * lose the relation (`cascade`). Call it just before the delete, in the same
+ * transaction.
+ */
+export function recordCardRemoval(actor: HistoryActor, cardId: number): void {
+  const removed = cardSide(cardId)
+  const children = db.select({ id: schema.cards.id }).from(schema.cards).where(eq(schema.cards.parentId, cardId)).all()
+  const changes: CardChange[] = children.map(c => ({ cardId: c.id, field: 'parent' as const, from: removed }))
+  for (const r of db.select().from(schema.cardRelations)
+    .where(or(eq(schema.cardRelations.fromCardId, cardId), eq(schema.cardRelations.toCardId, cardId))).all()) {
+    changes.push(...relationChanges(r, false).filter(c => c.cardId !== cardId))
+  }
+  recordCardEvents(actor, changes)
+}
+
+/** Deleting a milestone takes it off its cards (`set null`). Call it just before the delete. */
+export function recordMilestoneRemoval(actor: HistoryActor, milestoneId: string): void {
+  const from = milestoneSide(milestoneId)
+  const cards = db.select({ id: schema.cards.id }).from(schema.cards).where(eq(schema.cards.milestoneId, milestoneId)).all()
+  recordCardEvents(actor, cards.map(c => ({ cardId: c.id, field: 'milestone' as const, from })))
 }
 
 /**

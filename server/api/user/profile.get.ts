@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm'
+import { eq, and, inArray, isNull } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
     priority: schema.cards.priority,
     statusId: schema.cards.statusId
   }).from(schema.cards)
-    .where(eq(schema.cards.assigneeId, userId))
+    .where(and(eq(schema.cards.assigneeId, userId), isNull(schema.cards.archivedAt)))
     .all()
 
   // Count by priority, excluding done-status cards
@@ -62,7 +62,7 @@ export default defineEventHandler(async (event) => {
       projectId: schema.cards.projectId,
       statusId: schema.cards.statusId
     }).from(schema.cards)
-      .where(inArray(schema.cards.projectId, projectIds))
+      .where(and(inArray(schema.cards.projectId, projectIds), isNull(schema.cards.archivedAt)))
       .all()
 
     for (const card of allProjectCards) {

@@ -71,7 +71,7 @@ function selectStatus(cardId: number, statusId: string) {
   activePopover.value = null
 }
 
-function selectPriority(cardId: number, priority: string) {
+function selectPriority(cardId: number, priority: string | null) {
   emit('update', cardId, { priority })
   activePopover.value = null
 }
@@ -198,8 +198,8 @@ const sortedCards = computed(() => {
         cmp = (a.status?.name || '').localeCompare(b.status?.name || '')
         break
       case 'priority': {
-        const pa = PRIORITY_ORDER[a.priority] ?? 4
-        const pb = PRIORITY_ORDER[b.priority] ?? 4
+        const pa = PRIORITY_ORDER[a.priority ?? ''] ?? 4
+        const pb = PRIORITY_ORDER[b.priority ?? ''] ?? 4
         cmp = pa - pb
         break
       }

@@ -63,8 +63,16 @@ const SECTIONS: Record<string, Crumb> = {
 }
 
 const route = useRoute()
+const { isTracker } = useWorkspaceSettings()
+
+/** The section crumb, in the tracker interface's words where it has its own (`TRACKER_NAV_LABELS`). */
+function sectionCrumb(segment: string): Crumb | undefined {
+  if (isTracker.value && TRACKER_NAV_LABELS[segment]) return { label: TRACKER_NAV_LABELS[segment], to: `/${segment}` }
+  return SECTIONS[segment]
+}
+
 const trail = computed<Crumb[]>(() => {
-  const ancestors = props.crumbs ?? [SECTIONS[route.path.split('/')[1] ?? '']].filter((c): c is Crumb => !!c)
+  const ancestors = props.crumbs ?? [sectionCrumb(route.path.split('/')[1] ?? '')].filter((c): c is Crumb => !!c)
   // A section's own index page (All Projects at `/projects`) is the section:
   // its title would only repeat the crumb in other words.
   const last = ancestors.at(-1)

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, max } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user: _user, board } = await resolveBoard(event)
@@ -12,13 +12,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Color must be a valid hex color (#RRGGBB)' })
   }
 
-  // Create status at project level
+  // Create status at project level, last in the project's order
+  const last = db.select({ p: max(schema.statuses.position) }).from(schema.statuses)
+    .where(eq(schema.statuses.projectId, board.projectId)).get()
   const statusId = crypto.randomUUID()
   db.insert(schema.statuses).values({
     id: statusId,
     projectId: board.projectId,
     name,
-    color: color || '#6366f1'
+    color: color || '#6366f1',
+    category: categoryForStatusName(name),
+    position: (last?.p ?? -1) + 1
   }).run()
 
   // Link to the current board only

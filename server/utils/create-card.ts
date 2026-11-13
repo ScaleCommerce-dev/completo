@@ -8,9 +8,14 @@ interface CreateCardParams {
     statusId: string
     title: string
     description?: string
-    priority?: 'low' | 'medium' | 'high' | 'urgent'
+    /** Absent means medium, the column default; null is "No priority", as `PUT /cards/:id` allows. */
+    priority?: 'low' | 'medium' | 'high' | 'urgent' | null
     assigneeId?: string
     dueDate?: string | null
+    /** Makes the new card a sub-issue of a card the caller can read. */
+    parentId?: number | null
+    /** A milestone of this project. */
+    milestoneId?: string | null
   }
   /**
    * Tags to attach in the same transaction as the card, already validated as this
@@ -20,10 +25,12 @@ interface CreateCardParams {
    * card behind without the tags that decide which boards show it.
    */
   tags?: Array<{ id: string, name: string }>
+  /** The caller, for checking that a parent lives in a project they can read. Defaults to `userId` without admin rights. */
+  user?: { id: string, isAdmin?: boolean | number | null }
 }
 
-export function createCard({ projectId, userId, userName, body, tags = [] }: CreateCardParams) {
-  const { statusId, title, description, priority, assigneeId, dueDate } = body
+export function createCard({ projectId, userId, userName, body, tags = [], user }: CreateCardParams) {
+  const { statusId, title, description, priority, assigneeId, dueDate, parentId, milestoneId } = body
 
   if (!statusId || !title) {
     throw createError({ statusCode: 400, message: 'Status ID and title are required' })
@@ -47,6 +54,11 @@ export function createCard({ projectId, userId, userName, body, tags = [] }: Cre
     }
   }
 
+  if (parentId !== undefined && parentId !== null) {
+    requireVisibleCard(parentId, visibleProjectIds(user ?? { id: userId }), 'Parent card')
+  }
+  if (milestoneId) requireProjectMilestone(milestoneId, projectId)
+
   const inserted = db.transaction(() => {
     const maxPos = db.select({ pos: schema.cards.position }).from(schema.cards)
       .where(eq(schema.cards.statusId, statusId))
@@ -59,9 +71,11 @@ export function createCard({ projectId, userId, userName, body, tags = [] }: Cre
       title,
       description: description || null,
       assigneeId: assigneeId || null,
-      priority: priority || 'medium',
+      priority: priority === null ? null : (priority || 'medium'),
       dueDate: dueDate ? new Date(dueDate) : null,
       position: maxPos + 1,
+      parentId: parentId == null ? null : Number(parentId),
+      milestoneId: milestoneId || null,
       createdById: userId
     }).returning().get()
 

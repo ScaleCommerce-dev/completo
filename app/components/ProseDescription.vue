@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Marked } from 'marked'
 import DOMPurify from 'dompurify'
+import { h, render as renderVNode } from 'vue'
+import TrackerStatusIcon from '~/components/tracker/StatusIcon.vue'
 
 const props = defineProps<{
   content: string
@@ -196,6 +198,77 @@ function decorateCodeBlocks() {
 onMounted(decorateCodeBlocks)
 watch(rendered, () => nextTick(decorateCodeBlocks))
 
+// ─── A ticket id becomes a chip (Tracker interface) ───────────────────────────
+/**
+ * The tracker renders a mentioned issue as a chip: status glyph, id, title. Only the
+ * tracker issue page provides the index (`ISSUE_INDEX`, `useTrackerIssue`), so
+ * everywhere else, and in the standard interface, this does nothing.
+ *
+ * Built on our own post-sanitize DOM, for the reason the code blocks above are:
+ * the sanitizer's allow-lists stay as narrow as they were, and the chip's markup
+ * never comes from user Markdown. An id missing from the index, or whose key is
+ * not its project's, is either unreadable to the viewer or does not exist; both
+ * stay plain text, so a chip never carries a title across a project boundary.
+ * Text inside code, pre and links is left alone, which also makes a second pass
+ * a no-op: a chip is a link.
+ */
+const issueIndex = inject(ISSUE_INDEX, null)
+
+function decorateIssueRefs() {
+  const el = root.value
+  const index = issueIndex?.value
+  if (!el || !index?.size) return
+
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+    acceptNode: node => (node.parentElement?.closest('code, pre, a') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT)
+  })
+  const nodes: Text[] = []
+  while (walker.nextNode()) nodes.push(walker.currentNode as Text)
+
+  for (const node of nodes) {
+    const text = node.data
+    const matches = [...text.matchAll(issueIdPattern())]
+      .map(m => ({ m, issue: resolveIssueRef(index, m[1]!, Number(m[2])) }))
+      .filter(x => x.issue)
+    if (!matches.length) continue
+
+    const frag = document.createDocumentFragment()
+    let last = 0
+    for (const { m, issue } of matches) {
+      frag.append(text.slice(last, m.index))
+
+      const chip = document.createElement('a')
+      chip.className = 'issue-chip'
+      chip.href = `/projects/${issue!.project.slug}/cards/${issue!.ticket}`
+      const icon = document.createElement('span')
+      icon.className = 'issue-chip-icon'
+      renderVNode(h(TrackerStatusIcon, { category: issue!.status.category, color: issue!.status.color, size: 13 }), icon)
+      const id = document.createElement('span')
+      id.className = 'issue-chip-id'
+      id.textContent = issue!.ticket
+      const title = document.createElement('span')
+      title.textContent = issue!.title
+      chip.append(icon, id, ' ', title)
+      frag.append(chip)
+
+      last = m.index + m[0].length
+    }
+    frag.append(text.slice(last))
+    node.replaceWith(frag)
+  }
+}
+
+onMounted(decorateIssueRefs)
+watch([rendered, () => issueIndex?.value], () => nextTick(decorateIssueRefs))
+
+/** A chip is an in-app link: route it, unless the reader asked for a new tab. */
+function onIssueChipClick(e: MouseEvent) {
+  const chip = (e.target as HTMLElement | null)?.closest<HTMLAnchorElement>('a.issue-chip')
+  if (!chip || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+  e.preventDefault()
+  navigateTo(chip.getAttribute('href')!)
+}
+
 const copyTimers = new Map<HTMLElement, ReturnType<typeof setTimeout>>()
 
 /** One delegated handler, so a block added by an edit needs no new listener. */
@@ -235,7 +308,7 @@ onUnmounted(() => {
     ref="root"
     class="prose prose-sm dark:prose-invert prose-description"
     :class="props.class"
-    @click="onCodeCopy"
+    @click="onCodeCopy($event); onIssueChipClick($event)"
     v-html="rendered"
   />
 </template>
@@ -406,6 +479,37 @@ onUnmounted(() => {
   padding: 0.05em 0.4em;
   border-radius: 9999px;
   white-space: nowrap;
+}
+/*
+ * An issue chip (Tracker interface): a hairline box
+ * around glyph, id and title. `inline` with cloned decoration rather than
+ * `inline-flex`, so a long title wraps with the sentence instead of pushing the
+ * whole chip to a new line.
+ */
+:deep(.issue-chip) {
+  display: inline;
+  padding: 0.1em 0.35em;
+  border-radius: 6px;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-bg-muted);
+  color: var(--ui-text-highlighted);
+  font-weight: 400;
+  text-decoration: none;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: border-color 0.15s;
+}
+:deep(.issue-chip:hover) {
+  border-color: var(--ui-border-accented);
+  color: var(--ui-text-highlighted);
+}
+:deep(.issue-chip-icon) {
+  display: inline-block;
+  vertical-align: -0.1em;
+  margin-right: 0.3em;
+}
+:deep(.issue-chip-id) {
+  color: var(--ui-text-muted);
 }
 :deep(blockquote) {
   font-style: normal;

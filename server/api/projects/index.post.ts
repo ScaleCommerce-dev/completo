@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, max } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
@@ -38,6 +38,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const project = db.transaction(() => {
+    // A new project goes last in the manual order.
+    const last = db.select({ p: max(schema.projects.position) }).from(schema.projects).get()
     db.insert(schema.projects).values({
       id: projectId,
       name,
@@ -45,7 +47,8 @@ export default defineEventHandler(async (event) => {
       key,
       description: description || null,
       briefing: briefing || null,
-      icon: icon || null
+      icon: icon || null,
+      position: (last?.p ?? -1) + 1
     }).run()
 
     db.insert(schema.projectMembers).values({
@@ -63,24 +66,28 @@ export default defineEventHandler(async (event) => {
       { name: 'Done', color: '#10b981' }
     ]
 
+    // Set the done status for the project
+    const doneStatusIndex = doneStatusName
+      ? defaultStatuses.findIndex(c => c.name === doneStatusName)
+      : 4
+    const doneIndex = doneStatusIndex >= 0 ? doneStatusIndex : 4
+
     const statusIds: string[] = []
-    for (const col of defaultStatuses) {
+    defaultStatuses.forEach((col, position) => {
       const colId = crypto.randomUUID()
       statusIds.push(colId)
       db.insert(schema.statuses).values({
         id: colId,
         projectId,
         name: col.name,
-        color: col.color
+        color: col.color,
+        // The done status is the completed one, whatever it is called.
+        category: position === doneIndex ? 'completed' : categoryForStatusName(col.name),
+        position
       }).run()
-    }
-
-    // Set the done status for the project
-    const doneStatusIndex = doneStatusName
-      ? defaultStatuses.findIndex(c => c.name === doneStatusName)
-      : 4
+    })
     db.update(schema.projects).set({
-      doneStatusId: statusIds[doneStatusIndex >= 0 ? doneStatusIndex : 4],
+      doneStatusId: statusIds[doneIndex],
       doneRetentionDays: doneRetentionDays !== undefined ? doneRetentionDays : 30
     }).where(eq(schema.projects.id, projectId)).run()
 
