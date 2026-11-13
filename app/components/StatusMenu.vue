@@ -3,7 +3,8 @@ import type { FieldMenuOption } from '~/types/field-menu'
 
 /** Status picker. See `FieldMenu.vue` for why all four fields share one menu. */
 const props = defineProps<{
-  statuses: Array<{ id: string, name: string, color: string | null }>
+  /** `category` is set where the API sends it; the tracker interface draws its glyph from it. */
+  statuses: Array<{ id: string, name: string, color: string | null, category?: string }>
   statusId?: string | null
   doneStatusId?: string | null
   content?: Record<string, unknown>
@@ -23,11 +24,14 @@ const emit = defineEmits<{ select: [statusId: string] }>()
  */
 const ariaLabel = computed(() => statusFieldLabel(props.statuses, props.statusId))
 
+const { isTracker } = useWorkspaceSettings()
+
 const options = computed<FieldMenuOption[]>(() => props.statuses.map(s => ({
   label: s.name,
   checked: props.statusId === s.id,
-  swatch: s.color,
-  done: s.id === props.doneStatusId,
+  ...(isTracker.value && s.category
+    ? { status: { category: s.category, color: s.color } }
+    : { swatch: s.color, done: s.id === props.doneStatusId }),
   onSelect: () => emit('select', s.id)
 })))
 </script>

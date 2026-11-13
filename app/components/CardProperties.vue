@@ -38,11 +38,14 @@ const props = withDefaults(defineProps<{
 
 const statusId = defineModel<string>('statusId', { required: true })
 const assigneeId = defineModel<string>('assigneeId', { required: true })
-const priority = defineModel<string>('priority', { required: true })
+const priority = defineModel<string | null>('priority', { required: true })
 const dueDate = defineModel<string | null>('dueDate', { required: true })
 const tagIds = defineModel<string[]>('tagIds', { required: true })
 
 const dueDateOpen = ref(false)
+
+/** The tracker interface draws status and priority as glyphs. */
+const { isTracker } = useWorkspaceSettings()
 
 const selectedStatus = computed(() => props.statuses.find(s => s.id === statusId.value))
 
@@ -156,7 +159,15 @@ function row(label: string, icon: string, align?: 'start') {
             :class="TRIGGER"
             :aria-label="label"
           >
-            <UiStatusDot :color="selectedStatus?.color" />
+            <TrackerStatusIcon
+              v-if="isTracker && selectedStatus?.category"
+              :category="selectedStatus.category"
+              :color="selectedStatus.color"
+            />
+            <UiStatusDot
+              v-else
+              :color="selectedStatus?.color"
+            />
             <span class="truncate text-default">{{ selectedStatus?.name || 'Pick a status' }}</span>
             <UIcon
               name="i-lucide-chevron-down"
@@ -213,7 +224,12 @@ function row(label: string, icon: string, align?: 'start') {
             :class="[TRIGGER, priorityTextClass(priority)]"
             :aria-label="label"
           >
+            <TrackerPriorityIcon
+              v-if="isTracker"
+              :priority="priority"
+            />
             <UIcon
+              v-else
               :name="priorityIcon(priority)"
               class="text-sm shrink-0"
             />

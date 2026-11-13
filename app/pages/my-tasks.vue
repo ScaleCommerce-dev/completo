@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { CLOSED_CATEGORIES } from '#shared/utils/workflow'
+
 definePageMeta({ layout: 'default' })
 useSeoMeta({ title: 'My Tasks · Completo' })
 
 const {
   columns,
   collapsedProjectIds,
-  groups,
+  groups: allGroups,
   addColumn,
   removeColumn,
   reorderColumns,
@@ -16,6 +18,29 @@ const {
 } = useMyTasks()
 
 const showColumnConfig = ref(false)
+
+/**
+ * The tracker interface calls this page My issues and, shows
+ * open issues by default, with closed ones (completed, canceled, duplicate)
+ * one tab away. The tab lives in the query, like the views of `/issues`. The
+ * standard interface shows every card assigned to you, as it always has.
+ */
+const { isTracker } = useWorkspaceSettings()
+const VIEWS = [
+  { label: 'Open', value: 'open' },
+  { label: 'All', value: 'all' }
+]
+const route = useRoute()
+const router = useRouter()
+const view = computed({
+  get: () => route.query.view === 'all' ? 'all' : 'open',
+  set: value => router.replace({ query: { ...route.query, view: value === 'open' ? undefined : value } })
+})
+const groups = computed(() => !isTracker.value || view.value === 'all'
+  ? allGroups.value
+  : allGroups.value
+      .map(g => ({ ...g, cards: g.cards.filter(c => !c.status || !CLOSED_CATEGORIES.includes(c.status.category)) }))
+      .filter(g => g.cards.length))
 
 /**
  * "My agents' work" sits under your own cards for anyone who manages an agent.
@@ -127,7 +152,7 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
 
 <template>
   <UiPage
-    title="My Tasks"
+    :title="isTracker ? 'My issues' : 'My Tasks'"
     description="Assigned to you, across every project"
     variant="surface"
   >
@@ -135,7 +160,20 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
       <UiSettingsButton @click="showColumnConfig = true" />
     </template>
 
-    <div class="flex-1 overflow-auto content-gutter-x content-gutter-bottom flex flex-col gap-4 thin-scroll">
+    <template
+      v-if="isTracker"
+      #toolbar
+    >
+      <TrackerPillTabs
+        v-model="view"
+        :items="VIEWS"
+      />
+    </template>
+
+    <div
+      class="flex-1 overflow-auto content-gutter-x content-gutter-bottom flex flex-col gap-4 thin-scroll"
+      :class="{ 'page-body-start': isTracker }"
+    >
       <div
         v-for="group in groups"
         :key="group.project.id"
@@ -169,7 +207,12 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
           v-if="!collapsedProjectIds.has(group.project.id)"
           class="rounded-xl border border-default bg-default overflow-hidden"
         >
+          <!-- The tracker interface lets the table reach its frame: `ListView`'s
+               embedded `px-2` insets the header band 8px inside the rounded
+               border, and the cells carry their own padding. The standard
+               interface keeps the inset as it always had it. -->
           <ListView
+            :class="isTracker ? '!px-0' : undefined"
             :columns="columns"
             :cards="group.cards"
             :statuses="group.statuses"
@@ -191,7 +234,15 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
            an empty page here, and the old copy ("across every project") said the
            opposite of what had happened. -->
       <UEmpty
-        v-if="!groups.length"
+        v-if="!groups.length && allGroups.length"
+        class="c2s-empty-brand py-16"
+        icon="i-lucide-circle-check"
+        title="No open issues"
+        description="Everything assigned to you is closed."
+        :actions="[{ label: 'Show all', icon: 'i-lucide-list', onClick: () => { view = 'all' } }]"
+      />
+      <UEmpty
+        v-else-if="!groups.length"
         class="c2s-empty-brand py-16"
         icon="i-lucide-circle-check"
         title="Nothing assigned to you"

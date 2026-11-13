@@ -7,8 +7,12 @@ interface Project {
   id: string
   name: string
   slug: string
+  /** Prefixes ticket ids (`KEY-42`); the New issue dialog names a created issue by it. */
+  key: string
   icon?: string | null
   starred: boolean
+  /** The workspace's manual order, which the tracker interface lists by. */
+  position: number
 }
 
 interface NavItem { label: string, icon: string, to: string }
@@ -31,6 +35,25 @@ export function useNavigation() {
   const { data: projects, refresh: refreshProjects } = useFetch<Project[]>('/api/projects')
   const { user } = useUserSession()
   const toast = useToast()
+
+  const { isTracker } = useWorkspaceSettings()
+
+  /**
+   * The tracker interface names and orders its destinations as an issue
+   * tracker does: Inbox and My issues for the signed-in person, then the workspace
+   * (Projects, and Issues across every project, which only this interface
+   * has). Same addresses, so the active-row and unread logic in the layout
+   * hold unchanged; `UiPage` takes its breadcrumb labels from `trackerNavLabel`.
+   */
+  const trackerTopItems = computed<NavItem[]>(() => [
+    { label: trackerNavLabel('/notifications'), icon: 'i-lucide-inbox', to: '/notifications' },
+    { label: trackerNavLabel('/my-tasks'), icon: 'i-lucide-circle-user-round', to: '/my-tasks' }
+  ])
+  const trackerWorkspaceItems = computed<NavItem[]>(() => [
+    { label: trackerNavLabel('/projects'), icon: 'i-lucide-box', to: '/projects' },
+    { label: trackerNavLabel('/issues'), icon: 'i-lucide-copy', to: '/issues' },
+    ...(user.value?.canManageAgents ? [{ label: 'Agents', icon: 'i-lucide-bot', to: '/agents' }] : [])
+  ])
 
   const topItems = computed<NavItem[]>(() => [
     // Here, not in the page header: they are the signed-in person's, on every
@@ -67,7 +90,30 @@ export function useNavigation() {
    * the day this shipped nobody had starred anything, and a heading-less gap
    * where the projects used to be reads as the projects having gone.
    */
-  const navSections = computed<NavSection[]>(() => {
+  const navSections = computed<NavSection[]>(() => isTracker.value ? trackerSections() : standardSections())
+
+  /**
+   * The tracker interface's sidebar. Favorites are the starred projects, the
+   * same stars as above, listed in the workspace's manual order (admins drag
+   * it on the Projects page) rather than alphabetically.
+   */
+  function trackerSections(): NavSection[] {
+    const sections: NavSection[] = [
+      { items: trackerTopItems.value },
+      { label: 'Workspace', items: trackerWorkspaceItems.value }
+    ]
+    if (projects.value) {
+      sections.push({
+        label: 'Favorites',
+        items: projects.value.filter(p => p.starred).sort((a, b) => a.position - b.position).map(projectItem),
+        empty: { to: '/projects' }
+      })
+    }
+    if (adminItems.value.length) sections.push({ label: 'Admin', items: adminItems.value })
+    return sections
+  }
+
+  function standardSections(): NavSection[] {
     const sections: NavSection[] = [{ items: topItems.value }]
 
     // Not before the first response: an empty-state flash on every load would
@@ -85,7 +131,7 @@ export function useNavigation() {
     }
 
     return sections
-  })
+  }
 
   /**
    * The command palette's "Go to" group. Built from every project, not from the
@@ -93,7 +139,7 @@ export function useNavigation() {
    * that is not.
    */
   const paletteItems = computed<NavItem[]>(() => [
-    ...topItems.value,
+    ...(isTracker.value ? [...trackerTopItems.value, ...trackerWorkspaceItems.value] : topItems.value),
     ...(projects.value || []).map(projectItem),
     ...adminItems.value
   ])

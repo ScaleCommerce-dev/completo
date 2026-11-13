@@ -34,7 +34,7 @@ const description = defineModel<string>({ default: '' })
 const props = withDefaults(defineProps<{
   title?: string
   tags?: string[]
-  priority?: string
+  priority?: string | null
   projectSlug?: string
   projectKey?: string
   members?: Mentionable[]
@@ -202,7 +202,7 @@ function aiGenerate(payload: { skillId?: string, userPrompt?: string }) {
     title: props.title,
     description: description.value,
     tags: props.tags,
-    priority: props.priority,
+    priority: props.priority ?? undefined,
     projectSlug: props.projectSlug!,
     scope: props.aiScope,
     cardId: props.cardId ?? undefined
@@ -835,7 +835,7 @@ defineExpose({
               :title="title"
               :description="description"
               :tags="tags"
-              :priority="priority"
+              :priority="priority ?? undefined"
               :is-generating="aiGenerating"
               :error="aiError"
               :scope="aiScope"

@@ -11,7 +11,7 @@ interface CardDetail {
   id: number
   title: string
   description: string | null
-  priority: string
+  priority: string | null
   statusId: string
   assigneeId: string | null
   dueDate: string | null
@@ -32,6 +32,18 @@ watch(fetchError, (err) => {
   if (err) showError(err)
 }, { immediate: true })
 
+/**
+ * A card keeps its number when it moves to another project, so an address
+ * naming the old project (or a mistyped one) still finds it. Follow it to its
+ * own project's address, replacing this entry: the crumb, the delete redirect,
+ * the AI calls and new mention links all build on the slug in the URL.
+ */
+watch(() => cardData.value?.project, (p) => {
+  if (p && cardData.value && p.slug !== projectSlug) {
+    navigateTo(`/projects/${p.slug}/cards/${formatTicketId(p.key, cardData.value.id)}`, { replace: true })
+  }
+}, { immediate: true })
+
 const card = computed(() => cardData.value)
 const statusesData = computed(() => cardData.value?.statuses || [])
 const membersData = computed(() => cardData.value?.members || [])
@@ -50,7 +62,7 @@ const canModerateComments = computed(() => cardData.value?.role === 'owner')
 const UNASSIGNED = '__unassigned__'
 const title = ref('')
 const description = ref('')
-const priority = ref('medium')
+const priority = ref<string | null>('medium')
 const selectedStatusId = ref('')
 const selectedAssigneeId = ref(UNASSIGNED)
 const selectedTagIds = ref<string[]>([])
@@ -102,7 +114,8 @@ const descriptionDraft = useTextDraft(
 function populateFromCard(c: CardDetail) {
   title.value = c.title || ''
   description.value = c.description || ''
-  priority.value = c.priority || 'medium'
+  // Not `|| 'medium'`: that would save medium onto a card with no priority.
+  priority.value = c.priority ?? null
   selectedStatusId.value = c.statusId || ''
   selectedAssigneeId.value = c.assigneeId || UNASSIGNED
   selectedTagIds.value = (c.tags || []).map(t => t.id)
@@ -183,6 +196,21 @@ const { flushTitle, syncProperties } = useCardFieldSync({
     if (card.value) populateFromCard(card.value)
   }
 })
+
+/**
+ * The tracker interface's additions: sub-issues, relations, project and
+ * milestone, archive, j/k and ticket chips in prose (`useTrackerIssue`). The
+ * standard interface runs none of it.
+ */
+const { isTracker } = useWorkspaceSettings()
+const trackerCard = computed(() => (isTracker.value ? cardData.value as unknown as TrackerIssueCard | null | undefined : null))
+/** Refetches what the card embeds and merges only that (`mergeEmbedded`). */
+async function refreshEmbedded() {
+  if (!card.value) return
+  const fresh = await $fetch<Record<string, unknown>>(`/api/cards/${card.value.id}`)
+  if (cardData.value) cardData.value = mergeEmbedded(cardData.value, fresh)
+}
+const tracker = isTracker.value ? useTrackerIssue({ card: trackerCard, persist, refresh: refreshEmbedded }) : null
 
 function startEditingDescription() {
   editingDescription.value = true
@@ -279,7 +307,7 @@ async function confirmDelete() {
   <UiPage
     width="wide"
     :title="card ? formatTicketId(projectKey, card.id) : undefined"
-    :crumbs="[{ label: 'All Projects', to: '/projects' }, { label: cardData?.project?.name || '', to: `/projects/${projectSlug}` }]"
+    :crumbs="[{ label: isTracker ? trackerNavLabel('/projects') : 'All Projects', to: '/projects' }, { label: cardData?.project?.name || '', to: `/projects/${projectSlug}` }]"
   >
     <!--
       A detail page (handoff `03` › Seitentypen › Detail): the record's own title
@@ -314,6 +342,35 @@ async function confirmDelete() {
       />
     </template>
 
+    <!-- The tracker interface's walk through the project's issues: where this one
+         sits in the list, and j / k (`useTrackerIssue`). -->
+    <template
+      v-if="tracker && card && tracker.walk.value.position >= 0"
+      #actions
+    >
+      <span class="text-sm text-muted tabular-nums">{{ tracker.walk.value.position + 1 }} / {{ tracker.walk.value.count }}</span>
+      <UTooltip text="Previous issue · K">
+        <UButton
+          icon="i-lucide-chevron-up"
+          aria-label="Previous issue"
+          variant="ghost"
+          color="neutral"
+          :disabled="tracker.walk.value.position === 0"
+          @click="tracker.step(-1)"
+        />
+      </UTooltip>
+      <UTooltip text="Next issue · J">
+        <UButton
+          icon="i-lucide-chevron-down"
+          aria-label="Next issue"
+          variant="ghost"
+          color="neutral"
+          :disabled="tracker.walk.value.position >= tracker.walk.value.count - 1"
+          @click="tracker.step(1)"
+        />
+      </UTooltip>
+    </template>
+
     <div
       v-if="status === 'pending'"
       class="flex flex-col lg:flex-row gap-6"
@@ -343,9 +400,13 @@ async function confirmDelete() {
     <!-- Card detail: two-panel layout. Not a <form> any more — there is no submit
          button left to own, since every field commits itself and the description
          commits from the button beside its editor. -->
+    <!-- The tracker interface draws the issue: one surface, the
+         properties in a rail split off by a hairline, the issue itself in a
+         reading column. Same elements, same order; only the frame changes. -->
     <div
       v-else-if="card"
-      class="flex flex-col lg:flex-row gap-6 lg:items-start"
+      class="flex flex-col lg:flex-row"
+      :class="trackerCard ? 'lg:items-stretch rounded-xl border border-default bg-default shadow-raise overflow-hidden' : 'gap-6 lg:items-start'"
     >
       <!-- ═══ SIDEBAR — properties, priority, actions (sticky on desktop) ═══ -->
       <!--
@@ -370,8 +431,14 @@ async function confirmDelete() {
            being set at `lg` — so below that breakpoint the DOM order stood and a
            phone was shown the properties card and a Delete button *above* the
            card's own title. The title leads at every width. -->
-      <aside class="w-full lg:w-column shrink-0 order-2 lg:sticky lg:top-4">
-        <div class="rounded-xl border border-default bg-default shadow-raise overflow-hidden divide-y divide-default">
+      <aside
+        class="w-full lg:w-column shrink-0 order-2"
+        :class="trackerCard ? 'border-t lg:border-t-0 lg:border-l border-default' : 'lg:sticky lg:top-4'"
+      >
+        <div
+          class="divide-y divide-default"
+          :class="trackerCard ? 'lg:sticky lg:top-0' : 'rounded-xl border border-default bg-default shadow-raise overflow-hidden'"
+        >
           <!-- Properties. Shared with CardModal, so the same fields no longer
                get two different control vocabularies. Draws its own hairlines
                and no border — see CardProperties. -->
@@ -386,6 +453,20 @@ async function confirmDelete() {
             :tags="projectTagsData"
             :unassigned-value="UNASSIGNED"
           />
+
+          <!-- Tracker interface: project and milestone, then relations, as rows of
+               the same rail rather than a second box. -->
+          <div
+            v-if="trackerCard"
+            class="p-4"
+          >
+            <TrackerIssueSidebar
+              :card="trackerCard"
+              @update="tracker?.update($event)"
+              @add-relation="(type, id) => tracker?.addRelation(type, id)"
+              @remove-relation="tracker?.removeRelation($event)"
+            />
+          </div>
 
           <!--
             Provenance, as two facts rather than three rows.
@@ -448,6 +529,21 @@ async function confirmDelete() {
             Duplicate card
           </button>
 
+          <!-- Tracker interface: archiving takes the card out of every list and
+               keeps it reachable here, by its link. Same row as Duplicate. -->
+          <button
+            v-if="trackerCard"
+            type="button"
+            class="group w-full flex items-center gap-1.5 px-4 py-2.5 min-h-row text-sm font-medium text-muted hover:text-highlighted hover:bg-elevated transition-colors cursor-pointer"
+            @click="tracker?.setArchived(!trackerCard.archivedAt)"
+          >
+            <UIcon
+              :name="trackerCard.archivedAt ? 'i-lucide-archive-restore' : 'i-lucide-archive'"
+              class="text-sm shrink-0 text-dimmed group-hover:text-toned transition-colors"
+            />
+            {{ trackerCard.archivedAt ? 'Unarchive' : 'Archive' }}
+          </button>
+
           <!--
             The last row of the stack, not a button floating under the card.
 
@@ -492,52 +588,90 @@ async function confirmDelete() {
            sight. -->
       <div
         ref="dropRoot"
-        class="flex-1 min-w-0 order-1 rounded-xl border border-default bg-default shadow-raise p-6 transition-shadow"
-        :class="dragging ? 'ring-2 ring-primary ring-offset-4 ring-offset-default' : ''"
+        class="flex-1 min-w-0 order-1 transition-shadow"
+        :class="[
+          trackerCard ? 'px-6 sm:px-10 py-8' : 'rounded-xl border border-default bg-default shadow-raise p-6',
+          dragging ? (trackerCard ? 'ring-2 ring-inset ring-primary' : 'ring-2 ring-primary ring-offset-4 ring-offset-default') : ''
+        ]"
       >
-        <!-- No heading over the card's own body — see CardModal for why the other
+        <!-- Tracker interface: the issue reads in a column of its own width. -->
+        <div :class="trackerCard ? 'max-w-3xl mx-auto' : undefined">
+          <!-- No heading over the card's own body — see CardModal for why the other
              two sections keep theirs and this one never had a claim to one. -->
 
-        <!-- Description: edit mode -->
-        <CardDescriptionSection
-          ref="descriptionEditorRef"
-          v-model="description"
-          :editing="editingDescription"
-          :restored="!!descriptionDraft.restored.value"
-          :dirty="descriptionDirty"
-          :saving="saving"
-          :copied="descriptionCopied"
-          :min-height="240"
-          :title="title"
-          :tags="selectedTagNames"
-          :priority="priority"
-          :project-slug="projectSlug"
-          :project-key="projectKey"
-          :members="membersData"
-          :card-id="card?.id"
-          @save="submit"
-          @cancel="cancelEditingDescription"
-          @edit="startEditingDescription"
-          @copy="copyDescription"
-        />
+          <!-- Tracker interface: an archived card says so, and a sub-issue names its parent. -->
+          <template v-if="trackerCard">
+            <UAlert
+              v-if="trackerCard.archivedAt"
+              class="mb-6"
+              color="neutral"
+              variant="subtle"
+              icon="i-lucide-archive"
+              title="Archived"
+              :description="`Archived ${relativeTime(trackerCard.archivedAt)}. It is in no list, and stays reachable by its link and in search.`"
+              :actions="[{ label: 'Unarchive', color: 'neutral', variant: 'outline', onClick: () => tracker?.setArchived(false) }]"
+            />
+            <div
+              v-if="trackerCard.parent"
+              class="flex items-center gap-2 mb-4 text-sm min-w-0"
+            >
+              <span class="text-muted shrink-0">Sub-issue of</span>
+              <TrackerIssueRefLink :issue="trackerCard.parent" />
+              <TrackerIssueProgress
+                v-if="trackerCard.parent.childProgress"
+                :progress="trackerCard.parent.childProgress"
+              />
+            </div>
+          </template>
 
-        <!-- Attachments -->
-        <div class="mt-6">
-          <AttachmentList
-            ref="attachmentsRef"
+          <!-- Description: edit mode -->
+          <CardDescriptionSection
+            ref="descriptionEditorRef"
+            v-model="description"
+            :editing="editingDescription"
+            :restored="!!descriptionDraft.restored.value"
+            :dirty="descriptionDirty"
+            :saving="saving"
+            :copied="descriptionCopied"
+            :min-height="240"
+            :title="title"
+            :tags="selectedTagNames"
+            :priority="priority"
+            :project-slug="projectSlug"
+            :project-key="projectKey"
+            :members="membersData"
             :card-id="card?.id"
-            :dragging="dragging"
+            @save="submit"
+            @cancel="cancelEditingDescription"
+            @edit="startEditingDescription"
+            @copy="copyDescription"
+          />
+
+          <TrackerIssueSubIssues
+            v-if="trackerCard"
+            :card="trackerCard"
+            class="mt-6"
+            @created="tracker?.onSubIssueCreated()"
+          />
+
+          <!-- Attachments -->
+          <div class="mt-6">
+            <AttachmentList
+              ref="attachmentsRef"
+              :card-id="card?.id"
+              :dragging="dragging"
+            />
+          </div>
+
+          <!-- Comments -->
+          <CommentList
+            :card-id="card?.id"
+            :members="membersData"
+            :project-slug="projectSlug"
+            :project-key="projectKey"
+            :can-moderate="canModerateComments"
           />
         </div>
-
-        <!-- Comments -->
-        <CommentList
-          :card-id="card?.id"
-          :members="membersData"
-          :project-slug="projectSlug"
-          :project-key="projectKey"
-          :can-moderate="canModerateComments"
-        />
       </div>
     </div>
 

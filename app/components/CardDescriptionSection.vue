@@ -39,7 +39,7 @@ withDefaults(defineProps<{
   /** Context the editor needs for AI writing and @-mentions. */
   title: string
   tags: string[]
-  priority: string
+  priority: string | null
   projectSlug?: string
   projectKey?: string
   members?: Member[]

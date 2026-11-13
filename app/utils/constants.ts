@@ -156,13 +156,13 @@ const PRIORITY_CHART: Record<string, string> = {
 }
 
 /** Semantic text colour for a priority icon or label. */
-export function priorityTextClass(priority: string): string {
-  return PRIORITY_TEXT[priority] || 'text-dimmed'
+export function priorityTextClass(priority: string | null | undefined): string {
+  return (priority && PRIORITY_TEXT[priority]) || 'text-dimmed'
 }
 
 /** Edge-bar fill. Empty string means "draw no bar". */
-export function priorityBarClass(priority: string): string {
-  return PRIORITY_BAR[priority] ?? ''
+export function priorityBarClass(priority: string | null | undefined): string {
+  return (priority && PRIORITY_BAR[priority]) || ''
 }
 
 /**
@@ -174,20 +174,26 @@ export function priorityBarClass(priority: string): string {
  * cards and list cells reveal it on hover, and it is always present wherever a
  * card is actually being edited.
  */
-export function isSignalPriority(priority: string): boolean {
+export function isSignalPriority(priority: string | null | undefined): boolean {
   return !!priorityBarClass(priority)
 }
 
 /** Distinguishable fill for charts. */
-export function priorityChartClass(priority: string): string {
-  return PRIORITY_CHART[priority] || 'bg-accented'
+export function priorityChartClass(priority: string | null | undefined): string {
+  return (priority && PRIORITY_CHART[priority]) || 'bg-accented'
 }
 
-export function priorityLabel(priority: string): string {
+/**
+ * Null is "No priority": a card created without one in the tracker interface,
+ * or set back to none there. Every lookup below accepts it.
+ */
+export function priorityLabel(priority: string | null | undefined): string {
+  if (!priority) return 'No priority'
   return PRIORITIES.find(p => p.value === priority)?.label || priority
 }
 
-export function priorityIcon(priority: string): string {
+export function priorityIcon(priority: string | null | undefined): string {
+  if (!priority) return 'i-lucide-ellipsis'
   return PRIORITIES.find(p => p.value === priority)?.icon || 'i-lucide-equal'
 }
 
@@ -196,7 +202,7 @@ export function priorityIcon(priority: string): string {
  * `priorityTextClass` in Nuxt UI's vocabulary — this used to be declared
  * independently in KanbanCard, CardModal and the card detail page.
  */
-export function priorityUiColor(priority: string): 'error' | 'warning' | 'neutral' {
+export function priorityUiColor(priority: string | null | undefined): 'error' | 'warning' | 'neutral' {
   if (priority === 'urgent') return 'error'
   if (priority === 'high') return 'warning'
   return 'neutral'

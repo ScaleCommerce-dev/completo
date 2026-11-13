@@ -40,7 +40,8 @@ export interface CardFieldSyncCard {
   title: string
   statusId: string
   assigneeId: string | null
-  priority: string
+  /** Null is "No priority" and stays null; it is never coerced to a default. */
+  priority: string | null
   dueDate: string | null
   tags?: Array<{ id: string }>
 }
@@ -65,7 +66,7 @@ export function useCardFieldSync(opts: {
     title: Ref<string>
     statusId: Ref<string>
     assigneeId: Ref<string>
-    priority: Ref<string>
+    priority: Ref<string | null>
     dueDate: Ref<string | null>
     tagIds: Ref<string[]>
   }
@@ -107,7 +108,7 @@ export function useCardFieldSync(opts: {
 
   watch(fields.priority, (val) => {
     if (!enabled()) return
-    if (val === card()?.priority) return
+    if (val === (card()?.priority ?? null)) return
     save({ priority: val })
   })
 
@@ -167,7 +168,9 @@ export function useCardFieldSync(opts: {
     if (!c) return
     fields.statusId.value = c.statusId || ''
     fields.assigneeId.value = c.assigneeId || unassignedValue
-    fields.priority.value = c.priority || 'medium'
+    // Not `|| 'medium'`: that turned "No priority" into medium here, and the
+    // watcher above then saved medium onto the card.
+    fields.priority.value = c.priority ?? null
     fields.dueDate.value = toDateInput(c.dueDate)
     const ids = (c.tags || []).map(t => t.id)
     if (!sameIds(fields.tagIds.value, ids)) fields.tagIds.value = ids

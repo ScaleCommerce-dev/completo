@@ -24,7 +24,12 @@ export function tagsFieldLabel(
   return names.length ? `Tags: ${names.join(', ')}. Change tags` : 'Add tags'
 }
 
-export function priorityFieldLabel(priority?: string | null): string {
+/**
+ * `allowNone` is for the tracker interface, where "No priority" is a choice: a
+ * missing priority is read as none there, not as the default medium.
+ */
+export function priorityFieldLabel(priority?: string | null, allowNone = false): string {
+  if (!priority && allowNone) return 'No priority. Change priority'
   return `Priority: ${priorityLabel(priority || 'medium')}. Change priority`
 }
 
