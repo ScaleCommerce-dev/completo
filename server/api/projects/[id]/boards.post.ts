@@ -58,7 +58,9 @@ export default defineEventHandler(async (event) => {
         id: colId,
         projectId: project.id,
         name: defaultStatuses[i]!,
-        color: defaultColors[i]!
+        color: defaultColors[i]!,
+        category: i === 4 ? 'completed' : categoryForStatusName(defaultStatuses[i]!),
+        position: i
       }).run()
     }
 

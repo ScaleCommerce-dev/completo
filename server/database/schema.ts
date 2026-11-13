@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { sqliteTable, text, integer, index, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 import { CARD_HISTORY_FIELDS } from '../../shared/utils/card-history-fields'
+import { STATUS_CATEGORIES, PROJECT_STATES, DATE_RESOLUTIONS, RELATION_TYPES, PROJECT_ACTIVITY_TYPES } from '../../shared/utils/workflow'
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -57,6 +58,18 @@ export const projects = sqliteTable('projects', {
   icon: text('icon'),
   doneStatusId: text('done_status_id').references((): AnySQLiteColumn => statuses.id, { onDelete: 'set null' }),
   doneRetentionDays: integer('done_retention_days'),
+  leadId: text('lead_id').references((): AnySQLiteColumn => users.id, { onDelete: 'set null' }),
+  state: text('state', { enum: PROJECT_STATES }).notNull().default('planned'),
+  startDate: text('start_date'),
+  startDateResolution: text('start_date_resolution', { enum: DATE_RESOLUTIONS }),
+  targetDate: text('target_date'),
+  targetDateResolution: text('target_date_resolution', { enum: DATE_RESOLUTIONS }),
+  // Null is "No priority", as on cards.
+  priority: text('priority', { enum: ['low', 'medium', 'high', 'urgent'] }),
+  // A manual order, one for the whole workspace, set by instance admins. The
+  // API still lists projects alphabetically; an interface that offers the
+  // manual order sorts by this.
+  position: integer('position').notNull().default(0),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })
 
@@ -90,7 +103,12 @@ export const statuses = sqliteTable('statuses', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   projectId: text('project_id').notNull().references((): AnySQLiteColumn => projects.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
-  color: text('color')
+  color: text('color'),
+  // What kind of work the status stands for: drives group order, progress and
+  // the Active and Backlog issue views.
+  category: text('category', { enum: STATUS_CATEGORIES }).notNull().default('unstarted'),
+  // The project's own order of its statuses, for issue lists grouped by status.
+  position: integer('position').notNull().default(0)
 })
 
 export const boardColumns = sqliteTable('board_columns', {
@@ -133,10 +151,57 @@ export const cards = sqliteTable('cards', {
   priority: text('priority', { enum: ['low', 'medium', 'high', 'urgent'] }).default('medium'),
   position: integer('position').notNull(),
   dueDate: integer('due_date', { mode: 'timestamp' }),
+  // A sub-issue's parent, in any project the writer could read.
+  parentId: integer('parent_id').references((): AnySQLiteColumn => cards.id, { onDelete: 'set null' }),
+  milestoneId: text('milestone_id').references((): AnySQLiteColumn => milestones.id, { onDelete: 'set null' }),
   createdById: text('created_by_id').references(() => users.id, { onDelete: 'set null' }),
+  // Archived: out of every board, list and count, still reachable by id and in search.
+  archivedAt: integer('archived_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+}, table => [
+  index('cards_parent_idx').on(table.parentId)
+])
+
+export const milestones = sqliteTable('milestones', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description'),
+  targetDate: text('target_date'),
+  position: integer('position').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })
+
+// One row per relation. `blocks` reads "from blocks to", so "blocked by" is the
+// same row read from the other end. `relates` is stored once, in either
+// direction, and read from both.
+export const cardRelations = sqliteTable('card_relations', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  type: text('type', { enum: RELATION_TYPES }).notNull(),
+  fromCardId: integer('from_card_id').notNull().references(() => cards.id, { onDelete: 'cascade' }),
+  toCardId: integer('to_card_id').notNull().references(() => cards.id, { onDelete: 'cascade' }),
+  createdById: text('created_by_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+}, table => [
+  uniqueIndex('card_relations_unique').on(table.type, table.fromCardId, table.toCardId),
+  index('card_relations_to_idx').on(table.toCardId)
+])
+
+// The history of a project itself (state, lead, dates, members, milestones),
+// written by the project, member and milestone handlers. A project's activity
+// feed merges it with the history of its cards (`cardEvents`). `data` is JSON
+// with the before and after values the feed shows.
+export const projectActivity = sqliteTable('project_activity', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  actorId: text('actor_id').references(() => users.id, { onDelete: 'set null' }),
+  type: text('type', { enum: PROJECT_ACTIVITY_TYPES }).notNull(),
+  data: text('data'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().$defaultFn(() => new Date())
+}, table => [
+  index('project_activity_project_idx').on(table.projectId)
+])
 
 export const tags = sqliteTable('tags', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),

@@ -51,7 +51,13 @@ const FIELD_HOME: Record<string, SQLiteColumn> = {
   title: schema.cards.title,
   description: schema.cards.description,
   tag: schema.cardTags.tagId,
-  attachment: schema.attachments.id
+  attachment: schema.attachments.id,
+  parent: schema.cards.parentId,
+  milestone: schema.cards.milestoneId,
+  blocks: schema.cardRelations.id,
+  blockedBy: schema.cardRelations.id,
+  relates: schema.cardRelations.id,
+  archived: schema.cards.archivedAt
 }
 
 const RECORDER = 'recordCardEvents'

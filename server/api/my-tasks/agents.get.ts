@@ -1,4 +1,4 @@
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and, inArray, isNull } from 'drizzle-orm'
 
 /**
  * "My agents' work": cards assigned to the agents the caller manages, one flat
@@ -25,6 +25,7 @@ export default defineEventHandler(async (event) => {
     .leftJoin(schema.statuses, eq(schema.cards.statusId, schema.statuses.id))
     .where(and(
       inArray(schema.cards.assigneeId, agents.map(a => a.id)),
+      isNull(schema.cards.archivedAt),
       user.isAdmin
         ? undefined
         : inArray(schema.cards.projectId, db.select({ id: schema.projectMembers.projectId })

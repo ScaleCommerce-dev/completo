@@ -63,15 +63,16 @@ if (existingProject) {
     // Statuses
     const statusNames = ['Backlog', 'To Do', 'In Progress', 'Review', 'Done']
     const statusColors = ['#a1a1aa', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981']
+    const statusCategories = ['backlog', 'unstarted', 'started', 'started', 'completed']
     const statusIds: string[] = []
 
     for (let i = 0; i < statusNames.length; i++) {
       const statusId = randomUUID()
       statusIds.push(statusId)
       db.prepare(`
-        INSERT INTO statuses (id, project_id, name, color)
-        VALUES (?, ?, ?, ?)
-      `).run(statusId, projectId, statusNames[i], statusColors[i])
+        INSERT INTO statuses (id, project_id, name, color, category, position)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(statusId, projectId, statusNames[i], statusColors[i], statusCategories[i], i)
 
       db.prepare(`
         INSERT INTO board_columns (id, board_id, status_id, position)

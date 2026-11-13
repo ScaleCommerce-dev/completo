@@ -5,7 +5,8 @@ export default defineEventHandler(async (event) => {
     projectId: project.id,
     userId: user.id,
     userName: user.name,
-    body
+    body,
+    user
   })
   setResponseStatus(event, 201)
   return card

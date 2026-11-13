@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user, list, membership } = await resolveList(event, { columnAccess: false })
@@ -26,7 +26,8 @@ export default defineEventHandler(async (event) => {
   const cardRows = db.select().from(schema.cards)
     .leftJoin(schema.users, eq(schema.cards.assigneeId, schema.users.id))
     .leftJoin(schema.statuses, eq(schema.cards.statusId, schema.statuses.id))
-    .where(eq(schema.cards.projectId, list.projectId))
+    // Archived cards are out of every board, list and count.
+    .where(and(eq(schema.cards.projectId, list.projectId), isNull(schema.cards.archivedAt)))
     .all()
   const members = db.select(memberRefColumns())
     .from(schema.projectMembers)

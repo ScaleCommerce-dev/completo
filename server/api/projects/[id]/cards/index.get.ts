@@ -1,4 +1,4 @@
-import { eq, and, lte, gte, sql, asc, desc } from 'drizzle-orm'
+import { eq, and, lte, gte, sql, asc, desc, isNull } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { project } = await resolveProject(event)
@@ -16,6 +16,13 @@ export default defineEventHandler(async (event) => {
   const sort = query.sort as string || 'position'
   const order = query.order as string || 'asc'
   const includeDone = query.includeDone === 'true'
+  // Sub-issues of one card, or the cards of one milestone. Filtered here rather
+  // than by the caller, so a match past the first page is not missed.
+  const parentId = query.parentId !== undefined ? Number(query.parentId) : undefined
+  const milestoneId = query.milestoneId as string | undefined
+  if (parentId !== undefined && !Number.isInteger(parentId)) {
+    throw createError({ statusCode: 400, message: 'parentId must be a card id' })
+  }
 
   // Validate sort field
   const allowedSorts = ['position', 'priority', 'dueDate', 'createdAt', 'updatedAt', 'title']
@@ -27,13 +34,20 @@ export default defineEventHandler(async (event) => {
   }
 
   // Build WHERE conditions
-  const conditions: ReturnType<typeof eq>[] = [eq(schema.cards.projectId, project.id)]
+  // Archived cards are reachable by id and in search, never in a list.
+  const conditions: ReturnType<typeof eq>[] = [eq(schema.cards.projectId, project.id), isNull(schema.cards.archivedAt)]
 
   if (statusId) {
     conditions.push(eq(schema.cards.statusId, statusId))
   }
   if (assigneeId) {
     conditions.push(eq(schema.cards.assigneeId, assigneeId))
+  }
+  if (parentId !== undefined) {
+    conditions.push(eq(schema.cards.parentId, parentId))
+  }
+  if (milestoneId) {
+    conditions.push(eq(schema.cards.milestoneId, milestoneId))
   }
   if (priority) {
     const valid = new Set(['low', 'medium', 'high', 'urgent'])

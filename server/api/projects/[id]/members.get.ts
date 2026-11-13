@@ -1,4 +1,4 @@
-import { eq, and, sql } from 'drizzle-orm'
+import { eq, and, isNull, sql } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { project, user, membership } = await resolveProject(event)
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   const agentCards = new Map(db.select({ assigneeId: schema.cards.assigneeId, count: sql<number>`count(*)` })
     .from(schema.cards)
     .innerJoin(schema.users, eq(schema.cards.assigneeId, schema.users.id))
-    .where(and(eq(schema.cards.projectId, project.id), eq(schema.users.kind, 'agent')))
+    .where(and(eq(schema.cards.projectId, project.id), eq(schema.users.kind, 'agent'), isNull(schema.cards.archivedAt)))
     .groupBy(schema.cards.assigneeId)
     .all()
     .map(r => [r.assigneeId!, r.count]))

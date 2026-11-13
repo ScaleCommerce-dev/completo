@@ -81,7 +81,7 @@
     },
     {
       "name": "MCP",
-      "description": "Model Context Protocol endpoint for Claude and other MCP clients. JSON-RPC 2.0 over POST (Streamable HTTP, stateless). Tools mirror the CLI: list_projects, get_project, list_cards, search_cards, get_card, create_card, update_card, move_card, assign_card, tag_card, list_comments, add_comment, my_tasks, create_project."
+      "description": "Model Context Protocol endpoint for Claude and other MCP clients. JSON-RPC 2.0 over POST (Streamable HTTP, stateless). Tools mirror the CLI: list_projects, get_project, list_cards, search_cards, get_card, create_card, update_card, move_card, assign_card, tag_card, list_comments, add_comment, my_tasks, list_issues, link_cards, unlink_cards, list_milestones, create_project."
     },
     {
       "name": "OAuth",
@@ -375,6 +375,35 @@
                           "starred": {
                             "type": "boolean",
                             "description": "Whether the caller has starred this project, which puts it in their sidebar. Always false where the caller is not a member, including an admin's non-member projects."
+                          },
+                          "scopeCards": {
+                            "type": "integer",
+                            "description": "Cards that count toward progress: all but canceled and duplicate."
+                          },
+                          "completedCards": {
+                            "type": "integer",
+                            "description": "Cards in a completed status."
+                          },
+                          "lead": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/UserSummary"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          "currentMilestone": {
+                            "type": "object",
+                            "nullable": true,
+                            "description": "The first milestone, in order, that still has open work.",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            }
                           }
                         }
                       }
@@ -671,6 +700,67 @@
                     "type": "integer",
                     "nullable": true,
                     "description": "Days to keep done cards visible, or null for unlimited"
+                  },
+                  "leadId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "description": "Must be a project member."
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "backlog",
+                      "planned",
+                      "started",
+                      "paused",
+                      "completed",
+                      "canceled"
+                    ]
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date",
+                    "nullable": true
+                  },
+                  "startDateResolution": {
+                    "type": "string",
+                    "enum": [
+                      "day",
+                      "month",
+                      "quarter",
+                      "halfYear",
+                      "year"
+                    ],
+                    "nullable": true,
+                    "description": "How precise the date is; the date is the first day of that period."
+                  },
+                  "targetDate": {
+                    "type": "string",
+                    "format": "date",
+                    "nullable": true
+                  },
+                  "targetDateResolution": {
+                    "type": "string",
+                    "enum": [
+                      "day",
+                      "month",
+                      "quarter",
+                      "halfYear",
+                      "year"
+                    ],
+                    "nullable": true,
+                    "description": "How precise the date is; the date is the first day of that period."
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high",
+                      "urgent"
+                    ],
+                    "nullable": true
                   }
                 }
               }
@@ -1317,6 +1407,18 @@
                   "color": {
                     "type": "string",
                     "description": "Hex color code (e.g. \"#3b82f6\")"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "started",
+                      "unstarted",
+                      "backlog",
+                      "completed",
+                      "canceled",
+                      "duplicate"
+                    ],
+                    "description": "Defaults from the name: \"Backlog\", \"In Progress\", \"Review\", \"Done\", \"Canceled\" and \"Duplicate\" are recognised; anything else is unstarted."
                   }
                 }
               }
@@ -1375,6 +1477,18 @@
                   },
                   "color": {
                     "type": "string"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "started",
+                      "unstarted",
+                      "backlog",
+                      "completed",
+                      "canceled",
+                      "duplicate"
+                    ],
+                    "description": "What kind of work a status stands for. Drives grouping, progress and the active and backlog issue views. Closed work is completed, canceled or duplicate."
                   }
                 }
               }
@@ -2581,6 +2695,78 @@
                           }
                         }
                       }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "parent": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/CardRef"
+                            }
+                          ],
+                          "nullable": true,
+                          "description": "With `childProgress` where the caller can read it."
+                        },
+                        "children": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CardRef"
+                          },
+                          "description": "Sub-issues, oldest first."
+                        },
+                        "childProgress": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer"
+                            },
+                            "completed": {
+                              "type": "integer",
+                              "description": "Sub-issues in a closed status."
+                            }
+                          }
+                        },
+                        "relations": {
+                          "type": "object",
+                          "properties": {
+                            "blocks": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/CardRef"
+                              }
+                            },
+                            "blockedBy": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/CardRef"
+                              }
+                            },
+                            "relates": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/CardRef"
+                              }
+                            }
+                          }
+                        },
+                        "milestone": {
+                          "type": "object",
+                          "nullable": true,
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "targetDate": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          }
+                        }
+                      }
                     }
                   ]
                 }
@@ -2626,7 +2812,8 @@
                       "medium",
                       "high",
                       "urgent"
-                    ]
+                    ],
+                    "nullable": true
                   },
                   "assigneeId": {
                     "type": "string",
@@ -2642,6 +2829,26 @@
                     "format": "date",
                     "nullable": true,
                     "description": "YYYY-MM-DD, null to clear"
+                  },
+                  "parentId": {
+                    "type": "integer",
+                    "nullable": true,
+                    "description": "Make it a sub-issue of a card the caller can read; null makes it top-level. A cycle is refused."
+                  },
+                  "milestoneId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "description": "A milestone of the card's project (of the target project when moving)."
+                  },
+                  "projectId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Move to another project the caller can read. The status is mapped by name (else by category); the old project's milestone and tags are dropped, and an assignee who is not a member there is unassigned. Set a status of the new project in a second request."
+                  },
+                  "archived": {
+                    "type": "boolean",
+                    "description": "True archives the card, false restores it."
                   }
                 }
               }
@@ -2727,8 +2934,7 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "statusId",
-                  "position"
+                  "statusId"
                 ],
                 "properties": {
                   "statusId": {
@@ -2737,8 +2943,14 @@
                   },
                   "position": {
                     "type": "integer"
+                  },
+                  "afterId": {
+                    "type": "integer",
+                    "nullable": true,
+                    "description": "Instead of `position`: place the card right after this card of the target status, or first when null. For lists that do not show every card of a status."
                   }
-                }
+                },
+                "description": "Give `position` or `afterId`."
               }
             }
           }
@@ -4204,6 +4416,18 @@
                         "type": "string"
                       },
                       "description": "Allowed email domains for registration. Empty = unrestricted."
+                    },
+                    "interfaceMode": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "tracker"
+                      ],
+                      "description": "Which interface the workspace uses: Completo's own, or the issue tracker (issue lists, a full issue page, project overviews). The data is the same either way."
+                    },
+                    "issueTemplate": {
+                      "type": "string",
+                      "description": "Markdown every new issue starts with in the web app, and through MCP's create_card when no description is given. Empty means none."
                     }
                   }
                 }
@@ -4236,6 +4460,18 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "interfaceMode": {
+                    "type": "string",
+                    "enum": [
+                      "standard",
+                      "tracker"
+                    ],
+                    "description": "Which interface the workspace uses: Completo's own, or the issue tracker (issue lists, a full issue page, project overviews). The data is the same either way."
+                  },
+                  "issueTemplate": {
+                    "type": "string",
+                    "description": "Markdown every new issue starts with in the web app, and through MCP's create_card when no description is given. Empty means none."
                   }
                 }
               }
@@ -4255,6 +4491,18 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "interfaceMode": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "tracker"
+                      ],
+                      "description": "Which interface the workspace uses: Completo's own, or the issue tracker (issue lists, a full issue page, project overviews). The data is the same either way."
+                    },
+                    "issueTemplate": {
+                      "type": "string",
+                      "description": "Markdown every new issue starts with in the web app, and through MCP's create_card when no description is given. Empty means none."
                     }
                   }
                 }
@@ -4877,6 +5125,23 @@
                 "false"
               ],
               "default": "false"
+            }
+          },
+          {
+            "name": "parentId",
+            "in": "query",
+            "description": "Only sub-issues of this card",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "milestoneId",
+            "in": "query",
+            "description": "Only cards in this milestone",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -6652,6 +6917,674 @@
           }
         }
       }
+    },
+    "/api/projects/reorder": {
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Set the manual project order",
+        "operationId": "reorderProjects",
+        "description": "Admins only. The listed projects take the first positions in the order given; the rest keep their relative order after them.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "projectIds"
+                ],
+                "properties": {
+                  "projectIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reordered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/milestones": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "List a project's milestones",
+        "operationId": "listMilestones",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Milestones in order, with progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/Milestone"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "total": {
+                            "type": "integer",
+                            "description": "Issues in the milestone, canceled and duplicate ones left out."
+                          },
+                          "completed": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Create a milestone",
+        "operationId": "createMilestone",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "targetDate": {
+                    "type": "string",
+                    "format": "date",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created milestone, last in order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Milestone"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/milestones/{id}": {
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Update a milestone",
+        "operationId": "updateMilestone",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "targetDate": {
+                    "type": "string",
+                    "format": "date",
+                    "nullable": true
+                  },
+                  "position": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated milestone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Milestone"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Delete a milestone",
+        "operationId": "deleteMilestone",
+        "description": "Its cards stay and lose the milestone.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/activity": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Project activity",
+        "operationId": "getProjectActivity",
+        "description": "What happened to the project (name, description, state, priority, lead, dates, members, milestones) merged with what happened to its cards (created, status changes, relations), newest first, at most 100 entries.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "project",
+                          "card"
+                        ]
+                      },
+                      "type": {
+                        "type": "string",
+                        "description": "For `project`: name, description, state, priority, lead, start_date, target_date, member_added, member_removed, milestone_added, milestone_renamed, milestone_removed. For `card`: created, status, relation_added, relation_removed."
+                      },
+                      "data": {
+                        "type": "object",
+                        "description": "Before and after values (`from`, `to`, and for dates `fromResolution`, `toResolution`), a `name` for members and milestones, or for relations `relation` (blocks, blocked_by, relates), `cardId` and `cardIdRef`."
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "actor": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/UserSummary"
+                          }
+                        ],
+                        "nullable": true
+                      },
+                      "card": {
+                        "$ref": "#/components/schemas/CardRef"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/cards/{id}/relations": {
+      "post": {
+        "tags": [
+          "Cards"
+        ],
+        "summary": "Relate two cards",
+        "operationId": "addCardRelation",
+        "description": "The other card may be in any project the caller can read. `blocked_by` is stored as the reverse `blocks`; `relates` is refused again in either direction (409).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "cardId"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "blocks",
+                      "blocked_by",
+                      "relates"
+                    ]
+                  },
+                  "cardId": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created relation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Relation"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "Already related this way",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cards/{id}/relations/{relationId}": {
+      "delete": {
+        "tags": [
+          "Cards"
+        ],
+        "summary": "Remove a relation",
+        "operationId": "removeCardRelation",
+        "description": "From either of its two cards.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          },
+          {
+            "name": "relationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/issues": {
+      "get": {
+        "tags": [
+          "Cards"
+        ],
+        "summary": "Issues across projects",
+        "operationId": "listIssues",
+        "description": "Cards of every project the caller can read, with what an issue list row shows. Archived cards are left out unless `archived=include`.",
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "backlog",
+                "all"
+              ],
+              "default": "active"
+            },
+            "description": "active: open work that is not backlog; backlog: backlog only; all: everything, closed included."
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "include"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Issues",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/Card"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "ticket": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "category": {
+                                "type": "string",
+                                "enum": [
+                                  "started",
+                                  "unstarted",
+                                  "backlog",
+                                  "completed",
+                                  "canceled",
+                                  "duplicate"
+                                ],
+                                "description": "What kind of work a status stands for. Drives grouping, progress and the active and backlog issue views. Closed work is completed, canceled or duplicate."
+                              },
+                              "color": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "position": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          "project": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "slug": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "icon": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            }
+                          },
+                          "assignee": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/UserSummary"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          "milestone": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "blockingCount": {
+                            "type": "integer"
+                          },
+                          "blockedByCount": {
+                            "type": "integer"
+                          },
+                          "childProgress": {
+                            "type": "object",
+                            "properties": {
+                              "total": {
+                                "type": "integer"
+                              },
+                              "completed": {
+                                "type": "integer",
+                                "description": "Sub-issues in a closed status."
+                              }
+                            },
+                            "nullable": true
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/settings": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Workspace settings",
+        "operationId": "getWorkspaceSettings",
+        "description": "The workspace settings every signed-in user needs. Admins change them through `/api/admin/settings`.",
+        "responses": {
+          "200": {
+            "description": "Settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "interfaceMode": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "tracker"
+                      ],
+                      "description": "Which interface the workspace uses: Completo's own, or the issue tracker (issue lists, a full issue page, project overviews). The data is the same either way."
+                    },
+                    "issueTemplate": {
+                      "type": "string",
+                      "description": "Markdown every new issue starts with in the web app, and through MCP's create_card when no description is given. Empty means none."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6749,6 +7682,71 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "leadId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "A member who leads the project."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "backlog",
+              "planned",
+              "started",
+              "paused",
+              "completed",
+              "canceled"
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "startDateResolution": {
+            "type": "string",
+            "enum": [
+              "day",
+              "month",
+              "quarter",
+              "halfYear",
+              "year"
+            ],
+            "nullable": true,
+            "description": "How precise the date is; the date is the first day of that period."
+          },
+          "targetDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "targetDateResolution": {
+            "type": "string",
+            "enum": [
+              "day",
+              "month",
+              "quarter",
+              "halfYear",
+              "year"
+            ],
+            "nullable": true,
+            "description": "How precise the date is; the date is the first day of that period."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ],
+            "nullable": true
+          },
+          "position": {
+            "type": "integer",
+            "description": "Place in the manual project order, one for the whole workspace (`PUT /api/projects/reorder`). Lists stay alphabetical; a client offering the manual order sorts by this."
           }
         }
       },
@@ -6821,7 +7819,19 @@
           },
           "position": {
             "type": "integer",
-            "description": "Position of the status when used as a board column"
+            "description": "Position of the status when used as a board column. On a project's own statuses: its place in the project's order."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "started",
+              "unstarted",
+              "backlog",
+              "completed",
+              "canceled",
+              "duplicate"
+            ],
+            "description": "What kind of work a status stands for. Drives grouping, progress and the active and backlog issue views. Closed work is completed, canceled or duplicate."
           }
         }
       },
@@ -6859,7 +7869,9 @@
               "medium",
               "high",
               "urgent"
-            ]
+            ],
+            "nullable": true,
+            "description": "Null is \"No priority\"."
           },
           "dueDate": {
             "type": "string",
@@ -6908,6 +7920,22 @@
             ],
             "nullable": true,
             "description": "The user who created the card. Null if their account was deleted, or the card predates creator tracking."
+          },
+          "parentId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The card this is a sub-issue of."
+          },
+          "milestoneId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Set while the card is archived: it is then out of every board, list and count, but still reachable by id and in search."
           }
         }
       },
@@ -7478,9 +8506,15 @@
               "title",
               "description",
               "tag",
-              "attachment"
+              "attachment",
+              "parent",
+              "milestone",
+              "blocks",
+              "blockedBy",
+              "relates",
+              "archived"
             ],
-            "description": "What changed. `status` includes moves between board columns; reordering within a status is not recorded. `tag` and `attachment` events have only `to` when one was added and only `from` when one was removed."
+            "description": "What changed. `status` includes moves between board columns; reordering within a status is not recorded. `tag` and `attachment` events have only `to` when one was added and only `from` when one was removed. `parent`, `blocks`, `blockedBy` and `relates` name another card: the side's `id` is its card id, `value` its ticket id, and `card` the card as `CardRef` shows it to the caller. A relation added has only `to`, one removed only `from`. `archived` has `to` when the card was archived and `from` when it was restored."
           },
           "from": {
             "type": "object",
@@ -7495,6 +8529,9 @@
               "value": {
                 "type": "string",
                 "description": "The name the status, person or tag has now, or, once it has been deleted, the name it had when the change was made. For priority and title the value itself; for a due date an ISO 8601 date-time; for an attachment its file name."
+              },
+              "card": {
+                "$ref": "#/components/schemas/CardRef"
               }
             }
           },
@@ -7511,6 +8548,9 @@
               "value": {
                 "type": "string",
                 "description": "The name the status, person or tag has now, or, once it has been deleted, the name it had when the change was made. For priority and title the value itself; for a due date an ISO 8601 date-time; for an attachment its file name."
+              },
+              "card": {
+                "$ref": "#/components/schemas/CardRef"
               }
             }
           },
@@ -7532,6 +8572,134 @@
             "type": "string",
             "format": "date-time",
             "description": "When the change was made, to the millisecond."
+          }
+        }
+      },
+      "CardRef": {
+        "type": "object",
+        "description": "A card shown inside another card (parent, sub-issue, relation). A card in a project the caller cannot read carries only `id` and `hidden: true`.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "ticket": {
+            "type": "string",
+            "description": "KEY-42"
+          },
+          "title": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectSlug": {
+            "type": "string",
+            "description": "The card's own project slug, for its address: a referenced card can sit in another project."
+          },
+          "status": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "started",
+                  "unstarted",
+                  "backlog",
+                  "completed",
+                  "canceled",
+                  "duplicate"
+                ],
+                "description": "What kind of work a status stands for. Drives grouping, progress and the active and backlog issue views. Closed work is completed, canceled or duplicate."
+              },
+              "color": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "relationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "On a relation: its id, for removing it."
+          }
+        }
+      },
+      "Milestone": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "position": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Relation": {
+        "type": "object",
+        "description": "`blocks` reads \"from blocks to\"; \"blocked by\" is the same row read from the other card.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "blocks",
+              "relates"
+            ]
+          },
+          "fromCardId": {
+            "type": "integer"
+          },
+          "toCardId": {
+            "type": "integer"
+          },
+          "createdById": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

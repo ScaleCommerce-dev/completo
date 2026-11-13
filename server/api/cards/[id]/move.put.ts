@@ -2,14 +2,21 @@ import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user, card } = await resolveCard(event)
-  const { statusId, position } = await readBody<{ statusId: string, position: number }>(event)
+  // `afterId` is the alternative to `position` for lists that do not show every
+  // card of a status (archived cards keep positions a list never shows, so it
+  // cannot know an index): the card goes right after that card of the target
+  // status, or first when it is null.
+  const { statusId, position, afterId } = await readBody<{ statusId: string, position?: number, afterId?: number | null }>(event)
 
-  if (!statusId || position === undefined) {
+  if (!statusId || (position === undefined && afterId === undefined)) {
     throw createError({ statusCode: 400, message: 'statusId and position are required' })
   }
 
-  if (typeof position !== 'number' || position < 0 || !Number.isInteger(position) || position > 10000) {
+  if (afterId === undefined && (typeof position !== 'number' || position < 0 || !Number.isInteger(position) || position > 10000)) {
     throw createError({ statusCode: 400, message: 'Position must be a non-negative integer (max 10000)' })
+  }
+  if (afterId !== undefined && afterId !== null && (!Number.isInteger(afterId) || afterId === card.id)) {
+    throw createError({ statusCode: 400, message: 'afterId must be another card of the target status' })
   }
 
   // Validate statusId belongs to the card's project
@@ -31,8 +38,12 @@ export default defineEventHandler(async (event) => {
       .filter(c => c.id !== card.id)
       .sort((a, b) => a.position - b.position)
 
-    // Insert at position
-    targetCards.splice(position, 0, { ...card, statusId, position })
+    let index = position ?? 0
+    if (afterId) {
+      index = targetCards.findIndex(c => c.id === afterId) + 1
+      if (!index) throw createError({ statusCode: 400, message: 'afterId must be another card of the target status' })
+    }
+    targetCards.splice(index, 0, { ...card, statusId, position: index })
 
     // Update positions in target status — only bump updatedAt on the moved card
     for (let i = 0; i < targetCards.length; i++) {

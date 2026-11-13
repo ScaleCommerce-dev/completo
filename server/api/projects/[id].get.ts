@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user, project, membership } = await resolveProject(event)
@@ -13,7 +13,8 @@ export default defineEventHandler(async (event) => {
     ? db.select().from(schema.boardColumns).where(inArray(schema.boardColumns.boardId, boardIds)).all()
     : []
   const allCards = db.select().from(schema.cards)
-    .where(eq(schema.cards.projectId, project.id))
+    // Archived cards are out of every board, list and count.
+    .where(and(eq(schema.cards.projectId, project.id), isNull(schema.cards.archivedAt)))
     .all()
 
   // Build status→board mapping

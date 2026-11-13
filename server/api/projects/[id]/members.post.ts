@@ -59,6 +59,7 @@ export default defineEventHandler(async (event) => {
         userId: targetUser.id,
         role: 'member'
       }).run()
+      recordProjectActivity(project.id, user.id, 'member_added', { userId: targetUser.id, name: targetUser.name })
       setResponseStatus(event, 201)
       return { added: true }
     }
@@ -68,6 +69,7 @@ export default defineEventHandler(async (event) => {
       userId: targetUser.id,
       role: 'member'
     }).run()
+    recordProjectActivity(project.id, user.id, 'member_added', { userId: targetUser.id, name: targetUser.name })
 
     // Send notification email
     if (isEmailEnabled()) {

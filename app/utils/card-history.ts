@@ -83,6 +83,20 @@ export function describeChange(e: CardHistoryEvent): Phrase[] {
       return e.to ? [plain('added the tag '), strong(e.to.value)] : [plain('removed the tag '), strong(from ?? '')]
     case 'attachment':
       return e.to ? [plain('attached '), strong(e.to.value)] : [plain('removed the attachment '), strong(from ?? '')]
+    case 'parent':
+      if (e.from && e.to) return [plain('moved this from '), strong(e.from.value), plain(' to '), strong(e.to.value)]
+      return e.to ? [plain('made this a sub-issue of '), strong(e.to.value)] : [plain('removed this from '), strong(from ?? '')]
+    case 'milestone':
+      if (e.from && e.to) return [plain('moved this from milestone '), strong(e.from.value), plain(' to '), strong(e.to.value)]
+      return e.to ? [plain('added this to milestone '), strong(e.to.value)] : [plain('removed this from milestone '), strong(from ?? '')]
+    case 'blocks':
+      return e.to ? [plain('marked this as blocking '), strong(e.to.value)] : [plain('removed blocking '), strong(from ?? '')]
+    case 'blockedBy':
+      return e.to ? [plain('marked this as blocked by '), strong(e.to.value)] : [plain('removed blocked by '), strong(from ?? '')]
+    case 'relates':
+      return e.to ? [plain('related this to '), strong(e.to.value)] : [plain('removed the relation to '), strong(from ?? '')]
+    case 'archived':
+      return e.to ? [plain('archived this')] : [plain('restored this from the archive')]
   }
 }
 

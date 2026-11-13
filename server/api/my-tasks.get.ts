@@ -1,4 +1,4 @@
-import { eq, inArray, and } from 'drizzle-orm'
+import { eq, inArray, and, isNull } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
@@ -8,14 +8,14 @@ export default defineEventHandler(async (event) => {
   const myCardRows = db.select().from(schema.cards)
     .leftJoin(schema.users, eq(schema.cards.assigneeId, schema.users.id))
     .leftJoin(schema.statuses, eq(schema.cards.statusId, schema.statuses.id))
-    .where(eq(schema.cards.assigneeId, userId))
+    .where(and(eq(schema.cards.assigneeId, userId), isNull(schema.cards.archivedAt)))
     .all()
   const { ref: assigneeRef } = createUserRefs(myCardRows.map(row => row.users))
   const myCards = myCardRows
     .map(row => ({
       ...row.cards,
       assignee: assigneeRef(row.users),
-      status: row.statuses ? { id: row.statuses.id, name: row.statuses.name, color: row.statuses.color } : null
+      status: row.statuses ? { id: row.statuses.id, name: row.statuses.name, color: row.statuses.color, category: row.statuses.category } : null
     }))
 
   if (!myCards.length) {
@@ -121,7 +121,7 @@ export default defineEventHandler(async (event) => {
         doneRetentionDays: project.doneRetentionDays
       },
       role: roleByProject.get(project.id) ?? 'member',
-      statuses: projectStatuses.map(s => ({ id: s.id, name: s.name, color: s.color })),
+      statuses: projectStatuses.map(s => ({ id: s.id, name: s.name, color: s.color, category: s.category })),
       tags: allTags.filter(t => t.projectId === project.id).map(t => ({ id: t.id, name: t.name, color: t.color })),
       members: allMembers.filter(m => m.projectId === project.id).map(({ projectId: _projectId, ...m }) => member(m)),
       cards: cardsWithTags

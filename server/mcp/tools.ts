@@ -83,13 +83,32 @@ interface ApiCard {
   tags?: ApiTag[]
   commentCount?: number
   attachmentCount?: number
+  parentId?: number | null
+  milestoneId?: string | null
 }
+/** A card shown inside another card; only `id` when it lives in a project the caller cannot read. */
+interface ApiCardRef { id: number, hidden?: true, ticket?: string, title?: string, status?: { name: string }, relationId?: string }
 /** `GET /api/cards/:id` carries the project's pickers alongside the card. */
 interface ApiCardDetail extends ApiCard {
   project: ApiProjectRef | null
   statuses: ApiStatus[]
   members: ApiMember[]
   projectTags: ApiTag[]
+  parent: ApiCardRef | null
+  children: ApiCardRef[]
+  childProgress: { total: number, completed: number }
+  relations: { blocks: ApiCardRef[], blockedBy: ApiCardRef[], relates: ApiCardRef[] }
+  milestone: { id: string, name: string } | null
+}
+interface ApiMilestone { id: string, name: string, description: string | null, targetDate: string | null, total: number, completed: number }
+interface ApiIssue extends ApiCard {
+  ticket: string
+  status: { id: string, name: string, category: string }
+  project: { id: string, name: string, slug: string, key: string }
+  milestone: { id: string, name: string } | null
+  blockingCount: number
+  blockedByCount: number
+  childProgress: { total: number, completed: number } | null
 }
 interface ApiComment { id: string, body: string, authorName: string | null, createdAt: string, updatedAt: string | null }
 interface ApiSearchHit {
@@ -205,6 +224,29 @@ function commentView(c: ApiComment) {
   return { author: c.authorName, body: c.body, createdAt: c.createdAt, edited: !!c.updatedAt && c.updatedAt !== c.createdAt }
 }
 
+/** `TK-42` with its title and status, or the id alone when the caller cannot read that card. */
+function refView(r: ApiCardRef) {
+  return r.hidden ? { ticket: String(r.id), access: false } : { ticket: r.ticket ?? String(r.id), title: r.title, status: r.status?.name ?? null }
+}
+
+/** A card in full: the list view plus parent, sub-issues, milestone and relations. */
+function cardDetailView(ctx: ToolContext, card: ApiCardDetail) {
+  return {
+    ...cardView(ctx, card, projectOf(card), card.statuses),
+    parent: card.parent ? refView(card.parent) : null,
+    subIssues: card.children.map(refView),
+    subIssueProgress: card.childProgress,
+    milestone: card.milestone?.name ?? null,
+    blocks: card.relations.blocks.map(refView),
+    blockedBy: card.relations.blockedBy.map(refView),
+    related: card.relations.relates.map(refView)
+  }
+}
+
+async function milestoneByName(ctx: ToolContext, projectId: string, wanted: string): Promise<ApiMilestone> {
+  return byName('milestone', await ctx.get<ApiMilestone[]>(`/api/projects/${projectId}/milestones`), wanted)
+}
+
 function projectOf(card: ApiCardDetail): ApiProjectRef {
   if (!card.project) throw new ToolError('Card has no project')
   return card.project
@@ -299,6 +341,8 @@ const TOOLS: Tool[] = [
       assignee: { type: 'string', description: '"me", a member name or email.' },
       priority: { type: 'string', description: 'One or more of low, medium, high, urgent, comma-separated.' },
       tag: { type: 'string', description: 'Tag name.' },
+      parent: { ...CARD_REF, description: 'Only sub-issues of this card.' },
+      milestone: { type: 'string', description: 'Only cards in this milestone.' },
       dueBefore: { type: 'string', description: 'YYYY-MM-DD, inclusive.' },
       dueAfter: { type: 'string', description: 'YYYY-MM-DD, inclusive.' },
       includeDone: { type: 'boolean' },
@@ -325,6 +369,10 @@ const TOOLS: Tool[] = [
       }
       if (args.includeDone === true) query.includeDone = 'true'
       if (typeof args.limit === 'number') query.limit = args.limit
+      const parent = str(args, 'parent')
+      if (parent) query.parentId = cardNumber(parent)
+      const milestone = str(args, 'milestone')
+      if (milestone) query.milestoneId = (await milestoneByName(ctx, project.id, milestone)).id
       const cards = await ctx.get<ApiCard[]>(`/api/projects/${project.id}/cards`, query)
       return cards.map(c => cardView(ctx, c, project))
     }
@@ -359,7 +407,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'get_card',
-    description: `A card in full: description (Markdown; checklist items are \`- [ ]\` lines), status, assignee, tags, due date, link, and its latest ${CARD_COMMENT_LIMIT} comments, oldest first. Comments are newer than the description and override it where they disagree. When commentCount is higher, list_comments has the rest. Does not mark the card as read.`,
+    description: `A card in full: description (Markdown; checklist items are \`- [ ]\` lines), status, assignee, tags, due date, link, parent, sub-issues with progress, milestone, the cards it blocks, is blocked by and relates to (a card in a project you cannot read shows its number only), and its latest ${CARD_COMMENT_LIMIT} comments, oldest first. Comments are newer than the description and override it where they disagree. When commentCount is higher, list_comments has the rest. Does not mark the card as read.`,
     inputSchema: schema({ card: CARD_REF }, ['card']),
     annotations: { readOnlyHint: true },
     run: async (ctx, args) => {
@@ -368,7 +416,7 @@ const TOOLS: Tool[] = [
       // keeps their unread dot, as `completo get` does.
       const comments = await ctx.get<ApiComment[]>(`/api/cards/${card.id}/comments?markRead=false`)
       return {
-        ...cardView(ctx, card, projectOf(card), card.statuses),
+        ...cardDetailView(ctx, card),
         commentCount: comments.length,
         comments: comments.slice(-CARD_COMMENT_LIMIT).map(commentView)
       }
@@ -376,16 +424,18 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'create_card',
-    description: 'Create a card. Lands at the bottom of its status. Status defaults to the project\'s first status (usually Backlog); name the status when the user said where it goes. Tags that do not exist yet are created.',
+    description: 'Create a card. Lands at the bottom of its status. Status defaults to the project\'s first status (usually Backlog); name the status when the user said where it goes. Tags that do not exist yet are created. Without a description the card starts with the workspace\'s issue template, if one is set; fill it in with update_card.',
     inputSchema: schema({
       project: PROJECT_REF,
       title: { type: 'string' },
-      description: { type: 'string', description: 'Markdown. Use `- [ ]` lines for a checklist.' },
+      description: { type: 'string', description: 'Markdown. Use `- [ ]` lines for a checklist. Omitted: the workspace issue template.' },
       status: { type: 'string', description: 'Status name.' },
       priority: PRIORITY,
       assignee: { type: 'string', description: '"me", a member name or email.' },
       dueDate: DUE_DATE,
-      tags: { type: 'array', items: { type: 'string' }, description: 'Tag names.' }
+      tags: { type: 'array', items: { type: 'string' }, description: 'Tag names.' },
+      parent: { ...CARD_REF, description: 'Make this a sub-issue of that card.' },
+      milestone: { type: 'string', description: 'Milestone name in this project.' }
     }, ['project', 'title']),
     run: async (ctx, args) => {
       const project = await loadProject(ctx, need(args, 'project'))
@@ -395,10 +445,14 @@ const TOOLS: Tool[] = [
       const body: JsonObject = {
         title: need(args, 'title'),
         statusId: status.id,
-        description: str(args, 'description'),
+        description: str(args, 'description') ?? ((await ctx.get<{ issueTemplate: string }>('/api/settings')).issueTemplate || undefined),
         priority: priorityArg(args),
         dueDate: str(args, 'dueDate')
       }
+      const parent = str(args, 'parent')
+      if (parent) body.parentId = cardNumber(parent)
+      const milestone = str(args, 'milestone')
+      if (milestone) body.milestoneId = (await milestoneByName(ctx, project.id, milestone)).id
       const assignee = str(args, 'assignee')
       if (assignee) {
         const members = await ctx.get<ApiMember[]>(`/api/projects/${project.id}/members`)
@@ -407,19 +461,23 @@ const TOOLS: Tool[] = [
       const created = await ctx.send<ApiCard>('POST', `/api/projects/${project.id}/cards`, body)
       const tags = Array.isArray(args.tags) ? args.tags.map(String).filter(Boolean) : []
       if (tags.length) await applyTags(ctx, project, created.id, [], tags, [])
-      const card = await loadCard(ctx, created.id)
-      return cardView(ctx, card, project, card.statuses)
+      return cardDetailView(ctx, await loadCard(ctx, created.id))
     }
   },
   {
     name: 'update_card',
-    description: 'Change a card\'s title, description, priority or due date. Only the fields given change. The description is replaced whole: read it first and send the full new text.',
+    description: 'Change a card\'s title, description, priority, due date, parent, milestone or project, or archive it. Only the fields given change. The description is replaced whole: read it first and send the full new text. Moving to another project maps the status by name and drops the old project\'s milestone and tags.',
     inputSchema: schema({
       card: CARD_REF,
       title: { type: 'string' },
       description: { type: 'string', description: 'Markdown, replaces the whole description.' },
       priority: PRIORITY,
-      dueDate: DUE_DATE
+      dueDate: DUE_DATE,
+      parent: { ...CARD_REF, description: 'Parent ticket id. Empty string to make it top-level.' },
+      milestone: { type: 'string', description: 'Milestone name. Empty string to clear.' },
+      project: { ...PROJECT_REF, description: 'Move the card to this project.' },
+      status: { type: 'string', description: 'Status name, in the target project when moving.' },
+      archived: { type: 'boolean', description: 'True takes the card out of every board and list; false brings it back.' }
     }, ['card']),
     annotations: { idempotentHint: true },
     run: async (ctx, args) => {
@@ -431,10 +489,23 @@ const TOOLS: Tool[] = [
       const priority = priorityArg(args)
       if (priority) body.priority = priority
       if (typeof args.dueDate === 'string') body.dueDate = args.dueDate || null
-      if (!Object.keys(body).length) throw new ToolError('Nothing to change: give title, description, priority or dueDate')
-      await ctx.send('PUT', `/api/cards/${existing.id}`, body)
-      const card = await loadCard(ctx, existing.id)
-      return cardView(ctx, card, projectOf(card), card.statuses)
+      if (typeof args.parent === 'string') body.parentId = args.parent ? cardNumber(args.parent) : null
+      if (typeof args.archived === 'boolean') body.archived = args.archived
+      const projectRef = str(args, 'project')
+      const target = projectRef ? await loadProject(ctx, projectRef) : null
+      const moving = !!target && target.id !== existing.projectId
+      if (moving) body.projectId = target.id
+      if (typeof args.milestone === 'string') {
+        body.milestoneId = args.milestone ? (await milestoneByName(ctx, moving ? target.id : existing.projectId, args.milestone)).id : null
+      }
+      const status = str(args, 'status')
+      const statusId = status ? byName('status', moving ? target.statuses : existing.statuses, status).id : undefined
+      if (!Object.keys(body).length && !statusId) throw new ToolError('Nothing to change: give at least one field')
+      // The API maps the status by name on a move; a status asked for is set once the card is there.
+      if (statusId && !moving) body.statusId = statusId
+      if (Object.keys(body).length) await ctx.send('PUT', `/api/cards/${existing.id}`, body)
+      if (statusId && moving) await ctx.send('PUT', `/api/cards/${existing.id}`, { statusId })
+      return cardDetailView(ctx, await loadCard(ctx, existing.id))
     }
   },
   {
@@ -458,8 +529,7 @@ const TOOLS: Tool[] = [
         if (!Number.isInteger(position) || position < 0) throw new ToolError('position must be "top", "bottom" or a non-negative integer')
       }
       await ctx.send('PUT', `/api/cards/${existing.id}/move`, { statusId: status.id, position: Math.min(position, POSITION_END) })
-      const card = await loadCard(ctx, existing.id)
-      return cardView(ctx, card, projectOf(card), card.statuses)
+      return cardDetailView(ctx, await loadCard(ctx, existing.id))
     }
   },
   {
@@ -479,8 +549,7 @@ const TOOLS: Tool[] = [
         assigneeId = await resolveAssignee(ctx, members, wanted)
       }
       await ctx.send('PUT', `/api/cards/${existing.id}`, { assigneeId })
-      const card = await loadCard(ctx, existing.id)
-      return cardView(ctx, card, projectOf(card), card.statuses)
+      return cardDetailView(ctx, await loadCard(ctx, existing.id))
     }
   },
   {
@@ -499,8 +568,7 @@ const TOOLS: Tool[] = [
       if (!add.length && !remove.length) throw new ToolError('Give tags to add, remove or both')
       const project = { ...projectOf(existing), tags: existing.projectTags }
       await applyTags(ctx, project, existing.id, (existing.tags ?? []).map(t => t.id), add, remove)
-      const card = await loadCard(ctx, existing.id)
-      return cardView(ctx, card, projectOf(card), card.statuses)
+      return cardDetailView(ctx, await loadCard(ctx, existing.id))
     }
   },
   {
@@ -533,6 +601,81 @@ const TOOLS: Tool[] = [
         project: g.project.name,
         cards: g.cards.map(c => cardView(ctx, c, g.project, g.statuses))
       }))
+    }
+  },
+  {
+    name: 'list_issues',
+    description: 'Issues across every project you can read: view "active" (open work that is not backlog, the default), "backlog", or "all" (includes closed). Each row has the status with its category, project, parent, milestone, sub-issue progress and how many cards it blocks and is blocked by. Use it to find unblocked work.',
+    inputSchema: schema({
+      view: { type: 'string', enum: ['active', 'backlog', 'all'] },
+      project: { ...PROJECT_REF, description: 'Optional: only this project.' }
+    }),
+    annotations: { readOnlyHint: true },
+    run: async (ctx, args) => {
+      const query: JsonObject = { view: str(args, 'view') ?? 'active' }
+      const projectRef = str(args, 'project')
+      if (projectRef) query.projectId = (await loadProject(ctx, projectRef)).id
+      const issues = await ctx.get<ApiIssue[]>('/api/issues', query)
+      return issues.map(i => ({
+        ticket: i.ticket,
+        title: i.title,
+        status: i.status.name,
+        category: i.status.category,
+        priority: i.priority ?? null,
+        assignee: i.assignee?.name ?? null,
+        project: i.project.slug,
+        milestone: i.milestone?.name ?? null,
+        parent: i.parentId ?? null,
+        subIssues: i.childProgress,
+        blocks: i.blockingCount,
+        blockedBy: i.blockedByCount,
+        dueDate: i.dueDate ? i.dueDate.slice(0, 10) : null
+      }))
+    }
+  },
+  {
+    name: 'link_cards',
+    description: 'Relate two cards: "blocks" (card blocks other), "blocked_by" (card is blocked by other) or "relates". Works across projects you can read.',
+    inputSchema: schema({
+      card: CARD_REF,
+      type: { type: 'string', enum: ['blocks', 'blocked_by', 'relates'] },
+      other: CARD_REF
+    }, ['card', 'type', 'other']),
+    run: async (ctx, args) => {
+      const card = cardNumber(need(args, 'card'))
+      await ctx.send('POST', `/api/cards/${card}/relations`, { type: need(args, 'type'), cardId: cardNumber(need(args, 'other')) })
+      return cardDetailView(ctx, await loadCard(ctx, card))
+    }
+  },
+  {
+    name: 'unlink_cards',
+    description: 'Remove the relation between two cards. With type, only that kind ("blocks", "blocked_by", "relates"); without, every relation between them.',
+    inputSchema: schema({
+      card: CARD_REF,
+      other: CARD_REF,
+      type: { type: 'string', enum: ['blocks', 'blocked_by', 'relates'] }
+    }, ['card', 'other']),
+    annotations: { idempotentHint: true },
+    run: async (ctx, args) => {
+      const existing = await loadCard(ctx, need(args, 'card'))
+      const other = cardNumber(need(args, 'other'))
+      const type = str(args, 'type')
+      const groups: Array<[string, ApiCardRef[]]> = [['blocks', existing.relations.blocks], ['blocked_by', existing.relations.blockedBy], ['relates', existing.relations.relates]]
+      const hits = groups.filter(([t]) => !type || t === type).flatMap(([, refs]) => refs.filter(r => r.id === other))
+      if (!hits.length) throw new ToolError(`Card ${existing.id} has no ${type ? `${type} ` : ''}relation to card ${other}`)
+      for (const r of hits) await ctx.send('DELETE', `/api/cards/${existing.id}/relations/${r.relationId}`)
+      return cardDetailView(ctx, await loadCard(ctx, existing.id))
+    }
+  },
+  {
+    name: 'list_milestones',
+    description: 'A project\'s milestones in order, with description, target date, how many issues they hold and how many of those are completed (canceled and duplicate ones do not count).',
+    inputSchema: schema({ project: PROJECT_REF }, ['project']),
+    annotations: { readOnlyHint: true },
+    run: async (ctx, args) => {
+      const project = await loadProject(ctx, need(args, 'project'))
+      const list = await ctx.get<ApiMilestone[]>(`/api/projects/${project.id}/milestones`)
+      return list.map(m => ({ name: m.name, description: m.description ?? '', targetDate: m.targetDate, issues: m.total, completed: m.completed }))
     }
   },
   {
