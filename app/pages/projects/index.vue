@@ -23,7 +23,7 @@ interface ProjectListItem {
   lastActivity: string | null
 }
 
-const { data: projects, refresh } = await useFetch<ProjectListItem[]>('/api/projects')
+const { data: projects, refresh, status, error } = await useFetch<ProjectListItem[]>('/api/projects')
 const { refreshProjects } = useNavigation()
 const { user } = useUserSession()
 
@@ -100,8 +100,16 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
       />
     </template>
 
+    <UiLoadError
+      v-if="status === 'error'"
+      what="projects"
+      :error="error"
+      @retry="refresh"
+    />
+
     <!-- Summary stats bar -->
     <div
+      v-else
       class="flex items-center gap-4 px-card py-3 rounded-xl bg-default border border-default"
     >
       <div class="flex items-center gap-1.5 text-sm font-medium text-muted">
@@ -130,7 +138,10 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
     </div>
 
     <!-- Project cards grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5">
+    <div
+      v-if="status !== 'error'"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5"
+    >
       <!--
         The settings and star buttons are siblings of the link, not children of
         it. A `<button>` inside an `<a>` is invalid HTML and screen readers

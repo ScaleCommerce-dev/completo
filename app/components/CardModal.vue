@@ -370,8 +370,14 @@ async function handleBeforeUpload() {
   ensureCardPromise = props.onEnsureCard(getFormData()).then((id) => {
     draftCardId.value = id
   })
-  await ensureCardPromise
-  ensureCardPromise = null
+  // Cleared on failure too: a rejected promise left here was re-awaited by every
+  // later drop or pick, so one failed draft creation (already toasted by the
+  // view's create) silently disabled attaching files until a reload.
+  try {
+    await ensureCardPromise
+  } finally {
+    ensureCardPromise = null
+  }
 }
 
 /**

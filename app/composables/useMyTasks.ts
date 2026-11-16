@@ -58,7 +58,7 @@ export function useMyTasks() {
   // defaults to a `shallowRef`, so the patched row would be a raw object Vue
   // never re-renders. The request would fire, the database would update, and the
   // table would keep showing the old value until something unrelated flushed it.
-  const { data, refresh, status } = useFetch<MyTasksData>('/api/my-tasks', { deep: true })
+  const { data, refresh, status, error } = useFetch<MyTasksData>('/api/my-tasks', { deep: true })
 
   const columns = computed(() =>
     [...(data.value?.columns || [])].sort((a, b) => a.position - b.position)
@@ -233,6 +233,7 @@ export function useMyTasks() {
     collapsedProjectIds,
     groups,
     status,
+    error,
     refresh,
     addColumn,
     removeColumn,

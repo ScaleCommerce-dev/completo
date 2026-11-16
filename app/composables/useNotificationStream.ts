@@ -23,7 +23,7 @@ export function useNotificationStream(): void {
   if (!import.meta.client || typeof EventSource === 'undefined') return
 
   const { user } = useUserSession()
-  const { refreshUnreadCount } = useNotifications()
+  const { refreshUnreadCount } = useUnreadCount()
   const toast = useToast()
 
   let source: EventSource | null = null
@@ -47,6 +47,8 @@ export function useNotificationStream(): void {
       }
       // The count is authoritative from the server; the toast is the immediate cue.
       refreshUnreadCount()
+      // The list too, where it is on screen; a no-op key elsewhere.
+      refreshNuxtData(NOTIFICATIONS_LIST_KEY)
       toast.add({
         title: n.title,
         description: n.message,

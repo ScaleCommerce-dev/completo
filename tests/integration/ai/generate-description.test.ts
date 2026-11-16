@@ -54,6 +54,16 @@ describe('POST /api/projects/[id]/ai/generate-description', () => {
     }), 400)
   })
 
+  it('caps every field it sends to the provider', async () => {
+    for (const body of [
+      { title: 'x'.repeat(501) },
+      { title: 'T', description: 'x'.repeat(50_001) },
+      { title: 'T', userPrompt: 'x'.repeat(4_001) }
+    ]) {
+      await expectError($fetch(`/api/projects/${projectId}/ai/generate-description`, { method: 'POST', body, headers: user.headers }), 400)
+    }
+  })
+
   it('rejects invalid mode', async () => {
     await expectError($fetch(`/api/projects/${projectId}/ai/generate-description`, {
       method: 'POST',

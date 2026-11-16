@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (slug) {
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    if (!isValidSlug(slug)) {
       throw createError({ statusCode: 400, message: 'Invalid slug format' })
     }
     // Check uniqueness within project

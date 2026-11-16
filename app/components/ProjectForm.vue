@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { isValidSlug } from '#shared/utils/slug'
+
 const props = withDefaults(defineProps<{
   mode: 'create' | 'edit'
   initialData?: {
@@ -59,7 +61,7 @@ const keyCheck = useAvailabilityCheck({
 const slugCheck = useAvailabilityCheck({
   endpoint: '/api/projects/check-slug',
   paramName: 'slug',
-  validate: v => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v),
+  validate: isValidSlug,
   excludeId: computed(() => props.initialData?.id)
 })
 
@@ -141,7 +143,7 @@ function onSlugInput(e: Event) {
 // Key/slug validation
 const keyPreview = computed(() => (formKey.value || 'XX') + '-1A2B')
 const keyValid = computed(() => /^[A-Z]{2,5}$/.test(formKey.value))
-const slugValid = computed(() => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(formSlug.value))
+const slugValid = computed(() => isValidSlug(formSlug.value))
 
 // Trigger availability checks when values change
 watch(formKey, val => keyCheck.check(val))

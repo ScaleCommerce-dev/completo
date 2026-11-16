@@ -40,7 +40,8 @@ export default defineEventHandler(async (event) => {
     ])
 
     db.delete(schema.cardTags).where(eq(schema.cardTags.cardId, card.id)).run()
-    for (const tagId of tagIds) {
+    // `wanted`, not `tagIds`: a repeated id inserted a second row (now a unique violation).
+    for (const tagId of wanted) {
       db.insert(schema.cardTags).values({
         id: crypto.randomUUID(),
         cardId: card.id,

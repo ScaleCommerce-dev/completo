@@ -1,6 +1,10 @@
 package cmd
 
-import "testing"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"testing"
+)
 
 func TestCompareSemver(t *testing.T) {
 	tests := []struct {
@@ -30,5 +34,22 @@ func TestCompareSemver(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("compareSemver(%q, %q) = %d, want %d", tt.a, tt.b, got, tt.want)
 		}
+	}
+}
+
+func TestVerifyChecksum(t *testing.T) {
+	data := []byte("binary")
+	sum := sha256.Sum256(data)
+	good := hex.EncodeToString(sum[:])
+	sums := []byte(good + "  completo-linux-amd64\n0000  completo-darwin-arm64\n")
+
+	if err := verifyChecksum(data, "completo-linux-amd64", sums); err != nil {
+		t.Fatalf("matching checksum refused: %v", err)
+	}
+	if err := verifyChecksum([]byte("tampered"), "completo-linux-amd64", sums); err == nil {
+		t.Fatal("tampered binary accepted")
+	}
+	if err := verifyChecksum(data, "completo-windows-amd64.exe", sums); err == nil {
+		t.Fatal("binary missing from checksums.txt accepted")
 	}
 }

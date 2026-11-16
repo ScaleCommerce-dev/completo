@@ -6,6 +6,9 @@ const {
   columns,
   collapsedProjectIds,
   groups,
+  status,
+  error,
+  refresh,
   addColumn,
   removeColumn,
   reorderColumns,
@@ -204,8 +207,14 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
            admin-elevated, so an instance admin who can see every project still lands on
            an empty page here, and the old copy ("across every project") said the
            opposite of what had happened. -->
+      <UiLoadError
+        v-if="status === 'error'"
+        what="your tasks"
+        :error="error"
+        @retry="refresh"
+      />
       <UEmpty
-        v-if="!groups.length"
+        v-else-if="status === 'success' && !groups.length"
         class="c2s-empty-brand py-16"
         icon="i-lucide-circle-check"
         title="Nothing assigned to you"

@@ -1,4 +1,4 @@
-import { and, eq, like, or } from 'drizzle-orm'
+import { and, eq, or } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -10,11 +10,10 @@ export default defineEventHandler(async (event) => {
 
   const { project } = await resolveProject(event)
 
-  const escaped = q.replace(/[%_]/g, '\\$&')
   const conditions = [
     and(
       eq(schema.cards.projectId, project.id),
-      like(schema.cards.title, `%${escaped}%`)
+      likeContains(schema.cards.title, q)
     )
   ]
 

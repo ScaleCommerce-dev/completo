@@ -1,4 +1,4 @@
-import { eq, or, and, inArray } from 'drizzle-orm'
+import { eq, and, inArray } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
@@ -13,17 +13,17 @@ export default defineEventHandler(async (event) => {
       .get()
     if (project) {
       board = db.select().from(schema.boards)
-        .where(and(
-          or(eq(schema.boards.id, id!), eq(schema.boards.slug, id!)),
-          eq(schema.boards.projectId, project.id)
-        ))
+        .where(and(eq(schema.boards.id, id!), eq(schema.boards.projectId, project.id)))
         .get()
+        ?? db.select().from(schema.boards)
+          .where(and(eq(schema.boards.slug, id!), eq(schema.boards.projectId, project.id)))
+          .get()
     }
   }
   if (!board) {
-    board = db.select().from(schema.boards)
-      .where(or(eq(schema.boards.id, id!), eq(schema.boards.slug, id!)))
-      .get()
+    // Id first, as in resolveProject: a slug must never shadow another board's id.
+    board = db.select().from(schema.boards).where(eq(schema.boards.id, id!)).get()
+      ?? db.select().from(schema.boards).where(eq(schema.boards.slug, id!)).get()
   }
   if (!board) {
     throw createError({ statusCode: 404, message: 'Board not found' })

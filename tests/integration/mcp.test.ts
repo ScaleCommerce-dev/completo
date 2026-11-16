@@ -234,6 +234,19 @@ describe('POST /mcp', () => {
 
       const found = await call(headers, 'search_cards', { query: 'Needle in MCP' })
       expect(found.data.map((c: { ticket: string }) => c.ticket)).toContain(mine.data.ticket)
+      expect(found.data.find((c: { ticket: string }) => c.ticket === mine.data.ticket).assignee).toBe(user.name)
+
+      // Ten title matches elsewhere outrank a description-only match and fill the
+      // global top ten; naming the project still finds it, because the project is
+      // part of the query, not a filter applied to those ten afterwards.
+      const phrase = `Haystack ${Date.now()}`
+      const inDescription = await call(headers, 'create_card', { project: project.slug, title: 'Unrelated title', description: phrase })
+      const elsewhere = await createTestProject(user, { name: `MCP haystack ${Date.now()}` })
+      for (let i = 0; i < 10; i++) await call(headers, 'create_card', { project: elsewhere.slug, title: `${phrase} ${i}` })
+      const global = await call(headers, 'search_cards', { query: phrase })
+      expect(global.data.map((c: { ticket: string }) => c.ticket)).not.toContain(inDescription.data.ticket)
+      const scoped = await call(headers, 'search_cards', { query: phrase, project: project.slug })
+      expect(scoped.data.map((c: { ticket: string }) => c.ticket)).toEqual([inDescription.data.ticket])
 
       const tasks = await call(headers, 'my_tasks')
       const group = tasks.data.find((g: { project: string }) => g.project === project.name)

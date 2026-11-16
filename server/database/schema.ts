@@ -65,7 +65,12 @@ export const projectMembers = sqliteTable('project_members', {
   projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: text('role', { enum: ['owner', 'member'] }).notNull().default('member')
-})
+}, table => [
+  // Read by `requireProjectMember` on nearly every request. Unique because every
+  // add path is check-then-insert, which two concurrent requests both pass.
+  uniqueIndex('project_members_project_user_unique').on(table.projectId, table.userId),
+  index('project_members_user_idx').on(table.userId)
+])
 
 export const boards = sqliteTable('boards', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -87,21 +92,29 @@ export const boards = sqliteTable('boards', {
   showSubtasks: integer('show_subtasks').notNull().default(0),
   createdById: text('created_by_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
-})
+}, table => [
+  index('boards_project_idx').on(table.projectId)
+])
 
 export const statuses = sqliteTable('statuses', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   projectId: text('project_id').notNull().references((): AnySQLiteColumn => projects.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   color: text('color')
-})
+}, table => [
+  index('statuses_project_idx').on(table.projectId)
+])
 
 export const boardColumns = sqliteTable('board_columns', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   boardId: text('board_id').notNull().references(() => boards.id, { onDelete: 'cascade' }),
   statusId: text('status_id').notNull().references(() => statuses.id, { onDelete: 'cascade' }),
   position: integer('position').notNull()
-})
+}, table => [
+  // A status appears on a board once; linking is check-then-insert.
+  uniqueIndex('board_columns_board_status_unique').on(table.boardId, table.statusId),
+  index('board_columns_status_idx').on(table.statusId)
+])
 
 export const lists = sqliteTable('lists', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -120,14 +133,18 @@ export const lists = sqliteTable('lists', {
   showSubtasks: integer('show_subtasks').notNull().default(1),
   createdById: text('created_by_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
-})
+}, table => [
+  index('lists_project_idx').on(table.projectId)
+])
 
 export const listColumns = sqliteTable('list_columns', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   listId: text('list_id').notNull().references(() => lists.id, { onDelete: 'cascade' }),
   field: text('field').notNull(),
   position: integer('position').notNull()
-})
+}, table => [
+  index('list_columns_list_idx').on(table.listId)
+])
 
 export const cards = sqliteTable('cards', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -147,7 +164,12 @@ export const cards = sqliteTable('cards', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 }, table => [
-  index('cards_parent_idx').on(table.parentId)
+  index('cards_parent_idx').on(table.parentId),
+  // SQLite indexes no foreign key by itself: every view filters by project and
+  // status, My Tasks by assignee.
+  index('cards_project_status_idx').on(table.projectId, table.statusId),
+  index('cards_status_idx').on(table.statusId),
+  index('cards_assignee_idx').on(table.assigneeId)
 ])
 
 export const tags = sqliteTable('tags', {
@@ -155,13 +177,18 @@ export const tags = sqliteTable('tags', {
   projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   color: text('color').notNull().default('#6366f1')
-})
+}, table => [
+  index('tags_project_idx').on(table.projectId)
+])
 
 export const cardTags = sqliteTable('card_tags', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   cardId: integer('card_id').notNull().references(() => cards.id, { onDelete: 'cascade' }),
   tagId: text('tag_id').notNull().references(() => tags.id, { onDelete: 'cascade' })
-})
+}, table => [
+  uniqueIndex('card_tags_card_tag_unique').on(table.cardId, table.tagId),
+  index('card_tags_tag_idx').on(table.tagId)
+])
 
 export const attachments = sqliteTable('attachments', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -173,7 +200,9 @@ export const attachments = sqliteTable('attachments', {
   size: integer('size').notNull(),
   uploadedById: text('uploaded_by_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
-})
+}, table => [
+  index('attachments_card_idx').on(table.cardId)
+])
 
 export const comments = sqliteTable('comments', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -187,7 +216,9 @@ export const comments = sqliteTable('comments', {
   body: text('body').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
-})
+}, table => [
+  index('comments_card_idx').on(table.cardId)
+])
 
 // A card's change history: one row per change, never merged, written by
 // `recordCardEvents` (server/utils/card-history.ts) on every path that changes a
@@ -294,7 +325,10 @@ export const notifications = sqliteTable('notifications', {
   actorId: text('actor_id').references(() => users.id, { onDelete: 'set null' }),
   readAt: integer('read_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
-})
+}, table => [
+  // The unread count is polled every 30 seconds by every open tab.
+  index('notifications_user_read_idx').on(table.userId, table.readAt)
+])
 
 export const projectInvitations = sqliteTable('project_invitations', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),

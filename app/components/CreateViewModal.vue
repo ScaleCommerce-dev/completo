@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isValidSlug } from '#shared/utils/slug'
 // Explicit import: shared/utils is auto-imported for Nitro but not into app components.
 import { LIST_FIELDS, LIST_DEFAULT_FIELDS } from '#shared/utils/list-fields'
 
@@ -44,7 +45,7 @@ const selectedBoardColumns = ref<Set<string>>(new Set())
 const selectedListFields = ref<Set<string>>(new Set(DEFAULT_LIST_FIELDS))
 const selectedTagFilters = ref<Set<string>>(new Set())
 
-const slugValid = computed(() => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(viewSlug.value))
+const slugValid = computed(() => isValidSlug(viewSlug.value))
 const slugAvailable = ref<boolean | null>(null)
 const slugChecking = ref(false)
 let slugCheckTimeout: ReturnType<typeof setTimeout> | null = null

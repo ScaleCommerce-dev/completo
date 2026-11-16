@@ -18,6 +18,10 @@ export default defineEventHandler(async (event) => {
   if (!draft) {
     throw createError({ statusCode: 400, message: 'Comment body is required' })
   }
+  assertAiInputLength({
+    Comment: { value: draft, max: AI_INPUT_LIMITS.text },
+    Prompt: { value: userPrompt, max: AI_INPUT_LIMITS.prompt }
+  })
 
   const project = db.select().from(schema.projects)
     .where(eq(schema.projects.id, card.projectId))

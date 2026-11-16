@@ -4,7 +4,7 @@ useSeoMeta({ title: 'Profile · Completo' })
 
 const { public: { appVersion } } = useRuntimeConfig()
 
-const { data: profileData } = useFetch<{
+const { data: profileData, status: profileStatus, error: profileError, refresh: refreshProfile } = useFetch<{
   createdAt: string | null
   lastSeenAt: string | null
   emailNotifications: boolean
@@ -58,6 +58,12 @@ const SECTIONS = [
           <ProfileActivity
             v-if="profileData"
             :profile-data="profileData"
+          />
+          <UiLoadError
+            v-else-if="profileStatus === 'error'"
+            what="your activity"
+            :error="profileError"
+            @retry="refreshProfile"
           />
         </section>
         <section

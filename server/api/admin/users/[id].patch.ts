@@ -54,15 +54,17 @@ export default defineEventHandler(async (event) => {
     assertNoActiveAgents(targetUser)
   }
 
-  db.update(schema.users)
-    .set(updates)
-    .where(eq(schema.users.id, id))
-    .run()
+  // One transaction, so a demotion never commits without the pruning it owes.
+  return db.transaction(() => {
+    db.update(schema.users)
+      .set(updates)
+      .where(eq(schema.users.id, id))
+      .run()
 
-  if (pruneToOwnProjects) {
-    const removedFrom = pruneAgentMemberships(agentsOf(id).map(a => a.id), { id, isAdmin: 0 }, user)
-    return { ok: true, removedFrom }
-  }
-
-  return { ok: true }
+    if (pruneToOwnProjects) {
+      const removedFrom = pruneAgentMemberships(agentsOf(id).map(a => a.id), { id, isAdmin: 0 }, user)
+      return { ok: true, removedFrom }
+    }
+    return { ok: true }
+  })
 })

@@ -3,7 +3,7 @@
  * The header bell, below `lg` only: from `lg` up, notifications are a sidebar
  * row (see `ui/Page.vue`). The fallback poll moved to the layout with them.
  */
-const { unreadCount } = useNotifications()
+const { unreadCount } = useUnreadCount()
 </script>
 
 <template>

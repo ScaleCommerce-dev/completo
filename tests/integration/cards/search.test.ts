@@ -171,6 +171,11 @@ describe('GET /api/cards/search', async () => {
 
     const hits = await search(user, `50% ${stamp}`)
     expect(hits.map(h => h.id)).toEqual([card.id])
+
+    // The per-project search (CLI, `#` picker) escaped them too, but with no ESCAPE
+    // clause, so "50%" matched nothing at all.
+    const inProject = await $fetch<Array<{ id: number }>>(`/api/projects/${project.id}/cards/search`, { params: { q: `50% ${stamp}` }, headers: user.headers })
+    expect(inProject.map(h => h.id)).toEqual([card.id])
   })
 
   it('returns nothing for a one-character substring, rather than most of the board', async () => {

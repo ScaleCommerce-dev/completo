@@ -31,6 +31,9 @@ export default defineEventHandler(async (event) => {
   if (!slug) {
     throw createError({ statusCode: 400, message: 'Slug cannot be empty' })
   }
+  if (!isValidSlug(slug)) {
+    throw createError({ statusCode: 400, message: 'Slug must be lowercase alphanumeric with hyphens' })
+  }
 
   const existingSlug = db.select().from(schema.projects).where(eq(schema.projects.slug, slug)).get()
   if (existingSlug) {

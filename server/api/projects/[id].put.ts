@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (slug !== undefined) {
-    if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    if (!slug || !isValidSlug(slug)) {
       throw createError({ statusCode: 400, message: 'Slug must be lowercase alphanumeric with hyphens' })
     }
     const existing = db.select().from(schema.projects)

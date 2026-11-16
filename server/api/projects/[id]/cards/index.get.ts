@@ -50,8 +50,7 @@ export default defineEventHandler(async (event) => {
   // Words in the title, or a ticket id ("TK-42" or "42").
   if (q) {
     const ticket = Number(q.includes('-') ? q.slice(q.lastIndexOf('-') + 1) : q)
-    const escaped = q.replace(/[\\%_]/g, c => `\\${c}`)
-    const title = sql`${schema.cards.title} LIKE ${`%${escaped}%`} ESCAPE '\\'`
+    const title = likeContains(schema.cards.title, q)
     conditions.push(Number.isInteger(ticket) && ticket > 0 ? or(title, eq(schema.cards.id, ticket))! : title)
   }
   if (assigneeId) {

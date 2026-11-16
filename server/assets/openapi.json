@@ -2407,6 +2407,16 @@
               "type": "string",
               "minLength": 1
             }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only this project, if the caller can see it. Applied before the limit."
           }
         ],
         "responses": {
@@ -4052,7 +4062,9 @@
             "$ref": "#/components/responses/Conflict"
           }
         }
-      },
+      }
+    },
+    "/api/user/{id}": {
       "delete": {
         "tags": [
           "Admin"

@@ -121,4 +121,19 @@ describe('POST /api/projects', async () => {
 
     expect(project.doneRetentionDays).toBe(14)
   })
+  it('refuses a slug shaped like an id, on create and rename, for projects, boards and lists', async () => {
+    // Projects, boards and lists are addressed "by slug or id" in one URL segment, so a
+    // slug equal to another project's id could make a by-id call resolve to the wrong one.
+    const victim = await createTestProject(user)
+    await expectError($fetch('/api/projects', { method: 'POST', body: { name: 'Shadow', slug: victim.id }, headers: user.headers }), 400)
+
+    const mine = await createTestProject(user)
+    await expectError($fetch(`/api/projects/${mine.id}`, { method: 'PUT', body: { slug: victim.id }, headers: user.headers }), 400)
+    await expectError($fetch(`/api/projects/${mine.id}/boards`, { method: 'POST', body: { name: 'B', slug: crypto.randomUUID() }, headers: user.headers }), 400)
+    await expectError($fetch(`/api/projects/${mine.id}/lists`, { method: 'POST', body: { name: 'L', slug: crypto.randomUUID() }, headers: user.headers }), 400)
+
+    // By id, the victim still resolves to itself.
+    const byId = await $fetch<{ id: string }>(`/api/projects/${victim.id}`, { headers: user.headers })
+    expect(byId.id).toBe(victim.id)
+  })
 })

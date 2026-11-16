@@ -22,7 +22,11 @@ const LIMIT = 10
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
-  const q = ((getQuery(event).q as string) || '').trim()
+  const query = getQuery(event)
+  const q = ((query.q as string) || '').trim()
+  // Optional: one of the caller's projects. Applied in the query, before the limit:
+  // filtering ten global hits afterwards left a project-scoped search empty.
+  const onlyProject = typeof query.projectId === 'string' && query.projectId ? query.projectId : null
 
   if (!isCardSearchable(q)) return []
 
@@ -33,16 +37,11 @@ export default defineEventHandler(async (event) => {
         .where(eq(schema.projectMembers.userId, user.id))
         .all().map(m => m.id)
 
-  if (!projectIds.length) return []
+  const scope = onlyProject ? projectIds.filter(id => id === onlyProject) : projectIds
+  if (!scope.length) return []
 
-  // `%` and `_` are wildcards and `\` is the escape declared below, so all three
-  // have to survive as literals — searching for "50%" must not match everything.
-  // SQLite's LIKE has no escape character *unless* ESCAPE is given, which is why
-  // the clause is raw rather than drizzle's `like()`. LIKE is already
-  // case-insensitive for ASCII, so nothing lowercases either side.
-  const pattern = `%${q.replace(/[\\%_]/g, '\\$&')}%`
-  const titleMatch = sql`${schema.cards.title} LIKE ${pattern} ESCAPE '\\'`
-  const bodyMatch = sql`${schema.cards.description} LIKE ${pattern} ESCAPE '\\'`
+  const titleMatch = likeContains(schema.cards.title, q)
+  const bodyMatch = likeContains(schema.cards.description, q)
 
   const exactId = cardSearchId(q)
 
@@ -81,7 +80,7 @@ export default defineEventHandler(async (event) => {
     .leftJoin(schema.statuses, eq(schema.cards.statusId, schema.statuses.id))
     .leftJoin(schema.users, eq(schema.cards.assigneeId, schema.users.id))
     .where(and(
-      inArray(schema.cards.projectId, projectIds),
+      inArray(schema.cards.projectId, scope),
       or(...conditions)
     ))
     // Rank before recency, or the one card whose id you typed falls off the end

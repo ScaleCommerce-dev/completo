@@ -56,26 +56,30 @@ export default defineEventHandler(async (event) => {
     actorId: user.id
   })
 
-  // A person who can no longer open the project is unassigned from its cards, as an
-  // agent is. An admin still reaches every project, so their cards stay theirs.
-  let ownCards = 0
-  if (target?.isAdmin) {
-    db.delete(schema.projectMembers)
-      .where(and(
-        eq(schema.projectMembers.projectId, project.id),
-        eq(schema.projectMembers.userId, userId!)
-      ))
-      .run()
-  } else if (targetMembership) {
-    ownCards = removeFromProject(userId!, project.id, user)
-  }
+  // One transaction: the person and the agents they manage leave together, or the
+  // membership invariant below could commit half-applied.
+  return db.transaction(() => {
+    // A person who can no longer open the project is unassigned from its cards, as an
+    // agent is. An admin still reaches every project, so their cards stay theirs.
+    let ownCards = 0
+    if (target?.isAdmin) {
+      db.delete(schema.projectMembers)
+        .where(and(
+          eq(schema.projectMembers.projectId, project.id),
+          eq(schema.projectMembers.userId, userId!)
+        ))
+        .run()
+    } else if (targetMembership) {
+      ownCards = removeFromProject(userId!, project.id, user)
+    }
 
-  // The membership invariant: an agent is only in projects its manager is in, so
-  // the agents this person manages leave with them. An admin's agents are the
-  // exception, since an admin manager reaches every project anyway.
-  const { agents, unassignedCards } = target && !target.isAdmin
-    ? removeManagedAgentsFromProject(userId!, project.id, user)
-    : { agents: [], unassignedCards: 0 }
+    // The membership invariant: an agent is only in projects its manager is in, so
+    // the agents this person manages leave with them. An admin's agents are the
+    // exception, since an admin manager reaches every project anyway.
+    const { agents, unassignedCards } = target && !target.isAdmin
+      ? removeManagedAgentsFromProject(userId!, project.id, user)
+      : { agents: [], unassignedCards: 0 }
 
-  return { ok: true, removedAgents: agents, unassignedCards: ownCards + unassignedCards }
+    return { ok: true, removedAgents: agents, unassignedCards: ownCards + unassignedCards }
+  })
 })

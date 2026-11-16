@@ -16,9 +16,11 @@ on:
 env:
   RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
 
+# Read-only by default; each job is granted only what it writes. The `ci` job runs
+# `pnpm install` and the test suite, so it must not hold a token that can push
+# images or publish releases.
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 # Actions are pinned to commit SHAs, not tags, because this workflow can
 # push images and publish releases: a moved upstream tag must not be able
@@ -75,6 +77,9 @@ jobs:
   build-docker:
     needs: [ci]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     # The whole workflow ran 12-14 minutes across five releases, so anything past this is stuck,
     # not slow. Without it the default is GitHub's 360 minutes: v0.8.0's first two attempts each
     # sat wedged for ~48 minutes on the emulated arm64 leg and had to be killed by hand.
@@ -165,6 +170,11 @@ jobs:
           # binaries embed the standard library and its fixes.
           check-latest: true
 
+      - name: Vet and test
+        if: matrix.suffix == 'linux-amd64'
+        working-directory: cli
+        run: go vet ./... && go test ./...
+
       - name: Build
         working-directory: cli
         env:
@@ -200,6 +210,8 @@ jobs:
   release:
     needs: [build-docker, build-cli]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout

@@ -72,7 +72,7 @@ export function useApiTokens(options: {
       tokenCopied.value = false
       await fetchTokens()
     } catch (e: unknown) {
-      console.error(getErrorMessage(e, 'Failed to create token'))
+      toast.add({ title: 'Failed to create token', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
     } finally {
       tokenLoading.value = false
     }

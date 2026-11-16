@@ -24,15 +24,18 @@ let dbPath: string
 let db: BetterSQLite3Database<typeof schema>
 let sqlite: Database.Database
 
-function run(script: string): string {
+function run(script: string, args: string[] = []): string {
   sqlite.close()
-  const out = execFileSync('node', [resolve(ROOT, 'scripts', script)], {
-    env: { ...process.env, DATABASE_URL: dbPath, UPLOAD_DIR: resolve(dir, 'uploads') },
-    encoding: 'utf8'
-  })
-  sqlite = new Database(dbPath)
-  db = drizzle(sqlite, { schema })
-  return out
+  try {
+    return execFileSync('node', [resolve(ROOT, 'scripts', script), ...args], {
+      env: { ...process.env, DATABASE_URL: dbPath, UPLOAD_DIR: resolve(dir, 'uploads') },
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe']
+    })
+  } finally {
+    sqlite = new Database(dbPath)
+    db = drizzle(sqlite, { schema })
+  }
 }
 
 function addUser(isAdmin = 0) {
@@ -114,5 +117,43 @@ describe('db-seed', () => {
     addUser(1)
     run('db-seed.ts')
     expect(db.select().from(schema.projects).all().map(p => p.slug)).toEqual(['my-project'])
+  })
+})
+
+describe('user-create', () => {
+  it('stores the address lowercased, as login looks it up', () => {
+    run('user-create.ts', ['Admin@Example.com', 'secret-pass', 'Admin', 'admin'])
+    expect(db.select({ email: schema.users.email }).from(schema.users).all()).toEqual([{ email: 'admin@example.com' }])
+  })
+
+  it('repairs an address an earlier version stored with capitals, instead of adding a second account', () => {
+    const id = addUser(1)
+    db.update(schema.users).set({ email: 'Admin@Example.com' }).where(eq(schema.users.id, id)).run()
+
+    run('user-create.ts', ['admin@example.com', 'secret-pass', 'Admin', 'admin', '--skip-existing'])
+    expect(db.select({ id: schema.users.id, email: schema.users.email }).from(schema.users).all()).toEqual([{ id, email: 'admin@example.com' }])
+  })
+})
+
+describe('user-set-role', () => {
+  const isAdmin = (id: string) => db.select({ isAdmin: schema.users.isAdmin }).from(schema.users).where(eq(schema.users.id, id)).get()!.isAdmin
+
+  it('never makes an agent an admin', () => {
+    const id = addUser()
+    db.update(schema.users).set({ kind: 'agent' }).where(eq(schema.users.id, id)).run()
+    expect(() => run('user-set-role.ts', [`${id}@example.com`, 'admin'])).toThrow()
+    expect(isAdmin(id)).toBe(0)
+  })
+
+  it('leaves demoting an agent manager to the app, which prunes their agents', () => {
+    const manager = addUser(1)
+    const agent = addUser()
+    db.update(schema.users).set({ kind: 'agent', managedById: manager }).where(eq(schema.users.id, agent)).run()
+    expect(() => run('user-set-role.ts', [`${manager}@example.com`, 'user'])).toThrow()
+    expect(isAdmin(manager)).toBe(1)
+
+    const plain = addUser(1)
+    run('user-set-role.ts', [`${plain.toUpperCase()}@EXAMPLE.COM`, 'user'])
+    expect(isAdmin(plain)).toBe(0)
   })
 })

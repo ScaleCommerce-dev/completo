@@ -1,7 +1,11 @@
 import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user: _user, board } = await resolveBoard(event)
+  const { user, board } = await resolveBoard(event)
+  // This creates a *project* status, not just a column. Board column access lets any
+  // member who created the board through, which let a member add statuses only an
+  // owner may rename or delete; statuses.post.ts is owner-only for the same act.
+  requireProjectOwner(board.projectId, user.id, { isAdmin: user.isAdmin })
   const { name, color } = await readBody<{ name: string, color?: string }>(event)
 
   if (!name) {

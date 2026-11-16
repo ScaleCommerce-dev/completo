@@ -1,4 +1,4 @@
-import { eq, and, inArray, isNull, sql } from 'drizzle-orm'
+import { eq, and, or, inArray, isNull, sql } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 
 /**
@@ -145,14 +145,9 @@ export function assertNoActiveAgents(user: { id: string, name: string }) {
   }
 }
 
-/**
- * Name or description contains `q`. Raw SQL rather than drizzle's `like()` because
- * SQLite's LIKE has no escape character unless ESCAPE is given, and `%` and `_` in
- * a search for "50%" must stay literal (the same reasoning as cards/search.get.ts).
- */
+/** Name or description contains `q`, literally (`likeContains`). */
 export function agentSearchCondition(q: string) {
-  const pattern = `%${q.replace(/[\\%_]/g, '\\$&')}%`
-  return sql`(${schema.users.name} LIKE ${pattern} ESCAPE '\\' OR ${schema.users.description} LIKE ${pattern} ESCAPE '\\')`
+  return or(likeContains(schema.users.name, q), likeContains(schema.users.description, q))!
 }
 
 // âââ Guards ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
@@ -364,11 +359,15 @@ export function transferAgents(agentIds: string[], toUserId: string, actor: Hist
   if (opts.dryRun || !agentIds.length) {
     return { manager, removedFrom: planAgentMemberships(agentIds, manager) }
   }
-  db.update(schema.users)
-    .set({ managedById: manager.id })
-    .where(and(inArray(schema.users.id, agentIds), eq(schema.users.kind, 'agent')))
-    .run()
-  return { manager, removedFrom: pruneAgentMemberships(agentIds, manager, actor) }
+  // One transaction: a failure between the hand-over and the pruning would leave
+  // agents in projects their new manager is not in, which is the invariant.
+  return db.transaction(() => {
+    db.update(schema.users)
+      .set({ managedById: manager.id })
+      .where(and(inArray(schema.users.id, agentIds), eq(schema.users.kind, 'agent')))
+      .run()
+    return { manager, removedFrom: pruneAgentMemberships(agentIds, manager, actor) }
+  })
 }
 
 /** Load agents by id for a bulk action, 404 if any id is not an agent. */

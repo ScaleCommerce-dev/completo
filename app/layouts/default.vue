@@ -29,7 +29,7 @@ useNotificationStream()
  * stream's fallback (see `useNotificationStream`) and lives here because the
  * sidebar is the one place that never remounts.
  */
-const { unreadCount, refreshUnreadCount } = useNotifications()
+const { unreadCount, refreshUnreadCount } = useUnreadCount()
 let unreadPoll: ReturnType<typeof setInterval> | undefined
 onMounted(() => {
   unreadPoll = setInterval(refreshUnreadCount, 30000)

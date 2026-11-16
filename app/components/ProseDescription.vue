@@ -199,6 +199,28 @@ watch(rendered, () => nextTick(decorateCodeBlocks))
 const copyTimers = new Map<HTMLElement, ReturnType<typeof setTimeout>>()
 
 /** One delegated handler, so a block added by an edit needs no new listener. */
+/**
+ * The rendered HTML is `v-html`, so its anchors are plain `<a>` elements, and a
+ * card reference (`[Title (TK-5)](/projects/slug/cards/TK-5)`, as both editors
+ * write it) reloaded the whole app on click. An in-app path from a plain left click
+ * goes through the router instead; modified clicks, other buttons and anything
+ * opening a new tab keep the browser's behaviour.
+ */
+function onLinkClick(e: MouseEvent) {
+  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+  const link = (e.target as HTMLElement | null)?.closest<HTMLAnchorElement>('a[href]')
+  if (!link || link.target === '_blank') return
+  const href = link.getAttribute('href')!
+  if (!href.startsWith('/') || href.startsWith('//')) return
+  e.preventDefault()
+  navigateTo(href)
+}
+
+function onClick(e: MouseEvent) {
+  onLinkClick(e)
+  onCodeCopy(e)
+}
+
 async function onCodeCopy(e: MouseEvent) {
   const button = (e.target as HTMLElement | null)?.closest<HTMLElement>('.code-copy')
   if (!button) return
@@ -235,7 +257,7 @@ onUnmounted(() => {
     ref="root"
     class="prose prose-sm dark:prose-invert prose-description"
     :class="props.class"
-    @click="onCodeCopy"
+    @click="onClick"
     v-html="rendered"
   />
 </template>

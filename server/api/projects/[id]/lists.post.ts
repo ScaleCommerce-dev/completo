@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   // Generate or validate slug
   let slug = body.slug || generateSlug(body.name)
 
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+  if (!isValidSlug(slug)) {
     throw createError({ statusCode: 400, message: 'Invalid slug format' })
   }
 
@@ -44,7 +44,8 @@ export default defineEventHandler(async (event) => {
     projectId: project.id,
     name: body.name,
     slug,
-    position: existingLists.length,
+    // max + 1, not a count: after a delete, a count ties the new view with an existing one.
+    position: existingLists.reduce((max, v) => Math.max(max, v.position), -1) + 1,
     tagFilters: body.tagFilters?.length ? JSON.stringify(body.tagFilters) : null,
     createdById: user.id
   }).run()

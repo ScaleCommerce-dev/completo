@@ -307,7 +307,9 @@ describe('Board column access authorization', async () => {
     expect(linked.id).toBe(colToUnlink.id)
   })
 
-  it('board creator can create new columns on their board', async () => {
+  // A new column is a new *project* status, which only an owner may rename or
+  // delete, so creating one is owner-only too, even on a board the member made.
+  it('board creator who is not an owner cannot create a new status through their board', async () => {
     const project = await createTestProject(owner, { name: `Creator Add ${Date.now()}` })
 
     await $fetch(`/api/projects/${project.id}/members`, {
@@ -318,13 +320,11 @@ describe('Board column access authorization', async () => {
 
     const board = await createTestBoard(member, project.id, { name: 'Member Board NC' })
 
-    const col = await $fetch(`/api/boards/${board.id}/columns`, {
+    await expectError($fetch(`/api/boards/${board.id}/columns`, {
       method: 'POST',
       body: { name: 'Creator Column', color: '#ff0000' },
       headers: member.headers
-    }) as Record<string, unknown>
-
-    expect(col.name).toBe('Creator Column')
+    }), 403)
   })
 
   it('project owner can configure columns on any board', async () => {

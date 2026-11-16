@@ -1,4 +1,4 @@
-import { and, or, eq, isNull, sql } from 'drizzle-orm'
+import { and, or, eq, isNull } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   await resolveAuth(event)
@@ -9,13 +9,10 @@ export default defineEventHandler(async (event) => {
     return []
   }
 
-  // `%`, `_` and the escape itself stay literal; SQLite's LIKE has no escape
-  // character unless ESCAPE names one (see `agentSearchCondition`).
-  const pattern = `%${q.replace(/[\\%_]/g, '\\$&')}%`
   const users = db.select(userRefColumns())
     .from(schema.users)
     .where(and(
-      sql`${schema.users.name} LIKE ${pattern} ESCAPE '\\'`,
+      likeContains(schema.users.name, q),
       // A suspended agent is left out of every picker.
       or(eq(schema.users.kind, 'human'), isNull(schema.users.suspendedAt))
     ))

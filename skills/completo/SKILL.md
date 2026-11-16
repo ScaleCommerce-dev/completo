@@ -24,7 +24,7 @@ to a remote server. A few facts shape everything below — internalize them and 
 common mistakes:
 
 - **Cards live in a project and have a status.** A card is `{projectKey}-{id}` (e.g. `TK-42`). The
-  numeric part auto-increments per project.
+  numeric part is global across projects, so a project's ticket numbers have gaps.
 - **Boards and lists are *views*, not owners.** Moving or removing a card from a view doesn't delete
   it. You never manipulate views from the CLI — you move cards between *statuses*.
 - **Statuses and tags are per-project and case-sensitive.** `"In Progress"` ≠ `"in progress"`. When
@@ -61,7 +61,7 @@ these by hand. The keys, in case you do:
 # ~/.completo/.env — credentials (required before any command works)
 COMPLETO_URL=https://completo.example.com   # instance URL, no trailing slash
 COMPLETO_TOKEN=...                           # API token from your Completo profile page
-COMPLETO_USER=you@example.com                # your email; powers --me / --assign-me / my-tasks
+COMPLETO_USER=you@example.com                # your email; powers --me / --assign-me (my-tasks uses the token)
 
 # .completo — project settings, committed to the repo
 PROJECT=my-app              # project slug (find it with `completo projects`)
@@ -284,8 +284,8 @@ doubles as a read. `--env-file` overrides config on any command.
 
 ## Notes
 
-- `update` can only change title/description/priority/due. Use `move` for status, `assign` for
-  assignee, `tag` for tags and `comment` for comments — not `update`.
+- `update` can only change title/description/priority/due/parent. Use `move` for status, `assign`
+  for assignee, `tag` for tags and `comment` for comments — not `update`.
 - `next`, `list`, `briefing`, `statuses` and `tags` take an optional positional project slug if
   you're not relying on `.completo`.
 - To scope work to a project without a `.completo` file, pass `--project` (on `create`) or the

@@ -2,7 +2,9 @@
 definePageMeta({ layout: 'default' })
 useSeoMeta({ title: 'Settings · Completo' })
 
-const { data: settings, refresh } = await useFetch<{ allowedEmailDomains: string[] }>('/api/admin/settings')
+// A failed load must not show the form: an empty field would read as "no
+// restriction", and saving it would clear the real list.
+const { data: settings, refresh, status: loadStatus, error: loadError } = await useFetch<{ allowedEmailDomains: string[] }>('/api/admin/settings')
 
 const domainsInput = ref('')
 const saving = ref(false)
@@ -56,7 +58,13 @@ const hasChanges = computed(() => {
     description="Instance-wide configuration"
     width="narrow"
   >
-    <UCard>
+    <UiLoadError
+      v-if="loadStatus === 'error'"
+      what="settings"
+      :error="loadError"
+      @retry="refresh"
+    />
+    <UCard v-else>
       <template #header>
         <div class="flex items-center gap-2">
           <UIcon

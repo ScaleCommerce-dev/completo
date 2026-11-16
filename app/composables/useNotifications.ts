@@ -16,14 +16,37 @@ interface Notification {
   actorManagedBy: { id: string, name: string, avatarUrl: string | null } | null
 }
 
+/** The key of the list fetch, so the stream can refresh the list where it is shown. */
+export const NOTIFICATIONS_LIST_KEY = 'notifications-list'
+
+/**
+ * The unread count alone: the sidebar, the bell and the stream need nothing else.
+ *
+ * It used to come with the whole list, from one `useFetch` the layout mounted at
+ * app load and never unmounted. That key then sat at `status === 'success'`, and
+ * Nuxt does not refetch a key in that state when the page calls it again, so the
+ * Notifications page showed the list from app load: the badge said 1 and a toast
+ * appeared, but the new notification was not on the page. It also downloaded the
+ * whole list on every app load for a number.
+ */
+export function useUnreadCount() {
+  const { data, refresh: refreshUnreadCount } = useFetch<{ count: number }>('/api/notifications/unread-count', { key: 'notifications-unread-count' })
+  const unreadCount = computed(() => data.value?.count ?? 0)
+  return { unreadCount, refreshUnreadCount }
+}
+
+/** The list, for the Notifications page. */
 export function useNotifications() {
   const { mutate, toast } = useMutation()
 
-  const { data: notifications, refresh: refreshNotifications, status } = useFetch<Notification[]>('/api/notifications')
-  const { data: unreadData, refresh: refreshUnreadCount } = useFetch<{ count: number }>('/api/notifications/unread-count')
+  const { data: notifications, refresh: refreshNotifications, status } = useFetch<Notification[]>('/api/notifications', { key: NOTIFICATIONS_LIST_KEY })
+  const { unreadCount, refreshUnreadCount } = useUnreadCount()
+  // A second visit finds the key already loaded, which Nuxt does not refetch.
+  onMounted(() => {
+    if (status.value === 'success') refreshNotifications()
+  })
 
   const items = computed(() => notifications.value || [])
-  const unreadCount = computed(() => unreadData.value?.count ?? 0)
 
   function refresh() {
     refreshNotifications()

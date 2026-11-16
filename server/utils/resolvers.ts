@@ -1,13 +1,13 @@
-import { eq, or, and } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 
 /** Fetch project by slug or ID + auth check. Returns membership for role access. */
 export async function resolveProject(event: H3Event, opts?: { auth?: 'member' | 'owner' }) {
   const { user } = await resolveAuth(event)
   const id = getRouterParam(event, 'id')!
-  const project = db.select().from(schema.projects)
-    .where(or(eq(schema.projects.slug, id), eq(schema.projects.id, id)))
-    .get()
+  // Id first: a slug must never shadow another project's id (`isValidSlug`).
+  const project = db.select().from(schema.projects).where(eq(schema.projects.id, id)).get()
+    ?? db.select().from(schema.projects).where(eq(schema.projects.slug, id)).get()
   if (!project) throw createError({ statusCode: 404, message: 'Project not found' })
   // Check membership first — 404 hides resource existence from non-members
   try {
@@ -157,17 +157,17 @@ export async function resolveList(event: H3Event, opts?: { columnAccess?: boolea
       .get()
     if (project) {
       list = db.select().from(schema.lists)
-        .where(and(
-          or(eq(schema.lists.id, listId), eq(schema.lists.slug, listId)),
-          eq(schema.lists.projectId, project.id)
-        ))
+        .where(and(eq(schema.lists.id, listId), eq(schema.lists.projectId, project.id)))
         .get()
+        ?? db.select().from(schema.lists)
+          .where(and(eq(schema.lists.slug, listId), eq(schema.lists.projectId, project.id)))
+          .get()
     }
   }
   if (!list) {
-    list = db.select().from(schema.lists)
-      .where(or(eq(schema.lists.id, listId), eq(schema.lists.slug, listId)))
-      .get()
+    // Id first, as in resolveProject: a slug must never shadow another list's id.
+    list = db.select().from(schema.lists).where(eq(schema.lists.id, listId)).get()
+      ?? db.select().from(schema.lists).where(eq(schema.lists.slug, listId)).get()
   }
   if (!list) throw createError({ statusCode: 404, message: 'List not found' })
 

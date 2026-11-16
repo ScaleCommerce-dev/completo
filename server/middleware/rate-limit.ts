@@ -5,8 +5,9 @@ export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname
   const method = getMethod(event)
 
-  // Rate-limit AI generation endpoints
-  if (method === 'POST' && /^\/api\/projects\/[^/]+\/ai\//.test(path)) {
+  // Rate-limit AI generation endpoints: one budget for every endpoint that calls the
+  // provider, card-scoped ones included, since each call costs the same.
+  if (method === 'POST' && /^\/api\/(projects|cards)\/[^/]+\/ai\//.test(path)) {
     checkRateLimit(event, { name: 'ai-generation', max: 10, windowSeconds: 60 })
     return
   }

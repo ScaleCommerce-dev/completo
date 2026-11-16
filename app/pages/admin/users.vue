@@ -30,7 +30,7 @@ interface PendingInvitation {
 }
 
 const { user: currentUser } = useUserSession()
-const { data: users, refresh } = await useFetch<AdminUser[]>('/api/admin/users')
+const { data: users, refresh, status: usersStatus, error: usersError } = await useFetch<AdminUser[]>('/api/admin/users')
 const { data: pendingInvitations, refresh: refreshInvitations } = await useFetch<PendingInvitation[]>('/api/admin/invitations')
 
 // Delete user state
@@ -396,8 +396,17 @@ const TABLE_UI = {
       />
     </template>
 
+    <UiLoadError
+      v-if="usersStatus === 'error'"
+      what="accounts"
+      :error="usersError"
+      @retry="refresh"
+    />
     <!-- Suspended rows keep the error tint; `meta.class.tr` is resolved per row. -->
-    <div class="rounded-xl border border-default bg-default overflow-hidden">
+    <div
+      v-else
+      class="rounded-xl border border-default bg-default overflow-hidden"
+    >
       <UTable
         :data="users || []"
         :columns="userColumns"

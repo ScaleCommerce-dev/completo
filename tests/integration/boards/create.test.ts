@@ -54,6 +54,21 @@ describe('POST /api/projects/:id/boards', async () => {
     expect(ids1).toEqual(ids2)
   })
 
+  it('places a new board and a new list after the last one, not at the count', async () => {
+    const project = await createTestProject(user, { name: `Board Position ${Date.now()}` })
+    const create = (kind: 'boards' | 'lists', name: string) =>
+      $fetch<{ id: string, position: number }>(`/api/projects/${project.id}/${kind}`, { method: 'POST', body: { name }, headers: user.headers })
+
+    for (const kind of ['boards', 'lists'] as const) {
+      const a = await create(kind, `${kind} A`)
+      const b = await create(kind, `${kind} B`)
+      await $fetch(`/api/${kind}/${a.id}`, { method: 'DELETE', headers: user.headers })
+      // A count would now hand out b's position again.
+      const c = await create(kind, `${kind} C`)
+      expect(c.position).toBe(b.position + 1)
+    }
+  })
+
   it('inherits column positions from existing board', async () => {
     const project = await createTestProject(user, { name: `Inherit Pos ${Date.now()}` })
 

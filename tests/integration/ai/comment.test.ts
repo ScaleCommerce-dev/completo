@@ -129,6 +129,21 @@ describe('AI comment support', () => {
       }), 400)
     })
 
+    it('caps the draft and the prompt, since every call goes to a paid provider', async () => {
+      for (const body of [
+        { body: 'x'.repeat(50_001), userPrompt: 'tidy' },
+        { body: 'draft', userPrompt: 'x'.repeat(4_001) }
+      ]) {
+        const res = await fetch(url(`/api/cards/${cardId}/ai/comment`), {
+          method: 'POST',
+          headers: { ...user.headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+        expect(res.status).toBe(400)
+        expect((await res.json()).message).toContain('too long')
+      }
+    })
+
     it('requires either a skill or a prompt', async () => {
       await expectError($fetch(`/api/cards/${cardId}/ai/comment`, {
         method: 'POST',

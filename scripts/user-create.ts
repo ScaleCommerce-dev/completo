@@ -63,6 +63,11 @@ if (!email || !password) {
   process.exit(1)
 }
 
+// Stored lowercased, as login, registration and the API do: login looks the address
+// up lowercased, so `Admin@Example.com` stored verbatim made an admin nobody could
+// sign in as.
+email = email.trim().toLowerCase()
+
 const dbPath = resolve(projectRoot, process.env.DATABASE_URL || 'sqlite.db')
 console.log(`Database: ${dbPath}`)
 
@@ -70,9 +75,16 @@ const db = new Database(dbPath)
 db.pragma('foreign_keys = ON')
 
 // Check for existing user
-const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as { id: string } | undefined
+// The exact match first, so a repair below never collides with a row already lowercased.
+const existing = db.prepare('SELECT id, email FROM users WHERE lower(email) = ? ORDER BY email = ? DESC').get(email, email) as { id: string, email: string } | undefined
 if (existing) {
   if (skipExisting) {
+    // An account an earlier version stored with capitals: repair it, or it stays
+    // impossible to sign in to.
+    if (existing.email !== email) {
+      db.prepare('UPDATE users SET email = ? WHERE id = ?').run(email, existing.id)
+      console.log(`Lowercased the stored address of ${email} so it can sign in`)
+    }
     console.log(`User already exists with email: ${email} — skipping`)
     db.close()
     process.exit(0)

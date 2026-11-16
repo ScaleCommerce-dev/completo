@@ -6,6 +6,7 @@ Completo is a self-hosted Kanban board app for small teams — a lightweight alt
 
 ```
 User ── has many ── ProjectMemberships (role: owner | member)
+  ├── kind: human | agent (an agent is an account for an AI tool, managed by a person)
   └── has many ── ApiTokens, Notifications, MyTasksColumns
 
 Project ── has many ── Statuses, Cards, Tags, Members, Boards, Lists, Invitations
@@ -13,8 +14,9 @@ Project ── has many ── Statuses, Cards, Tags, Members, Boards, Lists, In
   └── briefing → markdown context for AI features (this document)
 
 Card ── belongs to ── Project + Status
-  ├── has many ── Tags (many-to-many via CardTags), Attachments
-  ├── assigneeId → optional User reference
+  ├── has many ── Tags (many-to-many via CardTags), Attachments, Comments, CardEvents (history)
+  ├── parentId → optional parent Card: a sub-task (same project, one level)
+  ├── assigneeId → optional User reference (a person or an agent)
   ├── priority: low | medium | high | urgent
   ├── dueDate, description (markdown), position (integer sort order)
   └── id: INTEGER AUTOINCREMENT (displayed as "{projectKey}-{id}", e.g. TK-42)
@@ -34,7 +36,7 @@ Attachment ── belongs to ── Card; file upload with metadata
 AI Skill ── global prompt templates for card description generation
 ```
 
-**Key invariant:** Boards and Lists are *views* — they don't own cards. Removing a column from a board just unlinks the view; cards survive. Deleting a Status cascades and removes its cards.
+**Key invariants:** Boards and Lists are *views* — they don't own cards. Removing a column from a board just unlinks the view; cards survive. Deleting a Status that still has cards requires choosing another status to move them to; the last status cannot be deleted. A parent card cannot enter Done while one of its sub-tasks is open.
 
 ## Workflow & Lifecycle
 
@@ -59,7 +61,8 @@ Cards move between statuses via drag-and-drop on boards, dropdown selection in l
 - **Access control:** Non-members get 404 (not 403) to avoid leaking resource existence.
 - **IDOR prevention:** Every card/tag/board endpoint validates the resource belongs to the correct project.
 - **Invitations:** Project owners can invite by email. Invitations have a token and expiry. Domain allowlist restricts self-registration only — invitations bypass it.
-- **Auth:** Session-based (cookie) + API tokens (Bearer). Login requires verified email. OAuth supported (Google, GitHub, GitLab — optional). Password sentinels: `!oauth` = OAuth-only user, `!invited` = pending setup.
+- **Auth:** Session-based (cookie) + API tokens (Bearer). Login requires verified email. OAuth sign-in supported (Google, GitHub, Microsoft — optional). Password sentinels: `!oauth` = OAuth-only user, `!invited` = pending setup, `!agent` = agent account.
+- **Agents:** Accounts for AI tools, acting only through API tokens. An agent is only a member of projects its managing person is in, and is never an admin, a project owner, or an email recipient.
 
 ## Key Design Decisions
 
@@ -78,16 +81,19 @@ Cards move between statuses via drag-and-drop on boards, dropdown selection in l
 - **Backend:** Nuxt server routes (Nitro), Drizzle ORM, SQLite (single file database)
 - **API:** REST, project-scoped endpoints nested under `/api/projects/[id]/...`. Card endpoints validate resources belong to the correct project (IDOR prevention).
 - **Frontend patterns:** Composables follow `useXxx()` naming. `useViewData()` is the shared base for board/list views; `useKanban()` and `useListView()` extend it. `useMutation()` wraps try/catch/toast error handling. Pages use `useFetch()`, composables use `$fetch()`.
-- **CLI:** Go (Cobra), communicates via REST API with Bearer token auth. Commands map to API endpoints (get, list, create, move, assign, search, briefing).
-- **Fonts:** Plus Jakarta Sans (body), JetBrains Mono (code/IDs). Icons: Lucide (`i-lucide-*`)
+- **CLI:** Go (Cobra), communicates via REST API with Bearer token auth. Commands map to API endpoints (get, list, create, update, move, assign, tag, comment, search, briefing).
+- **MCP:** `/mcp` exposes the same operations to AI clients (Claude and others), as a thin layer over the REST API; Completo is its own OAuth server for it.
+- **Live updates:** Boards, lists and notifications update through server-sent events, without a page refresh.
+- **Fonts:** Plus Jakarta Sans (UI), DM Mono (code/IDs), Inter (figures). Icons: Lucide (`i-lucide-*`)
 - **AI:** Supports Anthropic, OpenAI, or OpenRouter for card description generation. Optional — disabled if no provider configured.
 - **File storage:** Local filesystem (configurable upload directory)
 
 ## UI/UX Conventions
 
-- **Aesthetic:** "Trello meets Linear" — indigo-violet primary palette, zinc neutrals
-- **Priority icons:** `alert-circle` (urgent/red), `chevron-up` (high/orange), `grip-horizontal` (medium/indigo), `chevron-down` (low/slate)
-- **Due dates:** Red = overdue, orange = due today/tomorrow, slate = future
+- **Aesthetic:** "Trello meets Linear", in the connect2scale company design: a dark sidebar and top bar, a magenta accent, neutral chrome where only data carries colour
+- **Priority icons:** `alert-circle` (urgent), `chevron-up` (high), `equal` (medium), `chevron-down` (low)
+- **Due dates:** a red pill when overdue, an orange pill when due soon, plain text otherwise
+- **Cards:** open in a side panel beside the board; everything else is a centred dialog
 - **Ticket IDs:** `{projectKey}-{cardId}` displayed above card title, monospace font, copyable
 - **Destructive actions:** Require type-name-to-confirm for views/projects; simple confirm for cards
 - **Views:** Boards (Kanban columns) and Lists (sortable tables) are both configurable via a settings modal with filters for status, priority, assignee, and tags
@@ -106,6 +112,9 @@ Cards move between statuses via drag-and-drop on boards, dropdown selection in l
 | **Briefing** | This document — markdown project context for AI features |
 | **AI Skill** | Reusable prompt template for card description generation (admin-managed) |
 | **Done retention** | How many days to keep done cards visible before filtering them from views |
+| **Sub-task** | A card whose parent is another card in the same project; one level deep |
+| **Agent** | An account for an AI tool, with its own name and tokens, managed by a person |
+| **Comment** | A Markdown note on a card; supports @mentions |
 
 ## Ticket Conventions
 
@@ -161,10 +170,10 @@ The `search` command currently returns all matching cards regardless of status. 
 ## Out of Scope
 
 Completo intentionally does NOT include:
-- Real-time collaboration / WebSocket sync (page refresh to see others' changes)
+- Collaborative editing of the same text at the same time
 - Recurring or scheduled cards
 - Time tracking or estimates
-- Subtasks or card hierarchies
+- Card hierarchies deeper than one level of sub-tasks
 - Custom fields beyond the built-in set
 - Gantt charts, roadmaps, or timeline views
 - Public/guest access to boards (authentication required)

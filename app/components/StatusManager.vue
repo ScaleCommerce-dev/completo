@@ -75,21 +75,38 @@ const moveTargets = computed(() => props.statuses
 const movingCount = computed(() => pendingMove.value?.cardCount ?? 0)
 const moveTargetName = computed(() => props.statuses.find(s => s.id === moveTargetId.value)?.name ?? '')
 
+const { mutate } = useMutation()
+const writing = ref(false)
+
+/**
+ * One write at a time, toasted when it fails. These were bare `$fetch` calls: a
+ * failure was an unhandled rejection with no message, and Enter pressed twice in
+ * the add field sent two POSTs, so the project got the status twice. On failure
+ * the field keeps what was typed.
+ */
+async function write(op: () => Promise<unknown>, errorTitle: string): Promise<boolean> {
+  if (writing.value) return false
+  writing.value = true
+  try {
+    await mutate(op, errorTitle)
+    return true
+  } catch {
+    return false
+  } finally {
+    writing.value = false
+  }
+}
+
 async function updateStatusColor(colId: string, color: string) {
   colColorPopoverOpen.value[colId] = false
-  await $fetch(`/api/statuses/${colId}`, {
-    method: 'PUT',
-    body: { color }
-  })
+  if (!await write(() => $fetch(`/api/statuses/${colId}`, { method: 'PUT', body: { color } }), 'Failed to change status colour')) return
   emit('refresh')
 }
 
 async function addProjectStatus() {
   if (!newColName.value.trim()) return
-  await $fetch(`/api/projects/${props.projectId}/statuses`, {
-    method: 'POST',
-    body: { name: newColName.value.trim(), color: newColColor.value }
-  })
+  const body = { name: newColName.value.trim(), color: newColColor.value }
+  if (!await write(() => $fetch(`/api/projects/${props.projectId}/statuses`, { method: 'POST', body }), 'Failed to add status')) return
   newColName.value = ''
   newColColor.value = '#6366f1'
   emit('refresh')
@@ -102,10 +119,9 @@ function startEditStatus(col: Status) {
 
 async function saveEditStatus() {
   if (!editingColId.value || !editingColName.value.trim()) return
-  await $fetch(`/api/statuses/${editingColId.value}`, {
-    method: 'PUT',
-    body: { name: editingColName.value.trim() }
-  })
+  const id = editingColId.value
+  const name = editingColName.value.trim()
+  if (!await write(() => $fetch(`/api/statuses/${id}`, { method: 'PUT', body: { name } }), 'Failed to rename status')) return
   editingColId.value = null
   editingColName.value = ''
   emit('refresh')
@@ -175,10 +191,7 @@ async function confirmMoveAndDelete() {
 }
 
 async function setDoneStatus(statusId: string | null) {
-  await $fetch(`/api/projects/${props.projectId}` as string, {
-    method: 'PUT' as const,
-    body: { doneStatusId: statusId }
-  })
+  if (!await write(() => $fetch(`/api/projects/${props.projectId}` as string, { method: 'PUT' as const, body: { doneStatusId: statusId } }), 'Failed to set the done status')) return
   emit('refresh')
 }
 </script>

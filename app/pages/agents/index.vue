@@ -51,7 +51,7 @@ watch(managerFilter, (id) => {
   if (id && isAdmin.value) scope.value = 'all'
 }, { immediate: true })
 
-const { data, refresh, status } = useFetch<AgentSummary[]>('/api/agents', {
+const { data, refresh, status, error } = useFetch<AgentSummary[]>('/api/agents', {
   query: computed(() => ({ scope: scope.value }))
 })
 const agents = computed(() => data.value ?? [])
@@ -339,8 +339,15 @@ const TD = `${TABLE_CELL_PAD} text-sm text-default align-middle`
       </div>
     </template>
 
+    <UiLoadError
+      v-if="status === 'error'"
+      what="agents"
+      :error="error"
+      @retry="refresh"
+    />
+
     <UEmpty
-      v-if="status !== 'pending' && !agents.length"
+      v-else-if="status === 'success' && !agents.length"
       class="c2s-empty-brand py-16"
       icon="i-lucide-bot"
       :title="scope === 'all' ? 'No agents yet' : 'You have no agents yet'"

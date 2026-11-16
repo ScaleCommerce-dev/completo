@@ -62,6 +62,15 @@ describe('PUT /api/cards/:id/tags', async () => {
     expect(result.tags).toHaveLength(2)
   })
 
+  it('treats a repeated tag id as one tag', async () => {
+    const card = await createTestCard(owner, projectId, statusId)
+    await setCardTags(owner, card.id, [tag1.id, tag1.id])
+
+    const board = await getBoard(owner, boardId)
+    const onBoard = board.cards.find((c: { id: number }) => c.id === card.id)
+    expect(onBoard.tags.map((t: { id: string }) => t.id)).toEqual([tag1.id])
+  })
+
   it('clears all tags with empty array', async () => {
     const card = await createTestCard(owner, projectId, statusId)
     await setCardTags(owner, card.id, [tag1.id])

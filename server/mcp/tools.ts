@@ -105,7 +105,7 @@ interface ApiSearchHit {
   projectName: string
   statusName: string | null
   isDone: number
-  assigneeName: string | null
+  assignee: { name: string } | null
 }
 interface ApiMyTasks {
   groups: Array<{ project: ApiProjectRef, statuses: ApiStatus[], cards: ApiCard[] }>
@@ -350,16 +350,15 @@ const TOOLS: Tool[] = [
       const q = need(args, 'query')
       const projectRef = str(args, 'project')
       const only = projectRef ? await loadProject(ctx, projectRef) : null
-      const hits = await ctx.get<ApiSearchHit[]>('/api/cards/search', { q })
+      const hits = await ctx.get<ApiSearchHit[]>('/api/cards/search', only ? { q, projectId: only.id } : { q })
       return hits
-        .filter(h => !only || h.projectSlug === only.slug)
         .map(h => ({
           ticket: `${h.projectKey}-${h.id}`,
           title: h.title,
           status: h.statusName,
           done: !!h.isDone,
           priority: h.priority ?? 'medium',
-          assignee: h.assigneeName,
+          assignee: h.assignee?.name ?? null,
           dueDate: h.dueDate ? h.dueDate.slice(0, 10) : null,
           project: h.projectSlug,
           url: cardUrl(ctx, h.projectSlug, `${h.projectKey}-${h.id}`)

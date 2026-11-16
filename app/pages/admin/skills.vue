@@ -9,7 +9,7 @@ interface Skill {
   scope: 'card' | 'board'
 }
 
-const { data: skills, refresh } = await useFetch<Skill[]>('/api/admin/skills')
+const { data: skills, refresh, status, error } = await useFetch<Skill[]>('/api/admin/skills')
 
 // Create/Edit modal
 const showModal = ref(false)
@@ -122,8 +122,15 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
       />
     </template>
 
+    <UiLoadError
+      v-if="status === 'error'"
+      what="AI skills"
+      :error="error"
+      @retry="refresh"
+    />
+
     <UEmpty
-      v-if="!skills?.length"
+      v-else-if="!skills?.length"
       class="c2s-empty-brand py-16"
       icon="i-lucide-sparkles"
       title="No AI skills yet"

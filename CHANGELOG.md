@@ -13,16 +13,36 @@
 - **A deleted demo project stays deleted.** It came back on the next restart, and renaming it could stop the container from starting with `UNIQUE constraint failed: projects.key`.
 - **Sign-in limits can no longer be bypassed with a forged header.** Login, registration, password reset, OAuth and upload limits counted requests per `X-Forwarded-For` value, which a client can set to anything. They now count the address your reverse proxy saw, and repeated failed logins for one account are limited however many addresses they come from.
 - **Signing in with Google, GitHub or Microsoft takes over an unconfirmed registration of your address.** If someone had registered your email with their own password and never confirmed it, that password kept working once you signed in with a provider and confirmed the address. It is now removed, along with any outstanding confirmation link.
+- **The Notifications page shows new notifications.** It kept the list from when the app was opened, so a notification announced by a toast and the badge was missing from the page until something was marked read.
+- **Card links in descriptions and comments open in place**, instead of reloading the whole app.
+- **Attaching a file to a new card works again after its first save failed.** Until a reload, every later drop or pick did nothing.
+- **Pages say when they could not load, with a way to try again.** A failed load used to look empty: "Nothing assigned to you", no projects, no agents, or an empty list of allowed email domains, which saving would have cleared. Creating an API token and changing statuses in project settings now report a failure too, and pressing Enter twice no longer adds a status twice.
+- **Searching for `50%` or `a_b` in a project finds it.** The project search (the CLI's `search` and the `#` card picker) matched nothing for a term with `%` or `_`.
+- **Claude's card search shows the assignee and searches the project you name.** Over MCP, `search_cards` returned no assignee, and limited to a project it could come back empty when other projects had newer matches.
+- **A new board or list goes after the last one** rather than sharing a place with an existing view after one was deleted.
+- **Only project owners can add a status from a board.** A member who had created a board could add statuses to the project there, which only an owner could then rename or delete.
+- **A project, board or list can no longer have a slug that looks like an id**, which could make a link to another project open this one instead.
+- **AI assistance on comments counts against the same limit as descriptions**, and very long titles, descriptions, drafts and instructions are refused rather than sent to the provider.
+- **AI settings passed to the Docker image are honoured.** `-e AI_PROVIDER=...` and the matching API key were read when the image was built, not when it ran, so AI stayed off unless the `NUXT_` spellings were used.
+- **Large projects load faster**, with indexes on the tables every view reads.
+- **`user:create` stores the email address in lowercase**, so an admin created as `Admin@Example.com` can sign in; an existing account stored that way is repaired the next time the container starts with `ADMIN_USER_EMAIL`. `user:set-role` refuses to make an agent an admin, and leaves demoting someone who manages agents to the app, which removes those agents from projects their manager is not in.
 
 ### CLI
 
 - `completo create --parent TK-12` creates a sub-task, and `completo update TK-13 --parent TK-12` (or `--parent none`) moves or detaches one. `completo get` lists a card's sub-tasks and shows a sub-task's parent. `completo list --parent TK-12` lists one card's sub-tasks, `--parent none` only cards that are not sub-tasks, and the list shows a PARENT column when it contains a sub-task. Moving a parent with open sub-tasks to Done fails and names them.
 - **A project's `.completo.local` can no longer receive your exported token.** A file that set `COMPLETO_URL` along with any `COMPLETO_TOKEN` passed the check, and an exported `COMPLETO_TOKEN` then replaced its token and went to the file's server. The CLI now refuses unless the token it sends is the file's own, or the server is the one in `~/.completo/.env`.
+- **`completo self-update` verifies what it installs** against the release's `checksums.txt`, as the install script does, and refuses when it cannot. It also reports a failed update check instead of saying "Already up to date", no longer hangs on a stalled download, and works when the system temp directory is on another disk. The install script no longer installs without a checksum.
 
 ### Upgrading
 
 - **Behind more than one proxy, set `TRUSTED_PROXY_HOPS`.** Rate limits now trust `X-Forwarded-For` only as far as one proxy on a private or loopback address. With a CDN in front of your reverse proxy, set it to `2`, or every visitor shares one limit. See `docker/README.md`.
 - **`PUT /api/boards/{id}/cards/reorder` is removed.** Nothing in Completo used it, and it let a card with open sub-tasks into Done. Move cards one at a time with `PUT /api/cards/{id}/move`.
+- **A migration adds indexes and removes duplicate rows** (a person listed twice in one project, a tag twice on one card, a status twice on one board) before making each unique. It runs on its own at start-up.
+- **`POST /api/projects/{id}/cards` no longer requires `statusId`;** without it, the card starts in the project's first status that is not Done.
+
+### Dev
+
+- CI runs with read-only permissions by default, on pull requests as well as pushes, and runs `go vet` and `go test` for the CLI; the release workflow grants write access only to the jobs that push images or publish the release.
 
 ## v0.17.0 (2026-11-12)
 
