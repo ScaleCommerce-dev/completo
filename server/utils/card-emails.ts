@@ -99,7 +99,7 @@ export function resolveCardEmailRecipients(projectId: string, userIds: string[])
  * Test-only record of the card emails that would be sent, readable through
  * /api/_test/card-emails. Integration tests run with SMTP disabled, so without it
  * nothing would observe which call site emails whom. Only filled when
- * ALLOW_TEST_ENDPOINTS is set; production never touches it.
+ * ALLOW_TEST_ENDPOINTS is '1' (`testEndpointsEnabled`); production never touches it.
  */
 export const cardEmailTestOutbox: Array<{ to: string, userId: string, kind: CardEmailKind, cardId: number, subject: string, text: string }> = []
 
@@ -122,7 +122,7 @@ export function sendCardActivityEmails(params: {
   mentionText?: string | null
   mentionSource?: 'description' | 'comment'
 }): void {
-  const testMode = !!process.env.ALLOW_TEST_ENDPOINTS
+  const testMode = testEndpointsEnabled()
   if (!isEmailEnabled() && !testMode) return
 
   const planned = planCardEmails(params)

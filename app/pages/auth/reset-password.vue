@@ -16,12 +16,20 @@ async function resetPassword() {
   loading.value = true
   error.value = ''
   try {
-    await $fetch('/auth/reset-password', {
+    const result = await $fetch<{ revokedAgentTokens?: number }>('/auth/reset-password', {
       method: 'POST',
       body: { token: token.value, password: password.value }
     })
     const { fetch: refreshSession } = useUserSession()
     await refreshSession()
+    if (result.revokedAgentTokens) {
+      useToast().add({
+        title: 'Your agents need new tokens',
+        description: `${plural(result.revokedAgentTokens, 'agent token')} revoked with the reset, in case someone else held your account. Generate new ones on the Agents page.`,
+        color: 'info',
+        actions: [{ label: 'Agents', to: '/agents' }]
+      })
+    }
     navigateTo('/projects')
   } catch (e: unknown) {
     error.value = getErrorMessage(e, 'Failed to reset password')

@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { $fetch, url } from '../../setup/server'
 import { registerTestUser, createAdminUser, type TestUser } from '../../setup/auth'
 import { createTestProject, createTestBoard, createTestCard, getBoard, uploadAttachment } from '../../setup/fixtures'
@@ -192,6 +194,23 @@ describe('Card Attachments', async () => {
       headers: user.headers
     })
     expect(res2.status).toBe(200)
+  })
+
+  it('removes the files from disk when their project is deleted', async () => {
+    // The cascade drops the attachment rows, which are the only record of the files;
+    // a project delete used to leave every one of them behind.
+    const doomed = await createTestProject(user, { name: `Attach Doomed ${Date.now()}` })
+    const doomedBoard = await getBoard(user, (await createTestBoard(user, doomed.id)).id)
+    const card = await createTestCard(user, doomed.id, doomedBoard.columns[0].id)
+    const att = await uploadAttachment(user, card.id, { filename: 'doomed.txt', content: 'bye' }) as { storageKey: string }
+    const file = resolve(import.meta.dirname, '../../../data/test-uploads', att.storageKey)
+    expect(existsSync(file)).toBe(true)
+
+    await $fetch(`/api/projects/${doomed.id}`, { method: 'DELETE', headers: user.headers })
+
+    // Removed in the background, after the response.
+    for (let i = 0; i < 20 && existsSync(file); i++) await new Promise(r => setTimeout(r, 50))
+    expect(existsSync(file)).toBe(false)
   })
 
   it('includes attachmentCount in board response', async () => {

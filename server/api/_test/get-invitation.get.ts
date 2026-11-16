@@ -1,7 +1,5 @@
 export default defineEventHandler(async (event) => {
-  if (!process.env.ALLOW_TEST_ENDPOINTS) {
-    throw createError({ statusCode: 404, message: 'Not found' })
-  }
+  requireTestEndpoints()
 
   const { email } = getQuery(event) as { email?: string }
   if (!email) {

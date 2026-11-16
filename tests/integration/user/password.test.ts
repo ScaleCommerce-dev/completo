@@ -1,8 +1,23 @@
 import { describe, it, expect } from 'vitest'
 import { $fetch, url, expectError } from '../../setup/server'
-import { registerTestUser } from '../../setup/auth'
+import { registerTestUser, createTestToken } from '../../setup/auth'
 
 describe('PUT /api/user/password', async () => {
+  it('revokes API tokens, which a past holder of the password could have minted', async () => {
+    const user = await registerTestUser({ password: 'oldpass123' })
+    const token = await createTestToken(user)
+    expect((await fetch(url('/api/projects'), { headers: token.headers })).status).toBe(200)
+
+    const result = await $fetch<{ revokedTokens: number }>('/api/user/password', {
+      method: 'PUT',
+      body: { currentPassword: 'oldpass123', newPassword: 'newpass456' },
+      headers: user.headers
+    })
+
+    expect(result.revokedTokens).toBe(1)
+    expect((await fetch(url('/api/projects'), { headers: token.headers })).status).toBe(401)
+  })
+
   it('changes password successfully', async () => {
     const user = await registerTestUser({ password: 'oldpass123' })
 

@@ -1,6 +1,6 @@
 export default defineEventHandler(async (event) => {
   // Skip rate limiting in test environment
-  if (process.env.ALLOW_TEST_ENDPOINTS) return
+  if (testEndpointsEnabled()) return
 
   const path = getRequestURL(event).pathname
   const method = getMethod(event)

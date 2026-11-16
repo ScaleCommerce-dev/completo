@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { token, password } = await readBody<{ token: string, password: string }>(event)
@@ -37,13 +37,22 @@ export default defineEventHandler(async (event) => {
   // A reset is how someone takes their account back, so it must also take back what
   // a past holder of the password minted: API tokens and MCP grants never expire on
   // their own, and one created during a takeover outlived the reset that ended it.
-  // Agents' tokens stay — they are the manager's tooling, revoked from the agents page.
+  // That includes the tokens of the agents this person manages: whoever held the
+  // account could create an agent, or mint a token for an existing one, and keep
+  // acting in these projects after the reset. The agents themselves stay, with their
+  // projects and history; their manager generates new tokens for the ones they know.
   db.delete(schema.apiTokens).where(eq(schema.apiTokens.userId, user.id)).run()
   db.delete(schema.oauthGrants).where(eq(schema.oauthGrants.userId, user.id)).run()
+  const managedAgents = db.select({ id: schema.users.id }).from(schema.users)
+    .where(and(eq(schema.users.kind, 'agent'), eq(schema.users.managedById, user.id)))
+  const revokedAgentTokens = db.delete(schema.apiTokens)
+    .where(inArray(schema.apiTokens.userId, managedAgents))
+    .returning({ id: schema.apiTokens.id })
+    .all().length
 
   // Every other sign-in ends, including one a past holder of the password still has
   // open; the person resetting is signed in fresh.
   await rotateSessions(event, user)
 
-  return { ok: true }
+  return { ok: true, revokedAgentTokens }
 })

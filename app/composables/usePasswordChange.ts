@@ -12,18 +12,27 @@ export function usePasswordChange() {
       passwordError.value = 'New passwords do not match'
       return
     }
-    if (newPassword.value.length < 6) {
-      passwordError.value = 'New password must be at least 6 characters'
+    if (newPassword.value.length < 8) {
+      passwordError.value = 'New password must be at least 8 characters'
       return
     }
     passwordLoading.value = true
     passwordError.value = ''
     passwordSuccess.value = false
     try {
-      await $fetch('/api/user/password', {
+      const result = await $fetch<{ revokedTokens: number, revokedGrants: number }>('/api/user/password', {
         method: 'PUT',
         body: { currentPassword: currentPassword.value, newPassword: newPassword.value }
       })
+      // A change revokes what a past holder of the password could have minted; say so,
+      // or a CI pipeline breaking an hour later is a mystery.
+      const revoked = [
+        result.revokedTokens ? plural(result.revokedTokens, 'API token') : '',
+        result.revokedGrants ? plural(result.revokedGrants, 'connected app') : ''
+      ].filter(Boolean)
+      if (revoked.length) {
+        useToast().add({ title: 'Password changed', description: `${revoked.join(' and ')} revoked. Create new ones where you still need them.`, color: 'info' })
+      }
       currentPassword.value = ''
       newPassword.value = ''
       confirmPassword.value = ''

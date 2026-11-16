@@ -74,6 +74,17 @@ describe('Project member management', () => {
 
   // ── Role changes ──
 
+  it('answers 404 for removing someone who is not a member, and tells them nothing', async () => {
+    const outsider = await registerTestUser()
+    const res = await fetch(url(`/api/projects/${project.id}/members/${outsider.id}`), {
+      method: 'DELETE',
+      headers: owner.headers
+    })
+    expect(res.status).toBe(404)
+    const notifications = await $fetch<Array<{ type: string }>>('/api/notifications', { headers: outsider.headers })
+    expect(notifications.filter(n => n.type === 'member_removed')).toEqual([])
+  })
+
   it('owner can promote member to owner', async () => {
     // Re-add member first
     await $fetch(`/api/projects/${project.id}/members`, {

@@ -1,9 +1,7 @@
 import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  if (!process.env.ALLOW_TEST_ENDPOINTS) {
-    throw createError({ statusCode: 404, message: 'Not found' })
-  }
+  requireTestEndpoints()
 
   const query = getQuery(event)
   const userId = query.userId as string

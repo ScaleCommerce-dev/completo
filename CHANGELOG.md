@@ -31,6 +31,10 @@
 - **The new board or list dialog checks the address reliably.** Clearing the address no longer leaves a spinner, switching between board and list no longer keeps the other's answer, and pressing ⌘↵ twice no longer creates the view twice. Its checkboxes are real checkboxes, and its tag chips have the same readable colours as everywhere else.
 - **Agent and profile token lists match.** Both offer the same expiry choices and say when a token was never used.
 - **Dates read the same everywhere**, as "Nov 16, 2026"; an agent's page said "16 Nov 2026".
+- **Changing your password revokes your API tokens and connected apps**, as a reset already did, so nothing minted by whoever else knew the old password outlives the change. The profile says how many went.
+- **A password reset also revokes your agents' tokens.** Whoever held your account could have given an agent a token and kept acting in your projects. The agents keep their projects and history; generate new tokens for the ones you recognise.
+- **Deleting a project deletes its attachment files**, instead of leaving them on disk.
+- **Removing someone who is not a member of a project is refused**, instead of succeeding and sending them a "removed you from" notification.
 
 ### CLI
 
@@ -41,6 +45,7 @@
 
 ### Upgrading
 
+- **`ALLOW_TEST_ENDPOINTS` is on only when set to exactly `1`.** Any other value, including `false` and `0`, now leaves it off; before, any non-empty value turned on the test endpoints, which reveal sign-in tokens, and turned off rate limiting.
 - **Behind more than one proxy, set `TRUSTED_PROXY_HOPS`.** Rate limits now trust `X-Forwarded-For` only as far as one proxy on a private or loopback address. With a CDN in front of your reverse proxy, set it to `2`, or every visitor shares one limit. See `docker/README.md`.
 - **`PUT /api/boards/{id}/cards/reorder` is removed.** Nothing in Completo used it, and it let a card with open sub-tasks into Done. Move cards one at a time with `PUT /api/cards/{id}/move`.
 - **A migration adds indexes and removes duplicate rows** (a person listed twice in one project, a tag twice on one card, a status twice on one board) before making each unique. It runs on its own at start-up.

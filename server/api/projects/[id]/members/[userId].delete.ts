@@ -27,7 +27,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Only the project owner can perform this action' })
   }
 
-  if (targetMembership?.role === 'owner') {
+  // 404 like the PATCH twin. Answering 200 also sent someone who was never in the
+  // project a "removed you from" notification (and email) naming it.
+  if (!targetMembership) {
+    throw createError({ statusCode: 404, message: 'Member not found' })
+  }
+
+  if (targetMembership.role === 'owner') {
     const ownerCount = db.select().from(schema.projectMembers)
       .where(and(
         eq(schema.projectMembers.projectId, project.id),
@@ -42,7 +48,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (target?.kind === 'agent') {
-    const unassignedCards = targetMembership ? removeFromProject(userId!, project.id, user) : 0
+    const unassignedCards = removeFromProject(userId!, project.id, user)
     return { ok: true, removedAgents: [], unassignedCards }
   }
 
@@ -69,7 +75,7 @@ export default defineEventHandler(async (event) => {
           eq(schema.projectMembers.userId, userId!)
         ))
         .run()
-    } else if (targetMembership) {
+    } else {
       ownCards = removeFromProject(userId!, project.id, user)
     }
 

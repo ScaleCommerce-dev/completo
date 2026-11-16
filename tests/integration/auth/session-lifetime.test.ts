@@ -71,7 +71,9 @@ describe('ending other sessions', () => {
     expect(await projectsStatus(fresh)).toBe(200)
   })
 
-  it('a password change over an API token ends the sessions but not the token', async () => {
+  // The token making the request is revoked with the rest: a change takes back
+  // everything a past holder of the password could have minted.
+  it('a password change over an API token ends the sessions and the token', async () => {
     const user = await registerTestUser({ password: 'old-pass-123' })
     const token = await createTestToken(user)
 
@@ -83,6 +85,6 @@ describe('ending other sessions', () => {
     expect(res.status).toBe(200)
 
     expect(await projectsStatus(user.cookie)).toBe(401)
-    expect((await fetch(url('/api/projects'), { headers: token.headers })).status).toBe(200)
+    expect((await fetch(url('/api/projects'), { headers: token.headers })).status).toBe(401)
   })
 })

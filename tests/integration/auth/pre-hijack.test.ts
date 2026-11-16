@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch, url } from '../../setup/server'
-import { registerTestUser, createTestToken, type TestUser } from '../../setup/auth'
+import { registerTestUser, createAdminUser, createTestToken, type TestUser } from '../../setup/auth'
+import { createTestAgent, createAgentToken, setCanCreateAgents } from '../../setup/agents'
 import { createTestProject, createInvitation } from '../../setup/fixtures'
 
 /**
@@ -150,5 +151,24 @@ describe('password reset', () => {
     await $fetch('/auth/reset-password', { method: 'POST', body: { token: reset.token, password: 'brand-new-pass' } })
 
     expect((await fetch(url('/api/projects'), { headers: token.headers })).status).toBe(401)
+  })
+
+  it('revokes the tokens of the agents this person manages, and keeps the agents', async () => {
+    // Whoever held the account could mint an agent token and keep acting in its
+    // projects after the reset; the agent's own history stays.
+    const admin = await createAdminUser()
+    const user = await registerTestUser()
+    await setCanCreateAgents(admin, user, true)
+    const agent = await createTestAgent(user)
+    const agentToken = await createAgentToken(user, agent.id)
+    expect((await fetch(url('/api/projects'), { headers: agentToken.headers })).status).toBe(200)
+
+    await $fetch('/auth/forgot-password', { method: 'POST', body: { email: user.email } })
+    const reset = await $fetch<{ token: string | null }>(`/api/_test/get-verification-token?userId=${user.id}`)
+    const result = await $fetch<{ revokedAgentTokens: number }>('/auth/reset-password', { method: 'POST', body: { token: reset.token, password: 'brand-new-pass' } })
+
+    expect(result.revokedAgentTokens).toBe(1)
+    expect((await fetch(url('/api/projects'), { headers: agentToken.headers })).status).toBe(401)
+    expect((await fetch(url(`/api/agents/${agent.id}`), { headers: user.headers })).status).not.toBe(404)
   })
 })

@@ -2,9 +2,7 @@ import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   // NODE_ENV is inlined at build time by Vite, so use a custom env var for runtime check
-  if (!process.env.ALLOW_TEST_ENDPOINTS) {
-    throw createError({ statusCode: 404, message: 'Not found' })
-  }
+  requireTestEndpoints()
 
   // Defense-in-depth: require authentication even in test mode
   await resolveAuth(event)
