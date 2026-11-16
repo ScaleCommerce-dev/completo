@@ -27,9 +27,10 @@ func TestBuildListPath(t *testing.T) {
 			StatusID: "status-abc",
 			Priority: "high",
 			Assignee: "user-123",
+			ParentID: "none",
 			Limit:    10,
 		})
-		for _, want := range []string{"statusId=status-abc", "priority=high", "assigneeId=user-123", "limit=10"} {
+		for _, want := range []string{"statusId=status-abc", "priority=high", "assigneeId=user-123", "parentId=none", "limit=10"} {
 			if !strings.Contains(path, want) {
 				t.Errorf("missing %q in path: %s", want, path)
 			}
@@ -42,4 +43,17 @@ func TestBuildListPath(t *testing.T) {
 			t.Errorf("limit=0 should be omitted: %s", path)
 		}
 	})
+}
+
+func TestFormatCardList(t *testing.T) {
+	parent := 5
+	plain := []card{{ID: 1, Title: "Top"}}
+	if out := formatCardList("TK", plain); strings.Contains(out, "PARENT") {
+		t.Errorf("no sub-tasks, no PARENT column:\n%s", out)
+	}
+	mixed := []card{{ID: 1, Title: "Top"}, {ID: 6, Title: "Step", ParentID: &parent}}
+	out := formatCardList("TK", mixed)
+	if !strings.Contains(out, "PARENT") || !strings.Contains(out, "TK-5") {
+		t.Errorf("a sub-task names its parent:\n%s", out)
+	}
 }

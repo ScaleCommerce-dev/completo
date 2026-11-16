@@ -13,6 +13,7 @@ var (
 	listStatus   string
 	listPriority string
 	listAssignee string
+	listParent   string
 	listLimit    int
 )
 
@@ -53,6 +54,17 @@ var listCmd = &cobra.Command{
 		if listAssignee != "" {
 			opts.Assignee = listAssignee
 		}
+		switch listParent {
+		case "":
+		case "none":
+			opts.ParentID = "none"
+		default:
+			parent, err := fetchCard(client, listParent)
+			if err != nil {
+				return fmt.Errorf("parent %s: %w", listParent, err)
+			}
+			opts.ParentID = fmt.Sprintf("%d", parent.ID)
+		}
 
 		return listCards(client, proj, opts)
 	},
@@ -62,6 +74,7 @@ func init() {
 	listCmd.Flags().StringVar(&listStatus, "status", "", "Filter by status name")
 	listCmd.Flags().StringVar(&listPriority, "priority", "", "Filter by priority (low, medium, high, urgent)")
 	listCmd.Flags().StringVar(&listAssignee, "assignee", "", "Filter by assignee name or ID")
+	listCmd.Flags().StringVar(&listParent, "parent", "", "Only the sub-tasks of this card (ticket ID), or \"none\" for cards that are not sub-tasks")
 	listCmd.Flags().IntVar(&listLimit, "limit", 50, "Maximum number of cards to return (1-200)")
 	rootCmd.AddCommand(listCmd)
 }
@@ -70,6 +83,8 @@ type listCardsOpts struct {
 	StatusID string
 	Priority string
 	Assignee string
+	// A parent card's id for its sub-tasks, or "none" for cards that are not sub-tasks.
+	ParentID string
 	Limit    int
 }
 
@@ -85,6 +100,9 @@ func buildListPath(projectID string, opts listCardsOpts) string {
 	}
 	if opts.Assignee != "" {
 		params.Set("assigneeId", opts.Assignee)
+	}
+	if opts.ParentID != "" {
+		params.Set("parentId", opts.ParentID)
 	}
 	if opts.Limit > 0 {
 		params.Set("limit", fmt.Sprintf("%d", opts.Limit))
@@ -114,7 +132,24 @@ func listCards(client *internal.Client, proj *projectDetail, opts listCardsOpts)
 		return nil
 	}
 
+	fmt.Print(formatCardList(proj.Key, cards))
+	return nil
+}
+
+// formatCardList renders cards as a table. A PARENT column appears only when a
+// listed card is a sub-task, so a project without sub-tasks reads as before.
+func formatCardList(key string, cards []card) string {
+	withParent := false
+	for _, c := range cards {
+		if c.ParentID != nil {
+			withParent = true
+			break
+		}
+	}
 	headers := []string{"TICKET", "TITLE", "STATUS", "PRIORITY"}
+	if withParent {
+		headers = append(headers, "PARENT")
+	}
 	rows := make([][]string, len(cards))
 	for i, c := range cards {
 		priority := ""
@@ -125,8 +160,15 @@ func listCards(client *internal.Client, proj *projectDetail, opts listCardsOpts)
 		if c.Status != nil {
 			statusName = c.Status.Name
 		}
-		rows[i] = []string{fmt.Sprintf("%s-%d", proj.Key, c.ID), c.Title, statusName, priority}
+		row := []string{fmt.Sprintf("%s-%d", key, c.ID), c.Title, statusName, priority}
+		if withParent {
+			parent := ""
+			if c.ParentID != nil {
+				parent = fmt.Sprintf("%s-%d", key, *c.ParentID)
+			}
+			row = append(row, parent)
+		}
+		rows[i] = row
 	}
-	fmt.Print(internal.FormatTable(headers, rows))
-	return nil
+	return internal.FormatTable(headers, rows)
 }

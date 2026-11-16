@@ -200,7 +200,9 @@ Defaults to `TODO_STATUS` (or the first status). Flags: `--status`, `--descripti
 
 **Sub-tasks:** `--parent TK-27` creates the card as a sub-task of TK-27. Sub-tasks have one level
 (a sub-task cannot have its own) and live in the parent's project. `completo get` lists a card's
-sub-tasks with their statuses, and shows a sub-task's parent.
+sub-tasks with their statuses, and shows a sub-task's parent. `completo list --parent TK-27` lists
+just TK-27's sub-tasks, `--parent none` leaves sub-tasks out, and without the flag a sub-task's
+parent is in the PARENT column.
 
 ## Tagging cards
 
@@ -260,7 +262,7 @@ Run `completo <command> --help` for full, always-current flag lists. The essenti
 | `completo projects` | List accessible projects |
 | `completo statuses [project]` | List a project's statuses (names are exact) |
 | `completo next [project] [--status X] [--all]` | Top card of a status, or all of them (`--all`) |
-| `completo list [project] [--status] [--priority] [--assignee] [--limit]` | List/filter cards (limit default 50, max 200) |
+| `completo list [project] [--status] [--priority] [--assignee] [--parent] [--limit]` | List/filter cards (limit default 50, max 200); `--parent TK-27` for its sub-tasks, `none` for top-level cards |
 | `completo get <ticket-id>` | Fetch one card, with its latest comments |
 | `completo create <title> [flags]` | Create a card (see above) |
 | `completo update <ticket-id> [flags]` | Edit `--title` / `--description[-file]` / `--priority` / `--due` / `--parent` (`none` clears `--due` or `--parent`) |

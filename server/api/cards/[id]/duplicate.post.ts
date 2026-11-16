@@ -1,4 +1,4 @@
-import { eq, asc } from 'drizzle-orm'
+import { and, eq, asc } from 'drizzle-orm'
 
 /**
  * Duplicate a card into a board — of its own project or of any other project the
@@ -19,6 +19,15 @@ import { eq, asc } from 'drizzle-orm'
  * (defaulting to the board's tag filter — a board shows a card with ANY of
  * them), and a priority the board's priority filter admits. An assignee filter
  * can't be satisfied without assigning someone, so it is left to the caller.
+ *
+ * **Sub-tasks come along.** A template is often a checklist of steps, and steps
+ * that need an owner or a status of their own are sub-tasks: a copy of the
+ * parent gets a copy of each, under it, in the target project — sub-tasks live
+ * in their parent's project, and the copy's project is the target. Each starts
+ * in that project's first status, like a sub-task added by hand, with its title
+ * and its description (task lists reset) and nothing else, for the same reasons
+ * as the card itself. A copied *sub-task* stays under its parent when the copy
+ * lands in the same project, and is an ordinary card anywhere else.
  *
  * Goes through createCard, so membership, live board updates and the usual
  * notifications behave exactly as for a card created by hand.
@@ -90,13 +99,41 @@ export default defineEventHandler(async (event) => {
       statusId: column.statusId,
       title,
       description: resetTaskList(source.description) || undefined,
-      priority
+      priority,
+      parentId: source.parentId && source.projectId === targetProjectId ? source.parentId : undefined
     },
     // In the card's own transaction: a copy that exists without the tags would be
     // invisible on a board that filters by them.
     tags: tagIds.map(id => projectTags.get(id)!)
   })
 
+  // The project's first status, not the board column the copy went to: where a
+  // sub-task added by hand starts (CardSubtasks takes `statuses[0]` of the list
+  // the API hands out, which is this query unordered).
+  const subtasks = db.select({ title: schema.cards.title, description: schema.cards.description })
+    .from(schema.cards)
+    .where(and(eq(schema.cards.parentId, source.id), eq(schema.cards.projectId, source.projectId)))
+    .orderBy(asc(schema.cards.id))
+    .all()
+  if (subtasks.length) {
+    const firstStatus = db.select({ id: schema.statuses.id }).from(schema.statuses)
+      .where(eq(schema.statuses.projectId, targetProjectId))
+      .get()!
+    for (const sub of subtasks) {
+      createCard({
+        projectId: targetProjectId,
+        userId: user.id,
+        userName: user.name,
+        body: {
+          statusId: firstStatus.id,
+          title: sub.title,
+          description: resetTaskList(sub.description) || undefined,
+          parentId: copy.id
+        }
+      })
+    }
+  }
+
   setResponseStatus(event, 201)
-  return { ...copy, tagIds, boardId: board.id, projectId: targetProjectId }
+  return { ...copy, tagIds, boardId: board.id, projectId: targetProjectId, subtaskCount: subtasks.length }
 })

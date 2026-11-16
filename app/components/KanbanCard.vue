@@ -765,7 +765,7 @@ function toggleTag(tagId: string) {
           >
             <component
               :is="wrap(UTooltip)"
-              :text="card.dueDate ? `Due ${formatDueDate(card.dueDate)}` : 'Due date'"
+              :text="card.dueDate ? dueDateSummary(card.dueDate) : 'Due date'"
               :disabled="tipOff('due')"
             >
               <button

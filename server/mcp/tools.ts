@@ -298,7 +298,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'list_cards',
-    description: 'Cards in a project, filtered by status, assignee, priority, tag or due date. Sorted by board position by default, so the first card of a status is the top of its column. Done cards older than the project\'s retention window are left out unless includeDone is set.',
+    description: 'Cards in a project, filtered by status, assignee, priority, tag, due date or parent. Sorted by board position by default, so the first card of a status is the top of its column. Sub-tasks are included and name their parent; parent lists one card\'s sub-tasks, or "none" leaves sub-tasks out. Done cards older than the project\'s retention window are left out unless includeDone is set.',
     inputSchema: schema({
       project: PROJECT_REF,
       status: { type: 'string', description: 'Status name, e.g. "To Do".' },
@@ -307,6 +307,7 @@ const TOOLS: Tool[] = [
       tag: { type: 'string', description: 'Tag name.' },
       dueBefore: { type: 'string', description: 'YYYY-MM-DD, inclusive.' },
       dueAfter: { type: 'string', description: 'YYYY-MM-DD, inclusive.' },
+      parent: { type: 'string', description: 'A ticket id such as TK-42 for that card\'s sub-tasks, or "none" for cards that are not sub-tasks.' },
       includeDone: { type: 'boolean' },
       sort: { type: 'string', enum: ['position', 'priority', 'dueDate', 'createdAt', 'updatedAt', 'title'] },
       order: { type: 'string', enum: ['asc', 'desc'] },
@@ -329,6 +330,8 @@ const TOOLS: Tool[] = [
         const v = str(args, key)
         if (v) query[key] = v
       }
+      const parent = str(args, 'parent')
+      if (parent) query.parentId = parent.toLowerCase() === 'none' ? 'none' : cardNumber(parent)
       if (args.includeDone === true) query.includeDone = 'true'
       if (typeof args.limit === 'number') query.limit = args.limit
       const cards = await ctx.get<ApiCard[]>(`/api/projects/${project.id}/cards`, query)

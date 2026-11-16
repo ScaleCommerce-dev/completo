@@ -44,6 +44,21 @@ export function statusFieldLabel(
   return selected ? `Status: ${selected.name}. Change status` : 'Set a status'
 }
 
+/**
+ * A set due date in words, with its urgency: "Overdue: Nov 15", "Due soon:
+ * Nov 17", "Due Nov 23". The board card shows urgency as colour alone (a red or
+ * orange pill), so the tooltip and the accessible name are where it is said for
+ * anyone who cannot tell those colours apart, or cannot see them.
+ */
+export function dueDateSummary(dueDate: string): string {
+  const date = formatDueDate(dueDate)
+  switch (getDueDateStatus(dueDate)) {
+    case 'overdue': return `Overdue: ${date}`
+    case 'due-soon': return `Due soon: ${date}`
+    default: return `Due ${date}`
+  }
+}
+
 export function dueDateFieldLabel(dueDate?: string | null): string {
-  return dueDate ? `Due ${formatDueDate(dueDate)}. Change due date` : 'Set a due date'
+  return dueDate ? `${dueDateSummary(dueDate)}. Change due date` : 'Set a due date'
 }

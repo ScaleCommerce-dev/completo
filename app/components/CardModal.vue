@@ -1192,6 +1192,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
     :card-id="card!.id"
     :card-title="card!.title"
     :project-slug="projectSlug"
+    :subtask-count="card!.subtasks?.total ?? subtaskDetail?.subtaskCards.length ?? 0"
     @duplicated="onDuplicated"
   />
 

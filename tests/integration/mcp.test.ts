@@ -137,6 +137,13 @@ describe('POST /mcp', () => {
       expect(got.data.subtasks).toEqual([expect.objectContaining({ ticket: sub.data.ticket, title: 'Child via MCP' })])
       expect(got.data.subtaskProgress).toEqual({ total: 1, done: 0 })
 
+      const children = await call(headers, 'list_cards', { project: project.key, parent: parent.data.ticket })
+      expect(children.data.map((c: { ticket: string }) => c.ticket)).toEqual([sub.data.ticket])
+      const topLevel = await call(headers, 'list_cards', { project: project.key, parent: 'none', limit: 200 })
+      const topTickets = topLevel.data.map((c: { ticket: string }) => c.ticket)
+      expect(topTickets).toContain(parent.data.ticket)
+      expect(topTickets).not.toContain(sub.data.ticket)
+
       const refused = await call(headers, 'move_card', { card: parent.data.ticket, status: 'Done' })
       expect(refused.isError).toBe(true)
       expect(refused.content[0]!.text).toContain(sub.data.ticket)

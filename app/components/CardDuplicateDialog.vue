@@ -23,6 +23,8 @@ const props = defineProps<{
   cardId: number
   cardTitle: string
   projectSlug: string
+  /** How many sub-tasks come along — the server copies them under the copy. */
+  subtaskCount?: number
 }>()
 
 const emit = defineEmits<{
@@ -166,7 +168,9 @@ async function submit() {
     icon="i-lucide-copy-plus"
     tone="primary"
     title="Duplicate card"
-    description="Title and description are copied, with every to-do unchecked."
+    :description="subtaskCount
+      ? `Title, description and its ${subtaskCount} sub-task${subtaskCount === 1 ? '' : 's'} are copied, with every to-do unchecked.`
+      : 'Title and description are copied, with every to-do unchecked.'"
     flush
   >
     <template #body>

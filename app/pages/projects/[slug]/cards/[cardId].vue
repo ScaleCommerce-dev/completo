@@ -616,6 +616,7 @@ async function confirmDelete() {
       :card-id="card.id"
       :card-title="card.title"
       :project-slug="projectSlug"
+      :subtask-count="card.subtaskCards.length"
       @duplicated="(copy) => navigateTo(`/projects/${copy.projectSlug}/cards/${formatTicketId(copy.projectKey, copy.id)}`)"
     />
   </UiPage>

@@ -161,4 +161,49 @@ describe('POST /api/cards/:id/duplicate', () => {
       expect(res.status).toBe(404)
     })
   })
+
+  describe('sub-tasks', () => {
+    const addSubtask = (parentId: number, statusId: string, title: string, description?: string) =>
+      $fetch(`/api/projects/${source.id}/cards`, {
+        method: 'POST',
+        body: { statusId, title, description, parentId },
+        headers: owner.headers
+      }) as Promise<{ id: number }>
+    const subtaskCards = async (id: number) =>
+      ((await $fetch(`/api/cards/${id}`, { headers: owner.headers })) as { subtaskCards: Array<{ id: number, title: string, statusId: string }> }).subtaskCards
+
+    it('copies a template\'s sub-tasks under the copy, into the target project\'s first status', async () => {
+      const checklist = await createTestCard(owner, source.id, source.statuses[0]!.id, { title: 'Onboarding checklist' })
+      await addSubtask(checklist.id, source.statuses[2]!.id, 'Create accounts', '- [x] Email\n- [ ] Chat')
+      await addSubtask(checklist.id, source.statuses[0]!.id, 'Book intro call')
+
+      const res = await duplicate(owner, checklist.id, { title: 'Onboard Alex', boardId: scucBoardId })
+      expect(res.status).toBe(201)
+      const body = await res.json() as { id: number, subtaskCount: number }
+      expect(body.subtaskCount).toBe(2)
+
+      const subs = await subtaskCards(body.id)
+      expect(subs.map(s => s.title)).toEqual(['Create accounts', 'Book intro call'])
+      // Each starts over: the target project's first status, to-dos unchecked.
+      expect(subs.map(s => s.statusId)).toEqual([target.statuses[0]!.id, target.statuses[0]!.id])
+      const first = await getCard(owner, subs[0]!.id)
+      expect(first.projectId).toBe(target.id)
+      expect(first.description).toBe('- [ ] Email\n- [ ] Chat')
+
+      // The template keeps its own.
+      expect((await subtaskCards(checklist.id)).map(s => s.title)).toEqual(['Create accounts', 'Book intro call'])
+    })
+
+    it('keeps a copied sub-task under its parent in the same project, and not in another', async () => {
+      const parent = await createTestCard(owner, source.id, source.statuses[0]!.id, { title: 'Release' })
+      const step = await addSubtask(parent.id, source.statuses[0]!.id, 'Write notes')
+
+      const same = await (await duplicate(owner, step.id, { title: 'Write more notes', boardId: eventsBoardId })).json() as { id: number, subtaskCount: number }
+      expect(((await $fetch(`/api/cards/${same.id}`, { headers: owner.headers })) as { parentId: number | null }).parentId).toBe(parent.id)
+      expect(same.subtaskCount).toBe(0)
+
+      const other = await (await duplicate(owner, step.id, { title: 'Notes elsewhere', boardId: scucBoardId })).json() as { id: number }
+      expect(((await $fetch(`/api/cards/${other.id}`, { headers: owner.headers })) as { parentId: number | null }).parentId).toBeNull()
+    })
+  })
 })

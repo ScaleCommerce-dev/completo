@@ -3192,7 +3192,7 @@
           "Cards"
         ],
         "summary": "Duplicate a card into a board",
-        "description": "Copies the title (as given) and the description, with every task-list item unchecked, into a board of the card's project or of another project the caller is a member of. The copy goes to the first board column its status filter admits, gets `tagIds` (default: the board's tag filters; they must belong to the board's project) and a priority the board's priority filter admits. Tags, assignee, priority, due date, attachments and comments are not copied. A board in a project the caller is not a member of is a 404.",
+        "description": "Copies the title (as given) and the description, with every task-list item unchecked, into a board of the card's project or of another project the caller is a member of. The copy goes to the first board column its status filter admits, gets `tagIds` (default: the board's tag filters; they must belong to the board's project) and a priority the board's priority filter admits. Tags, assignee, priority, due date, attachments and comments are not copied. A card's sub-tasks are copied under the copy, in the target project's first status, each with its title and description (to-dos unchecked); `subtaskCount` in the response says how many. A copied sub-task stays under its parent if the copy lands in the same project. A board in a project the caller is not a member of is a 404.",
         "operationId": "duplicateCard",
         "parameters": [
           {
@@ -3252,6 +3252,10 @@
                         "boardId": {
                           "type": "string",
                           "format": "uuid"
+                        },
+                        "subtaskCount": {
+                          "type": "integer",
+                          "description": "How many of the card's sub-tasks were copied under the copy."
                         }
                       }
                     }
@@ -4883,6 +4887,22 @@
             "name": "tagId",
             "in": "query",
             "description": "Filter by tag UUIDs (comma-separated)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "parentId",
+            "in": "query",
+            "description": "`none` for cards that are not sub-tasks, or a card id for that card's sub-tasks. Without it, sub-tasks are listed with everything else and carry `parentId` and `parent`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words in the title (case-insensitive substring; `%` and `_` are literal), or a ticket id such as `TK-42` or `42`.",
             "schema": {
               "type": "string"
             }
