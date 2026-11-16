@@ -138,6 +138,60 @@ describe('sub-tasks', () => {
     expect((await getCard(user, parent.id)).subtasks).toEqual({ total: 2, done: 0 })
   })
 
+  it('lets deleting a status move a parent with open sub-tasks into Done', async () => {
+    // The rule guards a card's own move. Reassigning a deleted status's cards is a
+    // change to the project's states, and refusing it would leave the status
+    // undeletable for as long as any card in it has an open sub-task.
+    const { project, open, done } = await setup(user)
+    const doomed = await $fetch<{ id: string }>(`/api/projects/${project.id}/statuses`, { method: 'POST', body: { name: 'Doomed' }, headers: user.headers })
+    const parent = await createTestCard(user, project.id, doomed.id)
+    await createSub(user, project.id, open, parent.id)
+
+    await $fetch(`/api/statuses/${doomed.id}`, { method: 'DELETE', body: { moveToStatusId: done }, headers: user.headers })
+    const after = await $fetch<Detail & { statusId: string }>(`/api/cards/${parent.id}`, { headers: user.headers })
+    expect(after.statusId).toBe(done)
+    expect(after.subtasks).toEqual({ total: 1, done: 0 })
+  })
+
+  it('has no Done rule and counts nothing done when the project has no done status', async () => {
+    const { project, open, done } = await setup(user)
+    const board = await createTestBoard(user, project.id)
+    const parent = await createTestCard(user, project.id, open)
+    await createSub(user, project.id, open, parent.id)
+    await createSub(user, project.id, done, parent.id)
+    await $fetch(`/api/projects/${project.id}`, { method: 'PUT', body: { doneStatusId: null }, headers: user.headers })
+
+    expect((await getCard(user, parent.id)).subtasks).toEqual({ total: 2, done: 0 })
+    const onBoard = (await getBoard(user, board.id)).cards.find((c: { id: number }) => c.id === parent.id)
+    expect(onBoard.subtasks).toEqual({ total: 2, done: 0 })
+    // The former Done is an ordinary status now, so the parent may enter it.
+    await $fetch(`/api/cards/${parent.id}/move`, { method: 'PUT', body: { statusId: done, position: 0 }, headers: user.headers })
+    await put(user, parent.id, { statusId: open })
+    await put(user, parent.id, { statusId: done })
+  })
+
+  it('still counts a done sub-task past retention, which the board no longer shows', async () => {
+    // Retention hides old done cards from views; it does not undo them. A parent
+    // whose finished sub-tasks aged out is still finished, not "0 of 0".
+    const { project, open, done } = await setup(user)
+    await $fetch(`/api/projects/${project.id}`, { method: 'PUT', body: { doneRetentionDays: 7 }, headers: user.headers })
+    const board = await createTestBoard(user, project.id)
+    const parent = await createTestCard(user, project.id, open)
+    const old = await createSub(user, project.id, done, parent.id)
+    const fresh = await createSub(user, project.id, open, parent.id)
+    await $fetch('/api/_test/set-card-updated-at', { method: 'POST', body: { cardId: old.id, daysAgo: 30 } })
+    // Boards hide sub-tasks by default; show them, so the expired one is absent for
+    // retention's reason and not that one.
+    await $fetch(`/api/boards/${board.id}`, { method: 'PUT', body: { showSubtasks: true }, headers: user.headers })
+
+    const view = await getBoard(user, board.id)
+    expect(view.cards.some((c: { id: number }) => c.id === old.id)).toBe(false)
+    expect(view.cards.some((c: { id: number }) => c.id === fresh.id)).toBe(true)
+    const onBoard = view.cards.find((c: { id: number }) => c.id === parent.id)
+    expect(onBoard.subtasks).toEqual({ total: 2, done: 1 })
+    expect((await getCard(user, parent.id)).subtasks).toEqual({ total: 2, done: 1 })
+  })
+
   it('starts a sub-task outside Done when no status is named, even where Done is the oldest status', async () => {
     // Statuses have no position, and both the panel and a template copy took "the first
     // row": in a project whose oldest surviving status was Done, every new sub-task was

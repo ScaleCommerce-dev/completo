@@ -194,7 +194,7 @@ completo create "Add CSV export" --priority high --status Backlog
 completo create "Refactor auth" --description-file /tmp/desc.md --assign-me --due 2026-04-15
 ```
 
-Defaults to `TODO_STATUS` (or the first status). Flags: `--status`, `--description` /
+Defaults to `TODO_STATUS`, else the project's first status that is not Done. Flags: `--status`, `--description` /
 `--description-file`, `--priority low|medium|high|urgent`, `--due YYYY-MM-DD`, `--assign-me`,
 `--project`, `--parent TK-27`. Use `--description-file` for multi-line markdown.
 

@@ -40,7 +40,9 @@ const ROOT = join(import.meta.dirname, '../..')
  * reason, and goes stale (and fails) once the function stops writing or starts
  * recording. Widening the patterns below to make this pass is the failure mode.
  */
-const EXEMPT: Record<string, string> = {}
+const EXEMPT: Record<string, string> = {
+  'server/api/_test/set-card-updated-at.post.ts › handler': 'test-only; backdates updatedAt, which the history does not show, to put a done card past retention'
+}
 
 /** Where each `card_events.field` lives. `created` is synthesized from the card row. */
 const FIELD_HOME: Record<string, SQLiteColumn> = {

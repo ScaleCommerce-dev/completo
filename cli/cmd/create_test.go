@@ -39,23 +39,26 @@ func TestResolveCreateStatus(t *testing.T) {
 		}
 	})
 
-	t.Run("falls back to first status when config default not found", func(t *testing.T) {
+	// Without a flag or a configured status the project has, the CLI names none and
+	// the server picks: taking the first row started cards in Done wherever Done was
+	// the oldest status.
+	t.Run("leaves the choice to the server when config default not found", func(t *testing.T) {
 		s, err := resolveCreateStatus(statuses, "", false, "Nonexistent")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if s.ID != "1" {
-			t.Errorf("got ID %q, want %q", s.ID, "1")
+		if s != nil {
+			t.Errorf("got %q, want nil", s.Name)
 		}
 	})
 
-	t.Run("falls back to first status when no config default", func(t *testing.T) {
-		s, err := resolveCreateStatus(statuses, "", false, "")
+	t.Run("leaves the choice to the server when no config default", func(t *testing.T) {
+		s, err := resolveCreateStatus([]status{{ID: "3", Name: "Done"}, {ID: "1", Name: "Backlog"}}, "", false, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if s.ID != "1" {
-			t.Errorf("got ID %q, want %q", s.ID, "1")
+		if s != nil {
+			t.Errorf("got %q, want nil", s.Name)
 		}
 	})
 

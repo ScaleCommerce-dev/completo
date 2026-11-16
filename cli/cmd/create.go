@@ -50,12 +50,13 @@ var createCmd = &cobra.Command{
 			}
 			return err
 		}
-		statusID := resolvedStatus.ID
 
 		// Build payload
 		payload := map[string]any{
-			"statusId": statusID,
-			"title":    title,
+			"title": title,
+		}
+		if resolvedStatus != nil {
+			payload["statusId"] = resolvedStatus.ID
 		}
 
 		if cmd.Flags().Changed("description-file") {
@@ -153,8 +154,11 @@ var createCmd = &cobra.Command{
 	},
 }
 
-// resolveCreateStatus picks the status to use for a new card.
-// Priority: explicit flag > config default > first status.
+// resolveCreateStatus picks the status to use for a new card: the --status flag,
+// else the configured default when the project has it. nil means neither applies,
+// and the payload then leaves statusId out so the server picks its default: the
+// oldest status that is not Done. Taking statuses[0] here instead started cards in
+// Done wherever Done was the project's oldest status.
 func resolveCreateStatus(statuses []status, flagValue string, flagChanged bool, configDefault string) (*status, error) {
 	if len(statuses) == 0 {
 		return nil, fmt.Errorf("project has no statuses")
@@ -167,16 +171,13 @@ func resolveCreateStatus(statuses []status, flagValue string, flagChanged bool, 
 		return s, nil
 	}
 	if configDefault != "" {
-		s := findStatusByName(statuses, configDefault)
-		if s != nil {
-			return s, nil
-		}
+		return findStatusByName(statuses, configDefault), nil
 	}
-	return &statuses[0], nil
+	return nil, nil
 }
 
 func init() {
-	createCmd.Flags().StringVar(&createStatus, "status", "", "Status name (default: TODO_STATUS from .completo or first status)")
+	createCmd.Flags().StringVar(&createStatus, "status", "", "Status name (default: TODO_STATUS from .completo, else the project's first status that is not Done)")
 	createCmd.Flags().StringVar(&createDescription, "description", "", "Card description (markdown)")
 	createCmd.Flags().StringVar(&createDescFile, "description-file", "", "Read description from file")
 	createCmd.Flags().StringVar(&createPriority, "priority", "", "Priority: low, medium, high, urgent")

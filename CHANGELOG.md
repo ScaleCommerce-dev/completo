@@ -41,6 +41,7 @@
 - `completo create --parent TK-12` creates a sub-task, and `completo update TK-13 --parent TK-12` (or `--parent none`) moves or detaches one. `completo get` lists a card's sub-tasks and shows a sub-task's parent. `completo list --parent TK-12` lists one card's sub-tasks, `--parent none` only cards that are not sub-tasks, and the list shows a PARENT column when it contains a sub-task. Moving a parent with open sub-tasks to Done fails and names them.
 - **A project's `.completo.local` can no longer receive your exported token.** A file that set `COMPLETO_URL` along with any `COMPLETO_TOKEN` passed the check, and an exported `COMPLETO_TOKEN` then replaced its token and went to the file's server. The CLI now refuses unless the token it sends is the file's own, or the server is the one in `~/.completo/.env`.
 - **`completo self-update` verifies what it installs** against the release's `checksums.txt`, as the install script does, and refuses when it cannot. It also reports a failed update check instead of saying "Already up to date", no longer hangs on a stalled download, and works when the system temp directory is on another disk. The install script no longer installs without a checksum.
+- **`completo create` no longer starts a card in Done** when the project's oldest status is Done and no `--status` or `TODO_STATUS` names one. It now starts in the project's first status that is not Done, as the app does.
 - **A mistyped status no longer corrupts `--json` output.** `list`, `move` and `next` printed the list of valid statuses to standard output, and `assign` its list of members; both now go to standard error.
 
 ### Upgrading
@@ -49,7 +50,7 @@
 - **Behind more than one proxy, set `TRUSTED_PROXY_HOPS`.** Rate limits now trust `X-Forwarded-For` only as far as one proxy on a private or loopback address. With a CDN in front of your reverse proxy, set it to `2`, or every visitor shares one limit. See `docker/README.md`.
 - **`PUT /api/boards/{id}/cards/reorder` is removed.** Nothing in Completo used it, and it let a card with open sub-tasks into Done. Move cards one at a time with `PUT /api/cards/{id}/move`.
 - **A migration adds indexes and removes duplicate rows** (a person listed twice in one project, a tag twice on one card, a status twice on one board) before making each unique. It runs on its own at start-up.
-- **`POST /api/projects/{id}/cards` no longer requires `statusId`;** without it, the card starts in the project's first status that is not Done.
+- **`POST /api/projects/{id}/cards` no longer requires `statusId`;** without it, the card starts in the project's first status that is not Done. `completo create` relies on this, so update the server along with the CLI.
 
 ### Dev
 
