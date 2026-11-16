@@ -2345,7 +2345,7 @@
                   },
                   "showSubtasks": {
                     "type": "boolean",
-                    "description": "Whether sub-tasks appear as cards of their own. Off by default; a parent shows its sub-tasks' progress either way."
+                    "description": "Whether sub-tasks appear as rows of their own, each under its parent. On by default; a parent shows its sub-tasks' progress either way."
                   }
                 }
               }
@@ -7445,7 +7445,7 @@
           },
           "showSubtasks": {
             "type": "boolean",
-            "description": "Whether sub-tasks appear as cards of their own. Off by default; a parent shows its sub-tasks' progress either way."
+            "description": "Whether sub-tasks appear as rows of their own, each under its parent. On by default; a parent shows its sub-tasks' progress either way."
           }
         }
       },

@@ -192,6 +192,7 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
             :tags="group.tags"
             :members="group.members"
             @card-click="handleCardClick"
+            @open-card="openCardById"
             @update="handleInlineUpdate"
             @update-tags="handleInlineTagUpdate"
             @order="(ids) => setRowOrder(group.project.id, ids)"

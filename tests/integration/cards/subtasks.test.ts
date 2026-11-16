@@ -163,17 +163,17 @@ describe('sub-tasks', () => {
     expect(await list({ q: '100%' })).toEqual([parent.id])
   })
 
-  it('stores whether a board or list shows sub-tasks as cards, off by default', async () => {
+  it('stores whether a board or list shows sub-tasks, off for boards and on for lists by default', async () => {
     const { project } = await setup(user)
     const board = await createTestBoard(user, project.id)
     const list = await createTestList(user, project.id)
     expect((await getBoard(user, board.id)).showSubtasks).toBe(false)
-    expect((await getList(user, list.id)).showSubtasks).toBe(false)
+    expect((await getList(user, list.id)).showSubtasks).toBe(true)
 
     await $fetch(`/api/boards/${board.id}`, { method: 'PUT', body: { showSubtasks: true }, headers: user.headers })
-    await $fetch(`/api/lists/${list.id}`, { method: 'PUT', body: { showSubtasks: true }, headers: user.headers })
+    await $fetch(`/api/lists/${list.id}`, { method: 'PUT', body: { showSubtasks: false }, headers: user.headers })
     expect((await getBoard(user, board.id)).showSubtasks).toBe(true)
-    expect((await getList(user, list.id)).showSubtasks).toBe(true)
+    expect((await getList(user, list.id)).showSubtasks).toBe(false)
 
     await expectError($fetch(`/api/boards/${board.id}`, { method: 'PUT', body: { showSubtasks: 'yes' }, headers: user.headers }), 400)
   })

@@ -217,6 +217,7 @@ async function handleDeleteList() {
       :sort-direction="sortDirection"
       :can-save-sort="canSaveSort"
       @card-click="openCardDetail"
+      @open-card="openCardById"
       @add-card="openCreateCard"
       @open-settings="showColumnConfig = true"
       @update="handleInlineUpdate"

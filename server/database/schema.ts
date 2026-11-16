@@ -115,8 +115,9 @@ export const lists = sqliteTable('lists', {
   statusFilters: text('status_filters'),
   assigneeFilters: text('assignee_filters'),
   priorityFilters: text('priority_filters'),
-  // As on boards: whether sub-tasks get rows of their own.
-  showSubtasks: integer('show_subtasks').notNull().default(0),
+  // As on boards: whether sub-tasks get rows of their own. On by default here,
+  // off on boards — see migration 0018.
+  showSubtasks: integer('show_subtasks').notNull().default(1),
   createdById: text('created_by_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })

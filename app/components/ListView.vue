@@ -40,6 +40,8 @@ const emit = defineEmits<{
   'update': [cardId: number, updates: Record<string, unknown>]
   'update-tags': [cardId: number, tagIds: string[]]
   'sort': [field: string | null, direction: 'asc' | 'desc' | null]
+  /** A sub-task's parent chip was clicked: open that card. */
+  'open-card': [cardId: number]
   /**
    * The ids of the rows as drawn, in order — what the card panel's ↑/↓ walker
    * steps through.
@@ -177,7 +179,7 @@ function compareDate(a: string | Date, b: string | Date): number {
   return String(a) < String(b) ? -1 : String(a) > String(b) ? 1 : 0
 }
 
-const sortedCards = computed(() => {
+const flatSorted = computed(() => {
   const cards = [...props.cards]
   const field = localSortField.value
   const dir = localSortDirection.value
@@ -235,6 +237,31 @@ const sortedCards = computed(() => {
     return (cmp * mul) || (a.id - b.id)
   })
 })
+
+/**
+ * The rows as the table shows them: sorted, then each sub-task moved under its
+ * parent (`nestUnderParents`), so a list reads parent, its pieces, next parent.
+ * The card panel's arrow keys walk this order too, through `order`.
+ */
+const sortedCards = computed(() => nestUnderParents(flatSorted.value))
+
+/**
+ * How a sub-task row names its parent. Directly under it (the parent is a row,
+ * so `nestUnderParents` put it there): an arrow into the row, `↳`, since the
+ * position already says which card. With its parent not among the rows —
+ * filtered out, or done past retention — the row sits wherever the sort put
+ * it, and `↳` would point at an unrelated row above; it gets the board card's
+ * reference instead, `↰ TK-5`, which names the parent and opens it.
+ */
+const rowIds = computed(() => new Set(props.cards.map(c => c.id)))
+function parentMarker(card: ListCard) {
+  if (!card.parentId) return undefined
+  return {
+    title: card.parent?.title ?? '',
+    id: card.parentId,
+    ticket: rowIds.value.has(card.parentId) ? undefined : formatTicketId(props.projectKey, card.parentId)
+  }
+}
 
 /**
  * Reported when the order *changes*, compared by value.
@@ -400,9 +427,11 @@ const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.le
               <ListCellTitle
                 v-else-if="col.field === 'title'"
                 :title="card.title"
+                :parent="parentMarker(card)"
                 :is-done="isDone(card)"
                 :detail-url="detailUrl(card)"
                 :has-unread="card.hasUnread"
+                @open-parent="emit('open-card', $event)"
               />
 
               <ListCellStatus
