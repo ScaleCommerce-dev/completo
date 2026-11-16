@@ -1,16 +1,9 @@
 import { eq, and } from 'drizzle-orm'
+import { cardUpdateSchema } from '#shared/schemas/card'
 
 export default defineEventHandler(async (event) => {
   const { user, card: existingCard } = await resolveCard(event)
-  const body = await readBody<{
-    title?: string
-    description?: string
-    assigneeId?: string | null
-    priority?: 'low' | 'medium' | 'high' | 'urgent'
-    statusId?: string
-    dueDate?: string | null
-    parentId?: number | null
-  }>(event)
+  const body = await readBodyAs(event, cardUpdateSchema)
 
   // Validate statusId belongs to the card's project
   if (body.statusId !== undefined) {

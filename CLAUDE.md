@@ -171,6 +171,7 @@ Don't reconstruct a decision from scratch, and don't re-litigate one without rea
 - **`main.css`** carries every token's measurement.
 - **`tests/unit/*.test.ts`** carry the numbers, and the good ones recompute rather than restate.
 - **Registries** are single-sourced and guarded: `shared/utils/list-fields.ts` (what a list column can be), `card-fields.ts` (what a board card can show — it stores the fields that are **off**, so a new field appears by default), `ai-skills.ts` (skill scopes).
+- **Request bodies are parsed by a schema in `shared/schemas/`** through `readBodyAs()` (`server/utils/validate.ts`), which answers with the schema's own message. A `readBody<T>` cast checks nothing: it is how a priority of `"bogus"` got stored and `tagFilters: null` became a 500. The handlers not yet migrated are the ones still calling `readBody`.
 - `server/assets/openapi.json` must stay in sync with endpoints, for headless API usage only.
 - **`/mcp` is a thin layer over the REST API, never a second one.** `server/mcp/tools.ts` reaches every handler through `event.$fetch` with the caller's own headers, so permissions, validation and notifications are the handlers' and are tested once. A tool owes the API nothing but names-to-ids and a compact shape; a tool that queries `db` directly has bypassed every guard in `server/utils/resolvers.ts`. `tests/integration/mcp.test.ts` drives it as a client would, by raw JSON-RPC.
 - `skills/completo/SKILL.md` is the in-repo copy of the agent skill — update it when CLI commands change.

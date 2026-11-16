@@ -1,16 +1,9 @@
 import { eq, and } from 'drizzle-orm'
+import { cardMoveSchema } from '#shared/schemas/card'
 
 export default defineEventHandler(async (event) => {
   const { user, card } = await resolveCard(event)
-  const { statusId, position } = await readBody<{ statusId: string, position: number }>(event)
-
-  if (!statusId || position === undefined) {
-    throw createError({ statusCode: 400, message: 'statusId and position are required' })
-  }
-
-  if (typeof position !== 'number' || position < 0 || !Number.isInteger(position) || position > 10000) {
-    throw createError({ statusCode: 400, message: 'Position must be a non-negative integer (max 10000)' })
-  }
+  const { statusId, position } = await readBodyAs(event, cardMoveSchema)
 
   // Validate statusId belongs to the card's project
   const status = db.select().from(schema.statuses)

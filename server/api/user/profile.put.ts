@@ -1,31 +1,15 @@
 import { eq } from 'drizzle-orm'
+import { profileUpdateSchema } from '#shared/schemas/user'
 
 export default defineEventHandler(async (event) => {
   const { user, authMethod } = await resolveAuth(event)
   if (user.kind === 'agent') {
     throw createError({ statusCode: 403, message: 'An agent is edited by its manager' })
   }
-  const { name, avatarUrl, colorMode, emailNotifications } = await readBody<{ name?: string, avatarUrl?: string | null, colorMode?: string | null, emailNotifications?: boolean }>(event)
-
-  if (name !== undefined && !name.trim()) {
-    throw createError({ statusCode: 400, message: 'Name cannot be empty' })
-  }
-
-  if (emailNotifications !== undefined && typeof emailNotifications !== 'boolean') {
-    throw createError({ statusCode: 400, message: 'emailNotifications must be a boolean' })
-  }
-
-  if (avatarUrl !== undefined && avatarUrl !== null) {
-    if (typeof avatarUrl !== 'string' || avatarUrl.length > 2048) {
-      throw createError({ statusCode: 400, message: 'Invalid avatar URL' })
-    }
-    if (avatarUrl && !/^https?:\/\//i.test(avatarUrl)) {
-      throw createError({ statusCode: 400, message: 'Avatar URL must use http or https' })
-    }
-  }
+  const { name, avatarUrl, colorMode, emailNotifications } = await readBodyAs(event, profileUpdateSchema)
 
   db.update(schema.users).set({
-    ...(name !== undefined && { name: name.trim() }),
+    ...(name !== undefined && { name }),
     ...(avatarUrl !== undefined && { avatarUrl }),
     ...(colorMode !== undefined && { colorMode }),
     ...(emailNotifications !== undefined && { emailNotifications: emailNotifications ? 1 : 0 })

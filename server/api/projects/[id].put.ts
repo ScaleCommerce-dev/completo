@@ -1,13 +1,11 @@
 import { eq, and, ne } from 'drizzle-orm'
+import { projectUpdateSchema } from '#shared/schemas/project'
 
 export default defineEventHandler(async (event) => {
   const { user: _user, project } = await resolveProject(event, { auth: 'owner' })
-  const { name, description, briefing, key, slug, icon, doneStatusId, doneRetentionDays } = await readBody<{ name?: string, description?: string, briefing?: string | null, key?: string, slug?: string, icon?: string, doneStatusId?: string | null, doneRetentionDays?: number | null }>(event)
+  const { name, description, briefing, key, slug, icon, doneStatusId, doneRetentionDays } = await readBodyAs(event, projectUpdateSchema)
 
   if (key !== undefined) {
-    if (!/^[A-Z]{2,5}$/.test(key)) {
-      throw createError({ statusCode: 400, message: 'Project key must be 2-5 uppercase letters' })
-    }
     const existing = db.select().from(schema.projects)
       .where(and(eq(schema.projects.key, key), ne(schema.projects.id, project.id)))
       .get()
@@ -17,9 +15,6 @@ export default defineEventHandler(async (event) => {
   }
 
   if (slug !== undefined) {
-    if (!slug || !isValidSlug(slug)) {
-      throw createError({ statusCode: 400, message: 'Slug must be lowercase alphanumeric with hyphens' })
-    }
     const existing = db.select().from(schema.projects)
       .where(and(eq(schema.projects.slug, slug), ne(schema.projects.id, project.id)))
       .get()
@@ -34,12 +29,6 @@ export default defineEventHandler(async (event) => {
       .get()
     if (!col) {
       throw createError({ statusCode: 400, message: 'Done status must belong to this project' })
-    }
-  }
-
-  if (doneRetentionDays !== undefined && doneRetentionDays !== null) {
-    if (typeof doneRetentionDays !== 'number' || !Number.isInteger(doneRetentionDays) || doneRetentionDays < 1) {
-      throw createError({ statusCode: 400, message: 'doneRetentionDays must be a positive integer or null' })
     }
   }
 

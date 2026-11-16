@@ -106,10 +106,11 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
     try {
       await $fetch(`/api/lists/${listId.value}` as string, {
         method: 'PUT' as const,
-        body: { name, slug }
+        // A name with no latin letters or digits has no slug; it keeps the one it has.
+        body: slug ? { name, slug } : { name }
       })
       toast.add({ title: 'List renamed', color: 'success' })
-      return slug
+      return slug || list.value?.slug || null
     } catch (e: unknown) {
       const err = e as { data?: { statusCode?: number } }
       if (err?.data?.statusCode === 409) {

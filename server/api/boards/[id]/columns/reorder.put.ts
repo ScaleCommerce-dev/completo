@@ -1,18 +1,9 @@
 import { eq, and } from 'drizzle-orm'
+import { columnReorderSchema } from '#shared/schemas/view'
 
 export default defineEventHandler(async (event) => {
   const { user: _user, board } = await resolveBoard(event)
-  const { columns: columnOrder } = await readBody<{ columns: { id: string, position: number }[] }>(event)
-
-  if (!columnOrder?.length) {
-    throw createError({ statusCode: 400, message: 'Columns array is required' })
-  }
-
-  for (const col of columnOrder) {
-    if (typeof col.position !== 'number' || col.position < 0 || !Number.isInteger(col.position) || col.position > 10000) {
-      throw createError({ statusCode: 400, message: 'Position must be a non-negative integer (max 10000)' })
-    }
-  }
+  const { columns: columnOrder } = await readBodyAs(event, columnReorderSchema)
 
   db.transaction(() => {
     for (const col of columnOrder) {

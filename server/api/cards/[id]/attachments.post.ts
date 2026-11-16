@@ -1,5 +1,19 @@
+/** Room for the multipart boundary, part headers and filename around the file itself. */
+const MULTIPART_OVERHEAD_BYTES = 64 * 1024
+
 export default defineEventHandler(async (event) => {
   const { user, card } = await resolveCard(event)
+
+  // `readFormData` buffers the whole body before `file.size` can be read, so a
+  // client could make the server hold any amount in memory just to be told no.
+  // A declared length is checked first; the allowance covers the multipart
+  // boundaries and headers around the file. A body without one (chunked, which a
+  // streaming proxy may produce) still goes through the size check below, so it
+  // is not refused, only not refused early.
+  const declared = Number(getRequestHeader(event, 'content-length'))
+  if (declared > UPLOAD_MAX_SIZE_BYTES + MULTIPART_OVERHEAD_BYTES) {
+    throw createError({ statusCode: 413, message: `File too large. Maximum size is ${UPLOAD_MAX_SIZE_MB}MB` })
+  }
 
   const formData = await readFormData(event)
   const file = formData.get('file')

@@ -40,7 +40,8 @@
     "nuxt": "~4.5.2",
     "nuxt-auth-utils": "^0.5.34",
     "tailwindcss": "^4.3.4",
-    "vuedraggable": "^4.1.0"
+    "vuedraggable": "^4.1.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",

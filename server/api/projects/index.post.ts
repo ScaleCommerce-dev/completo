@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm'
+import { projectCreateSchema } from '#shared/schemas/project'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
@@ -6,11 +7,7 @@ export default defineEventHandler(async (event) => {
   if (user.kind === 'agent') {
     throw createError({ statusCode: 403, message: 'Agents cannot create projects' })
   }
-  const { name, description, briefing, key: rawKey, slug: rawSlug, icon, doneStatusName, doneRetentionDays } = await readBody<{ name: string, description?: string, briefing?: string, key?: string, slug?: string, icon?: string, doneStatusName?: string, doneRetentionDays?: number | null }>(event)
-
-  if (!name) {
-    throw createError({ statusCode: 400, message: 'Project name is required' })
-  }
+  const { name, description, briefing, key: rawKey, slug: rawSlug, icon, doneStatusName, doneRetentionDays } = await readBodyAs(event, projectCreateSchema)
 
   const key = rawKey || generateKey(name)
 

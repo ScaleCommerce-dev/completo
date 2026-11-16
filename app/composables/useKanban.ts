@@ -202,10 +202,11 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
     try {
       await $fetch(`/api/boards/${boardId.value}` as string, {
         method: 'PUT' as const,
-        body: { name, slug }
+        // A name with no latin letters or digits has no slug; it keeps the one it has.
+        body: slug ? { name, slug } : { name }
       })
       toast.add({ title: 'Board renamed', color: 'success' })
-      return slug
+      return slug || board.value?.slug || null
     } catch (e: unknown) {
       const err = e as { data?: { statusCode?: number } }
       if (err?.data?.statusCode === 409) {

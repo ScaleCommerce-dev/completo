@@ -1,20 +1,16 @@
 import { eq, and, asc, sql } from 'drizzle-orm'
+import type { CardCreateBody } from '#shared/schemas/card'
 
 interface CreateCardParams {
   projectId: string
   userId: string
   userName: string
-  body: {
-    /** Defaults to `defaultStatusId(projectId)`. */
-    statusId?: string
-    title: string
-    description?: string
-    priority?: 'low' | 'medium' | 'high' | 'urgent'
-    assigneeId?: string
-    dueDate?: string | null
-    /** Makes the new card a sub-task of this one (`server/utils/subtasks.ts`). */
-    parentId?: number | null
-  }
+  /**
+   * Parsed by `cardCreateSchema` (`shared/schemas/card.ts`) on the request path;
+   * the in-server callers build it themselves. The status defaults to
+   * `defaultStatusId(projectId)`; `parentId` makes the card a sub-task.
+   */
+  body: CardCreateBody
   /**
    * Tags to attach in the same transaction as the card, already validated as this
    * project's by the caller. Outside `body` on purpose: `POST /projects/:id/cards`
@@ -48,7 +44,9 @@ export function createCard({ projectId, userId, userName, body, tags = [] }: Cre
   const { title, description, priority, assigneeId, dueDate } = body
   const parentId = body.parentId == null ? null : requireParent({ projectId, parentId: body.parentId }).id
 
-  if (!title) {
+  // The request path has trimmed and checked it already; a copy or template
+  // passes a stored title, which is never empty.
+  if (!title?.trim()) {
     throw createError({ statusCode: 400, message: 'Title is required' })
   }
   const statusId = body.statusId || defaultStatusId(projectId)

@@ -1,32 +1,17 @@
 import { eq, and, ne } from 'drizzle-orm'
+import { boardUpdateSchema, storedFilter } from '#shared/schemas/view'
 
 export default defineEventHandler(async (event) => {
   const { user: _user, board } = await resolveBoard(event)
-  const { name, slug, tagFilters, statusFilters, assigneeFilters, priorityFilters, hiddenCardFields, showSubtasks } = await readBody<{
-    name?: string
-    slug?: string
-    tagFilters?: string[]
-    statusFilters?: string[]
-    assigneeFilters?: string[]
-    priorityFilters?: string[]
-    hiddenCardFields?: string[]
-    showSubtasks?: boolean
-  }>(event)
-
-  if (!name && !slug && tagFilters === undefined && statusFilters === undefined && assigneeFilters === undefined && priorityFilters === undefined && hiddenCardFields === undefined && showSubtasks === undefined) {
-    throw createError({ statusCode: 400, message: 'Name, slug, filters, or display settings required' })
-  }
+  const { name, slug, tagFilters, statusFilters, assigneeFilters, priorityFilters, hiddenCardFields, showSubtasks } = await readBodyAs(event, boardUpdateSchema)
 
   const updates: Record<string, string | number | null> = {}
 
-  if (name) {
+  if (name !== undefined) {
     updates.name = name
   }
 
-  if (slug) {
-    if (!isValidSlug(slug)) {
-      throw createError({ statusCode: 400, message: 'Invalid slug format' })
-    }
+  if (slug !== undefined) {
     // Check uniqueness within project
     const existing = db.select({ id: schema.boards.id })
       .from(schema.boards)
@@ -43,38 +28,27 @@ export default defineEventHandler(async (event) => {
   }
 
   if (tagFilters !== undefined) {
-    updates.tagFilters = tagFilters.length ? JSON.stringify(tagFilters) : null
+    updates.tagFilters = storedFilter(tagFilters)
   }
 
   if (statusFilters !== undefined) {
-    updates.statusFilters = statusFilters.length ? JSON.stringify(statusFilters) : null
+    updates.statusFilters = storedFilter(statusFilters)
   }
 
   if (assigneeFilters !== undefined) {
-    updates.assigneeFilters = assigneeFilters.length ? JSON.stringify(assigneeFilters) : null
+    updates.assigneeFilters = storedFilter(assigneeFilters)
   }
 
   if (priorityFilters !== undefined) {
-    updates.priorityFilters = priorityFilters.length ? JSON.stringify(priorityFilters) : null
+    updates.priorityFilters = storedFilter(priorityFilters)
   }
 
-  // Unknown *keys* are dropped rather than rejected — a board saved by a newer
-  // release naming a field this one has never heard of should lose that setting,
-  // not fail to save. A wrong *shape* is a different thing: `normalizeHiddenCardFields`
-  // answers `[]` for a string, a number or null, so sending one silently cleared
-  // the board's display settings and returned 200 as if it had worked.
   if (hiddenCardFields !== undefined) {
-    if (!Array.isArray(hiddenCardFields)) {
-      throw createError({ statusCode: 400, message: 'hiddenCardFields must be an array' })
-    }
     const hidden = normalizeHiddenCardFields(hiddenCardFields)
     updates.hiddenCardFields = hidden.length ? JSON.stringify(hidden) : null
   }
 
   if (showSubtasks !== undefined) {
-    if (typeof showSubtasks !== 'boolean') {
-      throw createError({ statusCode: 400, message: 'showSubtasks must be a boolean' })
-    }
     updates.showSubtasks = showSubtasks ? 1 : 0
   }
 

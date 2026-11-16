@@ -1,12 +1,9 @@
 import { eq } from 'drizzle-orm'
+import { nameColorUpdateSchema } from '#shared/schemas/project'
 
 export default defineEventHandler(async (event) => {
   const { status } = await resolveStatus(event)
-  const { name, color } = await readBody<{ name?: string, color?: string }>(event)
-
-  if (color !== undefined && color !== null && !isHexColor(color)) {
-    throw createError({ statusCode: 400, message: 'Color must be a valid hex color (#RRGGBB)' })
-  }
+  const { name, color } = await readBodyAs(event, nameColorUpdateSchema)
 
   db.update(schema.statuses).set({
     ...(name !== undefined && { name }),
