@@ -170,35 +170,47 @@ function onDuplicated(copy: { id: number, projectKey: string, projectSlug: strin
   navigateTo(`/projects/${copy.projectSlug}/cards/${formatTicketId(copy.projectKey, copy.id)}`)
 }
 
-const title = ref('')
-const description = ref('')
-const priority = ref('medium')
-const selectedStatusId = ref('')
-const UNASSIGNED = '__unassigned__'
-const selectedAssigneeId = ref(UNASSIGNED)
-const selectedTagIds = ref<string[]>([])
-const selectedDueDate = ref<string | null>(null)
-const editingDescription = ref(false)
-const titleInput = ref<HTMLTextAreaElement>()
-
 /**
- * The title wraps instead of scrolling out of sight.
- *
- * It was an `<input>`, so a long one simply ran off the right edge of the panel
- * with no ellipsis and no way to read the rest without arrowing through it — a
- * 100-character title showed about 70 of its characters and nothing said so.
- * Enter still commits rather than inserting a newline, so it stays a single-line
- * field that happens to be able to show all of itself.
+ * The editing state and handlers, shared with the card's own page. Creating
+ * uses the same fields; nothing saves until there is a card (`enabled`).
  */
-function resizeTitle() {
-  const el = titleInput.value
-  if (!el) return
-  el.style.height = 'auto'
-  el.style.height = `${el.scrollHeight}px`
-}
+const {
+  UNASSIGNED,
+  title,
+  description,
+  priority,
+  selectedStatusId,
+  selectedAssigneeId,
+  selectedTagIds,
+  selectedDueDate,
+  selectedTagNames,
+  editingDescription,
+  titleInput,
+  descriptionEditorRef,
+  resizeTitle,
+  descriptionDraft,
+  descriptionDirty,
+  populate,
+  flushTitle,
+  startEditingDescription,
+  cancelEditingDescription,
+  saveDescription,
+  descriptionCopied,
+  copyDescription
+} = useCardEditor({
+  card: () => props.card as CardEditorCard | undefined,
+  tags: () => props.tags || [],
+  enabled: () => isEdit.value,
+  save: updates => emit('update', props.card!.id, updates),
+  saveTags: tagIds => emit('updateTags', props.card!.id, tagIds)
+})
 
-watch(title, () => nextTick(resizeTitle))
-const descriptionEditorRef = ref<{ startEditing: () => void }>()
+// The host hands over a card object per card it opens, and a fresh one when its
+// view refetches; either way the panel shows what it was given.
+watch(() => props.card, (card) => {
+  if (card) populate(card as CardEditorCard)
+}, { immediate: true })
+
 const draftCardId = ref<number | null>(null)
 const showDraftDiscardConfirm = ref(false)
 /** UButton's root *is* the <button>, so `$el` is what takes focus. */
@@ -305,8 +317,6 @@ function restoreFocusAfterConfirm() {
   nextTick(() => el?.focus())
 }
 
-const selectedTagNames = computed(() => (props.tags || []).filter(t => selectedTagIds.value.includes(t.id)).map(t => t.name))
-
 /**
  * What this card still needs before the view it is being created on will show it.
  *
@@ -380,144 +390,8 @@ async function handleBeforeUpload() {
   }
 }
 
-/**
- * The description is the one field on an existing card that is still an explicit
- * draft, so it is the one field a close can destroy. Persisting it locally makes
- * an accidental close, a reload or a crash recoverable, which is what lets the
- * editor offer a plain Cancel rather than a confirmation.
- *
- * Explicit discard still discards — `cancelEditingDescription` clears the draft —
- * because restoring text somebody deliberately threw away is worse than losing it.
- */
-const descriptionDraft = useTextDraft(
-  () => (props.card ? `card:${props.card.id}:description` : null),
-  description,
-  () => props.card?.description || ''
-)
-
-function populateFromCard(card: NonNullable<typeof props.card>) {
-  title.value = card.title || ''
-  description.value = card.description || ''
-  priority.value = card.priority || 'medium'
-  selectedStatusId.value = card.statusId || ''
-  selectedAssigneeId.value = card.assigneeId || UNASSIGNED
-  selectedTagIds.value = (card.tags || []).map((t: { id: string }) => t.id)
-  selectedDueDate.value = toDateInput(card.dueDate)
-  editingDescription.value = false
-  // After the card's own text, so a draft wins over what the server holds — and
-  // straight into the editor, because a restored draft rendered as prose would
-  // read exactly like a saved description. That is the bug
-  // `cancelEditingDescription` exists to prevent; restoring must not reintroduce it.
-  descriptionDraft.load()
-  if (descriptionDraft.restored.value) editingDescription.value = true
-}
-
-watch(() => props.card, (card) => {
-  if (card) populateFromCard(card)
-}, { immediate: true })
-
-/**
- * Editing an existing card saves each property as it changes, matching the board
- * and the list — the same fields used to sit behind this dialog's Save button, so
- * the mental model changed depending on which surface you were on.
- *
- * Creating is still batched: there is no card to save to until Create runs.
- */
-const { flushTitle } = useCardFieldSync({
-  card: () => (props.card as CardFieldSyncCard | undefined) ?? null,
-  fields: {
-    title,
-    statusId: selectedStatusId,
-    assigneeId: selectedAssigneeId,
-    priority,
-    dueDate: selectedDueDate,
-    tagIds: selectedTagIds
-  },
-  unassignedValue: UNASSIGNED,
-  enabled: () => isEdit.value,
-  save: updates => emit('update', props.card!.id, updates),
-  saveTags: tagIds => emit('updateTags', props.card!.id, tagIds),
-  onCardChanged: () => {
-    if (props.card) populateFromCard(props.card)
-  }
-})
-
-function startEditingDescription() {
-  editingDescription.value = true
-  nextTick(() => descriptionEditorRef.value?.startEditing())
-}
-
-/**
- * Reading a description and editing one are separate acts, and clicking the prose
- * used to be both.
- *
- * It was guarded — a click on a link followed the link, and a click that ended a
- * selection was treated as a copy — but the guard cannot cover the gesture people
- * actually use. Clicking a word and then shift-clicking to extend, or clicking
- * once to dismiss a previous selection, both start with a collapsed selection,
- * which is indistinguishable from "edit this". So the common way to copy half a
- * sentence out of a card threw you into the editor instead, every time.
- *
- * Editing is now only ever the pencil, which is why that button is always
- * rendered rather than revealed on hover: it is the single path in. The hover fill
- * this block used to carry went with the click — a surface that lights up under
- * the pointer and then does nothing is worse than one that never suggested it.
- *
- * `copyDescription` is the other half of the trade. If copying is common enough to
- * cost us click-to-edit, it deserves a control, and copying the *markdown* is
- * better than what hand-selecting the rendered prose would ever have given you.
- */
-const { copied: descriptionCopied, copy: copyText } = useCopyText()
-
-function copyDescription() {
-  copyText(description.value)
-}
-
-/**
- * Leaving the editor without saving must not leave the typed text on screen
- * looking saved.
- *
- * It used to do exactly that: Escape only unmounted the editor, so the panel
- * rendered the *unsaved* value as prose — indistinguishable from a stored
- * description — and `hasUncommittedText`, which requires `editingDescription`,
- * went false along with it. The close guard then had nothing to warn about and
- * the text went silently.
- */
-function cancelEditingDescription() {
-  description.value = props.card?.description || ''
-  editingDescription.value = false
-  descriptionDraft.clear()
-}
-
 /** Create needs a title and somewhere to put the card. Nothing else is batched. */
 const canSubmit = computed(() => !!title.value.trim() && !!selectedStatusId.value)
-
-const descriptionDirty = computed(() =>
-  description.value.trim() !== (props.card?.description || '').trim()
-)
-
-/**
- * The description commits itself, from a button that sits under the editor it
- * belongs to.
- *
- * It used to be the panel's footer Save — a button in a different region, past
- * the attachments and every comment, sharing a row with Delete. On a card with a
- * thread that is several hundred pixels below the editor you are typing in, and
- * it is the same button whether you have written a description or not. Every
- * other field on this panel already saves where it lives; this is the last one
- * that didn't.
- *
- * Deliberately still explicit rather than autosaved. The editor is a markdown
- * textarea, so writing and reading are different modes, and a mode you leave by
- * saving is honest about that. When the editors become WYSIWYG this can become
- * a blur-and-debounce like the title.
- */
-function saveDescription() {
-  if (!props.card || !descriptionDirty.value) return
-  emit('update', props.card.id, { description: description.value.trim() })
-  editingDescription.value = false
-  descriptionDraft.clear()
-}
 
 function reset() {
   title.value = ''

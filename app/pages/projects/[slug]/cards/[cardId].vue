@@ -74,37 +74,6 @@ function openSubtask(id: number) {
 // Owners (and admins, who resolve to a synthetic 'owner') may delete others' comments
 const canModerateComments = computed(() => cardData.value?.role === 'owner')
 
-const UNASSIGNED = '__unassigned__'
-const title = ref('')
-const description = ref('')
-const priority = ref('medium')
-const selectedStatusId = ref('')
-const selectedAssigneeId = ref(UNASSIGNED)
-const selectedTagIds = ref<string[]>([])
-const selectedDueDate = ref<string | null>(null)
-const saving = ref(false)
-const editingDescription = ref(false)
-const showDeleteConfirm = ref(false)
-const showDuplicate = ref(false)
-const deletingCard = ref(false)
-const descriptionEditorRef = ref<{ startEditing: () => void }>()
-const titleInput = ref<HTMLTextAreaElement>()
-
-/** See CardModal — the title wraps instead of scrolling out of sight. */
-function resizeTitle() {
-  const el = titleInput.value
-  if (!el) return
-  el.style.height = 'auto'
-  el.style.height = `${el.scrollHeight}px`
-}
-
-watch(title, () => nextTick(resizeTitle))
-
-const selectedTagNames = computed(() => (projectTagsData.value || []).filter(t => selectedTagIds.value.includes(t.id)).map(t => t.name))
-
-// Sync from fetched data once loaded
-const synced = ref(false)
-
 /**
  * A file dropped anywhere on the card attaches it — see `useFileDrop`, and note
  * that until this existed a file dropped outside the attachments section made the
@@ -118,34 +87,6 @@ const { dragging } = useFileDrop({
   enabled: () => !!card.value,
   onFiles: files => attachmentsRef.value?.uploadFiles(files)
 })
-
-/** See CardModal — the description is the one field a navigation can destroy. */
-const descriptionDraft = useTextDraft(
-  () => (card.value ? `card:${card.value.id}:description` : null),
-  description,
-  () => card.value?.description || ''
-)
-
-function populateFromCard(c: CardDetail) {
-  title.value = c.title || ''
-  description.value = c.description || ''
-  priority.value = c.priority || 'medium'
-  selectedStatusId.value = c.statusId || ''
-  selectedAssigneeId.value = c.assigneeId || UNASSIGNED
-  selectedTagIds.value = (c.tags || []).map(t => t.id)
-  selectedDueDate.value = toDateInput(c.dueDate)
-  // See CardModal: restoring into the read view would render unsaved text as if
-  // it were stored, so a restored draft opens the editor it belongs to.
-  descriptionDraft.load()
-  if (descriptionDraft.restored.value) editingDescription.value = true
-}
-
-watch(card, (c) => {
-  if (c && !synced.value) {
-    populateFromCard(c)
-    synced.value = true
-  }
-}, { immediate: true })
 
 /**
  * Properties save as they change, matching the board, the list and the card
@@ -192,44 +133,58 @@ async function persistTags(tagIds: string[]) {
   }
 }
 
-const { flushTitle, syncProperties } = useCardFieldSync({
-  card: () => (card.value as CardFieldSyncCard | undefined) ?? null,
-  fields: {
-    title,
-    statusId: selectedStatusId,
-    assigneeId: selectedAssigneeId,
-    priority,
-    dueDate: selectedDueDate,
-    tagIds: selectedTagIds
-  },
-  unassignedValue: UNASSIGNED,
+const showDeleteConfirm = ref(false)
+const showDuplicate = ref(false)
+const deletingCard = ref(false)
+
+/** Whether the fields hold the card yet; until then nothing saves. */
+const synced = ref(false)
+
+/** The editing state and handlers, shared with the card panel. */
+const {
+  UNASSIGNED,
+  title,
+  description,
+  priority,
+  selectedStatusId,
+  selectedAssigneeId,
+  selectedTagIds,
+  selectedDueDate,
+  selectedTagNames,
+  editingDescription,
+  savingDescription,
+  titleInput,
+  descriptionEditorRef,
+  resizeTitle,
+  descriptionDraft,
+  descriptionDirty,
+  populate,
+  flushTitle,
+  syncProperties,
+  startEditingDescription,
+  cancelEditingDescription,
+  saveDescription,
+  descriptionCopied,
+  copyDescription
+} = useCardEditor({
+  card: () => card.value,
+  tags: () => projectTagsData.value,
   enabled: () => synced.value && !!card.value,
   save: persist,
-  saveTags: persistTags,
-  onCardChanged: () => {
-    if (card.value) populateFromCard(card.value)
-  }
+  saveTags: persistTags
 })
 
-function startEditingDescription() {
-  editingDescription.value = true
-  nextTick(() => descriptionEditorRef.value?.startEditing())
-}
-
 /**
- * Same contract as CardModal: leaving the editor reverts, so the page never
- * renders unsaved text as if it were stored. The draft survives an accidental
- * navigation; an explicit cancel clears it.
+ * Populated once, on load. Each save replaces `cardData` with the response, so
+ * populating on every change would overwrite a title being typed; a different
+ * card repopulates through `useCardEditor` instead.
  */
-function cancelEditingDescription() {
-  description.value = card.value?.description || ''
-  editingDescription.value = false
-  descriptionDraft.clear()
-}
-
-const descriptionDirty = computed(() =>
-  description.value.trim() !== (card.value?.description || '').trim()
-)
+watch(card, (c) => {
+  if (c && !synced.value) {
+    populate(c)
+    synced.value = true
+  }
+}, { immediate: true })
 
 /**
  * Leaving is unconditional, as it is on the card panel.
@@ -246,38 +201,11 @@ onBeforeRouteLeave(() => {
 })
 
 /**
- * ⌘↵ commits the editor you are in — see CardModal for the routing. A comment
- * editor claims it first; otherwise it belongs to the description, which is the
- * only thing on this page that is still explicitly saved.
+ * ⌘↵ commits the editor you are in (see `useCmdEnter`). A comment editor claims
+ * it first; otherwise it belongs to the description, the only thing on this page
+ * that is still explicitly saved.
  */
-useCmdEnter(submit, { active: () => editingDescription.value })
-
-/**
- * Commits the description, from the button under the editor it belongs to. The
- * properties this used to send save the moment they change, and the title saves
- * on blur, so this is the last field on the page that is still a draft.
- */
-async function submit() {
-  if (!card.value || !descriptionDirty.value) return
-  saving.value = true
-  try {
-    await persist({ description: description.value.trim() })
-    editingDescription.value = false
-    descriptionDraft.clear()
-  } finally {
-    saving.value = false
-  }
-}
-
-/**
- * See CardModal for why clicking the prose no longer edits it, and why copying
- * the markdown is the control that replaced the gesture it was breaking.
- */
-const { copied: descriptionCopied, copy: copyText } = useCopyText()
-
-function copyDescription() {
-  copyText(description.value)
-}
+useCmdEnter(saveDescription, { active: () => editingDescription.value })
 
 async function confirmDelete() {
   if (!card.value) return
@@ -319,7 +247,7 @@ async function confirmDelete() {
     </template>
     <template #title>
       <!-- A textarea, so a long title wraps rather than running off the edge.
-           See CardModal — Enter still commits. It takes the page title's size
+           See `resizeTitle` in useCardEditor; Enter still commits. It takes the page title's size
            and tracking from the `h1` it sits in. -->
       <textarea
         v-if="card"
@@ -543,7 +471,7 @@ async function confirmDelete() {
           :editing="editingDescription"
           :restored="!!descriptionDraft.restored.value"
           :dirty="descriptionDirty"
-          :saving="saving"
+          :saving="savingDescription"
           :copied="descriptionCopied"
           :min-height="240"
           :title="title"
@@ -553,7 +481,7 @@ async function confirmDelete() {
           :project-key="projectKey"
           :members="membersData"
           :card-id="card?.id"
-          @save="submit"
+          @save="saveDescription"
           @cancel="cancelEditingDescription"
           @edit="startEditingDescription"
           @copy="copyDescription"

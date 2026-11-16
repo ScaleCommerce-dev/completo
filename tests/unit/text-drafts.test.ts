@@ -7,6 +7,8 @@ const read = (p: string) => readFileSync(join(ROOT, p), 'utf8')
 
 const CARD_MODAL = read('app/components/CardModal.vue')
 const CARD_PAGE = read('app/pages/projects/[slug]/cards/[cardId].vue')
+/** The description draft of both card surfaces lives here, so its key is one spelling. */
+const CARD_EDITOR = read('app/composables/useCardEditor.ts')
 const COMMENT_LIST = read('app/components/CommentList.vue')
 const DRAFT = read('app/composables/useTextDraft.ts')
 
@@ -31,8 +33,8 @@ const strip = (src: string) => src
  */
 describe('every editor persists its text', () => {
   const surfaces: Array<[string, string, number]> = [
-    ['CardModal', CARD_MODAL, 1],
-    ['the card detail page', CARD_PAGE, 1],
+    // The description draft of the panel and the page, which both use it.
+    ['useCardEditor', CARD_EDITOR, 1],
     // The new-comment box and an in-progress comment edit.
     ['CommentList', COMMENT_LIST, 2]
   ]
@@ -44,6 +46,10 @@ describe('every editor persists its text', () => {
    * do.
    */
   const handles = (src: string) => [...src.matchAll(/const (\w+) = useTextDraft\(/g)].map(m => m[1]!)
+
+  it.each([['CardModal', CARD_MODAL], ['the card detail page', CARD_PAGE]])('%s edits through useCardEditor', (_name, src) => {
+    expect(src).toMatch(/useCardEditor\(/)
+  })
 
   it.each(surfaces)('%s calls useTextDraft', (_name, src, count) => {
     expect(src.match(/useTextDraft\(/g) ?? []).toHaveLength(count)
@@ -74,7 +80,7 @@ describe('draft scopes', () => {
   }
 
   it('gives each field its own key', () => {
-    const all = [...fields(CARD_MODAL), ...fields(CARD_PAGE), ...fields(COMMENT_LIST)]
+    const all = [...fields(CARD_EDITOR), ...fields(COMMENT_LIST)]
 
     expect(new Set(all)).toEqual(new Set(['description', 'comment', 'comment:<id>']))
   })
@@ -84,8 +90,11 @@ describe('draft scopes', () => {
     // wrong: the panel and the full page edit the same field of the same card,
     // so a draft begun in one has to be waiting in the other. Scoping by surface
     // would strand it wherever it was typed.
-    expect(fields(CARD_MODAL)).toEqual(['description'])
-    expect(fields(CARD_PAGE)).toEqual(['description'])
+    // Both now reach it through `useCardEditor`, so there is one key to check, and
+    // neither surface may spell a second one of its own.
+    expect(fields(CARD_EDITOR)).toEqual(['description'])
+    expect(fields(CARD_MODAL)).toEqual([])
+    expect(fields(CARD_PAGE)).toEqual([])
   })
 
   it('namespaces storage so a draft cannot collide with anything else', () => {
@@ -132,9 +141,11 @@ describe('leaving an editor cannot lose text silently', () => {
 
   it.each(editors)('%s reverts the description when the editor cancels', (_name, src) => {
     expect(src).toMatch(/@cancel="cancelEditingDescription"/)
-    expect(src).toMatch(/function cancelEditingDescription/)
-    // The revert itself: local text goes back to what the server holds.
-    expect(strip(src)).toMatch(/description\.value = (?:card|c)[^\n]*description/)
+  })
+
+  it('the shared editor\'s cancel reverts to what the server holds', () => {
+    expect(CARD_EDITOR).toMatch(/function cancelEditingDescription/)
+    expect(strip(CARD_EDITOR)).toMatch(/description\.value = opts\.card\(\)\?\.description/)
   })
 
   it('CardModal only submits what the Save button would accept', () => {

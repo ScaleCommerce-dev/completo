@@ -209,7 +209,7 @@ describe('the shortcut belongs to an editor', () => {
     // The branch that used to fall through to a card-level submit: the card is
     // only an active ⌘↵ target while its description is being edited.
     expect(CARD_MODAL).toMatch(/active: \(\) => open\.value && \(!isEdit\.value \|\| editingDescription\.value\)/)
-    expect(CARD_PAGE).toMatch(/useCmdEnter\(submit, \{ active: \(\) => editingDescription\.value \}\)/)
+    expect(CARD_PAGE).toMatch(/useCmdEnter\(saveDescription, \{ active: \(\) => editingDescription\.value \}\)/)
   })
 })
 
@@ -519,8 +519,11 @@ describe('the whole card is the drop target', () => {
     for (const path of ['app/components/CardModal.vue', 'app/pages/projects/[slug]/cards/[cardId].vue']) {
       const src = read(path)
       expect(src, path).toMatch(/<textarea[\s\S]{0,200}v-model="title"/)
-      expect(src, path).toMatch(/function resizeTitle/)
+      // The textarea is the one `useCardEditor` measures, and it remeasures on input.
+      expect(src, path).toMatch(/ref="titleInput"/)
+      expect(src, path).toMatch(/@input="resizeTitle"/)
     }
+    expect(read('app/composables/useCardEditor.ts')).toMatch(/function resizeTitle[\s\S]*?scrollHeight/)
   })
 
   it('keeps comment row actions quiet until the row is reached', () => {
