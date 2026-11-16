@@ -173,9 +173,27 @@ function onInputBlur() {
   }, 200)
 }
 
+/**
+ * The add-people field is a combobox: the input owns focus, arrow keys move the
+ * active option and `aria-activedescendant` tells a screen reader which one it is.
+ * The highlight used to be visual only, and the results acted on `mousedown`
+ * alone, so a keyboard or screen-reader user could neither hear nor pick them.
+ */
+const resultsId = useId()
+const resultsOpen = computed(() => showResults.value && searchQuery.value.trim().length >= 2)
+const optionId = (i: number) => `${resultsId}-option-${i}`
+const activeDescendant = computed(() =>
+  showResults.value && highlightIndex.value >= 0 && highlightIndex.value < searchResults.value.length
+    ? optionId(highlightIndex.value)
+    : undefined
+)
+
 function onInputKeydown(e: KeyboardEvent) {
   if (e.key === 'Enter') {
     e.preventDefault()
+    // A second Enter while the first add or invite is in flight sent it twice;
+    // only the buttons were disabled.
+    if (adding.value) return
     // If a search result is highlighted, add that user
     if (showResults.value && highlightIndex.value >= 0 && highlightIndex.value < searchResults.value.length) {
       const selected = searchResults.value[highlightIndex.value]
@@ -462,6 +480,11 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
         <input
           v-model="searchQuery"
           type="text"
+          role="combobox"
+          aria-autocomplete="list"
+          :aria-expanded="resultsOpen"
+          :aria-controls="resultsId"
+          :aria-activedescendant="activeDescendant"
           aria-label="Search people, or enter an email to invite"
           placeholder="Add people by name, or invite by email"
           class="w-full text-sm text-highlighted placeholder:text-dimmed bg-default border border-default rounded-lg pl-9 pr-9 py-2 transition-colors"
@@ -476,18 +499,28 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
         />
       </div>
 
+      <!-- `mousedown.prevent` keeps focus in the field (the blur timer would
+           close the list before the click lands); the click does the work. -->
       <div
-        v-if="showResults && searchQuery.trim().length >= 2"
+        v-if="resultsOpen"
+        :id="resultsId"
+        role="listbox"
+        aria-label="People to add"
         class="mt-1 flex flex-col"
       >
         <button
           v-for="(u, i) in searchResults"
+          :id="optionId(i)"
           :key="u.id"
           type="button"
+          role="option"
+          tabindex="-1"
+          :aria-selected="i === highlightIndex"
           class="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md transition-colors text-left"
           :class="i === highlightIndex ? 'bg-elevated' : 'hover:bg-elevated'"
           :disabled="adding"
-          @mousedown.prevent="addMember(u)"
+          @mousedown.prevent
+          @click="addMember(u)"
           @mouseenter="highlightIndex = i"
         >
           <UiAvatar
@@ -502,9 +535,13 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
         <button
           v-if="!searching && searchResults.length === 0 && isValidEmail(searchQuery.trim())"
           type="button"
+          role="option"
+          tabindex="-1"
+          :aria-selected="false"
           class="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md transition-colors text-left hover:bg-elevated"
           :disabled="adding"
-          @mousedown.prevent="inviteByEmail"
+          @mousedown.prevent
+          @click="inviteByEmail"
         >
           <span class="flex items-center justify-center size-6 rounded-full bg-primary/10 shrink-0">
             <UIcon
@@ -520,6 +557,9 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
 
         <p
           v-if="!searching && searchResults.length === 0 && !isValidEmail(searchQuery.trim())"
+          role="option"
+          aria-disabled="true"
+          :aria-selected="false"
           class="px-2 py-1.5 text-sm text-dimmed"
         >
           No one to add by that name. Enter a full email address to invite someone.

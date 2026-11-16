@@ -70,6 +70,42 @@ function confirm() {
   if (!canConfirm.value) return
   emit('confirm')
 }
+
+/**
+ * Keyboard focus across the swap.
+ *
+ * Callers replace the trash button with this row by `v-if`, so the focused element
+ * was unmounted and focus fell to `<body>`: a keyboard user pressed Enter on a
+ * trash icon and then had to find the tick again, with five seconds before the
+ * row disarmed (`useArmedDelete`) and removed it once more. So the row takes focus
+ * when it appears (the tick, or the banner's field) and, when it goes away while
+ * holding focus (Keep, Escape, the timeout), hands it to the trigger that comes
+ * back in its place: the control in the same container that deletes, which in
+ * every row is the trash button, else the last one.
+ */
+const root = ref<HTMLElement | null>(null)
+
+onMounted(() => {
+  nextTick(() => {
+    const target = root.value?.querySelector<HTMLElement>(props.confirmText ? 'input' : 'button')
+    target?.focus()
+  })
+})
+
+const DESTRUCTIVE = /^(Delete|Remove|Revoke)\b/
+
+onBeforeUnmount(() => {
+  const el = root.value
+  if (!el || !el.contains(document.activeElement)) return
+  const container = el.parentElement
+  nextTick(() => {
+    if (!container?.isConnected) return
+    const controls = [...container.querySelectorAll<HTMLElement>('button, a[href]')]
+    const trigger = controls.find(c => DESTRUCTIVE.test(c.getAttribute('aria-label') || c.textContent?.trim() || ''))
+      ?? controls.at(-1)
+    trigger?.focus()
+  })
+})
 </script>
 
 <template>
@@ -77,6 +113,7 @@ function confirm() {
        consequence needs a sentence. -->
   <div
     v-if="confirmText"
+    ref="root"
     class="rounded-feedback border border-danger bg-danger-soft p-4"
   >
     <p class="text-sm font-medium text-error mb-2">
@@ -116,6 +153,7 @@ function confirm() {
        rows used against the 1 the two menu rows did. -->
   <div
     v-else
+    ref="root"
     class="flex items-center gap-1"
   >
     <span class="text-xs font-medium text-error">Delete?</span>

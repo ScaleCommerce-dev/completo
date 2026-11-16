@@ -1,10 +1,22 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   isDone: boolean
   disabled: boolean
   /** Why it is disabled, when that is not obvious: a parent with open sub-tasks. */
   hint?: string
+  /** The card's title, so the control is named after the row it belongs to. */
+  cardTitle?: string
 }>()
+
+/**
+ * A checkbox with a name and a state. It was a button named only when it was
+ * disabled for open sub-tasks, with no checked state, so every other row
+ * announced an unnamed "button" and nothing said whether the card was done.
+ */
+const label = computed(() => {
+  const base = props.cardTitle ? `Done: ${props.cardTitle}` : 'Done'
+  return props.hint ? `${base}. ${props.hint}` : base
+})
 
 const emit = defineEmits<{
   toggle: []
@@ -40,8 +52,10 @@ const emit = defineEmits<{
           :class="isDone
             ? 'bg-success border-success text-white'
             : 'border-accented hover:border-success hover:bg-success/10 text-transparent'"
+          role="checkbox"
+          :aria-checked="isDone"
           :disabled="disabled"
-          :aria-label="hint"
+          :aria-label="label"
           @click="emit('toggle')"
         >
           <UIcon

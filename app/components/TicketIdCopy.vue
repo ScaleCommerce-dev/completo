@@ -65,12 +65,25 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
         // colour too. Colour costs no layout, so the row does not jump.
         copiedState === 'url' ? 'text-success!' : ''
       ]"
-      @click.stop="copyUrl"
     >
-      {{ formatTicketId(projectKey, cardId) }}
+      <!-- The copy target is a button, so Tab reaches it and Enter copies. It was
+           the `<span>` itself, with a click handler and no role: a keyboard user
+           could not copy a card's link at all where the slide-out buttons are off
+           (the board card, the list, the card page). Its name keeps the visible
+           ticket in it, so speaking "TK-5" still finds it. -->
+      <button
+        type="button"
+        class="cursor-pointer"
+        :aria-label="`Copy link to ${formatTicketId(projectKey, cardId)}`"
+        @click.stop="copyUrl"
+      >
+        {{ formatTicketId(projectKey, cardId) }}
+      </button>
+      <!-- Revealed by keyboard focus as well as hover: focus used to land on
+           buttons that stayed invisible. -->
       <span
         v-if="showCopyButtons"
-        class="absolute ml-1 inline-flex items-center gap-1 opacity-0 group-hover/copy:opacity-100 transition-opacity"
+        class="absolute ml-1 inline-flex items-center gap-1 opacity-0 group-hover/copy:opacity-100 group-focus-within/copy:opacity-100 transition-opacity"
         :class="[iconOffset, { '!opacity-100': copiedState }]"
       >
         <UTooltip :text="copiedState === 'url' ? 'Copied!' : 'Copy link'">

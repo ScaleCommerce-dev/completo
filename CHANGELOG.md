@@ -51,6 +51,8 @@
 - **An AI suggestion for a comment no longer replaces your saved draft** while it is being written, and a pending suggestion no longer carries over to the next card.
 - **The theme switch is remembered.** Switching between light and dark in the top bar or the command palette lasted only until the next reload once your profile had been saved; it is now saved to your account. The profile page's password form also asked for 6 characters where 8 are required, and pressing Enter twice when creating an API token created two.
 
+- **Better keyboard and screen-reader support.** Dialogs are announced by their title. Deleting a comment, file, token, status or tag from the keyboard moves focus to the confirmation and back when you cancel. A card's ticket id can be copied from the keyboard, the project icon picker opens from it, and adding people to a project works with the arrow keys and announces the person selected. The notification bell is a single named control with a readable unread count, and the Done box in lists says which card it belongs to and whether it is done.
+
 ### CLI
 
 - `completo create --parent TK-12` creates a sub-task, and `completo update TK-13 --parent TK-12` (or `--parent none`) moves or detaches one. `completo get` lists a card's sub-tasks and shows a sub-task's parent. `completo list --parent TK-12` lists one card's sub-tasks, `--parent none` only cards that are not sub-tasks, and the list shows a PARENT column when it contains a sub-task. Moving a parent with open sub-tasks to Done fails and names them.

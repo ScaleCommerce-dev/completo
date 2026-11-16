@@ -34,8 +34,13 @@ function applyFilterAsIcon() {
 
 <template>
   <div class="bg-default">
-    <div
-      class="flex items-center px-3 py-2.5 cursor-pointer hover:bg-muted transition-colors"
+    <!-- A button, so the picker opens from the keyboard: the row was a `div`
+         with a click handler, unreachable by Tab in project create and edit. -->
+    <button
+      type="button"
+      class="flex w-full items-center px-3 py-2.5 text-left cursor-pointer hover:bg-muted transition-colors"
+      :aria-expanded="showIconPicker"
+      :aria-label="`Icon: ${props.modelValue}. ${showIconPicker ? 'Close' : 'Change'} the icon`"
       @click="showIconPicker = !showIconPicker"
     >
       <div class="flex items-center gap-2 w-28 shrink-0">
@@ -55,7 +60,7 @@ function applyFilterAsIcon() {
           {{ showIconPicker ? 'Close' : 'Change' }}
         </span>
       </div>
-    </div>
+    </button>
     <!-- Icon picker panel -->
     <div
       v-if="showIconPicker"

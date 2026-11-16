@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ComponentPublicInstance } from 'vue'
 /**
  * The one dialog shell.
  *
@@ -13,8 +14,15 @@
  *
  * Hiding the header also left every dialog without an accessible name.
  *
- * This uses UModal's real `#header` slot, so the title is announced, Esc and
- * focus trapping behave, and the panel styling comes from app.config.
+ * This uses UModal's real `#header` slot, so Esc and focus trapping behave and the
+ * panel styling comes from app.config. Overriding that slot replaces the only
+ * place UModal renders Reka's `DialogTitle` and `DialogDescription`, while the
+ * dialog keeps `aria-labelledby`/`aria-describedby` pointing at their ids, so
+ * every dialog was announced as an unnamed "dialog". `nameDialog` gives those
+ * ids to the `<h2>` and `<p>` below. Rendering Reka's components here instead
+ * would mean importing `reka-ui` directly, and Vite can pre-bundle a direct
+ * import as a second instance that no longer sees UModal's dialog context, the
+ * failure CLAUDE.md records for Tiptap.
  *
  * It is now actually the one dialog shell: every dialog in the app goes through
  * here, six of them via `ui/ConfirmDialog`, and the only `<UModal>` left is the
@@ -76,6 +84,29 @@ const ui = computed(() => ({
   content: WIDTHS[props.size],
   body: props.flush ? 'p-0 sm:p-0' : undefined
 }))
+
+/**
+ * Name the dialog by its visible title and description: give the elements the
+ * ids the dialog's `aria-labelledby`/`aria-describedby` already point at. Without
+ * a description the reference is dropped rather than left pointing at nothing.
+ */
+function nameDialog(el: Element | null, attr: 'aria-labelledby' | 'aria-describedby') {
+  if (!(el instanceof HTMLElement)) return
+  const id = el.closest('[role="dialog"]')?.getAttribute(attr)
+  if (id) el.id = id
+}
+
+function dropMissingDescription(el: Element | null) {
+  if (el instanceof HTMLElement && !props.description) {
+    el.closest('[role="dialog"]')?.removeAttribute('aria-describedby')
+  }
+}
+
+type RefTarget = Element | ComponentPublicInstance | null
+const asElement = (el: RefTarget) => (el instanceof Element ? el : null)
+const titleRef = (el: RefTarget) => nameDialog(asElement(el), 'aria-labelledby')
+const descriptionRef = (el: RefTarget) => nameDialog(asElement(el), 'aria-describedby')
+const headerTextRef = (el: RefTarget) => dropMissingDescription(asElement(el))
 </script>
 
 <template>
@@ -111,14 +142,21 @@ const ui = computed(() => ({
             :class="tone === 'error' ? 'size-6' : 'text-base'"
           />
         </div>
-        <div class="min-w-0 flex-1">
+        <div
+          :ref="headerTextRef"
+          class="min-w-0 flex-1"
+        >
           <!-- The connect2scale dialog title: 22px, −0.6px tracking, carried
                by the `text-dialog` step. -->
-          <h2 class="text-dialog font-bold text-highlighted">
+          <h2
+            :ref="titleRef"
+            class="text-dialog font-bold text-highlighted"
+          >
             {{ title }}
           </h2>
           <p
             v-if="description"
+            :ref="descriptionRef"
             class="text-base leading-dialog text-muted mt-1"
           >
             {{ description }}

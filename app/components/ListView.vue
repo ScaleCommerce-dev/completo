@@ -412,6 +412,7 @@ const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.le
                 :is-done="isDone(card)"
                 :disabled="!doneStatusId || (!isDone(card) && openSubtaskCount(card) > 0)"
                 :hint="!isDone(card) && openSubtaskCount(card) ? openSubtasksHint(openSubtaskCount(card)) : undefined"
+                :card-title="card.title"
                 @toggle="toggleDone(card)"
               />
 
