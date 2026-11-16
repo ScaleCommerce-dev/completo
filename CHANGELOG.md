@@ -38,6 +38,9 @@
 
 - **The notifications list shows your newest 200.** It returned every notification ever received, so an account that never cleared them loaded more on every open. The unread count is unaffected.
 
+- **Handing agents to another manager revokes their tokens.** The person handing them over still held every token they had created, so those kept working after the hand-over, even once that person's account was deleted. The new manager creates new tokens; the transfer dialogs say how many were revoked. An agent handed to the manager it already has keeps its tokens.
+- **A sign-in attempt from an MCP client can no longer exhaust the server's memory.** The client description document Completo downloads for such a client was read with no size limit and no deadline once it started arriving, and the documents were cached without bound. Both are now limited.
+
 ### CLI
 
 - `completo create --parent TK-12` creates a sub-task, and `completo update TK-13 --parent TK-12` (or `--parent none`) moves or detaches one. `completo get` lists a card's sub-tasks and shows a sub-task's parent. `completo list --parent TK-12` lists one card's sub-tasks, `--parent none` only cards that are not sub-tasks, and the list shows a PARENT column when it contains a sub-task. Moving a parent with open sub-tasks to Done fails and names them.

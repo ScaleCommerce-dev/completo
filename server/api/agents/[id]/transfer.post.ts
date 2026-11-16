@@ -11,6 +11,6 @@ export default defineEventHandler(async (event) => {
   const [agent] = loadAgentsForBulk([id])
   const body = await readBodyAs(event, agentTransferSchema)
 
-  const { manager, removedFrom } = transferAgents([agent!.id], body.toUserId, user, { dryRun: body.dryRun })
-  return { agentIds: [agent!.id], managedBy: { id: manager.id, name: manager.name }, removedFrom }
+  const { manager, removedFrom, revokedTokens } = transferAgents([agent!.id], body.toUserId, user, { dryRun: body.dryRun })
+  return { agentIds: [agent!.id], managedBy: { id: manager.id, name: manager.name }, removedFrom, revokedTokens }
 })

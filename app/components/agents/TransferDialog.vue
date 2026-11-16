@@ -76,14 +76,18 @@ async function transfer() {
   submitting.value = true
   error.value = ''
   try {
-    const result = await $fetch<{ managedBy: { name: string }, removedFrom: unknown[] }>('/api/agents/transfer', {
+    const result = await $fetch<{ managedBy: { name: string }, removedFrom: unknown[], revokedTokens: number }>('/api/agents/transfer', {
       method: 'POST',
       body: { agentIds: props.agents.map(a => a.id), toUserId: toUserId.value }
     })
     open.value = false
     toast.add({
       title: `${plural(props.agents.length, 'agent')} now managed by ${result.managedBy.name}`,
-      description: result.removedFrom.length ? `${plural(result.removedFrom.length, 'project membership')} removed.` : undefined,
+      // Tokens go with a transfer (`transferAgents`): the previous manager holds them.
+      description: [
+        result.removedFrom.length ? `${plural(result.removedFrom.length, 'project membership')} removed.` : '',
+        result.revokedTokens ? `${plural(result.revokedTokens, 'token')} revoked; ${result.managedBy.name} can create new ones.` : ''
+      ].filter(Boolean).join(' ') || undefined,
       color: 'success'
     })
     emit('done')

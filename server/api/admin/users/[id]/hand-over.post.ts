@@ -27,6 +27,6 @@ export default defineEventHandler(async (event) => {
   if (body.toUserId === id) {
     throw createError({ statusCode: 400, message: 'Choose someone else to take the agents over' })
   }
-  const { manager, removedFrom } = transferAgents(agentIds, body.toUserId!, user, { dryRun: body.dryRun })
-  return { agentIds, manager: { id: manager.id, name: manager.name }, removedFrom }
+  const { manager, removedFrom, revokedTokens } = transferAgents(agentIds, body.toUserId!, user, { dryRun: body.dryRun })
+  return { agentIds, manager: { id: manager.id, name: manager.name }, removedFrom, revokedTokens }
 })

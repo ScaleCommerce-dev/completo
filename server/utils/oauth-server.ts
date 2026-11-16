@@ -32,6 +32,7 @@ import { lookup } from 'node:dns/promises'
 import { BlockList } from 'node:net'
 import { eq } from 'drizzle-orm'
 import type { H3Event } from 'h3'
+import { BoundedCache, fetchJsonBounded } from './bounded-fetch'
 
 export const ACCESS_TOKEN_PREFIX = 'dzoa_'
 export const REFRESH_TOKEN_PREFIX = 'dzor_'
@@ -179,13 +180,25 @@ export function registerClient(input: {
   return { client, secret }
 }
 
-const metadataCache = new Map<string, { client: OAuthClient, at: number }>()
+/**
+ * Bounds on a client metadata document, which an anonymous caller chooses. A real
+ * one is a few hundred bytes with one or two redirect URIs; these leave room for
+ * that many times over. Without them one streaming response ran the process out
+ * of memory, and a cache keyed by caller-chosen URLs grew without limit.
+ */
+const METADATA_MAX_BYTES = 32 * 1024
+const METADATA_TIMEOUT_MS = 5000
+const METADATA_MAX_REDIRECT_URIS = 10
+const METADATA_MAX_URI_LENGTH = 2048
+const METADATA_CACHE_ENTRIES = 500
 const METADATA_TTL_MS = 60 * 60 * 1000
+
+const metadataCache = new BoundedCache<string, OAuthClient>(METADATA_CACHE_ENTRIES, METADATA_TTL_MS)
 
 /** A client that is its own metadata document (OAuth Client ID Metadata Documents). */
 async function fetchMetadataClient(clientId: string): Promise<OAuthClient> {
   const cached = metadataCache.get(clientId)
-  if (cached && Date.now() - cached.at < METADATA_TTL_MS) return cached.client
+  if (cached) return cached
 
   let u: URL
   try {
@@ -208,22 +221,21 @@ async function fetchMetadataClient(clientId: string): Promise<OAuthClient> {
     // answer differently on the fetch — but the fetch below follows no redirect and
     // its result is never shown, so what remains is a blind GET at the time of a race.
     if (await resolvesToInternalAddress(u.hostname)) throw new Error('internal address')
-    // `redirect: 'error'`: a public document answering `302 Location: http://10.0.0.5/`
-    // made the server fetch the internal address after all. `retry: 0`: ofetch retries
-    // a failed GET once by default, which doubles every probe.
-    doc = await $fetch<Record<string, unknown>>(clientId, {
-      timeout: 5000,
-      redirect: 'error',
-      retry: 0,
-      headers: { accept: 'application/json' }
-    })
+    // One deadline over headers and body, a byte cap, and no redirect followed: a
+    // public document answering `302 Location: http://10.0.0.5/` made the server
+    // fetch the internal address after all (`bounded-fetch.ts`).
+    doc = await fetchJsonBounded(clientId, { maxBytes: METADATA_MAX_BYTES, timeoutMs: METADATA_TIMEOUT_MS }) as Record<string, unknown>
   } catch {
     // Unreachable, internal, redirecting, slow or not JSON: all the same answer below.
   }
   if (!doc || typeof doc !== 'object' || doc.client_id !== clientId || !Array.isArray(doc.redirect_uris)) {
     throw new OAuthError('invalid_client', 'Client metadata document is missing or does not name itself', 401, false)
   }
-  const redirectUris = doc.redirect_uris.filter((r): r is string => typeof r === 'string' && isAcceptableRedirectUri(r))
+  if (doc.redirect_uris.length > METADATA_MAX_REDIRECT_URIS) {
+    throw new OAuthError('invalid_client', `Client metadata document lists more than ${METADATA_MAX_REDIRECT_URIS} redirect_uris`, 401, false)
+  }
+  const redirectUris = doc.redirect_uris.filter((r): r is string =>
+    typeof r === 'string' && r.length <= METADATA_MAX_URI_LENGTH && isAcceptableRedirectUri(r))
   if (!redirectUris.length) {
     throw new OAuthError('invalid_client', 'Client metadata document has no acceptable redirect_uris', 401, false)
   }
@@ -234,7 +246,7 @@ async function fetchMetadataClient(clientId: string): Promise<OAuthClient> {
     authMethod: 'none',
     secretHash: null
   }
-  metadataCache.set(clientId, { client, at: Date.now() })
+  metadataCache.set(clientId, client)
   return client
 }
 

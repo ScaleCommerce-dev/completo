@@ -1,4 +1,4 @@
-import { eq, and, or, inArray, isNull, sql } from 'drizzle-orm'
+import { eq, and, ne, or, inArray, isNull, sql } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 
 /**
@@ -215,16 +215,27 @@ export function suspendAgents(agentIds: string[]): number {
       .set({ suspendedAt: new Date() })
       .where(and(inArray(schema.users.id, ids), isNull(schema.users.suspendedAt)))
       .run()
-    const revoked = db.delete(schema.apiTokens)
-      .where(inArray(schema.apiTokens.userId, ids))
-      .returning({ id: schema.apiTokens.id })
-      .all()
-      .length
-    // An agent has no session and so cannot complete an OAuth consent, but its
-    // credentials are whatever rows name it: clear these too rather than rely on that.
-    db.delete(schema.oauthGrants).where(inArray(schema.oauthGrants.userId, ids)).run()
-    return revoked
+    return revokeAgentCredentials(ids)
   })
+}
+
+/**
+ * Delete every credential the given agents hold, returning how many API tokens
+ * went. Call inside the caller's transaction. Shared by suspension and transfer:
+ * a token is held by whoever minted it, so a credential that outlives a change of
+ * hands keeps acting for the previous holder.
+ */
+function revokeAgentCredentials(ids: string[]): number {
+  if (!ids.length) return 0
+  const revoked = db.delete(schema.apiTokens)
+    .where(inArray(schema.apiTokens.userId, ids))
+    .returning({ id: schema.apiTokens.id })
+    .all()
+    .length
+  // An agent has no session and so cannot complete an OAuth consent, but its
+  // credentials are whatever rows name it: clear these too rather than rely on that.
+  db.delete(schema.oauthGrants).where(inArray(schema.oauthGrants.userId, ids)).run()
+  return revoked
 }
 
 /**
@@ -317,23 +328,47 @@ export function pruneAgentMemberships(agentIds: string[], manager: { id: string,
  * Hand agents to a new manager. The caller has checked that the caller is an
  * admin and that every id is an agent; this checks the recipient. A suspended
  * agent stays suspended, for its new manager to wake.
+ *
+ * Every agent that changes hands loses its tokens and grants. The previous
+ * manager minted them and still holds them, so they kept working after a
+ * hand-over: a person handed over and then deleted kept acting through the
+ * agent, and once the new manager added it to one of their projects, the old one
+ * could read that project too, which is what the membership rule exists to stop.
+ * The new manager mints fresh tokens. An agent already managed by the recipient
+ * keeps its own.
  */
 export function transferAgents(agentIds: string[], toUserId: string, actor: HistoryActor, opts: { dryRun?: boolean } = {}) {
   const manager = loadUserRow(toUserId)
   if (!manager || !canManageAgents(manager)) {
     throw createError({ statusCode: 400, message: 'The new manager must be an active admin or a person allowed to create agents' })
   }
+  const changingHands = agentIds.length
+    ? db.select({ id: schema.users.id }).from(schema.users)
+        .where(and(
+          inArray(schema.users.id, agentIds),
+          eq(schema.users.kind, 'agent'),
+          or(isNull(schema.users.managedById), ne(schema.users.managedById, manager.id))
+        ))
+        .all()
+        .map(r => r.id)
+    : []
   if (opts.dryRun || !agentIds.length) {
-    return { manager, removedFrom: planAgentMemberships(agentIds, manager) }
+    const tokensToRevoke = changingHands.length
+      ? db.select({ id: schema.apiTokens.id }).from(schema.apiTokens)
+        .where(inArray(schema.apiTokens.userId, changingHands)).all().length
+      : 0
+    return { manager, removedFrom: planAgentMemberships(agentIds, manager), revokedTokens: tokensToRevoke }
   }
   // One transaction: a failure between the hand-over and the pruning would leave
-  // agents in projects their new manager is not in, which is the invariant.
+  // agents in projects their new manager is not in, which is the invariant, and a
+  // failure before the revocation would leave the old manager's tokens alive.
   return db.transaction(() => {
     db.update(schema.users)
       .set({ managedById: manager.id })
       .where(and(inArray(schema.users.id, agentIds), eq(schema.users.kind, 'agent')))
       .run()
-    return { manager, removedFrom: pruneAgentMemberships(agentIds, manager, actor) }
+    const revokedTokens = revokeAgentCredentials(changingHands)
+    return { manager, removedFrom: pruneAgentMemberships(agentIds, manager, actor), revokedTokens }
   })
 }
 

@@ -14,7 +14,8 @@ import type { AgentSummary, HandOverAction, ManagerCandidate } from '~/types/age
  * - **Transfer all to** someone who can manage agents. The picker prices every
  *   candidate before one is chosen (`GET /api/agents/managers`), and the chosen
  *   one's loss is summed per project: an agent can only be in projects its manager
- *   is in.
+ *   is in. Their tokens are revoked too, since the person handing them over holds
+ *   them (`transferAgents`); the new manager creates fresh ones.
  * - **Suspend all**, which revokes their tokens. They then show *No manager* on
  *   the Agents page until an admin transfers them.
  *
@@ -112,7 +113,7 @@ async function submit() {
   error.value = ''
   try {
     if (agents.value.length) {
-      await $fetch(`/api/admin/users/${props.person.id}/hand-over`, {
+      const result = await $fetch<{ revokedTokens?: number }>(`/api/admin/users/${props.person.id}/hand-over`, {
         method: 'POST',
         body: choice.value === 'transfer' ? { action: 'transfer', toUserId: toUserId.value } : { action: 'suspend' }
       })
@@ -120,6 +121,7 @@ async function submit() {
         title: choice.value === 'transfer'
           ? `${plural(agents.value.length, 'agent')} handed to ${chosen.value?.name}`
           : `${plural(agents.value.length, 'agent')} suspended`,
+        description: result.revokedTokens ? `${plural(result.revokedTokens, 'token')} revoked.` : undefined,
         color: 'success'
       })
     }
@@ -228,7 +230,7 @@ async function submit() {
         <URadioGroup
           v-model="choice"
           :items="[
-            { value: 'transfer', label: `Transfer all ${agents.length}`, description: 'To an admin, or someone allowed to create agents.' },
+            { value: 'transfer', label: `Transfer all ${agents.length}`, description: `To an admin, or someone allowed to create agents. Revokes ${plural(tokenCount, 'token')}; the new manager creates new ones.` },
             { value: 'suspend', label: `Suspend all ${agents.length}`, description: `Revokes ${plural(tokenCount, 'token')} now. They show No manager until an admin transfers them.` }
           ]"
           variant="card"

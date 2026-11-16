@@ -234,6 +234,48 @@ describe('Agents: project membership', () => {
       expect((await members(owner, project.id)).filter(m => m.kind === 'agent').map(m => m.managedBy?.id)).toEqual([admin.id, admin.id])
     })
 
+    it('revokes the tokens the previous manager minted, on every transfer path', async () => {
+      // The previous manager holds them. Left alive, a person handed over and then
+      // deleted kept acting through the agent, and read any project the new
+      // manager later added it to: the case the membership rule exists to stop.
+      const project = await createTestProject(owner)
+      await addMember(owner, project.id, manager.id)
+      const receiver = await registerTestUser()
+      await setCanCreateAgents(admin, receiver, true)
+      await addMember(owner, project.id, receiver.id)
+
+      const single = await createTestAgent(manager)
+      const bulk = await createTestAgent(manager)
+      const handed = await createTestAgent(manager)
+      const tokens = await Promise.all([single, bulk, handed].map(a => createAgentToken(manager, a.id)))
+      for (const t of tokens) await $fetch('/api/projects', { headers: t.headers })
+
+      const preview = await $fetch(`/api/agents/${single.id}/transfer`, { method: 'POST', body: { toUserId: receiver.id, dryRun: true }, headers: admin.headers }) as { revokedTokens: number }
+      expect(preview.revokedTokens).toBe(1)
+      await $fetch('/api/projects', { headers: tokens[0]!.headers })
+
+      const one = await $fetch(`/api/agents/${single.id}/transfer`, { method: 'POST', body: { toUserId: receiver.id }, headers: admin.headers }) as { revokedTokens: number }
+      expect(one.revokedTokens).toBe(1)
+      const many = await $fetch('/api/agents/transfer', { method: 'POST', body: { agentIds: [bulk.id], toUserId: receiver.id }, headers: admin.headers }) as { revokedTokens: number }
+      expect(many.revokedTokens).toBe(1)
+      const viaHandOver = await $fetch(`/api/admin/users/${manager.id}/hand-over`, { method: 'POST', body: { action: 'transfer', toUserId: receiver.id }, headers: admin.headers }) as { agentIds: string[], revokedTokens: number }
+      expect(viaHandOver.agentIds).toContain(handed.id)
+
+      for (const t of tokens) await expectError($fetch('/api/projects', { headers: t.headers }), 401)
+
+      // The new manager starts afresh.
+      const fresh = await createAgentToken(receiver, single.id)
+      await $fetch('/api/projects', { headers: fresh.headers })
+    })
+
+    it('keeps the tokens of an agent handed to the manager it already has', async () => {
+      const agent = await createTestAgent(manager)
+      const token = await createAgentToken(manager, agent.id)
+      const result = await $fetch(`/api/agents/${agent.id}/transfer`, { method: 'POST', body: { toUserId: manager.id }, headers: admin.headers }) as { revokedTokens: number }
+      expect(result.revokedTokens).toBe(0)
+      await $fetch('/api/projects', { headers: token.headers })
+    })
+
     it('refuses a new manager who cannot manage agents', async () => {
       const agent = await createTestAgent(manager)
       const plain = await registerTestUser()
