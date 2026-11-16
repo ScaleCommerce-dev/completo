@@ -19,11 +19,18 @@ export function useComments(cardId: Ref<number | null | undefined>) {
   const loading = ref(false)
   const saving = ref(false)
 
+  /**
+   * The panel steps between cards without remounting this list, so a response is
+   * applied only while its card is still the one shown. Holding the arrow keys used
+   * to leave card B showing A's thread, when A's request finished last.
+   */
   async function fetchComments() {
-    if (!cardId.value) return
+    const id = cardId.value
+    if (!id) return
     loading.value = true
     try {
-      comments.value = await $fetch<Comment[]>(`/api/cards/${cardId.value}/comments`)
+      const list = await $fetch<Comment[]>(`/api/cards/${id}/comments`)
+      if (cardId.value === id) comments.value = list
     } catch {
       // Silent — the card may not exist yet (new-card flow), same as useAttachments
     } finally {
@@ -32,17 +39,18 @@ export function useComments(cardId: Ref<number | null | undefined>) {
   }
 
   async function add(body: string) {
-    if (!cardId.value || !body.trim()) return
+    const id = cardId.value
+    if (!id || !body.trim()) return
     saving.value = true
     try {
       const comment = await mutate(
-        () => $fetch<Comment>(`/api/cards/${cardId.value}/comments`, {
+        () => $fetch<Comment>(`/api/cards/${id}/comments`, {
           method: 'POST',
           body: { body }
         }),
         'Failed to add comment'
       )
-      comments.value = [...comments.value, comment]
+      if (cardId.value === id) comments.value = [...comments.value, comment]
       return comment
     } finally {
       saving.value = false
@@ -76,9 +84,10 @@ export function useComments(cardId: Ref<number | null | undefined>) {
     toast.add({ title: 'Comment deleted', color: 'success' })
   }
 
+  // A different card starts empty rather than showing the last one's thread.
   watch(cardId, (id) => {
+    comments.value = []
     if (id) fetchComments()
-    else comments.value = []
   }, { immediate: true })
 
   return { comments, loading, saving, add, edit, remove }

@@ -44,7 +44,36 @@ const editorRef = ref<{ editTab: 'write' | 'preview', textareaEl?: HTMLTextAreaE
 const aiKeepBtn = ref<HTMLButtonElement>()
 
 // ─── AI ───
-const { isGenerating: aiGenerating, error: aiError, pendingReview: aiPendingReview, generate: aiGenerate, cancel: aiCancel, accept: aiAcceptFn, decline: aiDeclineFn } = useAiDescription(description)
+/**
+ * The suggestion streams into a buffer, never into the model, as in `ProseEditor`
+ * (see `aiBuffer` there). The model is CommentList's draft, which `useTextDraft`
+ * saves: streaming into it replaced the user's own comment draft with partial AI
+ * text 400ms in, so closing or reloading mid-stream lost it, with Discard gone
+ * too. The preview shows the buffer while a suggestion is under way.
+ */
+const aiBuffer = ref('')
+const { isGenerating: aiGenerating, error: aiError, pendingReview: aiPendingReview, generate: aiGenerateFn, cancel: aiCancel, accept: aiAcceptFn, decline: aiDeclineFn } = useAiDescription(aiBuffer)
+const aiActive = computed(() => aiGenerating.value || aiPendingReview.value)
+
+function aiGenerate(context: Parameters<typeof aiGenerateFn>[0], payload?: Parameters<typeof aiGenerateFn>[1]) {
+  // Seeded from the draft: the comment endpoint reads it from here, and Stop and
+  // Discard restore it.
+  aiBuffer.value = description.value
+  aiGenerateFn(context, payload)
+}
+
+/**
+ * End a suggestion without applying it: the card changed under a mounted editor
+ * (the panel steps between cards without remounting), or the editor is going
+ * away. A stream left running kept billing and its result landed on the next card.
+ */
+function resetAi() {
+  if (aiGenerating.value) aiCancel()
+  if (aiPendingReview.value) aiDeclineFn()
+  if (editorRef.value) editorRef.value.editTab = 'write'
+}
+watch(() => props.cardId, resetAi)
+onBeforeUnmount(resetAi)
 
 watch(aiGenerating, (generating) => {
   if (generating && editorRef.value) {
@@ -75,6 +104,8 @@ function focusTextarea() {
 }
 
 function aiAccept() {
+  // The one place the suggestion reaches the draft.
+  description.value = aiBuffer.value
   aiAcceptFn()
   if (editorRef.value) editorRef.value.editTab = 'write'
   focusTextarea()
@@ -89,11 +120,15 @@ function aiDecline() {
 /**
  * An emptied editor has nothing left to review. Reachable by submitting straight from
  * the review state (Cmd+Enter posts the comment and clears the draft), which would
- * otherwise leave Keep/Discard hanging over an empty box — with Discard restoring the
- * pre-AI text of an already-posted comment — and strand the editor on the preview tab.
+ * otherwise leave Keep/Discard hanging over an empty box and strand the editor on the
+ * preview tab. The suggestion was applied on the way out (`applyPendingAi`), so this
+ * only ends the review.
  */
 watch(description, (value) => {
-  if (aiPendingReview.value && !value.trim()) aiAccept()
+  if (aiPendingReview.value && !value.trim()) {
+    aiDeclineFn()
+    if (editorRef.value) editorRef.value.editTab = 'write'
+  }
 })
 
 // ─── Mention ───
@@ -266,6 +301,14 @@ function onTextareaInput() {
 
 defineExpose({
   startEditing() { editorRef.value?.startEditing() },
+  /**
+   * Apply a suggestion still under review, before the caller reads the draft to post
+   * it. What is shown is what gets posted, as when the suggestion streamed into the
+   * draft itself.
+   */
+  applyPendingAi() {
+    if (aiPendingReview.value) aiAccept()
+  },
   get editTab(): 'write' | 'preview' { return editorRef.value?.editTab ?? 'write' },
   set editTab(val: 'write' | 'preview') { if (editorRef.value) editorRef.value.editTab = val }
 })
@@ -275,6 +318,7 @@ defineExpose({
   <MarkdownEditor
     ref="editorRef"
     v-model="description"
+    :preview-content="aiActive ? aiBuffer : null"
     :min-height="minHeight"
     :max-height="maxHeight"
     :placeholder="placeholder"

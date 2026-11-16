@@ -13,11 +13,17 @@ const props = withDefaults(defineProps<{
    * it's what keeps the toolbar and textarea inside the rounded-md border.
    */
   overlayOpen?: boolean
+  /**
+   * Shown on the preview tab in place of the model, while set: an AI suggestion
+   * that has not been kept yet (`DescriptionEditor`).
+   */
+  previewContent?: string | null
 }>(), {
   placeholder: 'Describe the task...',
   minHeight: 120,
   maxHeight: null,
-  overlayOpen: false
+  overlayOpen: false,
+  previewContent: null
 })
 
 const modelValue = defineModel<string>({ default: '' })
@@ -318,8 +324,8 @@ defineExpose({ textareaEl, editTab, startEditing })
       :style="{ minHeight: `${minHeight}px`, ...(maxHeight != null ? { maxHeight: `${maxHeight}px` } : {}) }"
     >
       <ProseDescription
-        v-if="modelValue"
-        :content="modelValue"
+        v-if="props.previewContent ?? modelValue"
+        :content="(props.previewContent ?? modelValue)!"
       />
       <slot
         v-else

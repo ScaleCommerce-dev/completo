@@ -43,6 +43,14 @@ const props = defineProps<{
     /** Where this card sits in the walked ordering — the walker's "2/7". */
     position?: { index: number, count: number } | null
   }
+  /**
+   * Saves changes to a card: the host's `@update` listener, read as a prop so the
+   * panel can await it. A rejection (or `false`) means the save failed, and the
+   * panel then keeps the description draft and puts the title back rather than
+   * showing text the server never stored. Omit `tagIds` unless tags actually
+   * changed: passing them costs a second request.
+   */
+  onUpdate?: (cardId: number, updates: Record<string, unknown>, tagIds?: string[]) => unknown
   onEnsureCard?: (data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) => Promise<number>
   /**
    * The host view's filters, so a card being created here can say up front that
@@ -95,8 +103,6 @@ const open = computed({
 
 const emit = defineEmits<{
   create: [data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }]
-  /** Omit `tagIds` unless tags actually changed — passing them costs a second request. */
-  update: [cardId: number, updates: Record<string, unknown>, tagIds?: string[]]
   updateTags: [cardId: number, tagIds: string[]]
   deleteDraft: [cardId: number]
   navigate: [direction: 'prev' | 'next' | 'prevColumn' | 'nextColumn']
@@ -158,7 +164,7 @@ const parentField = computed(() => {
 })
 
 function setParent(parentId: number | null) {
-  if (props.card) emit('update', props.card.id, { parentId })
+  if (props.card) void Promise.resolve(props.onUpdate?.(props.card.id, { parentId })).catch(() => {})
 }
 
 // Duplicate (template cards): the dialog is a sibling after </USlideover>, see
@@ -201,7 +207,7 @@ const {
   card: () => props.card as CardEditorCard | undefined,
   tags: () => props.tags || [],
   enabled: () => isEdit.value,
-  save: updates => emit('update', props.card!.id, updates),
+  save: updates => props.onUpdate?.(props.card!.id, updates),
   saveTags: tagIds => emit('updateTags', props.card!.id, tagIds)
 })
 
@@ -419,14 +425,14 @@ function submit() {
 
   if (draftCardId.value) {
     // Draft was auto-created for attachments — update it with final form data
-    emit('update', draftCardId.value, {
+    void Promise.resolve(props.onUpdate?.(draftCardId.value, {
       title: title.value.trim(),
       description: description.value.trim(),
       priority: priority.value,
       statusId: selectedStatusId.value,
       assigneeId,
       dueDate: selectedDueDate.value || null
-    }, selectedTagIds.value)
+    }, selectedTagIds.value)).catch(() => {})
     reset()
   } else {
     emit('create', {

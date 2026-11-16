@@ -45,6 +45,12 @@
 - **The page where you approve an MCP connection names where your access goes.** It led with the name the app gave itself, which any app can choose, so one calling itself "Claude" read like Claude. The address your access is sent to is now the heading, and the name is shown as the app's own claim.
 - **Over MCP, a ticket id whose project key does not match is refused.** Card numbers are shared across projects, so a mistyped key such as `XY-42` used to act on card 42 in whichever project it belongs to. Creating a card that names a tag the caller may not create no longer leaves the card behind, which made a retry create a second one.
 
+- **A card edit that fails to save no longer looks saved.** In the card panel a failed description save closed the editor and showed the unsaved text as if it were stored, and closing the card then lost it. The editor now stays open with your text, and a rejected title goes back to the saved one.
+- **Stepping through cards in the panel shows each card's own comments and files.** Moving quickly from card to card could leave one card showing the previous card's comments and attachments.
+- **Board and list settings no longer drop a filter change.** A filter toggled just before renaming the view was never saved, and toggling a filter on and off again quickly could leave the view filtered while the settings showed it off.
+- **An AI suggestion for a comment no longer replaces your saved draft** while it is being written, and a pending suggestion no longer carries over to the next card.
+- **The theme switch is remembered.** Switching between light and dark in the top bar or the command palette lasted only until the next reload once your profile had been saved; it is now saved to your account. The profile page's password form also asked for 6 characters where 8 are required, and pressing Enter twice when creating an API token created two.
+
 ### CLI
 
 - `completo create --parent TK-12` creates a sub-task, and `completo update TK-13 --parent TK-12` (or `--parent none`) moves or detaches one. `completo get` lists a card's sub-tasks and shows a sub-task's parent. `completo list --parent TK-12` lists one card's sub-tasks, `--parent none` only cards that are not sub-tasks, and the list shows a PARENT column when it contains a sub-task. Moving a parent with open sub-tasks to Done fails and names them.

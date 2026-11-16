@@ -18,3 +18,11 @@ export const DOMAIN_RESTRICTED_MESSAGE
  */
 export const OAUTH_UNVERIFIED_MESSAGE
   = 'Your sign-in provider could not confirm your email address. Confirm it with the provider, sign in with your password instead, or ask your administrator.'
+
+/**
+ * The shortest password accepted anywhere: registration, reset, setup and a
+ * change. One number for the server schema and every form that states it; the
+ * profile form said 6 while the server required 8, so a 7-character password
+ * showed "Ready" and then failed.
+ */
+export const PASSWORD_MIN_LENGTH = 8

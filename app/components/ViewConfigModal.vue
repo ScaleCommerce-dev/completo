@@ -272,6 +272,14 @@ function resetToProps() {
   localHiddenFields.value = [...(props.hiddenCardFields || [])]
   localShowSubtasks.value = !!props.showSubtasks
   editName.value = props.viewName || ''
+  sent = {
+    tagFilters: [...localTagFilters.value],
+    statusFilters: [...localStatusFilters.value],
+    assigneeFilters: [...localAssigneeFilters.value],
+    priorityFilters: [...localPriorityFilters.value],
+    hiddenCardFields: [...localHiddenFields.value],
+    showSubtasks: localShowSubtasks.value
+  }
 }
 
 /**
@@ -290,12 +298,28 @@ function resetToProps() {
 const FILTER_WRITE_DELAY = 400
 let writeTimer: ReturnType<typeof setTimeout> | null = null
 
+/**
+ * What this dialog last wrote, or found on opening. Changes are measured against
+ * it rather than against the props, because the props only catch up after the
+ * PUT and the view's refetch: toggling a chip on and off again inside that window
+ * compared equal to the stale props, sent nothing, and the refetch then left the
+ * view filtered while the dialog showed the filter off.
+ */
+let sent = {
+  tagFilters: [] as string[],
+  statusFilters: [] as string[],
+  assigneeFilters: [] as string[],
+  priorityFilters: [] as string[],
+  hiddenCardFields: [] as string[],
+  showSubtasks: false
+}
+
 function changedFilters() {
   const payload: { tagFilters?: string[], statusFilters?: string[], assigneeFilters?: string[], priorityFilters?: string[] } = {}
-  if (!sameSet(localTagFilters.value, props.activeTagFilters)) payload.tagFilters = [...localTagFilters.value]
-  if (!sameSet(localStatusFilters.value, props.activeStatusFilters)) payload.statusFilters = [...localStatusFilters.value]
-  if (!sameSet(localAssigneeFilters.value, props.activeAssigneeFilters)) payload.assigneeFilters = [...localAssigneeFilters.value]
-  if (!sameSet(localPriorityFilters.value, props.activePriorityFilters)) payload.priorityFilters = [...localPriorityFilters.value]
+  if (!sameSet(localTagFilters.value, sent.tagFilters)) payload.tagFilters = [...localTagFilters.value]
+  if (!sameSet(localStatusFilters.value, sent.statusFilters)) payload.statusFilters = [...localStatusFilters.value]
+  if (!sameSet(localAssigneeFilters.value, sent.assigneeFilters)) payload.assigneeFilters = [...localAssigneeFilters.value]
+  if (!sameSet(localPriorityFilters.value, sent.priorityFilters)) payload.priorityFilters = [...localPriorityFilters.value]
 
   return payload
 }
@@ -305,16 +329,22 @@ function flushWrites() {
   writeTimer = null
 
   const filters = changedFilters()
-  if (Object.keys(filters).length) emit('update-filters', filters)
+  if (Object.keys(filters).length) {
+    emit('update-filters', filters)
+    sent = { ...sent, ...filters }
+  }
 
   const display: { hiddenCardFields?: string[], showSubtasks?: boolean } = {}
-  if (isBoard.value && !sameSet(localHiddenFields.value, props.hiddenCardFields)) {
+  if (isBoard.value && !sameSet(localHiddenFields.value, sent.hiddenCardFields)) {
     display.hiddenCardFields = [...localHiddenFields.value]
   }
-  if (isView.value && localShowSubtasks.value !== !!props.showSubtasks) {
+  if (isView.value && localShowSubtasks.value !== sent.showSubtasks) {
     display.showSubtasks = localShowSubtasks.value
   }
-  if (Object.keys(display).length) emit('update-display', display)
+  if (Object.keys(display).length) {
+    emit('update-display', display)
+    sent = { ...sent, ...display }
+  }
 }
 
 function scheduleWrite() {
@@ -331,8 +361,14 @@ watch(
   scheduleWrite
 )
 
-onUnmounted(() => {
-  if (writeTimer) clearTimeout(writeTimer)
+/**
+ * A write still waiting when the dialog goes away is sent, not dropped. Closing
+ * flushes through `watch(open)` and Rename through `commitName`; this covers the
+ * rest, such as Back or Forward while the dialog is open, where a toggle made in
+ * the last 400ms was shown as applied and never written.
+ */
+onBeforeUnmount(() => {
+  if (writeTimer) flushWrites()
 })
 
 /**
@@ -488,6 +524,10 @@ function commitName() {
     editName.value = props.viewName || ''
     return
   }
+  // Pending filter and display writes go first. A rename navigates to the new
+  // slug, and a write flushed during the teardown that follows reached the server
+  // after the new page had loaded the view, which then showed the old filters.
+  flushWrites()
   emit('rename', editName.value.trim())
 }
 

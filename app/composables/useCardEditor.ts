@@ -29,6 +29,10 @@ export function useCardEditor(opts: {
   tags: () => ReadonlyArray<{ id: string, name: string }>
   /** Whether edits save as they happen. False while creating. */
   enabled: () => boolean
+  /**
+   * Persist card columns. A rejection or `false` means the save failed (the host
+   * has already said so in a toast); anything else is success.
+   */
   save: (updates: Record<string, unknown>) => unknown
   saveTags: (tagIds: string[]) => unknown
 }) {
@@ -109,6 +113,33 @@ export function useCardEditor(opts: {
   }
 
   /**
+   * One save, reported as success or failure. The panel's host used to be reached
+   * by an emit, which returns at once, so a failed description save closed the
+   * editor and cleared the draft while the server still held the old text: the
+   * panel showed unsaved text as prose, and closing it lost the text for good.
+   */
+  async function attempt(updates: Record<string, unknown>): Promise<boolean> {
+    try {
+      return (await opts.save(updates)) !== false
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Property and title saves. A rejected title is put back to what the server
+   * holds: `syncProperties` pulls the other fields back on a revert, but leaves the
+   * title alone so as not to overwrite typing, which left a rejected title on screen.
+   */
+  async function saveField(updates: Record<string, unknown>) {
+    const ok = await attempt(updates)
+    if (!ok && 'title' in updates) {
+      const c = opts.card()
+      if (c && title.value.trim() === updates.title) title.value = c.title
+    }
+  }
+
+  /**
    * Editing an existing card saves each property as it changes, matching the
    * board and the list. Creating is still batched: there is no card to save to
    * until Create runs, which is what `enabled` says.
@@ -125,7 +156,7 @@ export function useCardEditor(opts: {
     },
     unassignedValue: UNASSIGNED,
     enabled: opts.enabled,
-    save: opts.save,
+    save: saveField,
     saveTags: opts.saveTags,
     // A different card: everything repopulates, title and description included.
     onCardChanged: () => {
@@ -166,7 +197,9 @@ export function useCardEditor(opts: {
     if (!opts.card() || !descriptionDirty.value) return
     savingDescription.value = true
     try {
-      await opts.save({ description: description.value.trim() })
+      // On failure the editor stays open with the text and its draft: the host's
+      // toast says what went wrong, and Save can be pressed again.
+      if (!await attempt({ description: description.value.trim() })) return
       editingDescription.value = false
       descriptionDraft.clear()
     } finally {

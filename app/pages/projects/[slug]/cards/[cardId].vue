@@ -99,8 +99,9 @@ const { dragging } = useFileDrop({
  */
 const beginWrite = createWriteSequence<number>()
 
-async function persist(updates: Record<string, unknown>) {
-  if (!card.value) return
+/** Whether the save went through; `useCardEditor` keeps the draft when it did not. */
+async function persist(updates: Record<string, unknown>): Promise<boolean> {
+  if (!card.value) return false
   const id = card.value.id
   const isLatest = beginWrite(id)
   try {
@@ -110,11 +111,13 @@ async function persist(updates: Record<string, unknown>) {
     // saw local and card disagree, and `syncProperties` pulled the control back
     // to the value the *previous* edit set.
     if (updated && isLatest()) cardData.value = { ...cardData.value, ...updated } as CardDetail
+    return true
   } catch (e: unknown) {
     useToast().add({ title: 'Failed to save', description: getErrorMessage(e, 'Something went wrong'), color: 'error' })
     // Re-assign so the sync watcher fires and pulls the controls back.
     cardData.value = { ...cardData.value } as CardDetail
     syncProperties()
+    return false
   }
 }
 

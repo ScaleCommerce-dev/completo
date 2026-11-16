@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PASSWORD_MIN_LENGTH } from '../utils/auth-messages'
 
 /**
  * Sign-in, registration, password and API-token bodies.
@@ -14,9 +15,9 @@ import { z } from 'zod'
 /** Present and a non-empty string, with one message for both failures. */
 const present = (message: string) => z.string({ error: message }).min(1, { error: message })
 
-/** The password policy: eight characters. */
+/** The password policy: `PASSWORD_MIN_LENGTH` characters. */
 const newPassword = (required: string, tooShort: string) =>
-  present(required).min(8, { error: tooShort })
+  present(required).min(PASSWORD_MIN_LENGTH, { error: tooShort })
 
 export const loginSchema = z.object({
   email: present('Email and password are required'),
@@ -26,7 +27,7 @@ export const loginSchema = z.object({
 export const registerSchema = z.object({
   name: present('Name, email, and password are required'),
   email: present('Name, email, and password are required'),
-  password: newPassword('Name, email, and password are required', 'Password must be at least 8 characters'),
+  password: newPassword('Name, email, and password are required', `Password must be at least ${PASSWORD_MIN_LENGTH} characters`),
   invitation: z.string({ error: 'invitation must be a token' }).optional()
 })
 
@@ -45,18 +46,18 @@ export const resendVerificationSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   token: present('Token and password are required'),
-  password: newPassword('Token and password are required', 'Password must be at least 8 characters')
+  password: newPassword('Token and password are required', `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
 })
 
 export const setupAccountSchema = z.object({
   token: present('Token and password are required'),
-  password: newPassword('Token and password are required', 'Password must be at least 8 characters'),
+  password: newPassword('Token and password are required', `Password must be at least ${PASSWORD_MIN_LENGTH} characters`),
   name: z.string({ error: 'Name must be text' }).nullish()
 })
 
 export const passwordChangeSchema = z.object({
   currentPassword: present('Current password and new password are required'),
-  newPassword: newPassword('Current password and new password are required', 'New password must be at least 8 characters')
+  newPassword: newPassword('Current password and new password are required', `New password must be at least ${PASSWORD_MIN_LENGTH} characters`)
 })
 
 export const accountDeleteSchema = z.object({

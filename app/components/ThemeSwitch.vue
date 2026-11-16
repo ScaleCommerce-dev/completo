@@ -10,9 +10,11 @@
  */
 const colorMode = useColorMode()
 const isDark = computed(() => colorMode.value === 'dark')
+// Saved to the account too, or the stored mode wins on the next load.
+const { setTheme } = useThemePreference()
 
 function toggle() {
-  colorMode.preference = isDark.value ? 'light' : 'dark'
+  setTheme(isDark.value ? 'light' : 'dark')
 }
 </script>
 

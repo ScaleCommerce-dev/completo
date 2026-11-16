@@ -16,6 +16,7 @@ import { matchSegments } from '#shared/utils/card-search'
  */
 const { navSections, paletteItems } = useNavigation()
 const colorMode = useColorMode()
+const { setTheme } = useThemePreference()
 const logout = useSignOut()
 // The app's half of the sign-in / sign-out timeline (`useAuthTransition`).
 const { phase: authPhase } = useAuthTransition()
@@ -209,7 +210,7 @@ const searchGroups = computed(() => [
       label: mode.label,
       icon: mode.icon,
       active: colorMode.preference === mode.value,
-      onSelect: () => { colorMode.preference = mode.value }
+      onSelect: () => { setTheme(mode.value) }
     }))
   }
 ])

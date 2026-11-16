@@ -176,6 +176,9 @@ export function useMyTasks() {
     } catch (e) {
       if (found && snapshot && isLatest()) Object.assign(found.card, snapshot)
       toast.add({ title: 'Failed to update card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+      // Rethrown, as `useViewData.updateCard` does, so the card panel can tell a
+      // failed save from a good one and keep the user's text.
+      throw e
     }
   }
 

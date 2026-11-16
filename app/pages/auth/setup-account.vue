@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { PASSWORD_MIN_LENGTH } from '#shared/utils/auth-messages'
+
 definePageMeta({ layout: 'auth' })
 
 const route = useRoute()
@@ -65,7 +67,7 @@ async function setupAccount() {
         <UInput
           v-model="password"
           type="password"
-          placeholder="At least 8 characters"
+          :placeholder="`At least ${PASSWORD_MIN_LENGTH} characters`"
           icon="i-lucide-lock"
           required
           size="lg"

@@ -221,6 +221,19 @@ function aiDecline() {
   focusEditor()
 }
 
+/**
+ * End a suggestion without applying it when the card changes under this editor
+ * (the panel steps between cards without remounting it, and a restored draft can
+ * keep it mounted across the change) or when it unmounts. Otherwise card B showed
+ * A's suggestion, Keep wrote it into B, and the stream kept running after close.
+ */
+function resetAi() {
+  if (aiGenerating.value) aiCancel()
+  if (aiPendingReview.value) aiDeclineFn()
+}
+watch(() => props.cardId, resetAi)
+onBeforeUnmount(resetAi)
+
 // ─── Extensions ──────────────────────────────────────────────────────────────
 
 /**

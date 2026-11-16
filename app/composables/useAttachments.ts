@@ -19,26 +19,30 @@ export function useAttachments(cardId: Ref<number | null | undefined>) {
   const attachments = ref<Attachment[]>([])
   const uploading = ref(false)
 
+  /** Applied only while its card is still the one shown; see `useComments`. */
   async function fetchAttachments() {
-    if (!cardId.value) return
+    const id = cardId.value
+    if (!id) return
     try {
-      attachments.value = await $fetch<Attachment[]>(`/api/cards/${cardId.value}/attachments`)
+      const list = await $fetch<Attachment[]>(`/api/cards/${id}/attachments`)
+      if (cardId.value === id) attachments.value = list
     } catch {
       // Silent fail — card might not exist yet
     }
   }
 
   async function upload(file: File) {
-    if (!cardId.value) return
+    const id = cardId.value
+    if (!id) return
     uploading.value = true
     try {
       const formData = new FormData()
       formData.append('file', file)
-      const attachment = await $fetch<Attachment>(`/api/cards/${cardId.value}/attachments`, {
+      const attachment = await $fetch<Attachment>(`/api/cards/${id}/attachments`, {
         method: 'POST',
         body: formData
       })
-      attachments.value = [...attachments.value, attachment]
+      if (cardId.value === id) attachments.value = [...attachments.value, attachment]
       toast.add({ title: 'File uploaded', color: 'success' })
       return attachment
     } catch (e: unknown) {
@@ -65,8 +69,8 @@ export function useAttachments(cardId: Ref<number | null | undefined>) {
   }
 
   watch(cardId, (id) => {
+    attachments.value = []
     if (id) fetchAttachments()
-    else attachments.value = []
   }, { immediate: true })
 
   return {

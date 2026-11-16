@@ -113,7 +113,8 @@ function escapeComposer() {
   closeComposer()
 }
 
-const newCommentEditor = ref<{ startEditing: () => void }>()
+const newCommentEditor = ref<{ startEditing: () => void, applyPendingAi: () => void }>()
+const editCommentEditor = ref<{ applyPendingAi: () => void } | null>(null)
 
 /**
  * The card panel navigates between cards without remounting this component, so
@@ -161,6 +162,7 @@ function wasEdited(comment: Comment): boolean {
 }
 
 async function submit() {
+  newCommentEditor.value?.applyPendingAi()
   const body = draft.value.trim()
   if (!body) return
   await add(body)
@@ -189,6 +191,7 @@ function cancelEdit() {
 }
 
 async function saveEdit(id: string) {
+  editCommentEditor.value?.applyPendingAi()
   const body = editDraft.value.trim()
   if (!body) return
   await edit(id, body)
@@ -496,6 +499,7 @@ useCmdEnter((e) => {
             />
 
             <DescriptionEditor
+              :ref="(el) => { editCommentEditor = el as typeof editCommentEditor }"
               v-model="editDraft"
               :members="members"
               :project-slug="projectSlug"

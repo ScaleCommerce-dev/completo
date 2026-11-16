@@ -1,3 +1,5 @@
+import { PASSWORD_MIN_LENGTH } from '#shared/utils/auth-messages'
+
 export function usePasswordChange() {
   const currentPassword = ref('')
   const newPassword = ref('')
@@ -12,8 +14,8 @@ export function usePasswordChange() {
       passwordError.value = 'New passwords do not match'
       return
     }
-    if (newPassword.value.length < 8) {
-      passwordError.value = 'New password must be at least 8 characters'
+    if (newPassword.value.length < PASSWORD_MIN_LENGTH) {
+      passwordError.value = `New password must be at least ${PASSWORD_MIN_LENGTH} characters`
       return
     }
     passwordLoading.value = true

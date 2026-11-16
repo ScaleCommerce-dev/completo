@@ -55,7 +55,10 @@ export function useApiTokens(options: {
   })
 
   async function createToken() {
-    if (!tokenName.value.trim()) return
+    // Enter reaches this as well as the button, and only the button is disabled
+    // while loading: a quick second Enter minted a second live token, and only
+    // the second was ever shown.
+    if (tokenLoading.value || !tokenName.value.trim()) return
     tokenLoading.value = true
     try {
       const result = await $fetch(endpoint, {

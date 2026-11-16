@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { PASSWORD_MIN_LENGTH } from '#shared/utils/auth-messages'
+
 const {
   currentPassword,
   newPassword,
@@ -79,7 +81,7 @@ async function signOut() {
           id="password-new"
           v-model="newPassword"
           type="password"
-          placeholder="New password (min 6 chars)"
+          :placeholder="`New password (min ${PASSWORD_MIN_LENGTH} chars)`"
           autocomplete="new-password"
           class="flex-1 min-w-0 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
         >
@@ -137,10 +139,10 @@ async function signOut() {
     <div class="flex items-center justify-between px-card pt-4 pb-5 mt-3 border-t border-muted">
       <div class="flex items-center gap-1.5">
         <span
-          v-if="newPassword && newPassword.length < 6"
+          v-if="newPassword && newPassword.length < PASSWORD_MIN_LENGTH"
           class="text-xs font-medium text-warning"
         >
-          Min 6 characters
+          Min {{ PASSWORD_MIN_LENGTH }} characters
         </span>
         <span
           v-else-if="newPassword && confirmPassword && newPassword !== confirmPassword"
@@ -149,7 +151,7 @@ async function signOut() {
           Passwords don't match
         </span>
         <span
-          v-else-if="newPassword && confirmPassword && newPassword === confirmPassword && newPassword.length >= 6"
+          v-else-if="newPassword && confirmPassword && newPassword === confirmPassword && newPassword.length >= PASSWORD_MIN_LENGTH"
           class="flex items-center gap-1 text-xs font-medium text-success"
         >
           <UIcon
@@ -166,7 +168,7 @@ async function signOut() {
           label="Change password"
           icon="i-lucide-lock"
           :loading="passwordLoading"
-          :disabled="!currentPassword || !newPassword || newPassword !== confirmPassword || newPassword.length < 6"
+          :disabled="!currentPassword || !newPassword || newPassword !== confirmPassword || newPassword.length < PASSWORD_MIN_LENGTH"
         >
           <template #trailing>
             <UiShortcutKeys />

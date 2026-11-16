@@ -3,7 +3,10 @@ export function useProfileForm() {
 
   const profileName = ref(user.value?.name || '')
   const profileAvatarUrl = ref(user.value?.avatarUrl || '')
-  const profileColorMode = ref(user.value?.colorMode || 'system')
+  // The mode in effect, not only the stored one: a person who has never saved a
+  // theme has none stored, and the row then showed System over a dark screen.
+  const colorMode = useColorMode()
+  const profileColorMode = ref(user.value?.colorMode || colorMode.preference || 'system')
   // Not part of the session user, so the profile page seeds it from
   // GET /api/user/profile (see ProfileSettings). Unknown until then, and an
   // unknown value is left out of the save (JSON drops `undefined`): a default of
@@ -46,7 +49,7 @@ export function useProfileForm() {
     if (u) {
       profileName.value = u.name || ''
       profileAvatarUrl.value = u.avatarUrl || ''
-      profileColorMode.value = u.colorMode || 'system'
+      profileColorMode.value = u.colorMode || colorMode.preference || 'system'
     }
   }, { immediate: true })
 
