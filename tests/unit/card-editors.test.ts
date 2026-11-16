@@ -685,8 +685,8 @@ describe('the card page rail is one stack', () => {
     // The rail carried a copyable pill in a bordered section of its own, 60px
     // below a breadcrumb already ending in TK-27 — and only the further-away one
     // could be clicked. On the connect2scale detail page the card's title is
-    // the heading and the ID is the metadata beside it — UiPage's `#leading`.
-    expect(CARD_PAGE).toMatch(/<template #leading>[\s\S]*?<TicketIdCopy[\s\S]*?<\/template>/)
+    // the heading and the ID is the metadata above it — UiPage's `#eyebrow`.
+    expect(CARD_PAGE).toMatch(/<template #eyebrow>[\s\S]*?<TicketIdCopy[\s\S]*?<\/template>/)
     expect(CARD_PAGE.match(/<TicketIdCopy/g) || []).toHaveLength(1)
   })
 

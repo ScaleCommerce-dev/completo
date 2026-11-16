@@ -173,6 +173,9 @@ const trail = computed<Crumb[]>(() => {
         <div class="flex grow shrink basis-48 items-center gap-2.5 min-w-0">
           <slot name="leading" />
           <div class="flex flex-1 flex-col gap-1 min-w-0">
+            <!-- A line above the title that names the record rather than
+                 describing it: the card page's ticket ID. -->
+            <slot name="eyebrow" />
             <div class="flex items-center min-w-0">
               <!-- Not `truncate` on the heading itself: a page may put an
                    editable title here (the card page), whose focus line the

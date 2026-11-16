@@ -53,12 +53,16 @@ function onClick(e: MouseEvent) {
   >
     <NuxtLink
       :to="to"
-      class="group/parent flex items-center gap-1.5 min-w-0 rounded-md px-1.5 py-0.5 -ml-1.5 hover:bg-elevated transition-colors"
+      class="group/parent flex items-baseline gap-1.5 min-w-0 rounded-md px-1.5 py-0.5 -ml-1.5 hover:bg-elevated transition-colors"
       :aria-label="`Sub-task of ${ticket}: ${field.parent.title}. Open parent`"
     >
+      <!-- `items-baseline` on the row, the icon centred on its own: the ticket
+           is DM Mono at 12px between Jakarta Sans at 13px, and centring their
+           boxes left the ticket a pixel off the words' baseline — the same fix
+           as the panel header's ticket and byline (CardModal). -->
       <UIcon
         name="i-lucide-corner-left-up"
-        class="text-sm text-dimmed shrink-0"
+        class="text-sm text-dimmed shrink-0 self-center"
       />
       <span class="text-muted shrink-0">Sub-task of</span>
       <span class="card-id text-xs text-dimmed shrink-0">{{ ticket }}</span>

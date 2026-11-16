@@ -310,17 +310,21 @@ async function confirmDelete() {
   >
     <!--
       A detail page (handoff `03` › Seitentypen › Detail): the record's own title
-      is the page heading, and its ticket ID is the metadata beside it — the copy
+      is the page heading, and its ticket ID is the metadata above it — the copy
       control, so the number you read is the one you can click. It was the other
-      way round: "TK-1" as the 26px heading over the real title at 16px.
+      way round once ("TK-1" as the 26px heading over the real title at 16px),
+      and later beside the title at body size, where it still competed with it.
+      On its own line at 14px it reads as a label of the title, and the title
+      starts at the page's left edge like every other page title.
     -->
-    <template #leading>
+    <template #eyebrow>
       <TicketIdCopy
         v-if="card"
         :project-key="projectKey"
         :project-slug="projectSlug"
         :card-id="card.id"
         :copy-buttons="false"
+        class="self-start text-sm"
       />
     </template>
     <template #title>
@@ -334,7 +338,7 @@ async function confirmDelete() {
         rows="1"
         aria-label="Card title"
         placeholder="Card title..."
-        class="title-field block w-full text-highlighted placeholder:text-dimmed bg-transparent border-0 rounded-none p-0 resize-none overflow-hidden"
+        class="title-field block w-full lg:max-w-[calc(100%-var(--spacing-column)-1.5rem)] text-highlighted placeholder:text-dimmed bg-transparent border-0 rounded-none p-0 resize-none overflow-hidden"
         @input="resizeTitle"
         @blur="flushTitle"
         @keydown.enter.prevent="flushTitle"
@@ -349,6 +353,7 @@ async function confirmDelete() {
       <CardParentLink
         :field="{ ...parentField, parent: parentField.parent }"
         :project-slug="projectSlug"
+        class="lg:max-w-[calc(100%-var(--spacing-column)-1.5rem)]"
         @set-parent="setParent"
       />
     </template>
