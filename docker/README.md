@@ -55,6 +55,7 @@ Only `NUXT_SESSION_PASSWORD` is required. All others have sensible defaults.
 | `UPLOAD_DIR` | `/data/uploads` | Path inside the container. |
 | `PORT` | `3000` | |
 | `SMTP_HOST` | — | Empty = email disabled. |
+| `TRUSTED_PROXY_HOPS` | — | How many reverse proxies append to `X-Forwarded-For` in front of the app; rate limits key on the address the outermost one saw. Unset: one when the request arrives from a private or loopback address, none otherwise. Set `2` behind a CDN plus a proxy, `0` to ignore the header. |
 | `ADMIN_USER_EMAIL` | — | Provision this admin on startup. Skipped if absent — no fallback default admin. |
 | `ADMIN_USER_PASSWORD` | — | Required when `ADMIN_USER_EMAIL` is set. |
 | `ADMIN_USER_NAME` | — | Optional display name. Defaults to local part of email. |

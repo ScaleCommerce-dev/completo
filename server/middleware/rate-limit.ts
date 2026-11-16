@@ -1,4 +1,4 @@
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   // Skip rate limiting in test environment
   if (process.env.ALLOW_TEST_ENDPOINTS) return
 
@@ -32,9 +32,16 @@ export default defineEventHandler((event) => {
   // Only rate-limit POST auth endpoints (login, register, forgot-password, etc.)
   if (method !== 'POST' || !path.startsWith('/auth/')) return
 
-  // Stricter limit for login (brute-force protection)
+  // Stricter limit for login (brute-force protection). Per address, and per account
+  // as well, so guessing one account's password from many addresses is limited too.
+  // The account limit is looser: whoever hits it locks that account's password
+  // sign-in for the window, so it must not be reachable by a few typos.
   if (path === '/auth/login') {
     checkRateLimit(event, { name: 'auth-login', max: 10, windowSeconds: 300 })
+    const body = await readBody<{ email?: unknown }>(event).catch(() => null)
+    if (typeof body?.email === 'string' && body.email) {
+      checkRateLimit(event, { name: 'auth-login-account', max: 30, windowSeconds: 900, key: body.email.trim().toLowerCase() })
+    }
     return
   }
 

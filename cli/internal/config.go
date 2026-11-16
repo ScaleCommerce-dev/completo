@@ -37,6 +37,11 @@ func LoadConfig(envFile string) (*Config, error) {
 		cfg.User = vals["COMPLETO_USER"]
 	}
 
+	// What ~/.completo/.env pointed at: a project-directory file may name this server
+	// without bringing a token of its own.
+	userURL := cfg.URL
+	var localFile, localURL, localToken string
+
 	// Load project config from .completo in current or parent directories
 	if projectFile := findProjectFile(); projectFile != "" {
 		if vals, err := parseEnvFile(projectFile); err == nil {
@@ -48,11 +53,9 @@ func LoadConfig(envFile string) (*Config, error) {
 		}
 
 		// Load .completo.local alongside .completo (local dev overrides, gitignored)
-		localFile := projectFile + ".local"
+		localFile = projectFile + ".local"
 		if vals, err := parseEnvFile(localFile); err == nil {
-			if err := checkLocalCredentials(cfg.URL, vals); err != nil {
-				return nil, fmt.Errorf("%s: %w", localFile, err)
-			}
+			localURL, localToken = vals["COMPLETO_URL"], vals["COMPLETO_TOKEN"]
 			applyValues(cfg, vals)
 		}
 	}
@@ -64,17 +67,25 @@ func LoadConfig(envFile string) (*Config, error) {
 			return nil, fmt.Errorf("failed to read env file %q: %w", envFile, err)
 		}
 		applyValues(cfg, vals)
+		if vals["COMPLETO_URL"] != "" {
+			localURL = "" // the flag chose the server, not the project directory
+		}
 	}
 
 	// Environment variables are the final override
 	if v := os.Getenv("COMPLETO_URL"); v != "" {
 		cfg.URL = v
+		localURL = ""
 	}
 	if v := os.Getenv("COMPLETO_TOKEN"); v != "" {
 		cfg.Token = v
 	}
 	if v := os.Getenv("COMPLETO_USER"); v != "" {
 		cfg.User = v
+	}
+
+	if err := checkLocalCredentials(cfg, userURL, localURL, localToken); err != nil {
+		return nil, fmt.Errorf("%s: %w", localFile, err)
 	}
 
 	// Defaults
@@ -89,20 +100,27 @@ func LoadConfig(envFile string) (*Config, error) {
 }
 
 // checkLocalCredentials refuses a .completo.local that points the CLI at another
-// server while leaving the token from ~/.completo/.env in place. The file sits in
-// a project directory, so it can arrive with a cloned repo or an archive; with
-// only COMPLETO_URL set, the first command sent the user's real, non-expiring
-// token to whatever server it named. URL and token are a pair: a different URL
-// must bring its own token.
-func checkLocalCredentials(currentURL string, vals map[string]string) error {
-	newURL := vals["COMPLETO_URL"]
-	if newURL == "" || vals["COMPLETO_TOKEN"] != "" {
-		return nil
+// server while the token comes from somewhere else. The file sits in a project
+// directory, so it can arrive with a cloned repo or an archive. URL and token are a
+// pair: a different URL must bring its own token, and that token must be the one
+// actually sent. It is checked on the *final* values, after --env-file and the
+// environment, because checking the file alone let it set COMPLETO_URL plus any
+// dummy COMPLETO_TOKEN while an exported COMPLETO_TOKEN (the setup agents use)
+// replaced the dummy and went to the file's server.
+func checkLocalCredentials(cfg *Config, userURL, localURL, localToken string) error {
+	if localURL == "" {
+		return nil // the file did not choose the server
 	}
-	if strings.TrimRight(newURL, "/") == strings.TrimRight(currentURL, "/") {
-		return nil
+	if localToken != "" && cfg.Token == localToken {
+		return nil // the file's own token goes to the file's own server
 	}
-	return fmt.Errorf("sets COMPLETO_URL=%s without COMPLETO_TOKEN; refusing to send your token from ~/.completo/.env to a different server. Add COMPLETO_TOKEN for that server, or remove COMPLETO_URL", newURL)
+	if strings.TrimRight(localURL, "/") == strings.TrimRight(userURL, "/") {
+		return nil // the server ~/.completo/.env already names
+	}
+	if localToken == "" {
+		return fmt.Errorf("sets COMPLETO_URL=%s without COMPLETO_TOKEN; refusing to send your token from ~/.completo/.env to a different server. Add COMPLETO_TOKEN for that server, or remove COMPLETO_URL", localURL)
+	}
+	return fmt.Errorf("sets COMPLETO_URL=%s, but its COMPLETO_TOKEN is overridden (by --env-file or the COMPLETO_TOKEN environment variable); refusing to send that token to the file's server. Unset the override, or set COMPLETO_URL in the environment too", localURL)
 }
 
 // applyValues applies recognized keys from a parsed env map to the config.

@@ -31,95 +31,113 @@ db.pragma('foreign_keys = ON')
 // or via `pnpm user:create` in dev). If no admin exists, skip the
 // demo project entirely — we don't want any user with default
 // credentials sitting in production DBs.
-const existingProject = db.prepare('SELECT id FROM projects WHERE slug = ?').get('my-project') as { id: string } | undefined
-if (existingProject) {
-  console.log('Demo project already exists — skipping')
-} else {
+//
+// This runs on every boot, so the demo is created once and then belongs to the
+// installation: a `global_settings` marker records that it was handed over. Keyed on
+// the demo's slug instead, a deleted demo came back on the next restart, and a renamed
+// one aborted boot on `UNIQUE constraint failed: projects.key` (the entrypoint fails
+// the container on a script error). An install that predates the marker and already
+// has a project counts as seeded. Everything runs in one transaction, so a failure
+// leaves neither a half-built demo nor the marker.
+const DEMO_MARKER = 'demo_project_seeded'
+
+const seedDemo = db.transaction((): string => {
+  if (db.prepare('SELECT 1 FROM global_settings WHERE key = ?').get(DEMO_MARKER)) {
+    return 'Demo project already seeded — skipping'
+  }
+  const markSeeded = () => db.prepare('INSERT INTO global_settings (key, value, updated_at) VALUES (?, ?, ?)')
+    .run(DEMO_MARKER, 'true', Math.floor(Date.now() / 1000))
+
+  if (db.prepare('SELECT 1 FROM projects LIMIT 1').get()) {
+    markSeeded()
+    return 'Projects already exist — skipping demo project'
+  }
   const adminRow = db.prepare('SELECT id FROM users WHERE is_admin = 1 ORDER BY created_at LIMIT 1').get() as { id: string } | undefined
   if (!adminRow) {
-    console.log('No admin user exists — skipping demo project (create an admin first: `pnpm user:create <email> <password> "Name" admin`, then re-run seed)')
-  } else {
-    const ownerId = adminRow.id
-    const now = Math.floor(Date.now() / 1000)
-    const projectId = randomUUID()
-
-    db.prepare(`
-      INSERT INTO projects (id, name, slug, key, description, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(projectId, 'My Project', 'my-project', 'TK', 'A sample project to get started', now)
-
-    db.prepare(`
-      INSERT INTO project_members (id, project_id, user_id, role)
-      VALUES (?, ?, ?, ?)
-    `).run(randomUUID(), projectId, ownerId, 'owner')
-
-    // Board. Hides what a new board hides (`DEFAULT_HIDDEN_CARD_FIELDS`), as a
-    // literal: scripts cannot import `shared/` without a build step.
-    const boardId = randomUUID()
-    db.prepare(`
-      INSERT INTO boards (id, project_id, name, slug, position, hidden_card_fields, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(boardId, projectId, 'Sprint Board', 'sprint-board', 0, '["attachmentCount"]', now)
-
-    // Statuses
-    const statusNames = ['Backlog', 'To Do', 'In Progress', 'Review', 'Done']
-    const statusColors = ['#a1a1aa', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981']
-    const statusIds: string[] = []
-
-    for (let i = 0; i < statusNames.length; i++) {
-      const statusId = randomUUID()
-      statusIds.push(statusId)
-      db.prepare(`
-        INSERT INTO statuses (id, project_id, name, color)
-        VALUES (?, ?, ?, ?)
-      `).run(statusId, projectId, statusNames[i], statusColors[i])
-
-      db.prepare(`
-        INSERT INTO board_columns (id, board_id, status_id, position)
-        VALUES (?, ?, ?, ?)
-      `).run(randomUUID(), boardId, statusId, i)
-    }
-
-    // Tags
-    const defaultTags = [
-      { name: 'Bug', color: '#ef4444' },
-      { name: 'Feature', color: '#3b82f6' },
-      { name: 'Discuss', color: '#f59e0b' }
-    ]
-    for (const tag of defaultTags) {
-      db.prepare(`
-        INSERT INTO tags (id, project_id, name, color)
-        VALUES (?, ?, ?, ?)
-      `).run(randomUUID(), projectId, tag.name, tag.color)
-    }
-
-    db.prepare(`
-      UPDATE projects SET done_status_id = ?, done_retention_days = ? WHERE id = ?
-    `).run(statusIds[4], 30, projectId)
-
-    // Sample cards — assigned to the admin owner.
-    const tomorrow = new Date(Date.now() + 86400000)
-    const yesterday = new Date(Date.now() - 86400000)
-    const nextWeek = new Date(Date.now() + 7 * 86400000)
-    const toTimestamp = (d: Date | null) => d ? Math.floor(d.getTime() / 1000) : null
-
-    const sampleCards = [
-      { title: 'Set up CI/CD pipeline', description: 'Configure GitHub Actions for automated testing and deployment', statusIndex: 0, priority: 'medium', position: 0, dueDate: nextWeek },
-      { title: 'Design database schema', description: 'Create the ERD and define all tables for the project', statusIndex: 1, priority: 'high', position: 0, dueDate: tomorrow },
-      { title: 'Implement user authentication', description: 'Add login/register with session management', statusIndex: 2, priority: 'urgent', position: 0, dueDate: yesterday },
-      { title: 'Write API documentation', description: 'Document all REST endpoints with examples', statusIndex: 3, priority: 'low', position: 0, dueDate: null }
-    ]
-
-    for (const card of sampleCards) {
-      db.prepare(`
-        INSERT INTO cards (status_id, project_id, title, description, assignee_id, priority, position, due_date, created_by_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(statusIds[card.statusIndex], projectId, card.title, card.description, ownerId, card.priority, card.position, toTimestamp(card.dueDate), ownerId, now, now)
-    }
-
-    console.log('Seed complete: 1 project, 1 board, 5 statuses, 3 tags, 4 cards')
+    return 'No admin user exists — skipping demo project (create an admin first: `pnpm user:create <email> <password> "Name" admin`, then re-run seed)'
   }
-}
+  const ownerId = adminRow.id
+  const now = Math.floor(Date.now() / 1000)
+  const projectId = randomUUID()
+
+  db.prepare(`
+    INSERT INTO projects (id, name, slug, key, description, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(projectId, 'My Project', 'my-project', 'TK', 'A sample project to get started', now)
+
+  db.prepare(`
+    INSERT INTO project_members (id, project_id, user_id, role)
+    VALUES (?, ?, ?, ?)
+  `).run(randomUUID(), projectId, ownerId, 'owner')
+
+  // Board. Hides what a new board hides (`DEFAULT_HIDDEN_CARD_FIELDS`), as a
+  // literal: scripts cannot import `shared/` without a build step.
+  const boardId = randomUUID()
+  db.prepare(`
+    INSERT INTO boards (id, project_id, name, slug, position, hidden_card_fields, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(boardId, projectId, 'Sprint Board', 'sprint-board', 0, '["attachmentCount"]', now)
+
+  // Statuses
+  const statusNames = ['Backlog', 'To Do', 'In Progress', 'Review', 'Done']
+  const statusColors = ['#a1a1aa', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981']
+  const statusIds: string[] = []
+
+  for (let i = 0; i < statusNames.length; i++) {
+    const statusId = randomUUID()
+    statusIds.push(statusId)
+    db.prepare(`
+      INSERT INTO statuses (id, project_id, name, color)
+      VALUES (?, ?, ?, ?)
+    `).run(statusId, projectId, statusNames[i], statusColors[i])
+
+    db.prepare(`
+      INSERT INTO board_columns (id, board_id, status_id, position)
+      VALUES (?, ?, ?, ?)
+    `).run(randomUUID(), boardId, statusId, i)
+  }
+
+  // Tags
+  const defaultTags = [
+    { name: 'Bug', color: '#ef4444' },
+    { name: 'Feature', color: '#3b82f6' },
+    { name: 'Discuss', color: '#f59e0b' }
+  ]
+  for (const tag of defaultTags) {
+    db.prepare(`
+      INSERT INTO tags (id, project_id, name, color)
+      VALUES (?, ?, ?, ?)
+    `).run(randomUUID(), projectId, tag.name, tag.color)
+  }
+
+  db.prepare(`
+    UPDATE projects SET done_status_id = ?, done_retention_days = ? WHERE id = ?
+  `).run(statusIds[4], 30, projectId)
+
+  // Sample cards — assigned to the admin owner.
+  const tomorrow = new Date(Date.now() + 86400000)
+  const yesterday = new Date(Date.now() - 86400000)
+  const nextWeek = new Date(Date.now() + 7 * 86400000)
+  const toTimestamp = (d: Date | null) => d ? Math.floor(d.getTime() / 1000) : null
+
+  const sampleCards = [
+    { title: 'Set up CI/CD pipeline', description: 'Configure GitHub Actions for automated testing and deployment', statusIndex: 0, priority: 'medium', position: 0, dueDate: nextWeek },
+    { title: 'Design database schema', description: 'Create the ERD and define all tables for the project', statusIndex: 1, priority: 'high', position: 0, dueDate: tomorrow },
+    { title: 'Implement user authentication', description: 'Add login/register with session management', statusIndex: 2, priority: 'urgent', position: 0, dueDate: yesterday },
+    { title: 'Write API documentation', description: 'Document all REST endpoints with examples', statusIndex: 3, priority: 'low', position: 0, dueDate: null }
+  ]
+
+  for (const card of sampleCards) {
+    db.prepare(`
+      INSERT INTO cards (status_id, project_id, title, description, assignee_id, priority, position, due_date, created_by_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(statusIds[card.statusIndex], projectId, card.title, card.description, ownerId, card.priority, card.position, toTimestamp(card.dueDate), ownerId, now, now)
+  }
+
+  markSeeded()
+  return 'Seed complete: 1 project, 1 board, 5 statuses, 3 tags, 4 cards'
+})
+console.log(seedDemo())
 
 // --- Default AI skills are NOT seeded ---
 // They live in server/database/migrations/0003_default_ai_skills.sql.

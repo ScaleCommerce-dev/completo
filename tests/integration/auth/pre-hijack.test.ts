@@ -56,6 +56,52 @@ describe('registering an address someone else registered but never verified', ()
   })
 })
 
+describe('signing in with a provider onto an address someone else registered but never verified', () => {
+  async function oauthSignIn(email: string) {
+    return await fetch(url('/api/_test/oauth-sign-in'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name: 'Owner' }),
+      redirect: 'manual'
+    })
+  }
+
+  it('drops the first password and kills the first link', async () => {
+    const email = `oauth-prehijack-${Date.now()}@test.com`
+    const first = await register(email, 'attacker-pass')
+    const firstToken = await verifyToken(first.user!.id)
+
+    const res = await oauthSignIn(email)
+    expect(res.headers.get('location')).toBe('/projects')
+    const cookie = res.headers.get('set-cookie')!.split(';')[0]!
+    const session = await $fetch<{ user?: { id: string } }>('/api/_auth/session', { headers: { cookie } })
+    expect(session.user?.id).toBe(first.user!.id)
+
+    // The link the attacker can still re-send verifies nothing...
+    expect(await verifyToken(first.user!.id)).toBeNull()
+    const stale = await fetch(url(`/auth/verify-email?token=${firstToken}`), { redirect: 'manual' })
+    expect(stale.headers.get('location')).toContain('invalid-token')
+    await $fetch('/auth/resend-verification', { method: 'POST', body: { email } })
+    expect(await verifyToken(first.user!.id)).toBeNull()
+
+    // ...and the password they chose no longer signs anyone in.
+    expect((await login(email, 'attacker-pass')).status).toBe(401)
+  })
+
+  it('claims pending invitations, since the provider proved the address', async () => {
+    const owner = await registerTestUser()
+    const project = await createTestProject(owner)
+    const email = `oauth-invitee-${Date.now()}@test.com`
+    await createInvitation(owner, project.id, email)
+    const reg = await register(email, 'whatever-pass')
+
+    await oauthSignIn(email)
+
+    const members = await $fetch<Array<{ id: string }>>(`/api/projects/${project.id}/members`, { headers: owner.headers })
+    expect(members.some(m => m.id === reg.user!.id)).toBe(true)
+  })
+})
+
 describe('project invitations on an unverified registration', () => {
   let owner: TestUser
   let project: { id: string }

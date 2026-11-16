@@ -14,15 +14,21 @@ interface RateLimitOptions {
   max: number
   /** Window duration in seconds */
   windowSeconds: number
+  /** What to count against; defaults to the client address (see `pickClientIp`). */
+  key?: string
 }
 
 /**
- * In-memory rate limiter keyed by client IP.
+ * In-memory rate limiter, keyed by client address unless a `key` is given.
  * Throws 429 if limit exceeded.
  */
 export function checkRateLimit(event: H3Event, options: RateLimitOptions) {
   const { name, max, windowSeconds } = options
-  const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown'
+  const ip = options.key ?? pickClientIp(
+    event.node.req.socket?.remoteAddress,
+    getRequestHeader(event, 'x-forwarded-for'),
+    trustedProxyHops()
+  )
 
   if (!stores.has(name)) {
     stores.set(name, new Map())

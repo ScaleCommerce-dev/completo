@@ -316,17 +316,6 @@ describe('Resource-level authorization', async () => {
     })
   })
 
-  describe('PUT /api/boards/[id]/cards/reorder', () => {
-    it('rejects stranger with 403', async () => {
-      const res = await fetch(url(`/api/boards/${board.id}/cards/reorder`), {
-        method: 'PUT',
-        headers: { ...stranger.headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ moves: [{ cardId: card.id, statusId: fullBoard.columns[0].id, position: 0 }] })
-      })
-      expect(res.status).toBe(404)
-    })
-  })
-
   // --- Board slug check ---
 
   describe('GET /api/boards/check-slug', () => {

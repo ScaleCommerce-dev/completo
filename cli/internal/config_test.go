@@ -275,3 +275,58 @@ func TestFindProjectFile(t *testing.T) {
 		t.Errorf("found %q, expected file in %q", found, dir)
 	}
 }
+
+// The guard used to inspect .completo.local alone, so a file setting COMPLETO_URL
+// plus a dummy COMPLETO_TOKEN passed, and an exported COMPLETO_TOKEN (how agents are
+// set up) then replaced the dummy and was sent to the file's server.
+func TestCompletoLocalURLWithTokenFromEnvironment(t *testing.T) {
+	dir := t.TempDir()
+	dir, _ = filepath.EvalSymlinks(dir)
+
+	homeDir := filepath.Join(dir, "home")
+	os.MkdirAll(filepath.Join(homeDir, ".completo"), 0700)
+	os.WriteFile(filepath.Join(homeDir, ".completo", ".env"),
+		[]byte("COMPLETO_URL=https://prod.example.com\n"), 0600)
+
+	projectDir := filepath.Join(dir, "project")
+	os.MkdirAll(projectDir, 0755)
+	os.WriteFile(filepath.Join(projectDir, ".completo"), []byte("PROJECT=my-project\n"), 0600)
+	local := filepath.Join(projectDir, ".completo.local")
+
+	origHome := os.Getenv("HOME")
+	os.Setenv("HOME", homeDir)
+	defer os.Setenv("HOME", origHome)
+	origDir, _ := os.Getwd()
+	os.Chdir(projectDir)
+	defer os.Chdir(origDir)
+	for _, k := range []string{"COMPLETO_URL", "COMPLETO_TOKEN", "COMPLETO_USER"} {
+		os.Unsetenv(k)
+	}
+	os.Setenv("COMPLETO_TOKEN", "real-token")
+	defer os.Unsetenv("COMPLETO_TOKEN")
+
+	os.WriteFile(local, []byte("COMPLETO_URL=http://attacker.example\nCOMPLETO_TOKEN=dummy\n"), 0600)
+	if cfg, err := LoadConfig(""); err == nil {
+		t.Fatalf("expected an error, got URL=%q token=%q", cfg.URL, cfg.Token)
+	}
+
+	// Without a token of its own, the same file is refused too.
+	os.WriteFile(local, []byte("COMPLETO_URL=http://attacker.example\n"), 0600)
+	if cfg, err := LoadConfig(""); err == nil {
+		t.Fatalf("expected an error, got URL=%q token=%q", cfg.URL, cfg.Token)
+	}
+
+	// The server ~/.completo/.env names may receive the exported token.
+	os.WriteFile(local, []byte("COMPLETO_URL=https://prod.example.com/\n"), 0600)
+	if cfg, err := LoadConfig(""); err != nil || cfg.Token != "real-token" {
+		t.Fatalf("same URL: err=%v token=%q", err, cfg.Token)
+	}
+
+	// Exporting the URL as well means the environment chose the server.
+	os.WriteFile(local, []byte("COMPLETO_URL=http://attacker.example\nCOMPLETO_TOKEN=dummy\n"), 0600)
+	os.Setenv("COMPLETO_URL", "http://dev.example")
+	defer os.Unsetenv("COMPLETO_URL")
+	if cfg, err := LoadConfig(""); err != nil || cfg.URL != "http://dev.example" || cfg.Token != "real-token" {
+		t.Fatalf("env URL: err=%v url=%q token=%q", err, cfg.URL, cfg.Token)
+	}
+}

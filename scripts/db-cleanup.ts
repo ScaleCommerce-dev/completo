@@ -37,9 +37,11 @@ const orphanBoards = db.prepare(`SELECT COUNT(*) as cnt FROM boards WHERE projec
 const orphanBoardCols = db.prepare(`SELECT COUNT(*) as cnt FROM board_columns WHERE board_id NOT IN (SELECT id FROM boards)`).get() as CountRow
 const orphanMembers = db.prepare(`SELECT COUNT(*) as cnt FROM project_members WHERE project_id NOT IN (SELECT id FROM projects)`).get() as CountRow
 
-const expiredInvitations = db.prepare(`SELECT COUNT(*) as cnt FROM project_invitations WHERE expires_at < unixepoch() * 1000`).get() as CountRow
-const expiredVerifTokens = db.prepare(`SELECT COUNT(*) as cnt FROM email_verification_tokens WHERE expires_at < unixepoch() * 1000`).get() as CountRow
-// The OAuth tables store seconds (drizzle `mode: 'timestamp'`), hence no `* 1000`.
+// Every expiry column is drizzle `mode: 'timestamp'`, which stores *seconds*. Comparing
+// against milliseconds made every row look expired, so each boot deleted every pending
+// invitation and every emailed verify/reset/setup link (tests/unit/db-scripts.test.ts).
+const expiredInvitations = db.prepare(`SELECT COUNT(*) as cnt FROM project_invitations WHERE expires_at < unixepoch()`).get() as CountRow
+const expiredVerifTokens = db.prepare(`SELECT COUNT(*) as cnt FROM email_verification_tokens WHERE expires_at < unixepoch()`).get() as CountRow
 const expiredOauthCodes = db.prepare(`SELECT COUNT(*) as cnt FROM oauth_codes WHERE expires_at < unixepoch()`).get() as CountRow
 const expiredOauthGrants = db.prepare(`SELECT COUNT(*) as cnt FROM oauth_grants WHERE refresh_expires_at < unixepoch()`).get() as CountRow
 
@@ -75,8 +77,8 @@ if (totalExpired > 0) {
   if (expiredOauthGrants.cnt) console.log(`  oauth_grants: ${expiredOauthGrants.cnt}`)
 
   db.exec(`
-    DELETE FROM project_invitations WHERE expires_at < unixepoch() * 1000;
-    DELETE FROM email_verification_tokens WHERE expires_at < unixepoch() * 1000;
+    DELETE FROM project_invitations WHERE expires_at < unixepoch();
+    DELETE FROM email_verification_tokens WHERE expires_at < unixepoch();
     DELETE FROM oauth_codes WHERE expires_at < unixepoch();
     DELETE FROM oauth_grants WHERE refresh_expires_at < unixepoch();
   `)

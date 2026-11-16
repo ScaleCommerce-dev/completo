@@ -33,14 +33,21 @@ export async function handleOAuthUser(event: H3Event, info: OAuthUserInfo) {
     if (!existing.avatarUrl && info.avatarUrl) {
       updates.avatarUrl = info.avatarUrl
     }
-    // An admin-created account claimed via OAuth instead of the setup link. The provider has
-    // proven ownership of the address, so the invitation is fulfilled — clear the markers,
-    // or the account stays badged "pending setup" in user management forever while its owner
-    // signs in daily. It also leaves `!invited` in place, which blocks password reset.
-    if (isPendingSetup(existing)) {
+    // A row nobody has verified is only a claim on the address, and the provider has just
+    // proven who owns it. Two kinds reach here:
+    // - An admin-created account (`!invited`) claimed via OAuth instead of the setup link.
+    //   Left alone it stays badged "pending setup" forever, and `!invited` blocks reset.
+    // - A self-registration. Its password is whoever registered first, which need not be
+    //   the owner: kept, an attacker registers the address, the owner signs in here and
+    //   uses the account, then clicks a "verify your email" mail the attacker re-sent, and
+    //   the attacker's password works. register.post.ts closes the same chain for a second
+    //   registration (tests/integration/auth/pre-hijack.test.ts).
+    // Either way the claim is replaced: no password, verified, every outstanding link dead,
+    // any sign-in the claimant held ended, and invitations claimed now the address is proven.
+    const unclaimed = !existing.emailVerifiedAt
+    if (unclaimed) {
       updates.passwordHash = '!oauth'
       updates.emailVerifiedAt = new Date()
-      // Any outstanding setup link is now spent.
       db.delete(schema.emailVerificationTokens)
         .where(eq(schema.emailVerificationTokens.userId, existing.id))
         .run()
@@ -49,6 +56,10 @@ export async function handleOAuthUser(event: H3Event, info: OAuthUserInfo) {
       .set(updates)
       .where(eq(schema.users.id, existing.id))
       .run()
+    if (unclaimed) {
+      endAllSessions(existing.id)
+      claimProjectInvitations(email, existing.id)
+    }
 
     await setAuthSession(event, existing, { avatarUrl: info.avatarUrl ?? existing.avatarUrl })
 

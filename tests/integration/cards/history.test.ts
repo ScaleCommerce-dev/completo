@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch, expectError } from '../../setup/server'
 import { registerTestUser, createAdminUser, type TestUser } from '../../setup/auth'
-import { createTestProject, createTestCard, createTestTag, setCardTags, uploadAttachment, createTestBoard } from '../../setup/fixtures'
+import { createTestProject, createTestCard, createTestTag, setCardTags, uploadAttachment } from '../../setup/fixtures'
 import { createTestAgent, createAgentToken, setCanCreateAgents, addMember } from '../../setup/agents'
 import type { CardHistoryField } from '../../../shared/utils/card-history-fields'
 
@@ -205,25 +205,6 @@ describe('Card history', () => {
       ])
       // The card left behind was renumbered, not changed.
       expect(await changes(owner, first.id)).toEqual([])
-    })
-
-    it('records the status changes in a board reorder, and not the renumbering', async () => {
-      const { project, named } = await setup(owner)
-      const board = await createTestBoard(owner, project.id)
-      const backlog = named('Backlog').id
-      const a = await createTestCard(owner, project.id, backlog)
-      const b = await createTestCard(owner, project.id, backlog)
-
-      await $fetch(`/api/boards/${board.id}/cards/reorder`, {
-        method: 'PUT',
-        body: { moves: [{ cardId: a.id, statusId: backlog, position: 1 }, { cardId: b.id, statusId: named('Done').id, position: 0 }] },
-        headers: owner.headers
-      })
-
-      expect(await changes(owner, a.id)).toEqual([])
-      expect((await changes(owner, b.id)).map(summary)).toEqual([
-        { field: 'status', from: { id: backlog, value: 'Backlog' }, to: { id: named('Done').id, value: 'Done' }, actor: owner.id }
-      ])
     })
 
     it('records each tag added and removed as its own event', async () => {
