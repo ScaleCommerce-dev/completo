@@ -159,18 +159,24 @@ export function markCardRead(userId: string, cardId: number) {
  * and must not carry a `hasUnread` key, or applying that event on a client would
  * clobber the recipient's own unread state with someone else's (always false).
  */
-export function enrichCardsWithMetadata<T extends { id: number, createdById: string | null }>(
+export function enrichCardsWithMetadata<T extends { id: number, createdById: string | null, parentId: number | null }>(
   cards: T[],
   opts?: { userId?: string }
 ) {
   const { tagsByCard, attachCountByCard, commentCountByCard } = fetchCardMetadata(cards.map(c => c.id))
   const creatorsById = fetchCardCreators(cards)
   const unread = opts?.userId ? fetchUnreadCardIds(cards.map(c => c.id), opts.userId) : null
+  // A parent's progress and a sub-task's parent (`server/utils/subtasks.ts`).
+  // Computed here rather than per view, so the live event carries them too.
+  const progress = subtaskProgress(cards.map(c => c.id))
+  const parents = parentRefs(cards.flatMap(c => (c.parentId ? [c.parentId] : [])))
   return cards.map(card => ({
     ...card,
     tags: tagsByCard.get(card.id) || [],
     attachmentCount: attachCountByCard.get(card.id) || 0,
     commentCount: commentCountByCard.get(card.id) || 0,
+    subtasks: progress.get(card.id) ?? null,
+    parent: card.parentId ? parents.get(card.parentId) ?? null : null,
     creator: card.createdById ? creatorsById.get(card.createdById) || null : null,
     ...(unread ? { hasUnread: unread.has(card.id) } : {})
   }))

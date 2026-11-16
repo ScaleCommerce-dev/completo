@@ -17,6 +17,14 @@ export interface FieldMenuOption {
   iconClass?: string
   /** A person's face, or an agent's square: `kind` and `color` go to `UiAvatar`. */
   avatar?: { src?: string, alt?: string, kind?: 'human' | 'agent', color?: string | null }
+  /**
+   * Shown but not choosable, with `hint` saying why — a parent's Done while its
+   * sub-tasks are open. Disabled rather than hidden: a missing Done reads as a
+   * broken menu, a greyed one with a reason reads as a rule.
+   */
+  disabled?: boolean
+  /** A second line under the label. */
+  hint?: string
   onSelect: () => void
 }
 

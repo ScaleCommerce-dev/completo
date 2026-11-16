@@ -1,6 +1,9 @@
 package cmd
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestResolveCreateStatus(t *testing.T) {
 	statuses := []status{
@@ -72,4 +75,27 @@ func TestResolveCreateStatus(t *testing.T) {
 			t.Errorf("got ID %q, want %q", s.ID, "3")
 		}
 	})
+}
+
+func TestFormatCardSubtasks(t *testing.T) {
+	c := &cardResponse{
+		card:     card{ID: 12, Title: "Parent", StatusID: "1"},
+		Project:  &projectInfo{Key: "TK"},
+		Statuses: []status{{ID: "1", Name: "To Do"}, {ID: "3", Name: "Done"}},
+		SubtaskCards: []subtaskRef{
+			{Ticket: "TK-13", Title: "First", StatusID: "1"},
+			{Ticket: "TK-14", Title: "Second", StatusID: "3"},
+		},
+	}
+	out := formatCard(c)
+	for _, want := range []string{"subtasks:\n", "  TK-13 [To Do] First\n", "  TK-14 [Done] Second\n"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("formatCard output missing %q:\n%s", want, out)
+		}
+	}
+
+	sub := &cardResponse{card: card{ID: 13, Title: "First"}, Parent: &subtaskRef{Ticket: "TK-12", Title: "Parent"}}
+	if out := formatCard(sub); !strings.Contains(out, "TK-12 Parent") {
+		t.Errorf("sub-task output missing its parent:\n%s", out)
+	}
 }

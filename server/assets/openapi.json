@@ -1749,10 +1749,15 @@
                         "ticketId",
                         "priority",
                         "commentCount",
-                        "attachmentCount"
+                        "attachmentCount",
+                        "subtasks"
                       ]
                     },
                     "description": "Fields this board's cards do not display at rest. Unknown values are ignored. Hiding a field does not remove its editor, which stays available on card hover."
+                  },
+                  "showSubtasks": {
+                    "type": "boolean",
+                    "description": "Whether sub-tasks appear as cards of their own. Off by default; a parent shows its sub-tasks' progress either way."
                   }
                 }
               }
@@ -2337,6 +2342,10 @@
                   },
                   "slug": {
                     "type": "string"
+                  },
+                  "showSubtasks": {
+                    "type": "boolean",
+                    "description": "Whether sub-tasks appear as cards of their own. Off by default; a parent shows its sub-tasks' progress either way."
                   }
                 }
               }
@@ -2579,6 +2588,61 @@
                           "items": {
                             "$ref": "#/components/schemas/Tag"
                           }
+                        },
+                        "parent": {
+                          "type": "object",
+                          "nullable": true,
+                          "description": "On a sub-task: its parent.",
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "statusId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "ticket": {
+                              "type": "string",
+                              "example": "TK-42"
+                            }
+                          }
+                        },
+                        "subtaskCards": {
+                          "type": "array",
+                          "description": "The card's sub-tasks, oldest first. Empty on a card without any.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "ticket": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "statusId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "assigneeId": {
+                                "type": "string",
+                                "format": "uuid",
+                                "nullable": true
+                              },
+                              "priority": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "assignee": {
+                                "$ref": "#/components/schemas/MemberSummary"
+                              }
+                            }
+                          }
                         }
                       }
                     }
@@ -2635,13 +2699,19 @@
                   },
                   "statusId": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "description": "Moving a card into the project's done status is refused with 409 while it has sub-tasks outside that status."
                   },
                   "dueDate": {
                     "type": "string",
                     "format": "date",
                     "nullable": true,
                     "description": "YYYY-MM-DD, null to clear"
+                  },
+                  "parentId": {
+                    "type": "integer",
+                    "nullable": true,
+                    "description": "Make the card a sub-task of this card (same project, not a sub-task itself), or null to make it an ordinary card again. A card that has sub-tasks cannot be given a parent."
                   }
                 }
               }
@@ -2670,6 +2740,16 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "The card has open sub-tasks and cannot move to the project's done status. `data.openSubtasks` lists their ticket ids.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -2765,6 +2845,16 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "The card has open sub-tasks and cannot move to the project's done status. `data.openSubtasks` lists their ticket ids.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -6797,6 +6887,10 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "showSubtasks": {
+            "type": "boolean",
+            "description": "Whether sub-tasks appear as cards of their own. Off by default; a parent shows its sub-tasks' progress either way."
           }
         }
       },
@@ -6867,6 +6961,11 @@
             "nullable": true,
             "description": "Due date (date only, stored as timestamp)"
           },
+          "parentId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The card this one is a sub-task of. Always in the same project, and never a sub-task itself: sub-tasks have one level."
+          },
           "position": {
             "type": "integer"
           },
@@ -6908,6 +7007,32 @@
             ],
             "nullable": true,
             "description": "The user who created the card. Null if their account was deleted, or the card predates creator tracking."
+          },
+          "subtasks": {
+            "type": "object",
+            "nullable": true,
+            "description": "Present on a card that has sub-tasks: how many it has, and how many are in the project's done status. Null on a card without any.",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "done": {
+                "type": "integer"
+              }
+            }
+          },
+          "parent": {
+            "type": "object",
+            "nullable": true,
+            "description": "The parent's id and title, on a sub-task. Board, list and My Tasks responses only.",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "title": {
+                "type": "string"
+              }
+            }
           }
         }
       },
@@ -6947,6 +7072,11 @@
             "format": "date",
             "nullable": true,
             "description": "YYYY-MM-DD"
+          },
+          "parentId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Create the card as a sub-task of this card. It must be in the same project and must not be a sub-task itself."
           }
         }
       },
@@ -7312,6 +7442,10 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "showSubtasks": {
+            "type": "boolean",
+            "description": "Whether sub-tasks appear as cards of their own. Off by default; a parent shows its sub-tasks' progress either way."
           }
         }
       },
@@ -7478,9 +7612,11 @@
               "title",
               "description",
               "tag",
-              "attachment"
+              "attachment",
+              "parent",
+              "subtask"
             ],
-            "description": "What changed. `status` includes moves between board columns; reordering within a status is not recorded. `tag` and `attachment` events have only `to` when one was added and only `from` when one was removed."
+            "description": "What changed. `status` includes moves between board columns; reordering within a status is not recorded. `tag` and `attachment` events have only `to` when one was added and only `from` when one was removed. `parent` is on a sub-task: `to` names the parent it gained and `from` the one it lost. `subtask` is the same change on the parent: `to` when it gained a sub-task, `from` when it lost one. Both carry the other card's ticket id."
           },
           "from": {
             "type": "object",

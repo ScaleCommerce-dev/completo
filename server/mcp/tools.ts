@@ -83,6 +83,8 @@ interface ApiCard {
   tags?: ApiTag[]
   commentCount?: number
   attachmentCount?: number
+  parentId?: number | null
+  subtasks?: { total: number, done: number } | null
 }
 /** `GET /api/cards/:id` carries the project's pickers alongside the card. */
 interface ApiCardDetail extends ApiCard {
@@ -90,6 +92,7 @@ interface ApiCardDetail extends ApiCard {
   statuses: ApiStatus[]
   members: ApiMember[]
   projectTags: ApiTag[]
+  subtaskCards: Array<{ id: number, ticket: string, title: string, statusId: string, assignee: { name: string } | null }>
 }
 interface ApiComment { id: string, body: string, authorName: string | null, createdAt: string, updatedAt: string | null }
 interface ApiSearchHit {
@@ -183,6 +186,9 @@ function cardView(ctx: ToolContext, card: ApiCard, project: ApiProjectRef, statu
     dueDate: card.dueDate ? card.dueDate.slice(0, 10) : null,
     tags: (card.tags ?? []).map(t => t.name),
     ...(card.commentCount !== undefined ? { comments: card.commentCount } : {}),
+    // A parent is always in the same project, so its ticket is the card's key.
+    ...(card.parentId ? { parent: `${project.key}-${card.parentId}` } : {}),
+    ...(card.subtasks ? { subtaskProgress: card.subtasks } : {}),
     description: card.description ?? '',
     project: project.slug,
     url: cardUrl(ctx, project.slug, ticket),
@@ -359,7 +365,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'get_card',
-    description: `A card in full: description (Markdown; checklist items are \`- [ ]\` lines), status, assignee, tags, due date, link, and its latest ${CARD_COMMENT_LIMIT} comments, oldest first. Comments are newer than the description and override it where they disagree. When commentCount is higher, list_comments has the rest. Does not mark the card as read.`,
+    description: `A card in full: description (Markdown; checklist items are \`- [ ]\` lines), status, assignee, tags, due date, link, its parent or sub-tasks, and its latest ${CARD_COMMENT_LIMIT} comments, oldest first. Comments are newer than the description and override it where they disagree. When commentCount is higher, list_comments has the rest. Does not mark the card as read.`,
     inputSchema: schema({ card: CARD_REF }, ['card']),
     annotations: { readOnlyHint: true },
     run: async (ctx, args) => {
@@ -369,6 +375,16 @@ const TOOLS: Tool[] = [
       const comments = await ctx.get<ApiComment[]>(`/api/cards/${card.id}/comments?markRead=false`)
       return {
         ...cardView(ctx, card, projectOf(card), card.statuses),
+        ...(card.subtaskCards.length
+          ? {
+              subtasks: card.subtaskCards.map(c => ({
+                ticket: c.ticket,
+                title: c.title,
+                status: card.statuses.find(s => s.id === c.statusId)?.name ?? null,
+                assignee: c.assignee?.name ?? null
+              }))
+            }
+          : {}),
         commentCount: comments.length,
         comments: comments.slice(-CARD_COMMENT_LIMIT).map(commentView)
       }
@@ -376,7 +392,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'create_card',
-    description: 'Create a card. Lands at the bottom of its status. Status defaults to the project\'s first status (usually Backlog); name the status when the user said where it goes. Tags that do not exist yet are created.',
+    description: 'Create a card. Lands at the bottom of its status. Status defaults to the project\'s first status (usually Backlog); name the status when the user said where it goes. Tags that do not exist yet are created. Give parent to create it as a sub-task of a card in the same project; sub-tasks have one level.',
     inputSchema: schema({
       project: PROJECT_REF,
       title: { type: 'string' },
@@ -385,7 +401,8 @@ const TOOLS: Tool[] = [
       priority: PRIORITY,
       assignee: { type: 'string', description: '"me", a member name or email.' },
       dueDate: DUE_DATE,
-      tags: { type: 'array', items: { type: 'string' }, description: 'Tag names.' }
+      tags: { type: 'array', items: { type: 'string' }, description: 'Tag names.' },
+      parent: { ...CARD_REF, description: 'Optional: the card this is a sub-task of, in the same project. Ticket id such as TK-42.' }
     }, ['project', 'title']),
     run: async (ctx, args) => {
       const project = await loadProject(ctx, need(args, 'project'))
@@ -399,6 +416,8 @@ const TOOLS: Tool[] = [
         priority: priorityArg(args),
         dueDate: str(args, 'dueDate')
       }
+      const parent = str(args, 'parent')
+      if (parent) body.parentId = cardNumber(parent)
       const assignee = str(args, 'assignee')
       if (assignee) {
         const members = await ctx.get<ApiMember[]>(`/api/projects/${project.id}/members`)
@@ -413,13 +432,14 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'update_card',
-    description: 'Change a card\'s title, description, priority or due date. Only the fields given change. The description is replaced whole: read it first and send the full new text.',
+    description: 'Change a card\'s title, description, priority, due date or parent. Only the fields given change. The description is replaced whole: read it first and send the full new text.',
     inputSchema: schema({
       card: CARD_REF,
       title: { type: 'string' },
       description: { type: 'string', description: 'Markdown, replaces the whole description.' },
       priority: PRIORITY,
-      dueDate: DUE_DATE
+      dueDate: DUE_DATE,
+      parent: { type: 'string', description: 'Make it a sub-task of this card (ticket id, same project). Pass an empty string to make it an ordinary card again.' }
     }, ['card']),
     annotations: { idempotentHint: true },
     run: async (ctx, args) => {
@@ -431,7 +451,8 @@ const TOOLS: Tool[] = [
       const priority = priorityArg(args)
       if (priority) body.priority = priority
       if (typeof args.dueDate === 'string') body.dueDate = args.dueDate || null
-      if (!Object.keys(body).length) throw new ToolError('Nothing to change: give title, description, priority or dueDate')
+      if (typeof args.parent === 'string') body.parentId = args.parent ? cardNumber(args.parent) : null
+      if (!Object.keys(body).length) throw new ToolError('Nothing to change: give title, description, priority, dueDate or parent')
       await ctx.send('PUT', `/api/cards/${existing.id}`, body)
       const card = await loadCard(ctx, existing.id)
       return cardView(ctx, card, projectOf(card), card.statuses)
@@ -439,7 +460,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'move_card',
-    description: 'Move a card to another status (column), at the bottom unless a position is given. This is how a card walks through the workflow, e.g. "In Progress" then "Review".',
+    description: 'Move a card to another status (column), at the bottom unless a position is given. This is how a card walks through the workflow, e.g. "In Progress" then "Review". A card with open sub-tasks cannot move to the project\'s done status until they are done or detached; the error names them.',
     inputSchema: schema({
       card: CARD_REF,
       status: { type: 'string', description: 'Status name.' },

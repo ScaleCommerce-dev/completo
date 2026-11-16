@@ -51,7 +51,10 @@ const FIELD_HOME: Record<string, SQLiteColumn> = {
   title: schema.cards.title,
   description: schema.cards.description,
   tag: schema.cardTags.tagId,
-  attachment: schema.attachments.id
+  attachment: schema.attachments.id,
+  parent: schema.cards.parentId,
+  // A parent's side of the same link: the sub-task's `parentId`.
+  subtask: schema.cards.parentId
 }
 
 const RECORDER = 'recordCardEvents'

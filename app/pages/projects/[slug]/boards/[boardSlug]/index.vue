@@ -18,6 +18,7 @@ const {
   priorityFilters,
   projectKey,
   doneStatusId,
+  showSubtasks,
   hiddenCardFields,
   availableColumns,
   canConfigureColumns,
@@ -87,6 +88,7 @@ const {
   statusFilters,
   assigneeFilters,
   priorityFilters,
+  showSubtasks,
   statuses: columnsData,
   members: membersData,
   tags: tagsData,
@@ -187,6 +189,22 @@ function onArrowKey(e: KeyboardEvent) {
 
 onMounted(() => document.addEventListener('keydown', onArrowKey, true))
 onUnmounted(() => document.removeEventListener('keydown', onArrowKey, true))
+
+/**
+ * A sub-task's parent chip opens the parent. It is usually on this board even
+ * when it is in another column, and then its column is revealed beside the
+ * panel as for any card; a parent in a status this board does not show has no
+ * card here to open, so it opens at its own address instead.
+ */
+function openCardById(cardId: number) {
+  const card = allCards.value.find(c => c.id === cardId)
+  if (!card) {
+    navigateTo(`/projects/${projectSlug}/cards/${formatTicketId(projectKey.value, cardId)}`)
+    return
+  }
+  boardRef.value?.revealColumn(card.statusId)
+  openCardDetail({ id: cardId })
+}
 
 /**
  * `statusId` is omitted when the board-level "New card" button is used rather
@@ -291,6 +309,7 @@ async function handleDeleteBoard() {
       :tags="tagsData"
       :card-panel-open="showCardDetail"
       @card-click="openCardDetail"
+      @open-card="openCardById"
       @card-moved="handleCardMoved"
       @card-update="handleUpdateCard"
       @card-update-tags="updateCardTags"
@@ -310,9 +329,11 @@ async function handleDeleteBoard() {
       :project-slug="(route.params.slug as string)"
       :can-moderate="canModerateComments"
       :nav="cardNav"
+      :done-status-id="doneStatusId"
       @update="handleUpdateCard"
       @update-tags="updateCardTags"
       @navigate="(d) => navigateCards(NAV_DIRECTIONS[d]!)"
+      @open-card="openCardById"
     />
 
     <ViewConfigModal
@@ -330,6 +351,7 @@ async function handleDeleteBoard() {
       :active-assignee-filters="[...assigneeFilters]"
       :active-priority-filters="[...priorityFilters]"
       :hidden-card-fields="hiddenCardFields"
+      :show-subtasks="showSubtasks"
       :view-name="board?.name || ''"
       :deleting-view="deletingBoard"
       @add="addColumn"

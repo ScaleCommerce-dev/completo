@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **Cards can have sub-tasks.** Open a card and add sub-tasks one after another under "Sub-tasks", or turn an existing card into one with its new Parent field. A sub-task's panel and page say "Sub-task of" its parent under the title, with a link to open the parent and a menu to change it. A sub-task belongs to the same project as its parent, and sub-tasks have one level. Deleting a parent keeps its sub-tasks as ordinary cards.
+- **A parent shows its progress.** Board cards carry a "2/5" count of done sub-tasks, and by default the sub-tasks themselves stay off the board. To give them cards (or list rows) of their own, turn on "Show sub-tasks as cards" under the board's or list's Settings › Display; each one then shows its parent's ticket where the parent shows its count. Point at either to highlight the parent and all its sub-tasks across the board. My Tasks always shows the sub-tasks assigned to you.
+- **A card cannot be marked done while its sub-tasks are open.** Done is greyed out in the status menu with the number still open, and the Done column will not take the card. Finish the sub-tasks, or set their parent to none, first.
+- **A tidier card footer.** The ticket ID sits on the left and everything else lines up against the right edge in a fixed order (counts, parent or progress, due date, assignee), so the assignee is always in the same corner. Fields without a value no longer leave a gap; their editors appear when you point at the card. Every item has a tooltip.
+- **Late cards stand out.** A due date that is overdue or due soon is now a red or orange pill; other dates are plain text, without the calendar icon.
+- **Hiding the ticket ID keeps it one hover away.** With "Ticket ID" switched off under "Card shows", the ID appears when you point at a card, ready to copy.
+- **New boards hide the attachment count.** Turn it back on under the board's Settings › Card shows. Existing boards keep their setting.
+
+### CLI
+
+- `completo create --parent TK-12` creates a sub-task, and `completo update TK-13 --parent TK-12` (or `--parent none`) moves or detaches one. `completo get` lists a card's sub-tasks and shows a sub-task's parent. Moving a parent with open sub-tasks to Done fails and names them.
+
 ## v0.17.0 (2026-11-12)
 
 ### App

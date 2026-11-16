@@ -49,6 +49,7 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
     priorityFilters,
     projectKey,
     doneStatusId,
+    showSubtasks,
     canConfigureColumns,
     canModerateComments,
     createCard,
@@ -56,7 +57,8 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
     deleteCard,
     updateCardTags,
     reorderColumns,
-    updateFilters
+    updateFilters,
+    updateDisplay
   } = useViewData<Board>('boards', boardSlugOrId, opts)
 
   const columnsData = computed(() => {
@@ -186,14 +188,6 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
    */
   const hiddenCardFields = computed(() => board.value?.hiddenCardFields ?? [])
 
-  async function updateDisplay(display: { hiddenCardFields?: string[] }) {
-    await mutate(
-      () => $fetch(`/api/boards/${boardId.value}` as string, { method: 'PUT' as const, body: display }),
-      'Failed to update display settings'
-    )
-    await refresh()
-  }
-
   // Creating new columns is a project-level op — requires project owner or admin
   const canAddColumns = computed(() => {
     if (!board.value) return false
@@ -240,6 +234,7 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
     priorityFilters,
     projectKey,
     doneStatusId,
+    showSubtasks,
     hiddenCardFields,
     availableColumns,
     canConfigureColumns,

@@ -43,6 +43,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'card-click': [card: BoardCard]
+  /** Open a card by id: a sub-task's parent, which need not be in this column. */
+  'open-card': [cardId: number]
   'card-change': [evt: Record<string, unknown>]
   'card-update': [cardId: number, updates: Record<string, unknown>]
   'card-update-tags': [cardId: number, tagIds: string[]]
@@ -61,6 +63,40 @@ watch(() => props.cards, (val) => {
     localCards.value = [...val]
   }
 })
+
+// ─── Done needs finished sub-tasks ──────────────────────────────────────────
+//
+// The server refuses a parent entering the project's done status while a
+// sub-task is open (`server/utils/subtasks.ts`). Refused here first, at the
+// gesture: the Done column (marked `data-done-column` by the board) simply does
+// not take the card, and letting go there says why. Refusing after the drop
+// would show the card landing and then jumping back.
+const toast = useToast()
+const kanban = inject<{ projectKey: ComputedRef<string | undefined> }>('kanbanContext')!
+let refusedDrop: { card: BoardCard, column: string } | null = null
+
+function allowMove(evt: { draggedContext: { element: BoardCard }, to: HTMLElement }) {
+  const done = evt.to.closest<HTMLElement>('[data-done-column]')
+  if (done && openSubtaskCount(evt.draggedContext.element) > 0) {
+    refusedDrop = { card: evt.draggedContext.element, column: done.dataset.doneColumn || 'Done' }
+    return false
+  }
+  refusedDrop = null
+  return true
+}
+
+function onDragEnd() {
+  const refused = refusedDrop
+  refusedDrop = null
+  if (!refused) return
+  const open = openSubtaskCount(refused.card)
+  toast.add({
+    title: `${formatTicketId(kanban.projectKey.value, refused.card.id)} has ${open} open sub-task${open === 1 ? '' : 's'}`,
+    description: `Finish or detach ${open === 1 ? 'it' : 'them'} before moving the card to ${refused.column}.`,
+    color: 'warning',
+    actions: [{ label: 'Open card', color: 'neutral', variant: 'outline', onClick: () => emit('card-click', refused.card) }]
+  })
+}
 
 // ─── Drop target ────────────────────────────────────────────────────────────
 // `.column-drop-active` was defined in main.css and never applied by anything,
@@ -195,12 +231,15 @@ const countLabel = computed(() =>
           :delay="200"
           :delay-on-touch-only="true"
           :touch-start-threshold="8"
+          :move="allowMove"
+          @end="onDragEnd"
           @change="(evt: Record<string, unknown>) => emit('card-change', evt)"
         >
           <template #item="{ element: card }">
             <KanbanCard
               :card="card"
               @click="emit('card-click', card)"
+              @open-card="(id) => emit('open-card', id)"
               @update="(cardId, updates) => emit('card-update', cardId, updates)"
               @update-tags="(cardId, tagIds) => emit('card-update-tags', cardId, tagIds)"
             />

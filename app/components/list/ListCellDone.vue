@@ -2,6 +2,8 @@
 defineProps<{
   isDone: boolean
   disabled: boolean
+  /** Why it is disabled, when that is not obvious: a parent with open sub-tasks. */
+  hint?: string
 }>()
 
 const emit = defineEmits<{
@@ -27,20 +29,28 @@ const emit = defineEmits<{
       on top of it, so pointing at the one control on the row that toggles state
       did nothing at all.
     -->
-    <button
-      type="button"
-      class="relative shrink-0 flex items-center justify-center size-[18px] rounded-md border transition-colors before:absolute before:-inset-[3px] before:content-['']"
-      :class="isDone
-        ? 'bg-success border-success text-white'
-        : 'border-accented hover:border-success hover:bg-success/10 text-transparent'"
-      :disabled="disabled"
-      @click="emit('toggle')"
+    <UTooltip
+      :text="hint"
+      :disabled="!hint"
     >
-      <UIcon
-        v-if="isDone"
-        name="i-lucide-check"
-        class="text-sm"
-      />
-    </button>
+      <span class="inline-flex">
+        <button
+          type="button"
+          class="relative shrink-0 flex items-center justify-center size-[18px] rounded-md border transition-colors before:absolute before:-inset-[3px] before:content-['']"
+          :class="isDone
+            ? 'bg-success border-success text-white'
+            : 'border-accented hover:border-success hover:bg-success/10 text-transparent'"
+          :disabled="disabled"
+          :aria-label="hint"
+          @click="emit('toggle')"
+        >
+          <UIcon
+            v-if="isDone"
+            name="i-lucide-check"
+            class="text-sm"
+          />
+        </button>
+      </span>
+    </UTooltip>
   </div>
 </template>

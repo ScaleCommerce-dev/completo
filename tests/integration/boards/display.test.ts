@@ -6,7 +6,7 @@ import { createTestProject, createTestBoard, getBoard } from '../../setup/fixtur
 /**
  * `boards.hidden_card_fields` decides what a board's cards paint at rest. It
  * stores the fields that are *off* — see `shared/utils/card-fields.ts` — so the
- * things worth pinning down are that a fresh board hides nothing, that an
+ * things worth pinning down are that a fresh board hides only the default, that an
  * unknown key never survives the round trip, and that "hide nothing" persists as
  * `null` rather than an empty array, since those must stay the same row.
  *
@@ -32,10 +32,14 @@ describe('board display settings', async () => {
     }) as Promise<{ hiddenCardFields: string[] }>
   }
 
-  it('hides nothing on a new board', async () => {
+  // The attachment count, which a footer with a parent, a date and an
+  // assignee has no room for (`DEFAULT_HIDDEN_CARD_FIELDS`). Written as a
+  // literal on purpose: a test that read the constant would pass whatever it
+  // was set to.
+  it('hides the attachment count on a new board', async () => {
     const board = await freshBoard()
 
-    expect((await getBoard(user, board.id)).hiddenCardFields).toEqual([])
+    expect((await getBoard(user, board.id)).hiddenCardFields).toEqual(['attachmentCount'])
   })
 
   it('persists a hidden field', async () => {

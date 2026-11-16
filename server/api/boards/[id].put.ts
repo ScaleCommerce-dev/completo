@@ -2,7 +2,7 @@ import { eq, and, ne } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user: _user, board } = await resolveBoard(event)
-  const { name, slug, tagFilters, statusFilters, assigneeFilters, priorityFilters, hiddenCardFields } = await readBody<{
+  const { name, slug, tagFilters, statusFilters, assigneeFilters, priorityFilters, hiddenCardFields, showSubtasks } = await readBody<{
     name?: string
     slug?: string
     tagFilters?: string[]
@@ -10,9 +10,10 @@ export default defineEventHandler(async (event) => {
     assigneeFilters?: string[]
     priorityFilters?: string[]
     hiddenCardFields?: string[]
+    showSubtasks?: boolean
   }>(event)
 
-  if (!name && !slug && tagFilters === undefined && statusFilters === undefined && assigneeFilters === undefined && priorityFilters === undefined && hiddenCardFields === undefined) {
+  if (!name && !slug && tagFilters === undefined && statusFilters === undefined && assigneeFilters === undefined && priorityFilters === undefined && hiddenCardFields === undefined && showSubtasks === undefined) {
     throw createError({ statusCode: 400, message: 'Name, slug, filters, or display settings required' })
   }
 
@@ -68,6 +69,13 @@ export default defineEventHandler(async (event) => {
     }
     const hidden = normalizeHiddenCardFields(hiddenCardFields)
     updates.hiddenCardFields = hidden.length ? JSON.stringify(hidden) : null
+  }
+
+  if (showSubtasks !== undefined) {
+    if (typeof showSubtasks !== 'boolean') {
+      throw createError({ statusCode: 400, message: 'showSubtasks must be a boolean' })
+    }
+    updates.showSubtasks = showSubtasks ? 1 : 0
   }
 
   db.update(schema.boards).set(updates).where(eq(schema.boards.id, board.id)).run()

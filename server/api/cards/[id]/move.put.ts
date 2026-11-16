@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
   if (!status) {
     throw createError({ statusCode: 400, message: 'Status does not belong to this project' })
   }
+  assertCanEnterStatus(card, statusId)
 
   db.transaction(() => {
     // Get all cards in the target status (excluding the moving card)
@@ -70,6 +71,8 @@ export default defineEventHandler(async (event) => {
   // its new position sorts it. The sibling renumbering is cosmetic drift that the
   // next event or refetch settles, so one upsert beats an invalidate storm.
   emitCardChange(card.id, card.projectId)
+  // Its parent's progress counts it as done or open.
+  if (card.parentId && card.statusId !== statusId) emitCardChange(card.parentId, card.projectId)
 
   return { ok: true }
 })

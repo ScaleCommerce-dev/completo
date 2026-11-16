@@ -82,6 +82,9 @@ export const boards = sqliteTable('boards', {
   // the on set. `null` means nothing is hidden. Parsed by the board GET beside
   // the filter JSON.
   hiddenCardFields: text('hidden_card_fields'),
+  // Whether sub-tasks appear as cards of their own. Off by default: a parent
+  // carries its sub-tasks' progress, and the board stays one row per piece of work.
+  showSubtasks: integer('show_subtasks').notNull().default(0),
   createdById: text('created_by_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })
@@ -112,6 +115,8 @@ export const lists = sqliteTable('lists', {
   statusFilters: text('status_filters'),
   assigneeFilters: text('assignee_filters'),
   priorityFilters: text('priority_filters'),
+  // As on boards: whether sub-tasks get rows of their own.
+  showSubtasks: integer('show_subtasks').notNull().default(0),
   createdById: text('created_by_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })
@@ -133,10 +138,16 @@ export const cards = sqliteTable('cards', {
   priority: text('priority', { enum: ['low', 'medium', 'high', 'urgent'] }).default('medium'),
   position: integer('position').notNull(),
   dueDate: integer('due_date', { mode: 'timestamp' }),
+  // A sub-task's parent: a card of the same project that has no parent itself,
+  // so there is exactly one level (`server/utils/subtasks.ts`). Deleting the
+  // parent turns its sub-tasks into ordinary cards rather than deleting them.
+  parentId: integer('parent_id').references((): AnySQLiteColumn => cards.id, { onDelete: 'set null' }),
   createdById: text('created_by_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
-})
+}, table => [
+  index('cards_parent_idx').on(table.parentId)
+])
 
 export const tags = sqliteTable('tags', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),

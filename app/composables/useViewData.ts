@@ -29,6 +29,8 @@ interface ViewDataResponse {
   statusFilters: string[]
   assigneeFilters: string[]
   priorityFilters: string[]
+  /** Whether sub-tasks get cards (rows) of their own here. Off by default. */
+  showSubtasks?: boolean
   createdBy: { id: string, name: string, avatarUrl: string | null } | null
   role: string
   project: { id: string, name: string, slug: string, key: string, doneStatusId: string | null, doneRetentionDays: number | null } | null
@@ -85,6 +87,7 @@ export function useViewData<T extends ViewDataResponse>(
   const priorityFilters = computed((): string[] => data.value?.priorityFilters || [])
   const projectKey = computed(() => data.value?.project?.key || 'TK')
   const doneStatusId = computed(() => data.value?.project?.doneStatusId || null)
+  const showSubtasks = computed(() => data.value?.showSubtasks ?? false)
 
   const canConfigureColumns = computed(() => {
     if (!data.value) return false
@@ -284,6 +287,20 @@ export function useViewData<T extends ViewDataResponse>(
     await refresh()
   }
 
+  /**
+   * The view's display settings. `showSubtasks` is painted before the request,
+   * because it decides which cards exist on screen and the refetch would
+   * otherwise show the old set for a round trip.
+   */
+  async function updateDisplay(display: { hiddenCardFields?: string[], showSubtasks?: boolean }) {
+    if (display.showSubtasks !== undefined && data.value) data.value.showSubtasks = display.showSubtasks
+    await mutate(
+      () => $fetch(`/api/${viewType}/${viewId.value}` as string, { method: 'PUT' as const, body: display }),
+      'Failed to update display settings'
+    )
+    await refresh()
+  }
+
   // ─── Live updates (SSE) ─────────────────────────────────────────────────────
   //
   // Everything above keeps *this* client's own edits on screen; this keeps it in
@@ -350,6 +367,7 @@ export function useViewData<T extends ViewDataResponse>(
     priorityFilters,
     projectKey,
     doneStatusId,
+    showSubtasks,
     canConfigureColumns,
     canModerateComments,
     // Card CRUD
@@ -359,6 +377,7 @@ export function useViewData<T extends ViewDataResponse>(
     updateCardTags,
     // View operations
     reorderColumns,
-    updateFilters
+    updateFilters,
+    updateDisplay
   }
 }

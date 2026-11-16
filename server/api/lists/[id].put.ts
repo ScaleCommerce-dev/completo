@@ -2,7 +2,7 @@ import { eq, and, ne } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user: _user, list } = await resolveList(event)
-  const { name, slug, sortField, sortDirection, tagFilters, statusFilters, assigneeFilters, priorityFilters } = await readBody<{
+  const { name, slug, sortField, sortDirection, tagFilters, statusFilters, assigneeFilters, priorityFilters, showSubtasks } = await readBody<{
     name?: string
     slug?: string
     sortField?: string | null
@@ -11,13 +11,14 @@ export default defineEventHandler(async (event) => {
     statusFilters?: string[]
     assigneeFilters?: string[]
     priorityFilters?: string[]
+    showSubtasks?: boolean
   }>(event)
 
-  if (!name && !slug && sortField === undefined && sortDirection === undefined && tagFilters === undefined && statusFilters === undefined && assigneeFilters === undefined && priorityFilters === undefined) {
+  if (!name && !slug && sortField === undefined && sortDirection === undefined && tagFilters === undefined && statusFilters === undefined && assigneeFilters === undefined && priorityFilters === undefined && showSubtasks === undefined) {
     throw createError({ statusCode: 400, message: 'Name, slug, sort fields, or filters required' })
   }
 
-  const updates: Record<string, string | null> = {}
+  const updates: Record<string, string | number | null> = {}
 
   if (name) {
     updates.name = name
@@ -70,6 +71,13 @@ export default defineEventHandler(async (event) => {
 
   if (priorityFilters !== undefined) {
     updates.priorityFilters = priorityFilters.length ? JSON.stringify(priorityFilters) : null
+  }
+
+  if (showSubtasks !== undefined) {
+    if (typeof showSubtasks !== 'boolean') {
+      throw createError({ statusCode: 400, message: 'showSubtasks must be a boolean' })
+    }
+    updates.showSubtasks = showSubtasks ? 1 : 0
   }
 
   db.update(schema.lists).set(updates).where(eq(schema.lists.id, list.id)).run()

@@ -53,12 +53,13 @@ if (existingProject) {
       VALUES (?, ?, ?, ?)
     `).run(randomUUID(), projectId, ownerId, 'owner')
 
-    // Board
+    // Board. Hides what a new board hides (`DEFAULT_HIDDEN_CARD_FIELDS`), as a
+    // literal: scripts cannot import `shared/` without a build step.
     const boardId = randomUUID()
     db.prepare(`
-      INSERT INTO boards (id, project_id, name, slug, position, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(boardId, projectId, 'Sprint Board', 'sprint-board', 0, now)
+      INSERT INTO boards (id, project_id, name, slug, position, hidden_card_fields, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(boardId, projectId, 'Sprint Board', 'sprint-board', 0, '["attachmentCount"]', now)
 
     // Statuses
     const statusNames = ['Backlog', 'To Do', 'In Progress', 'Review', 'Done']

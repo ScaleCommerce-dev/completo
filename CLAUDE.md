@@ -69,6 +69,7 @@ It **cannot see the bundler half.** With a single resolved version, Vite still p
 
 Two different things are called "column": a **board column** is how a status appears on a board (`boardColumns`), a **field column** is which card field shows in a list table (`listColumns`).
 
+- **Sub-tasks: same project, one level, and a parent cannot *enter* Done while one is open** (`server/utils/subtasks.ts`). The Done rule guards the move, not the state: reopening or adding a sub-task under a done parent, deleting a status into Done and changing which status is Done all stay allowed. Both status-changing handlers (`cards/[id].put.ts`, `cards/[id]/move.put.ts`) call `assertCanEnterStatus`; a new path that changes `statusId` owes the same call. Progress is counted against `doneStatusId`, since statuses have no category.
 - **Cards use INTEGER AUTOINCREMENT**, not UUID, so they can be `TK-42`. Everything else is UUID. Parse card ids with `Number()`.
 - **Done + retention:** views *filter out* old done cards rather than deleting them; card counts exclude the done status; `null` retention keeps forever.
 - **Positions** are integers, and a new item is `max(existing) + 1` — never `.length`.

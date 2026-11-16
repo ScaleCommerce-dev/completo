@@ -385,7 +385,8 @@ const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.le
               <ListCellDone
                 v-if="col.field === 'done'"
                 :is-done="isDone(card)"
-                :disabled="!doneStatusId"
+                :disabled="!doneStatusId || (!isDone(card) && openSubtaskCount(card) > 0)"
+                :hint="!isDone(card) && openSubtaskCount(card) ? openSubtasksHint(openSubtaskCount(card)) : undefined"
                 @toggle="toggleDone(card)"
               />
 
@@ -409,6 +410,8 @@ const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.le
                 :status="card.status"
                 :status-id="card.statusId"
                 :statuses="statuses"
+                :done-status-id="doneStatusId"
+                :open-subtasks="openSubtaskCount(card)"
                 :read-only="readOnlyFields?.includes('status')"
                 :popover-open="isPopoverOpen(card.id, 'status')"
                 @select="selectStatus(card.id, $event)"

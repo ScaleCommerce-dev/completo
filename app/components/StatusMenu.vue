@@ -6,6 +6,12 @@ const props = defineProps<{
   statuses: Array<{ id: string, name: string, color: string | null }>
   statusId?: string | null
   doneStatusId?: string | null
+  /**
+   * Open sub-tasks of the card being edited. While there are any, the project's
+   * done status is shown disabled, because the server refuses it
+   * (`server/utils/subtasks.ts`). Needs `doneStatusId`.
+   */
+  openSubtasks?: number
   content?: Record<string, unknown>
 }>()
 
@@ -23,13 +29,17 @@ const emit = defineEmits<{ select: [statusId: string] }>()
  */
 const ariaLabel = computed(() => statusFieldLabel(props.statuses, props.statusId))
 
-const options = computed<FieldMenuOption[]>(() => props.statuses.map(s => ({
-  label: s.name,
-  checked: props.statusId === s.id,
-  swatch: s.color,
-  done: s.id === props.doneStatusId,
-  onSelect: () => emit('select', s.id)
-})))
+const options = computed<FieldMenuOption[]>(() => props.statuses.map((s) => {
+  const blocked = s.id === props.doneStatusId && s.id !== props.statusId && !!props.openSubtasks
+  return {
+    label: s.name,
+    checked: props.statusId === s.id,
+    swatch: s.color,
+    done: s.id === props.doneStatusId,
+    ...(blocked ? { disabled: true, hint: openSubtasksHint(props.openSubtasks!) } : {}),
+    onSelect: () => emit('select', s.id)
+  }
+}))
 </script>
 
 <template>

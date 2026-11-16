@@ -1,4 +1,4 @@
-import { eq, and, lte, gte, sql, asc, desc } from 'drizzle-orm'
+import { eq, and, lte, gte, sql, asc, desc, isNull, or } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { project } = await resolveProject(event)
@@ -16,6 +16,10 @@ export default defineEventHandler(async (event) => {
   const sort = query.sort as string || 'position'
   const order = query.order as string || 'asc'
   const includeDone = query.includeDone === 'true'
+  // `none` for cards without a parent (what the parent picker offers), or a
+  // card id for that card's sub-tasks.
+  const parentParam = query.parentId as string | undefined
+  const q = typeof query.q === 'string' ? query.q.trim() : ''
 
   // Validate sort field
   const allowedSorts = ['position', 'priority', 'dueDate', 'createdAt', 'updatedAt', 'title']
@@ -31,6 +35,24 @@ export default defineEventHandler(async (event) => {
 
   if (statusId) {
     conditions.push(eq(schema.cards.statusId, statusId))
+  }
+  if (parentParam !== undefined) {
+    if (parentParam === 'none') {
+      conditions.push(isNull(schema.cards.parentId))
+    } else {
+      const parentId = Number(parentParam)
+      if (!Number.isInteger(parentId)) {
+        throw createError({ statusCode: 400, message: 'parentId must be a card id or "none"' })
+      }
+      conditions.push(eq(schema.cards.parentId, parentId))
+    }
+  }
+  // Words in the title, or a ticket id ("TK-42" or "42").
+  if (q) {
+    const ticket = Number(q.includes('-') ? q.slice(q.lastIndexOf('-') + 1) : q)
+    const escaped = q.replace(/[\\%_]/g, c => `\\${c}`)
+    const title = sql`${schema.cards.title} LIKE ${`%${escaped}%`} ESCAPE '\\'`
+    conditions.push(Number.isInteger(ticket) && ticket > 0 ? or(title, eq(schema.cards.id, ticket))! : title)
   }
   if (assigneeId) {
     conditions.push(eq(schema.cards.assigneeId, assigneeId))

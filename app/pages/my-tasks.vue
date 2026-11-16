@@ -63,6 +63,19 @@ function handleCardClick(card: { id: number }) {
 }
 
 /**
+ * A sub-task opened from its parent's list. My Tasks holds only your cards, so
+ * one assigned to someone else opens at its own address instead.
+ */
+function openCardById(cardId: number) {
+  if (findCard(cardId)) {
+    selectedCardId.value = cardId
+    return
+  }
+  const project = selected.value?.group.project
+  if (project) navigateTo(`/projects/${project.slug}/cards/${formatTicketId(project.key, cardId)}`)
+}
+
+/**
  * ↑/↓ walk every card on the page, across project boundaries — one sequence, not
  * one per project.
  *
@@ -258,9 +271,11 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
       :project-slug="selected.group.project.slug"
       :can-moderate="canModerateComments"
       :nav="cardNav"
+      :done-status-id="selected.group.project.doneStatusId"
       @update="handleInlineUpdate"
       @update-tags="handleInlineTagUpdate"
       @navigate="cardWalk"
+      @open-card="openCardById"
     />
   </UiPage>
 </template>

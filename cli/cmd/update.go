@@ -14,6 +14,7 @@ var (
 	updateDescFile    string
 	updatePriority    string
 	updateDueDate     string
+	updateParent      string
 )
 
 var updateCmd = &cobra.Command{
@@ -49,8 +50,20 @@ var updateCmd = &cobra.Command{
 			}
 		}
 
+		if cmd.Flags().Changed("parent") {
+			if updateParent == "none" {
+				payload["parentId"] = nil
+			} else {
+				parent, err := fetchCard(client, updateParent)
+				if err != nil {
+					return fmt.Errorf("parent %s: %w", updateParent, err)
+				}
+				payload["parentId"] = parent.ID
+			}
+		}
+
 		if len(payload) == 0 {
-			return fmt.Errorf("no fields to update. Use --title, --description, --description-file, --priority, or --due")
+			return fmt.Errorf("no fields to update. Use --title, --description, --description-file, --priority, --due or --parent")
 		}
 
 		// Fetch card to get numeric ID
@@ -83,5 +96,6 @@ func init() {
 	updateCmd.Flags().StringVar(&updateDescFile, "description-file", "", "Read description from file")
 	updateCmd.Flags().StringVar(&updatePriority, "priority", "", "Priority: low, medium, high, urgent")
 	updateCmd.Flags().StringVar(&updateDueDate, "due", "", "Due date (YYYY-MM-DD) or 'none' to clear")
+	updateCmd.Flags().StringVar(&updateParent, "parent", "", "Make it a sub-task of this card (ticket ID), or 'none' to detach it")
 	rootCmd.AddCommand(updateCmd)
 }

@@ -18,7 +18,7 @@ const ROOT = join(import.meta.dirname, '../..')
  * columns drift twice.
  */
 describe('card field registry', () => {
-  it('declares the eight things a card paints', () => {
+  it('declares the nine things a card paints', () => {
     expect(CARD_FIELDS.map(f => f.key)).toEqual([
       'description',
       'assignee',
@@ -27,7 +27,8 @@ describe('card field registry', () => {
       'ticketId',
       'priority',
       'commentCount',
-      'attachmentCount'
+      'attachmentCount',
+      'subtasks'
     ])
   })
 

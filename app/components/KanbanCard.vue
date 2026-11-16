@@ -77,6 +77,7 @@ const kanbanContext = inject<{
   members: ComputedRef<Member[] | undefined>
   tags: ComputedRef<Array<{ id: string, name: string, color: string }> | undefined>
   cardFieldVisible: ComputedRef<(key: CardField) => boolean>
+  lightFamily: (familyId: number | null) => void
 }>('kanbanContext')!
 
 /** `shows('tags')` — see `shared/utils/card-fields.ts`. */
@@ -94,6 +95,8 @@ const descriptionExcerpt = computed(() => {
 
 const emit = defineEmits<{
   'click': []
+  /** The parent chip was clicked: open that card instead of this one. */
+  'open-card': [cardId: number]
   'update': [cardId: number, updates: Record<string, unknown>]
   /** Separate from `update`: tags are a different endpoint, not a card column. */
   'update-tags': [cardId: number, tagIds: string[]]
@@ -142,6 +145,73 @@ const contentMarks = computed(() => [
   label: `${m.count} ${m.noun}${m.count === 1 ? '' : 's'}`
 })))
 
+/**
+ * Where the card sits in a parent/sub-task pair, in one footer slot.
+ *
+ * A parent shows its sub-tasks as "done/total"; a sub-task shows its parent's
+ * ticket. One level means a card is never both, so the two share a slot, and
+ * the same place on every card answers "is this part of something".
+ *
+ * The sub-task side is the parent's *ticket*, not its title. It used to be the
+ * title, on its own line above the card's, and that line cost three things: a
+ * second ticket ID at the top of the card where its own usually sits, titles
+ * starting at different heights down a column, and a column of siblings opening
+ * with the same grey sentence on every card. A ticket has a fixed width, so it
+ * never truncates and adds no height. The title is one step away, in the
+ * tooltip, and the family itself is one hover away (`kanbanContext.lightFamily`).
+ * The tooltip says "Sub-task of: <title>" without the ticket, which the chip
+ * itself already shows.
+ *
+ * In the right-packed strip, never beside the card's own ID: next to it,
+ * "TK-6 ↰ TK-5" reads as a range.
+ */
+const relation = computed(() => {
+  if (!shows('subtasks')) return null
+  const parent = props.card.parent
+  if (parent) {
+    const ticket = formatTicketId(kanbanContext.projectKey.value, parent.id)
+    return {
+      kind: 'parent' as const,
+      family: parent.id,
+      icon: 'i-lucide-corner-left-up',
+      text: ticket,
+      complete: false,
+      label: `Sub-task of: ${parent.title}`
+    }
+  }
+  const p = props.card.subtasks
+  if (!p?.total) return null
+  return {
+    kind: 'progress' as const,
+    family: props.card.id,
+    icon: 'i-lucide-list-tree',
+    text: `${p.done}/${p.total}`,
+    // Success-coloured once every sub-task is done, since "all done" is data.
+    complete: p.done === p.total,
+    label: `${p.done} of ${p.total} sub-task${p.total === 1 ? '' : 's'} done`
+  }
+})
+
+/**
+ * Lights this card's family across the board while the chip is pointed at or
+ * focused. Put out on the way out too: a chip that unmounts under the pointer
+ * (a drag, a filter) never gets its `pointerleave`.
+ */
+let lit = false
+function light(on: boolean) {
+  if (!on && !lit) return
+  lit = on
+  kanbanContext.lightFamily(on && relation.value ? relation.value.family : null)
+}
+onBeforeUnmount(() => light(false))
+
+function openParent(e: Event) {
+  if (relation.value?.kind !== 'parent') return
+  e.stopPropagation()
+  light(false)
+  emit('open-card', relation.value.family)
+}
+
 const dueStatus = computed(() => getDueDateStatus(props.card.dueDate))
 
 /**
@@ -165,6 +235,21 @@ const paintAssignee = computed(() => shows('assignee') && !!props.card.assignee)
  * They sit at 60% there instead — quiet, but present.
  */
 const REVEAL = 'opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 focus-visible:opacity-100 transition-opacity'
+/** `REVEAL` for the ticket ID, which brings its own transition (TicketIdCopy). */
+const ID_REVEAL = 'opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 group-focus-within:opacity-100'
+
+/**
+ * Every readout in the footer that has a label: the counts, the parent or
+ * progress chip, a set due date. One box for all of them — 24px tall, 4px each
+ * side, 4px from icon to text — so the gap between any two neighbours is the
+ * same and every label sits on one centre line. They used to differ in all
+ * three: the due date had 6px of side padding and a 4px icon gap, the counts
+ * none and 2px, the parent chip 4px and 2px, so the row's spacing changed with
+ * whichever items a card happened to have. The padding is there for the ones
+ * you can click (the hover fill needs room) and kept on the ones you cannot, so
+ * the rhythm does not depend on which is which.
+ */
+const CHIP = 'flex items-center gap-1 h-6 px-1 shrink-0 whitespace-nowrap'
 
 /**
  * One hover idiom for every control on the card.
@@ -186,11 +271,39 @@ const REVEAL = 'opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 focus-vis
  * at the same specificity, so the winner is whichever Tailwind emits later, and
  * the avatar came out with 6px corners. Each slot states its own.
  *
- * `SLOT_TEXT` is the same box with room for a label — only the due date has one,
- * and only when a date is set.
+ * A set due date has a label, so it takes `CHIP`'s box instead (`SLOT_DUE`).
  */
 const SLOT = 'flex items-center justify-center size-6 shrink-0 hover:bg-elevated transition-colors'
-const SLOT_TEXT = 'flex items-center gap-1 h-6 px-1.5 shrink-0 cursor-pointer hover:bg-elevated transition-colors'
+/**
+ * A set due date. A plain future date is text like its neighbours; due soon and
+ * overdue are a pill tinted in their colour. The fill is a cue that does not
+ * depend on hue — a filled date among plain ones reads as "needs attention" in
+ * greyscale too — and what you scan a board for is the late cards. The tint
+ * replaces the hover fill rather than sitting under it, so hovering deepens it.
+ * Same `CHIP` box either way, so a date turning urgent moves nothing.
+ */
+const DUE_CHIP = {
+  'overdue': 'text-error bg-error/10 hover:bg-error/20',
+  'due-soon': 'text-warning bg-warning/10 hover:bg-warning/20',
+  'future': 'text-muted hover:bg-elevated'
+} as const
+const SLOT_DUE = `${CHIP} cursor-pointer transition-colors`
+
+/**
+ * An empty field's editor: no width at rest, a slot once the card is pointed at
+ * or holds focus. Collapsed rather than `hidden`, so Tab still reaches it.
+ *
+ * 18px wide around a 10px glyph, the chips' own icon size: 4px each side, the
+ * chips' padding exactly. It was 24px around 12px, which made the editors look
+ * bigger than the readouts beside them and cost the width that a card with two
+ * counts, a parent, a date and an assignee does not have — measured, its row
+ * came out 3px over at 20px and fits at 18.
+ * A touch screen keeps 24px, which a finger needs and which it can afford: the
+ * editors are always out there anyway, for the reason `REVEAL` gives. `h-6` and a width of its own rather than `SLOT`'s `size-6`, which
+ * would set the width twice.
+ */
+const GHOST = 'flex items-center justify-center h-6 shrink-0 overflow-hidden hover:bg-elevated transition-colors'
+const COLLAPSE = 'w-0 sm:group-hover:w-4.5 group-focus-within:w-4.5 group-focus-within:opacity-100 max-sm:w-6'
 
 type Control = 'tags' | 'priority' | 'due' | 'assignee'
 
@@ -289,6 +402,8 @@ function releaseTip(name: Control) {
 const tipOff = (name: Control) => openControl.value === name || suppressed.value === name
 
 const reveal = computed(() => openControl.value ? 'transition-opacity' : REVEAL)
+/** The same for an empty field's editor, which also has to keep its width while its menu is open. */
+const ghost = computed(() => openControl.value ? 'w-4.5 max-sm:w-6 transition-opacity' : [REVEAL, COLLAPSE])
 
 /**
  * All four menus open in the same place on every card.
@@ -334,6 +449,7 @@ function toggleTag(tagId: string) {
   <div
     class="kanban-card lift group relative cursor-pointer overflow-hidden rounded-lg bg-default border border-default shadow-raise hover:border-accent"
     :class="shows('priority') && priorityBarClass(card.priority) ? 'accent-edge' : ''"
+    :data-family="card.parentId ?? card.id"
     @click="$emit('click')"
     @pointerenter="armed = true"
     @focusin="armed = true"
@@ -401,7 +517,7 @@ function toggleTag(tagId: string) {
     </component>
 
     <div class="p-2.5 pl-3">
-      <!-- The object. Nothing above it. -->
+      <!-- The object. -->
       <p class="text-sm font-semibold leading-snug text-highlighted tracking-name line-clamp-2 pr-6">
         {{ card.title }}
       </p>
@@ -449,46 +565,114 @@ function toggleTag(tagId: string) {
         </div>
       </div>
 
-      <!-- Footer. Identity on the left, decision signals on the right. -->
+      <!-- Footer. The ticket ID on the left, everything else against the right
+           edge — see the strip. -->
       <div class="flex items-center gap-1.5 mt-1.5 min-w-0">
+        <!-- Always there to copy. A board that switches the ID off gets it on
+             hover only, the same as every other field the board hides: off
+             means quieter, never unreachable. It is alone on the left, so it
+             appearing moves nothing. -->
         <TicketIdCopy
-          v-if="shows('ticketId')"
+          class="shrink-0"
+          :class="shows('ticketId') ? '' : ID_REVEAL"
           :project-key="kanbanContext.projectKey.value"
           :project-slug="kanbanContext.projectSlug.value"
           :card-id="card.id"
           size="xs"
         />
 
-        <span
-          v-for="mark in contentMarks"
-          :key="mark.icon"
-          class="flex items-center gap-0.5 text-2xs text-dimmed whitespace-nowrap shrink-0"
-          :aria-label="mark.label"
-        >
-          <UIcon
-            :name="mark.icon"
-            class="text-2xs"
-          />
-          <span class="card-id select-none">{{ mark.count }}</span>
-        </span>
-
         <!--
-          Four fixed slots — tags, priority, due, assignee — each showing its
-          value when there is one and a ghost on hover when there isn't. Due date
-          and tags previously rendered only when set, so a card with neither had
-          no way to acquire one without being opened.
+          Everything but the ticket ID, packed against the right edge in one
+          fixed order, each item only when it has a value:
 
-          The tag pill row above stays the readout; this is the editor. Keeping
-          the control in one place rather than moving it into the pill row when
-          pills exist is what makes the cluster learnable — every card's fields
-          are at the same four positions.
+            [editors]  counts  parent/progress  due  assignee |edge
+
+          So the assignee, when there is one, is always the corner, and a column
+          scans down that edge for who owns what. The further from the edge, the
+          less a board is scanned for it. An empty field holds no space: it used
+          to keep a 24px slot whether set or not — tags, priority and an empty
+          assignee together left up to 72px of nothing beside a lone due date.
+
+          Empty fields' editors appear on hover, *left* of the values (`order-1`),
+          so nothing already shown moves when the pointer arrives. The DOM order
+          is the four editors' own; `order-*` places them, which keeps one copy
+          of each control rather than a painted and a ghost copy.
+
+          The ticket ID stays alone on the left, so a sub-task's parent ticket
+          never sits beside the card's own.
+
+          Nothing that is shown at rest gives way. A card with two counts, a
+          parent, a date and an assignee just fits with its editors out (see
+          `COLLAPSE`); should a row ever overflow — a three-digit count — `justify-end` pushes the overflow out
+          at the left, where only hover editors are. (The counts briefly
+          dropped instead, by wrapping onto a clipped second line. WebKit
+          rounds a wrapping row's width down a fraction of a pixel, so the
+          second count wrapped away with room to spare.)
+
+          The tag pill row above stays the tags' readout; this is the editor.
         -->
         <div
           ref="strip"
-          class="ml-auto flex items-center gap-0.5 shrink-0"
+          class="ml-auto flex items-center justify-end gap-0.5 min-w-0 overflow-hidden"
           @pointerdown.capture="anchorToStrip"
           @keydown.capture="anchorToStrip"
         >
+          <span
+            v-if="contentMarks.length"
+            class="order-2 flex items-center gap-0.5 shrink-0"
+          >
+            <!-- Tooltips on every chip, so a glyph and a number always have a
+                 sentence one hover away. Deferred with the rest — see `armed`. -->
+            <component
+              :is="wrap(UTooltip)"
+              v-for="mark in contentMarks"
+              :key="mark.icon"
+              :text="mark.label"
+            >
+              <span
+                :class="[CHIP, 'text-2xs text-dimmed']"
+                :aria-label="mark.label"
+              >
+                <UIcon
+                  :name="mark.icon"
+                  class="text-2xs"
+                />
+                <span class="card-id select-none">{{ mark.count }}</span>
+              </span>
+            </component>
+          </span>
+
+          <!-- A parent's progress is a readout; a sub-task's parent is a link,
+               so it is a button. Both light the family on hover or focus. -->
+          <component
+            :is="wrap(UTooltip)"
+            v-if="relation"
+            :text="relation.label"
+          >
+            <component
+              :is="relation.kind === 'parent' ? 'button' : 'span'"
+              :type="relation.kind === 'parent' ? 'button' : undefined"
+              class="order-3 text-2xs"
+              :class="[
+                CHIP,
+                relation.complete ? 'text-success' : 'text-dimmed',
+                relation.kind === 'parent' ? 'rounded-md hover:bg-elevated hover:text-toned transition-colors' : ''
+              ]"
+              :aria-label="relation.kind === 'parent' ? `Open parent, ${relation.label}` : relation.label"
+              @pointerenter="light(true)"
+              @pointerleave="light(false)"
+              @focus="light(true)"
+              @blur="light(false)"
+              @click="openParent"
+            >
+              <UIcon
+                :name="relation.icon"
+                class="text-2xs shrink-0"
+              />
+              <span class="card-id select-none">{{ relation.text }}</span>
+            </component>
+          </component>
+
           <component
             :is="wrap(TagMenu)"
             :tags="kanbanContext.tags.value || []"
@@ -506,7 +690,7 @@ function toggleTag(tagId: string) {
               <button
                 v-if="kanbanContext.tags.value?.length"
                 type="button"
-                :class="[SLOT, reveal, 'rounded-md text-dimmed']"
+                :class="[GHOST, ghost, 'order-1 rounded-md text-dimmed']"
                 :aria-label="tagsFieldLabel(kanbanContext.tags.value || [], selectedTagIds)"
                 @blur="releaseTip('tags')"
                 @pointerleave="releaseTip('tags')"
@@ -514,7 +698,7 @@ function toggleTag(tagId: string) {
               >
                 <UIcon
                   name="i-lucide-tag"
-                  class="text-xs"
+                  class="text-2xs"
                 />
               </button>
             </component>
@@ -552,7 +736,7 @@ function toggleTag(tagId: string) {
             >
               <button
                 type="button"
-                :class="[SLOT, reveal, 'rounded-md text-dimmed']"
+                :class="[GHOST, ghost, 'order-1 rounded-md text-dimmed']"
                 :aria-label="priorityFieldLabel(card.priority)"
                 @blur="releaseTip('priority')"
                 @pointerleave="releaseTip('priority')"
@@ -560,7 +744,7 @@ function toggleTag(tagId: string) {
               >
                 <UIcon
                   name="i-lucide-signal"
-                  class="text-xs"
+                  class="text-2xs"
                 />
               </button>
             </component>
@@ -583,16 +767,20 @@ function toggleTag(tagId: string) {
                 type="button"
                 class="whitespace-nowrap text-2xs font-semibold rounded-md"
                 :class="paintDue
-                  ? [SLOT_TEXT, dueDateTextClass(dueStatus)]
-                  : [SLOT, reveal, 'text-dimmed']"
+                  ? [SLOT_DUE, 'order-4', DUE_CHIP[dueStatus ?? 'future']]
+                  : [GHOST, ghost, 'order-1 text-dimmed']"
                 :aria-label="dueDateFieldLabel(card.dueDate)"
                 @blur="releaseTip('due')"
                 @pointerleave="releaseTip('due')"
                 @click.stop="armFor('due')"
               >
+                <!-- A set date is its own label: "Nov 23" needs no calendar beside it,
+                     and its colour says overdue (red) or due soon (orange). The
+                     glyph is only the empty field's editor. -->
                 <UIcon
-                  :name="paintDue ? dueDateIcon(dueStatus) : 'i-lucide-calendar-plus'"
-                  :class="paintDue ? 'text-2xs' : 'text-xs'"
+                  v-if="!paintDue"
+                  name="i-lucide-calendar-plus"
+                  class="text-2xs"
                 />
                 <span
                   v-if="paintDue"
@@ -624,10 +812,9 @@ function toggleTag(tagId: string) {
             >
               <button
                 type="button"
-                :class="[
-                  SLOT,
-                  paintAssignee ? 'rounded-full' : ['rounded-md text-dimmed', reveal]
-                ]"
+                :class="paintAssignee
+                  ? [SLOT, 'order-5 rounded-full']
+                  : [GHOST, ghost, 'order-1 rounded-md text-dimmed']"
                 :aria-label="assigneeFieldLabel(kanbanContext.members.value, card.assignee?.id)"
                 @blur="releaseTip('assignee')"
                 @pointerleave="releaseTip('assignee')"
@@ -644,7 +831,7 @@ function toggleTag(tagId: string) {
                 <UIcon
                   v-else
                   :name="card.assignee ? 'i-lucide-user' : 'i-lucide-user-plus'"
-                  class="text-xs"
+                  class="text-2xs"
                 />
               </button>
             </component>

@@ -16,6 +16,7 @@ var (
 	createDueDate     string
 	createAssignMe    bool
 	createProject     string
+	createParent      string
 )
 
 var createCmd = &cobra.Command{
@@ -80,6 +81,14 @@ var createCmd = &cobra.Command{
 
 		if cmd.Flags().Changed("due") {
 			payload["dueDate"] = createDueDate
+		}
+
+		if cmd.Flags().Changed("parent") {
+			parent, err := fetchCard(client, createParent)
+			if err != nil {
+				return fmt.Errorf("parent %s: %w", createParent, err)
+			}
+			payload["parentId"] = parent.ID
 		}
 
 		// Resolve assignee if --assign-me
@@ -176,5 +185,6 @@ func init() {
 	createCmd.Flags().StringVar(&createDueDate, "due", "", "Due date (YYYY-MM-DD)")
 	createCmd.Flags().BoolVar(&createAssignMe, "assign-me", false, "Assign to yourself (uses COMPLETO_USER)")
 	createCmd.Flags().StringVar(&createProject, "project", "", "Project slug (default: PROJECT from .completo)")
+	createCmd.Flags().StringVar(&createParent, "parent", "", "Create it as a sub-task of this card (ticket ID, same project)")
 	rootCmd.AddCommand(createCmd)
 }

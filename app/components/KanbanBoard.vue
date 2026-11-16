@@ -26,12 +26,15 @@ const kanbanContext = {
   tags: computed(() => _props.tags),
   // Through the context rather than as a prop: KanbanColumn has no use for it
   // and would only be forwarding it to KanbanCard.
-  cardFieldVisible: computed(() => (key: CardField) => cardFieldVisible(_props.hiddenCardFields, key))
+  cardFieldVisible: computed(() => (key: CardField) => cardFieldVisible(_props.hiddenCardFields, key)),
+  lightFamily
 }
 provide('kanbanContext', kanbanContext)
 
 const emit = defineEmits<{
   'card-click': [card: BoardCard]
+  /** Open a card by id, wherever it is: a sub-task's parent. */
+  'open-card': [cardId: number]
   'card-moved': [cardId: number, toColumnId: string, toPosition: number]
   'card-update': [cardId: number, updates: Record<string, unknown>]
   'card-update-tags': [cardId: number, tagIds: string[]]
@@ -92,6 +95,38 @@ function cancelAddColumn() {
 // mid-word with nothing to suggest more existed. The mask fades only the edges
 // that actually have content beyond them, so a board that fits shows no fade.
 const { scroller, fadeStyle, updateFade } = useScrollFade(() => _props.columns.length)
+
+/**
+ * A parent and its sub-tasks, lit wherever they are on the board.
+ *
+ * Shown as cards, a parent's sub-tasks scatter over the columns their statuses
+ * put them in, which is the point of showing them and also what makes "where
+ * are the other pieces of this" hard to answer. Resting on a card's relation
+ * chip (a parent's "2/5", a sub-task's parent ticket — see KanbanCard
+ * `relation`) gives the family the hover border and fades everything else.
+ *
+ * One generated rule keyed on the cards' `data-family`, rather than a class
+ * bound per card: bound, every card on the board would read the lit id and
+ * re-render on each hover. Nothing lights when the family is one card — a
+ * parent whose sub-tasks this board hides — since fading the board to point at
+ * the card under the pointer says nothing.
+ */
+let familyStyle: HTMLStyleElement | null = null
+
+function lightFamily(familyId: number | null) {
+  const members = familyId === null ? 0 : scroller.value?.querySelectorAll(`.kanban-card[data-family="${familyId}"]`).length ?? 0
+  if (members < 2) {
+    familyStyle?.remove()
+    familyStyle = null
+    return
+  }
+  familyStyle ??= document.head.appendChild(document.createElement('style'))
+  familyStyle.textContent = `
+    .board-scroll .kanban-card:not([data-family="${familyId}"]) { opacity: 0.45; }
+    .board-scroll .kanban-card[data-family="${familyId}"] { border-color: var(--c2s-accent); }
+  `
+}
+onBeforeUnmount(() => familyStyle?.remove())
 
 // ─── Get out of the panel's way ─────────────────────────────────────────────
 /**
@@ -223,12 +258,14 @@ function onCardClick(columnId: string, card: BoardCard) {
       v-for="(column, i) in columns"
       :key="column.id"
       :data-column-id="column.id"
+      :data-done-column="column.id === doneStatusId ? column.name : undefined"
       :column="column"
       :cards="cardsByColumn[column.id] || []"
       :accent-color="column.color || undefined"
       :is-done="column.id === doneStatusId"
       :index="i"
       @card-click="(card) => onCardClick(column.id, card)"
+      @open-card="(id) => emit('open-card', id)"
       @card-change="(evt) => handleCardChange(column.id, evt)"
       @card-update="(cardId, updates) => emit('card-update', cardId, updates)"
       @card-update-tags="(cardId, tagIds) => emit('card-update-tags', cardId, tagIds)"

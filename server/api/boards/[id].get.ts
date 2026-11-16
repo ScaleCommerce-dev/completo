@@ -112,6 +112,7 @@ export default defineEventHandler(async (event) => {
     statusFilters: safeParseJson(board.statusFilters, []),
     assigneeFilters: safeParseJson(board.assigneeFilters, []),
     priorityFilters: safeParseJson(board.priorityFilters, []),
+    showSubtasks: !!board.showSubtasks,
     // Normalised on the way out so a value written by a newer release naming a
     // field this one doesn't have can't reach the card face.
     hiddenCardFields: normalizeHiddenCardFields(safeParseJson(board.hiddenCardFields, [])),

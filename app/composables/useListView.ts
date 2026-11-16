@@ -48,6 +48,7 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
     priorityFilters,
     projectKey,
     doneStatusId,
+    showSubtasks,
     canConfigureColumns,
     canModerateComments,
     createCard,
@@ -55,7 +56,8 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
     deleteCard,
     updateCardTags,
     reorderColumns,
-    updateFilters
+    updateFilters,
+    updateDisplay
   } = useViewData<ListView>('lists', listSlugOrId, opts)
 
   const columnsData = computed(() => {
@@ -137,6 +139,7 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
     priorityFilters,
     projectKey,
     doneStatusId,
+    showSubtasks,
     sortField,
     sortDirection,
     canConfigureColumns,
@@ -149,6 +152,7 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
     deleteCard,
     updateCardTags,
     updateFilters,
+    updateDisplay,
     addColumn,
     removeColumn,
     reorderColumns,

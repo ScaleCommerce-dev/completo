@@ -61,6 +61,9 @@ export default defineEventHandler(async (event) => {
   const { tagsByCard, attachCountByCard, commentCountByCard } = fetchCardMetadata(visibleCards.map(c => c.id))
   const creatorsById = fetchCardCreators(visibleCards)
   const unreadCardIds = fetchUnreadCardIds(visibleCards.map(c => c.id), userId)
+  // Same fields `enrichCardsWithMetadata` adds, so a live event and this page agree.
+  const progress = subtaskProgress(visibleCards.map(c => c.id))
+  const parents = parentRefs(visibleCards.flatMap(c => (c.parentId ? [c.parentId] : [])))
 
   // ─── Fetch projects, statuses ───
   const visibleProjectIds = [...new Set(visibleCards.map(c => c.projectId))]
@@ -106,6 +109,8 @@ export default defineEventHandler(async (event) => {
       tags: tagsByCard.get(card.id) || [],
       attachmentCount: attachCountByCard.get(card.id) || 0,
       commentCount: commentCountByCard.get(card.id) || 0,
+      subtasks: progress.get(card.id) ?? null,
+      parent: card.parentId ? parents.get(card.parentId) ?? null : null,
       creator: card.createdById ? creatorsById.get(card.createdById) || null : null,
       hasUnread: unreadCardIds.has(card.id)
     }))

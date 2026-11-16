@@ -8,6 +8,12 @@ interface ViewPageOptions<T extends BaseCard = BaseCard> {
   statusFilters: ComputedRef<string[]>
   assigneeFilters: ComputedRef<string[]>
   priorityFilters: ComputedRef<string[]>
+  /**
+   * Whether sub-tasks get cards of their own. Absent means yes: My Tasks has no
+   * such setting, because a sub-task assigned to you must never vanish from your
+   * own list.
+   */
+  showSubtasks?: ComputedRef<boolean>
   statuses: ComputedRef<{ id: string, name: string }[]>
   members: ComputedRef<{ id: string, name: string }[]>
   tags: ComputedRef<{ id: string, name: string }[]>
@@ -24,6 +30,7 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
     statusFilters,
     assigneeFilters,
     priorityFilters,
+    showSubtasks,
     statuses,
     members,
     tags: tagsData,
@@ -49,8 +56,14 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
 
   const isFiltered = computed(() => hasActiveFilters(filterState.value))
 
+  /**
+   * The view's filters, and its sub-task setting. A hidden sub-task is still in
+   * `allCards`, so the panel can open it from its parent; it only has no card
+   * of its own, and the count says what is on screen.
+   */
   function applyFilters<C extends BaseCard>(cards: C[]): C[] {
-    return filterCards(cards, filterState.value) as C[]
+    const shown = showSubtasks && !showSubtasks.value ? cards.filter(c => !c.parentId) : cards
+    return filterCards(shown, filterState.value) as C[]
   }
 
   const filteredCards = computed<T[]>(() => applyFilters(allCards.value))

@@ -37,10 +37,24 @@ export const CARD_FIELDS = [
   { key: 'ticketId', label: 'Ticket ID' },
   { key: 'priority', label: 'Priority' },
   { key: 'commentCount', label: 'Comment count' },
-  { key: 'attachmentCount', label: 'Attachment count' }
+  { key: 'attachmentCount', label: 'Attachment count' },
+  // One switch for both ends of the relationship: they share one footer slot,
+  // a parent's "2/5" and a sub-task's parent ticket, and a card is never both.
+  { key: 'subtasks', label: 'Sub-tasks' }
 ] as const satisfies readonly CardFieldDef[]
 
 export type CardField = typeof CARD_FIELDS[number]['key']
+
+/**
+ * What a new board hides. The attachment count, because it is the weaker of the
+ * two content counts — usually one pasted screenshot, where three comments mean
+ * the card is being argued about — and a footer carrying a parent, a date and an
+ * assignee has no room for both. Written into the board when it is created
+ * (both board inserts), not read as a fallback: a board stores the fields that
+ * are *off*, so a board that predates this default keeps showing the count, as
+ * its team set it up to.
+ */
+export const DEFAULT_HIDDEN_CARD_FIELDS: readonly CardField[] = ['attachmentCount']
 
 const CARD_FIELD_KEYS = new Set<string>(CARD_FIELDS.map(f => f.key))
 

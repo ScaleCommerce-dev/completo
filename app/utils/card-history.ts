@@ -83,6 +83,11 @@ export function describeChange(e: CardHistoryEvent): Phrase[] {
       return e.to ? [plain('added the tag '), strong(e.to.value)] : [plain('removed the tag '), strong(from ?? '')]
     case 'attachment':
       return e.to ? [plain('attached '), strong(e.to.value)] : [plain('removed the attachment '), strong(from ?? '')]
+    case 'parent':
+      if (e.from && e.to) return fromTo('changed the parent', from, to)
+      return e.to ? [plain('made this a sub-task of '), strong(e.to.value)] : [plain('detached this from '), strong(from ?? '')]
+    case 'subtask':
+      return e.to ? [plain('added the sub-task '), strong(e.to.value)] : [plain('removed the sub-task '), strong(from ?? '')]
   }
 }
 

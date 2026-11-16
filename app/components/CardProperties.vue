@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CardStatus, Member, Tag } from '~/types/card'
+import type { CardStatus, Member, ParentField, Tag } from '~/types/card'
 
 /**
  * A card's status, assignee, priority, due date and tags.
@@ -32,9 +32,20 @@ const props = withDefaults(defineProps<{
   /** Sentinel for "nobody", since a select needs a value for the empty case. */
   unassignedValue: string
   layout?: 'rows' | 'compact'
+  /** With `openSubtasks`, shows the done status disabled while sub-tasks are open. */
+  doneStatusId?: string | null
+  openSubtasks?: number
+  /**
+   * Attaching a parent, on a card that exists and has none. Once it has one,
+   * the parent is shown and changed by `CardParentLink` under the title instead,
+   * so this field would only repeat it.
+   */
+  parentField?: ParentField
 }>(), {
   layout: 'rows'
 })
+
+const emit = defineEmits<{ 'set-parent': [parentId: number | null] }>()
 
 const statusId = defineModel<string>('statusId', { required: true })
 const assigneeId = defineModel<string>('assigneeId', { required: true })
@@ -147,6 +158,8 @@ function row(label: string, icon: string, align?: 'start') {
       <StatusMenu
         :statuses="statuses"
         :status-id="statusId"
+        :done-status-id="doneStatusId"
+        :open-subtasks="openSubtasks"
         :content="FIELD_MENU_ALIGN_START"
         @select="id => statusId = id"
       >
@@ -334,6 +347,55 @@ function row(label: string, icon: string, align?: 'start') {
           </button>
         </template>
       </TagMenu>
+    </component>
+
+    <component
+      :is="Row"
+      v-if="parentField && !parentField.parent && !(isCompact && parentField.locked)"
+      v-bind="row('Parent', 'i-lucide-corner-left-up')"
+      :class="CHIP"
+    >
+      <!-- A card with sub-tasks names why it has no parent to set, rather than
+           offering a menu whose every choice the server would refuse. Only as
+           a row: in the panel's chip run a greyed "No parent" on every parent
+           would be noise. -->
+      <UTooltip
+        v-if="parentField.locked"
+        text="It has sub-tasks of its own, and sub-tasks have one level"
+      >
+        <span :class="[TRIGGER, 'text-dimmed cursor-default']">
+          <UIcon
+            name="i-lucide-corner-left-up"
+            class="text-sm shrink-0"
+          />
+          <span class="truncate">No parent</span>
+        </span>
+      </UTooltip>
+      <ParentMenu
+        v-else
+        :project-id="parentField.projectId"
+        :card-id="parentField.cardId"
+        :parent-id="null"
+        :project-key="parentField.projectKey"
+        :content="FIELD_MENU_ALIGN_START"
+        @select="id => emit('set-parent', id)"
+      >
+        <button
+          type="button"
+          :class="[TRIGGER, 'text-dimmed']"
+          aria-label="Parent: none"
+        >
+          <UIcon
+            name="i-lucide-corner-left-up"
+            class="text-sm shrink-0"
+          />
+          <span class="truncate">No parent</span>
+          <UIcon
+            name="i-lucide-chevron-down"
+            class="text-2xs text-dimmed shrink-0"
+          />
+        </button>
+      </ParentMenu>
     </component>
   </div>
 </template>

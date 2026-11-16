@@ -5,6 +5,8 @@ defineProps<{
   statuses: Array<{ id: string, name: string, color: string | null }>
   readOnly?: boolean
   popoverOpen: boolean
+  doneStatusId?: string | null
+  openSubtasks?: number
 }>()
 
 const emit = defineEmits<{
@@ -37,6 +39,8 @@ const emit = defineEmits<{
     v-else
     :statuses="statuses"
     :status-id="statusId"
+    :done-status-id="doneStatusId"
+    :open-subtasks="openSubtasks"
     :open="popoverOpen"
     @update:open="emit('update:popoverOpen', !!$event)"
     @select="emit('select', $event)"

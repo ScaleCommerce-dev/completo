@@ -75,6 +75,8 @@ function toItem(o: FieldMenuOption): DropdownMenuItem {
     label: o.label,
     type: 'checkbox' as const,
     checked: o.checked,
+    disabled: o.disabled,
+    description: o.hint,
     option: o,
     onSelect(e: Event) {
       // A menu item closes on choose unless told otherwise.

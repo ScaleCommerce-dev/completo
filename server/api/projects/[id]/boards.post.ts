@@ -39,6 +39,7 @@ export default defineEventHandler(async (event) => {
     slug,
     position: existingBoards.length,
     tagFilters: body.tagFilters?.length ? JSON.stringify(body.tagFilters) : null,
+    hiddenCardFields: JSON.stringify(DEFAULT_HIDDEN_CARD_FIELDS),
     createdById: user.id
   }).run()
 

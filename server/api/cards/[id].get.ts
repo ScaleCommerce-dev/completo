@@ -61,6 +61,17 @@ export default defineEventHandler(async (event) => {
 
   const { ref, member } = createUserRefs([row.users, ...members])
 
+  const memberRefs = members.map(member)
+
+  // Sub-tasks: the parent this card hangs under, or the ones hanging under it.
+  // Same project by rule, so the viewer can read every one of them.
+  const subtaskRows = subtasksOf(id)
+  const tickets = cardTickets([...subtaskRows.map(c => c.id), ...(row.cards.parentId ? [row.cards.parentId] : [])])
+  const parentRow = row.cards.parentId
+    ? db.select({ id: schema.cards.id, title: schema.cards.title, statusId: schema.cards.statusId })
+        .from(schema.cards).where(eq(schema.cards.id, row.cards.parentId)).get()
+    : undefined
+
   return {
     ...row.cards,
     // The viewer's role in this project, as boards and lists already return, so the
@@ -69,10 +80,17 @@ export default defineEventHandler(async (event) => {
     role: membership.role,
     assignee: ref(row.users),
     creator: row.cards.createdById ? fetchCardCreators([row.cards]).get(row.cards.createdById) || null : null,
-    project: project ? { id: project.id, name: project.name, slug: project.slug, key: project.key } : null,
+    project: project ? { id: project.id, name: project.name, slug: project.slug, key: project.key, doneStatusId: project.doneStatusId } : null,
     statuses,
-    members: members.map(member),
+    members: memberRefs,
     tags,
-    projectTags
+    projectTags,
+    parent: parentRow ? { ...parentRow, ticket: tickets.get(parentRow.id)! } : null,
+    subtaskCards: subtaskRows.map(c => ({
+      ...c,
+      ticket: tickets.get(c.id)!,
+      assignee: c.assigneeId ? memberRefs.find(m => m.id === c.assigneeId) ?? null : null
+    })),
+    subtasks: subtaskProgress([id]).get(id) ?? null
   }
 })

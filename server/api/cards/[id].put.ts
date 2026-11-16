@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
     priority?: 'low' | 'medium' | 'high' | 'urgent'
     statusId?: string
     dueDate?: string | null
+    parentId?: number | null
   }>(event)
 
   // Validate statusId belongs to the card's project
@@ -19,7 +20,13 @@ export default defineEventHandler(async (event) => {
     if (!status) {
       throw createError({ statusCode: 400, message: 'Status does not belong to this project' })
     }
+    assertCanEnterStatus(existingCard, body.statusId)
   }
+
+  // Validate the parent: same project, one level (`server/utils/subtasks.ts`)
+  const parentId = body.parentId === undefined
+    ? undefined
+    : body.parentId === null ? null : requireParent({ projectId: existingCard.projectId, parentId: body.parentId, cardId: existingCard.id }).id
 
   // Validate assigneeId belongs to this project
   if (body.assigneeId !== undefined && body.assigneeId !== null) {
@@ -38,8 +45,12 @@ export default defineEventHandler(async (event) => {
   if (body.priority !== undefined) updates.priority = body.priority
   if (body.statusId !== undefined) updates.statusId = body.statusId
   if (body.dueDate !== undefined) updates.dueDate = body.dueDate ? new Date(body.dueDate) : null
+  if (parentId !== undefined) updates.parentId = parentId
 
-  const changes = cardFieldChanges(existingCard, { ...body, dueDate: updates.dueDate as Date | null | undefined })
+  const changes = [
+    ...cardFieldChanges(existingCard, { ...body, dueDate: updates.dueDate as Date | null | undefined }),
+    ...(parentId !== undefined ? parentChanges(existingCard.id, existingCard.parentId, parentId) : [])
+  ]
   db.transaction(() => {
     db.update(schema.cards).set(updates).where(eq(schema.cards.id, existingCard.id)).run()
     recordCardEvents(user, changes)
@@ -98,9 +109,22 @@ export default defineEventHandler(async (event) => {
     .get()
 
   emitCardChange(existingCard.id, existingCard.projectId)
+  // A parent shows its sub-tasks' progress, and a sub-task shows its parent's
+  // title: whichever of those this write changed is pushed as well.
+  const parents = new Set<number>()
+  if (existingCard.parentId && (body.statusId !== undefined || parentId !== undefined)) parents.add(existingCard.parentId)
+  if (parentId) parents.add(parentId)
+  for (const id of parents) emitCardChange(id, existingCard.projectId)
+  if (body.title !== undefined && body.title !== existingCard.title) {
+    for (const child of subtasksOf(existingCard.id)) emitCardChange(child.id, existingCard.projectId)
+  }
 
   return {
     ...card!.cards,
-    assignee: createUserRefs([card!.users]).ref(card!.users)
+    assignee: createUserRefs([card!.users]).ref(card!.users),
+    // What a view paints from the parent link, so changing it repaints the card
+    // without waiting for the live event (which the writer's own view ignores).
+    parent: card!.cards.parentId ? parentRefs([card!.cards.parentId]).get(card!.cards.parentId) ?? null : null,
+    subtasks: subtaskProgress([existingCard.id]).get(existingCard.id) ?? null
   }
 })

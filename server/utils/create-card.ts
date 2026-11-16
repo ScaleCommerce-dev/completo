@@ -11,6 +11,8 @@ interface CreateCardParams {
     priority?: 'low' | 'medium' | 'high' | 'urgent'
     assigneeId?: string
     dueDate?: string | null
+    /** Makes the new card a sub-task of this one (`server/utils/subtasks.ts`). */
+    parentId?: number | null
   }
   /**
    * Tags to attach in the same transaction as the card, already validated as this
@@ -24,6 +26,7 @@ interface CreateCardParams {
 
 export function createCard({ projectId, userId, userName, body, tags = [] }: CreateCardParams) {
   const { statusId, title, description, priority, assigneeId, dueDate } = body
+  const parentId = body.parentId == null ? null : requireParent({ projectId, parentId: body.parentId }).id
 
   if (!statusId || !title) {
     throw createError({ statusCode: 400, message: 'Status ID and title are required' })
@@ -62,8 +65,15 @@ export function createCard({ projectId, userId, userName, body, tags = [] }: Cre
       priority: priority || 'medium',
       dueDate: dueDate ? new Date(dueDate) : null,
       position: maxPos + 1,
+      parentId,
       createdById: userId
     }).returning().get()
+
+    // The new card's own parent is read off the row like its creation; the
+    // parent's history is not, so it records the sub-task it gained.
+    if (parentId) {
+      recordCardEvents({ id: userId, name: userName }, parentChanges(row.id, null, parentId).filter(c => c.cardId === parentId))
+    }
 
     for (const tag of tags) {
       db.insert(schema.cardTags).values({ id: crypto.randomUUID(), cardId: row.id, tagId: tag.id }).run()
@@ -132,6 +142,7 @@ export function createCard({ projectId, userId, userName, body, tags = [] }: Cre
   // Live-update every open board/list of this project. The single choke point:
   // both card-create endpoints go through here, so neither has to remember to.
   emitCardChange(inserted.id, projectId)
+  if (parentId) emitCardChange(parentId, projectId)
 
   return {
     ...card!.cards,

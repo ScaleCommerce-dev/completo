@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import type { BaseCard, CardStatus, Member, Tag } from '~/types/card'
+import type { BaseCard, CardStatus, Member, SubtaskRow, Tag } from '~/types/card'
 import type { CardFilterState } from '~/utils/card-filters'
 
 const props = defineProps<{
-  card?: Pick<BaseCard, 'id' | 'title' | 'description' | 'priority' | 'statusId' | 'assigneeId' | 'dueDate' | 'creator'> & { tags?: Tag[] }
+  card?: Pick<BaseCard, 'id' | 'title' | 'description' | 'priority' | 'statusId' | 'assigneeId' | 'dueDate' | 'creator' | 'parentId' | 'parent' | 'subtasks'> & { tags?: Tag[] }
   statuses: CardStatus[]
+  /** The project's done status, which a parent cannot enter while a sub-task is open. */
+  doneStatusId?: string | null
   members?: Member[]
   tags?: Tag[]
   statusId?: string
@@ -98,9 +100,66 @@ const emit = defineEmits<{
   updateTags: [cardId: number, tagIds: string[]]
   deleteDraft: [cardId: number]
   navigate: [direction: 'prev' | 'next' | 'prevColumn' | 'nextColumn']
+  /** Open another card in the panel: a sub-task from its parent's list. */
+  openCard: [cardId: number]
 }>()
 
 const isEdit = computed(() => !!props.card)
+
+/**
+ * The card's sub-task side, which a view's card does not carry: its sub-tasks
+ * in full, its parent's ticket, the project's statuses in project order and the
+ * project itself. One `GET /api/cards/:id`, refetched when the view's card says
+ * its progress or its parent changed, which a live event reports.
+ */
+interface SubtaskDetail {
+  id: number
+  parentId: number | null
+  project: { id: string, key: string, doneStatusId: string | null } | null
+  statuses: CardStatus[]
+  subtaskCards: SubtaskRow[]
+}
+const subtaskDetail = ref<SubtaskDetail | null>(null)
+
+async function loadSubtaskDetail() {
+  const id = props.card?.id
+  if (!id) {
+    subtaskDetail.value = null
+    return
+  }
+  if (subtaskDetail.value?.id !== id) subtaskDetail.value = null
+  try {
+    const detail = await $fetch<SubtaskDetail>(`/api/cards/${id}`)
+    if (props.card?.id === id) subtaskDetail.value = detail
+  } catch {
+    // The section stays hidden; the panel's own fields still work.
+  }
+}
+
+watch(
+  () => [props.card?.id, props.card?.parentId, props.card?.subtasks?.total, props.card?.subtasks?.done],
+  loadSubtaskDetail,
+  { immediate: true }
+)
+
+const panelDoneStatusId = computed(() => props.doneStatusId ?? subtaskDetail.value?.project?.doneStatusId ?? null)
+
+const parentField = computed(() => {
+  const card = props.card
+  const detail = subtaskDetail.value
+  if (!card || !detail?.project) return undefined
+  return {
+    cardId: card.id,
+    projectId: detail.project.id,
+    projectKey: props.projectKey,
+    parent: card.parentId ? card.parent ?? null : null,
+    locked: (card.subtasks?.total ?? detail.subtaskCards.length) > 0
+  }
+})
+
+function setParent(parentId: number | null) {
+  if (props.card) emit('update', props.card.id, { parentId })
+}
 
 // Duplicate (template cards): the dialog is a sibling after </USlideover>, see
 // the note at the end of the template. On success the copy opens as a full page,
@@ -910,6 +969,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
         @keydown.enter.prevent="isEdit ? flushTitle() : submit()"
       />
 
+      <CardParentLink
+        v-if="parentField?.parent"
+        :field="{ ...parentField, parent: parentField.parent }"
+        :project-slug="projectSlug"
+        in-panel
+        class="mt-0.5"
+        @open="id => emit('openCard', id)"
+        @set-parent="setParent"
+      />
+
       <!-- Properties as a run of chips rather than five labelled rows. See
            CardProperties' `compact` layout for why. Pinned with the identity, so
            status and assignee stay readable while you scroll the comments. -->
@@ -924,7 +993,11 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
           :members="members"
           :tags="tags"
           :unassigned-value="UNASSIGNED"
+          :done-status-id="panelDoneStatusId"
+          :open-subtasks="card ? openSubtaskCount(card) : 0"
+          :parent-field="parentField"
           layout="compact"
+          @set-parent="setParent"
         />
       </div>
 
@@ -1013,6 +1086,24 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
             @copy="copyDescription"
           />
         </template>
+      </div>
+
+      <!-- Sub-tasks, on a card that can have them: one level, so not on a
+           sub-task. Before attachments, because they are part of what the card
+           is, and the board's "2/5" opens the panel to read them. -->
+      <div
+        v-if="isEdit && card && subtaskDetail?.project && !subtaskDetail.parentId"
+        class="mx-dialog mt-6"
+      >
+        <CardSubtasks
+          :card-id="card.id"
+          :project-id="subtaskDetail.project.id"
+          :subtasks="subtaskDetail.subtaskCards"
+          :statuses="subtaskDetail.statuses"
+          :done-status-id="panelDoneStatusId"
+          @created="loadSubtaskDetail"
+          @open="(id) => emit('openCard', id)"
+        />
       </div>
 
       <!-- Attachments. One section gap, the same one the comments take: with the

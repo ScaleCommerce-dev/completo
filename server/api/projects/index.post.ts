@@ -106,6 +106,7 @@ export default defineEventHandler(async (event) => {
       name: 'Overview',
       slug: 'overview',
       position: 0,
+      hiddenCardFields: JSON.stringify(DEFAULT_HIDDEN_CARD_FIELDS),
       createdById: user.id
     }).run()
 

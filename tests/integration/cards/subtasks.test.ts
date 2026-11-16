@@ -1,0 +1,180 @@
+import { describe, it, expect, beforeAll } from 'vitest'
+import { $fetch, expectError, url } from '../../setup/server'
+import { registerTestUser, type TestUser } from '../../setup/auth'
+import { createTestProject, createTestBoard, createTestCard, createTestList, getBoard, getList } from '../../setup/fixtures'
+
+interface Status { id: string, name: string }
+interface Detail {
+  id: number
+  parentId: number | null
+  parent: { id: number, title: string, ticket: string } | null
+  subtaskCards: Array<{ id: number, ticket: string }>
+  subtasks: { total: number, done: number } | null
+}
+
+async function setup(user: TestUser) {
+  const project = await createTestProject(user)
+  const detail = await $fetch<{ statuses: Status[], doneStatusId: string }>(`/api/projects/${project.id}`, { headers: user.headers })
+  const done = detail.doneStatusId
+  const open = detail.statuses.find(s => s.id !== done)!.id
+  return { project, done, open }
+}
+
+const getCard = (user: TestUser, id: number) => $fetch<Detail>(`/api/cards/${id}`, { headers: user.headers })
+const put = (user: TestUser, id: number, body: Record<string, unknown>) =>
+  $fetch(`/api/cards/${id}`, { method: 'PUT', body, headers: user.headers })
+const createSub = (user: TestUser, projectId: string, statusId: string, parentId: number, title = 'Sub') =>
+  $fetch<{ id: number, parentId: number }>(`/api/projects/${projectId}/cards`, { method: 'POST', body: { statusId, title, parentId }, headers: user.headers })
+
+describe('sub-tasks', () => {
+  let user: TestUser
+  beforeAll(async () => {
+    user = await registerTestUser()
+  })
+
+  it('creates a sub-task and shows it on both cards', async () => {
+    const { project, open } = await setup(user)
+    const parent = await createTestCard(user, project.id, open, { title: 'Parent' })
+    const sub = await createSub(user, project.id, open, parent.id)
+    expect(sub.parentId).toBe(parent.id)
+
+    const p = await getCard(user, parent.id)
+    expect(p.subtaskCards.map(c => c.id)).toEqual([sub.id])
+    expect(p.subtaskCards[0]!.ticket).toBe(`${project.key}-${sub.id}`)
+    expect(p.subtasks).toEqual({ total: 1, done: 0 })
+
+    const s = await getCard(user, sub.id)
+    expect(s.parent).toMatchObject({ id: parent.id, title: 'Parent', ticket: `${project.key}-${parent.id}` })
+    expect(s.subtasks).toBeNull()
+  })
+
+  it('refuses a parent in another project, with the same message as a missing one', async () => {
+    const { project, open } = await setup(user)
+    const other = await setup(user)
+    const foreign = await createTestCard(user, other.project.id, other.open)
+    const card = await createTestCard(user, project.id, open)
+
+    const res = await fetch(url(`/api/cards/${card.id}`), { method: 'PUT', body: JSON.stringify({ parentId: foreign.id }), headers: { ...user.headers, 'content-type': 'application/json' } })
+    expect(res.status).toBe(400)
+    const missing = await fetch(url(`/api/cards/${card.id}`), { method: 'PUT', body: JSON.stringify({ parentId: 99999999 }), headers: { ...user.headers, 'content-type': 'application/json' } })
+    expect(missing.status).toBe(400)
+    expect((await res.json()).message).toBe((await missing.json()).message)
+  })
+
+  it('keeps one level', async () => {
+    const { project, open } = await setup(user)
+    const parent = await createTestCard(user, project.id, open)
+    const sub = await createSub(user, project.id, open, parent.id)
+    const other = await createTestCard(user, project.id, open)
+
+    // A sub-task cannot have sub-tasks…
+    await expectError(createSub(user, project.id, open, sub.id), 400)
+    await expectError(put(user, other.id, { parentId: sub.id }), 400)
+    // …a parent cannot become a sub-task, and nothing is its own parent.
+    await expectError(put(user, parent.id, { parentId: other.id }), 400)
+    await expectError(put(user, other.id, { parentId: other.id }), 400)
+  })
+
+  it('attaches, moves and detaches an existing card, recording it on every card involved', async () => {
+    const { project, open } = await setup(user)
+    const a = await createTestCard(user, project.id, open, { title: 'A' })
+    const b = await createTestCard(user, project.id, open, { title: 'B' })
+    const card = await createTestCard(user, project.id, open, { title: 'Card' })
+
+    await put(user, card.id, { parentId: a.id })
+    await put(user, card.id, { parentId: b.id })
+    await put(user, card.id, { parentId: null })
+    expect((await getCard(user, card.id)).parentId).toBeNull()
+
+    type Event = { field: string, from: { value: string } | null, to: { value: string } | null }
+    const history = async (id: number) => (await $fetch<{ events: Event[] }>(`/api/cards/${id}/history`, { headers: user.headers })).events
+      .filter(e => e.field === 'parent' || e.field === 'subtask')
+      .map(e => [e.field, e.from?.value ?? null, e.to?.value ?? null])
+    const t = (id: number) => `${project.key}-${id}`
+    expect(await history(card.id)).toEqual([
+      ['parent', null, t(a.id)],
+      ['parent', t(a.id), t(b.id)],
+      ['parent', t(b.id), null]
+    ])
+    expect(await history(a.id)).toEqual([['subtask', null, t(card.id)], ['subtask', t(card.id), null]])
+    expect(await history(b.id)).toEqual([['subtask', null, t(card.id)], ['subtask', t(card.id), null]])
+  })
+
+  it('counts done sub-tasks by the project\'s done status, on views and the card', async () => {
+    const { project, open, done } = await setup(user)
+    const board = await createTestBoard(user, project.id)
+    const parent = await createTestCard(user, project.id, open)
+    await createSub(user, project.id, open, parent.id)
+    await createSub(user, project.id, done, parent.id)
+
+    const onBoard = (await getBoard(user, board.id)).cards.find((c: { id: number }) => c.id === parent.id)
+    expect(onBoard.subtasks).toEqual({ total: 2, done: 1 })
+    expect((await getCard(user, parent.id)).subtasks).toEqual({ total: 2, done: 1 })
+  })
+
+  it('refuses moving a parent with open sub-tasks into Done, on both write paths', async () => {
+    const { project, open, done } = await setup(user)
+    const parent = await createTestCard(user, project.id, open)
+    const sub = await createSub(user, project.id, open, parent.id)
+
+    const res = await fetch(url(`/api/cards/${parent.id}/move`), { method: 'PUT', body: JSON.stringify({ statusId: done, position: 0 }), headers: { ...user.headers, 'content-type': 'application/json' } })
+    expect(res.status).toBe(409)
+    const body = await res.json()
+    expect(body.message).toContain(`${project.key}-${sub.id}`)
+    expect(body.data.openSubtasks).toEqual([`${project.key}-${sub.id}`])
+    await expectError(put(user, parent.id, { statusId: done }), 409)
+
+    // Once the sub-task is done, so can the parent be.
+    await put(user, sub.id, { statusId: done })
+    await put(user, parent.id, { statusId: done })
+  })
+
+  it('guards only the move: a done parent may gain or reopen a sub-task', async () => {
+    const { project, open, done } = await setup(user)
+    const parent = await createTestCard(user, project.id, done)
+    const sub = await createSub(user, project.id, done, parent.id)
+    await put(user, sub.id, { statusId: open })
+    await createSub(user, project.id, open, parent.id)
+    expect((await getCard(user, parent.id)).subtasks).toEqual({ total: 2, done: 0 })
+  })
+
+  it('turns sub-tasks into ordinary cards when their parent is deleted', async () => {
+    const { project, open } = await setup(user)
+    const parent = await createTestCard(user, project.id, open)
+    const sub = await createSub(user, project.id, open, parent.id)
+    await $fetch(`/api/cards/${parent.id}`, { method: 'DELETE', headers: user.headers })
+
+    expect((await getCard(user, sub.id)).parentId).toBeNull()
+    const { events } = await $fetch<{ events: Array<{ field: string, from: { value: string } | null, to: unknown }> }>(`/api/cards/${sub.id}/history`, { headers: user.headers })
+    expect(events.at(-1)).toMatchObject({ field: 'parent', from: { value: `${project.key}-${parent.id}` }, to: null })
+  })
+
+  it('lists the cards a parent picker may offer: top-level, searchable by title or ticket', async () => {
+    const { project, open } = await setup(user)
+    const parent = await createTestCard(user, project.id, open, { title: 'Pick me 100%' })
+    const sub = await createSub(user, project.id, open, parent.id, 'Pick me too')
+    const list = (query: Record<string, string>) =>
+      $fetch<Array<{ id: number }>>(`/api/projects/${project.id}/cards`, { query, headers: user.headers }).then(r => r.map(c => c.id))
+
+    expect(await list({ parentId: 'none', q: 'Pick me' })).toEqual([parent.id])
+    expect(await list({ parentId: String(parent.id) })).toEqual([sub.id])
+    expect(await list({ q: `${project.key}-${sub.id}` })).toEqual([sub.id])
+    // `%` is a literal, not a wildcard.
+    expect(await list({ q: '100%' })).toEqual([parent.id])
+  })
+
+  it('stores whether a board or list shows sub-tasks as cards, off by default', async () => {
+    const { project } = await setup(user)
+    const board = await createTestBoard(user, project.id)
+    const list = await createTestList(user, project.id)
+    expect((await getBoard(user, board.id)).showSubtasks).toBe(false)
+    expect((await getList(user, list.id)).showSubtasks).toBe(false)
+
+    await $fetch(`/api/boards/${board.id}`, { method: 'PUT', body: { showSubtasks: true }, headers: user.headers })
+    await $fetch(`/api/lists/${list.id}`, { method: 'PUT', body: { showSubtasks: true }, headers: user.headers })
+    expect((await getBoard(user, board.id)).showSubtasks).toBe(true)
+    expect((await getList(user, list.id)).showSubtasks).toBe(true)
+
+    await expectError($fetch(`/api/boards/${board.id}`, { method: 'PUT', body: { showSubtasks: 'yes' }, headers: user.headers }), 400)
+  })
+})

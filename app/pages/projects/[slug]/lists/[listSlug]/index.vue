@@ -19,6 +19,7 @@ const {
   priorityFilters,
   projectKey,
   doneStatusId,
+  showSubtasks,
   sortField,
   sortDirection,
   canConfigureColumns,
@@ -31,6 +32,7 @@ const {
   deleteCard,
   updateCardTags,
   updateFilters,
+  updateDisplay,
   addColumn,
   removeColumn,
   reorderColumns,
@@ -77,6 +79,7 @@ const {
   statusFilters,
   assigneeFilters,
   priorityFilters,
+  showSubtasks,
   statuses: statusesData,
   members: membersData,
   tags: tagsData,
@@ -87,6 +90,16 @@ const {
 })
 
 const showColumnConfig = ref(false)
+
+/**
+ * A sub-task opened from its parent's list. It is in this list's data whether
+ * or not the list gives sub-tasks rows of their own; a card the list does not
+ * hold at all (one past done retention) opens at its own address.
+ */
+function openCardById(cardId: number) {
+  if (allCards.value.some(c => c.id === cardId)) openCardDetail({ id: cardId })
+  else navigateTo(`/projects/${projectSlug}/cards/${formatTicketId(projectKey.value, cardId)}`)
+}
 
 /**
  * ↑/↓ through the table from inside the card panel, the vertical half of what the
@@ -222,9 +235,11 @@ async function handleDeleteList() {
       :project-slug="(route.params.slug as string)"
       :can-moderate="canModerateComments"
       :nav="cardNav"
+      :done-status-id="doneStatusId"
       @update="handleUpdateCard"
       @update-tags="updateCardTags"
       @navigate="(d) => cardWalk(d)"
+      @open-card="openCardById"
     />
 
     <ViewConfigModal
@@ -239,12 +254,14 @@ async function handleDeleteList() {
       :active-status-filters="[...statusFilters]"
       :active-assignee-filters="[...assigneeFilters]"
       :active-priority-filters="[...priorityFilters]"
+      :show-subtasks="showSubtasks"
       :view-name="list?.name || ''"
       :deleting-view="deletingList"
       @add="addColumn"
       @delete="removeColumn"
       @reorder="reorderColumns"
       @update-filters="(filters) => { if (filters.tagFilters) activeTagFilters = new Set(filters.tagFilters); updateFilters(filters) }"
+      @update-display="updateDisplay"
       @rename="handleRenameList"
       @delete-view="handleDeleteList"
     />

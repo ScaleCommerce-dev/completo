@@ -178,6 +178,10 @@ Only after the user has approved ("looks good", "ship it"):
 Don't move to Done on your own — but once the user signals they're finished, do it promptly. A card
 left in Review after sign-off creates confusion about what still needs attention.
 
+A card with open sub-tasks cannot move to Done: the move fails and names them. Finish them first, or
+ask the user before detaching one (`completo update TK-31 --parent none`); don't detach just to get
+the parent through.
+
 **Why commit at Done, not earlier?** During handoff the user tests via hot-reload — no commit needed.
 If they request changes, you iterate without polluting history. Committing at Done yields one clean,
 atomic commit per ticket.
@@ -192,7 +196,11 @@ completo create "Refactor auth" --description-file /tmp/desc.md --assign-me --du
 
 Defaults to `TODO_STATUS` (or the first status). Flags: `--status`, `--description` /
 `--description-file`, `--priority low|medium|high|urgent`, `--due YYYY-MM-DD`, `--assign-me`,
-`--project`. Use `--description-file` for multi-line markdown.
+`--project`, `--parent TK-27`. Use `--description-file` for multi-line markdown.
+
+**Sub-tasks:** `--parent TK-27` creates the card as a sub-task of TK-27. Sub-tasks have one level
+(a sub-task cannot have its own) and live in the parent's project. `completo get` lists a card's
+sub-tasks with their statuses, and shows a sub-task's parent.
 
 ## Tagging cards
 
@@ -255,7 +263,7 @@ Run `completo <command> --help` for full, always-current flag lists. The essenti
 | `completo list [project] [--status] [--priority] [--assignee] [--limit]` | List/filter cards (limit default 50, max 200) |
 | `completo get <ticket-id>` | Fetch one card, with its latest comments |
 | `completo create <title> [flags]` | Create a card (see above) |
-| `completo update <ticket-id> [flags]` | Edit `--title` / `--description[-file]` / `--priority` / `--due` (`--due none` clears it) |
+| `completo update <ticket-id> [flags]` | Edit `--title` / `--description[-file]` / `--priority` / `--due` / `--parent` (`none` clears `--due` or `--parent`) |
 | `completo move <ticket-id> "Status"` | Move a card to a status (to the top of the column) |
 | `completo assign <ticket-id> --me` | Assign to yourself, or `completo assign <ticket-id> someone@example.com` for another member |
 | `completo tags [project]` | List a project's tags (names are exact) |

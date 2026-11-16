@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Member, PersonRef } from '~/types/card'
+import type { Member, PersonRef, SubtaskProgress, SubtaskRow } from '~/types/card'
 
 definePageMeta({ layout: 'default' })
 
@@ -20,14 +20,18 @@ interface CardDetail {
   creator: PersonRef | null
   createdAt: string
   updatedAt: string
-  project: { id: string, name: string, slug: string, key: string } | null
+  project: { id: string, name: string, slug: string, key: string, doneStatusId: string | null } | null
   statuses: Array<{ id: string, name: string, color: string | null }>
+  parentId: number | null
+  parent: { id: number, title: string, ticket?: string } | null
+  subtaskCards: SubtaskRow[]
+  subtasks: SubtaskProgress | null
   members: Member[]
   projectTags: Array<{ id: string, name: string, color: string }>
   /** Viewer's role in this project; admins get a synthetic 'owner'. */
   role: string
 }
-const { data: cardData, error: fetchError, status } = useFetch<CardDetail>(`/api/cards/${cardId}`)
+const { data: cardData, error: fetchError, status, refresh: refreshCard } = useFetch<CardDetail>(`/api/cards/${cardId}`)
 watch(fetchError, (err) => {
   if (err) showError(err)
 }, { immediate: true })
@@ -44,6 +48,29 @@ useSeoMeta({
 })
 
 const projectTagsData = computed(() => cardData.value?.projectTags || [])
+
+/** The Parent field — see `CardProperties` — once the card has loaded. */
+const parentField = computed(() => {
+  const c = cardData.value
+  if (!c?.project) return undefined
+  return {
+    cardId: c.id,
+    projectId: c.project.id,
+    projectKey: c.project.key,
+    parent: c.parent,
+    locked: c.subtaskCards.length > 0
+  }
+})
+
+/** Re-read after a parent change, for the parent's ticket and the sub-task list. */
+async function setParent(parentId: number | null) {
+  await persist({ parentId })
+  await refreshCard()
+}
+
+function openSubtask(id: number) {
+  navigateTo(`/projects/${projectSlug}/cards/${formatTicketId(projectKey.value, id)}`)
+}
 // Owners (and admins, who resolve to a synthetic 'owner') may delete others' comments
 const canModerateComments = computed(() => cardData.value?.role === 'owner')
 
@@ -314,6 +341,18 @@ async function confirmDelete() {
       />
     </template>
 
+    <!-- Under the title, in the slot UiPage keeps for what belongs to it. -->
+    <template
+      v-if="parentField?.parent"
+      #description
+    >
+      <CardParentLink
+        :field="{ ...parentField, parent: parentField.parent }"
+        :project-slug="projectSlug"
+        @set-parent="setParent"
+      />
+    </template>
+
     <div
       v-if="status === 'pending'"
       class="flex flex-col lg:flex-row gap-6"
@@ -385,6 +424,10 @@ async function confirmDelete() {
             :members="membersData"
             :tags="projectTagsData"
             :unassigned-value="UNASSIGNED"
+            :done-status-id="card?.project?.doneStatusId"
+            :open-subtasks="card ? openSubtaskCount(card) : 0"
+            :parent-field="parentField"
+            @set-parent="setParent"
           />
 
           <!--
@@ -520,6 +563,22 @@ async function confirmDelete() {
           @edit="startEditingDescription"
           @copy="copyDescription"
         />
+
+        <!-- Sub-tasks: one level, so a sub-task has none of its own. -->
+        <div
+          v-if="card?.project && !card.parentId"
+          class="mt-6"
+        >
+          <CardSubtasks
+            :card-id="card.id"
+            :project-id="card.project.id"
+            :subtasks="card.subtaskCards"
+            :statuses="statusesData"
+            :done-status-id="card.project.doneStatusId"
+            @created="refreshCard"
+            @open="openSubtask"
+          />
+        </div>
 
         <!-- Attachments -->
         <div class="mt-6">

@@ -11,6 +11,6 @@
  *
  * `created` is not here: the creation is read off the card, never stored.
  */
-export const CARD_HISTORY_FIELDS = ['status', 'assignee', 'priority', 'dueDate', 'title', 'description', 'tag', 'attachment'] as const
+export const CARD_HISTORY_FIELDS = ['status', 'assignee', 'priority', 'dueDate', 'title', 'description', 'tag', 'attachment', 'parent', 'subtask'] as const
 
 export type CardHistoryField = typeof CARD_HISTORY_FIELDS[number]

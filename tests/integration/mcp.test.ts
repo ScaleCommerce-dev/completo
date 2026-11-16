@@ -128,6 +128,25 @@ describe('POST /mcp', () => {
       project = await createTestProject(user, { name: `MCP ${Date.now()}` })
     })
 
+    it('creates sub-tasks and explains why a parent cannot be done yet', async () => {
+      const parent = await call(headers, 'create_card', { project: project.key, title: 'Parent via MCP' })
+      const sub = await call(headers, 'create_card', { project: project.key, title: 'Child via MCP', parent: parent.data.ticket })
+      expect(sub.data.parent).toBe(parent.data.ticket)
+
+      const got = await call(headers, 'get_card', { card: parent.data.ticket })
+      expect(got.data.subtasks).toEqual([expect.objectContaining({ ticket: sub.data.ticket, title: 'Child via MCP' })])
+      expect(got.data.subtaskProgress).toEqual({ total: 1, done: 0 })
+
+      const refused = await call(headers, 'move_card', { card: parent.data.ticket, status: 'Done' })
+      expect(refused.isError).toBe(true)
+      expect(refused.content[0]!.text).toContain(sub.data.ticket)
+
+      const detached = await call(headers, 'update_card', { card: sub.data.ticket, parent: '' })
+      expect(detached.data.parent).toBeUndefined()
+      const moved = await call(headers, 'move_card', { card: parent.data.ticket, status: 'Done' })
+      expect(moved.data.status).toBe('Done')
+    })
+
     it('walks a card through the board by names, not ids', async () => {
       const created = await call(headers, 'create_card', {
         project: project.key,

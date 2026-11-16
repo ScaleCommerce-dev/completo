@@ -19,6 +19,7 @@ type card struct {
 	StatusID    string  `json:"statusId"`
 	ProjectID   string  `json:"projectId"`
 	AssigneeID  *string `json:"assigneeId"`
+	ParentID    *int    `json:"parentId"`
 	CreatedAt   string  `json:"createdAt"`
 	UpdatedAt   string  `json:"updatedAt"`
 	Status      *status `json:"status"`
@@ -34,10 +35,30 @@ type projectInfo struct {
 	Key string `json:"key"`
 }
 
+// subtaskRef is a card as the card detail names it from another card: its
+// parent, or one of its sub-tasks.
+type subtaskRef struct {
+	Ticket   string `json:"ticket"`
+	Title    string `json:"title"`
+	StatusID string `json:"statusId"`
+}
+
 type cardResponse struct {
 	card
-	Project  *projectInfo `json:"project"`
-	Statuses []status     `json:"statuses"`
+	Project      *projectInfo `json:"project"`
+	Statuses     []status     `json:"statuses"`
+	Parent       *subtaskRef  `json:"parent"`
+	SubtaskCards []subtaskRef `json:"subtaskCards"`
+}
+
+// statusName is the name of one of the card's project statuses, by id.
+func (c *cardResponse) statusName(id string) string {
+	for _, s := range c.Statuses {
+		if s.ID == id {
+			return s.Name
+		}
+	}
+	return ""
 }
 
 // resolveStatus finds the card's status from the statuses list returned by the API.
@@ -185,6 +206,17 @@ func formatCard(c *cardResponse) string {
 		{Key: "due", Value: dueDate},
 		{Key: "tags", Value: tags},
 		{Key: "attachments", Value: fmt.Sprintf("%d", c.AttachmentCount)},
+	}
+
+	if c.Parent != nil {
+		fields = append(fields, internal.Field{Key: "parent", Value: fmt.Sprintf("%s %s", c.Parent.Ticket, c.Parent.Title)})
+	}
+	if len(c.SubtaskCards) > 0 {
+		lines := make([]string, 0, len(c.SubtaskCards))
+		for _, s := range c.SubtaskCards {
+			lines = append(lines, fmt.Sprintf("%s [%s] %s", s.Ticket, c.statusName(s.StatusID), s.Title))
+		}
+		fields = append(fields, internal.Field{Key: "subtasks", Value: strings.Join(lines, "\n")})
 	}
 
 	desc := ""

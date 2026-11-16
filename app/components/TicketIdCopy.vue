@@ -30,9 +30,18 @@ const props = defineProps<{
 const showCopyButtons = computed(() => props.copyButtons ?? props.size !== 'xs')
 
 const variant = computed(() => props.variant || 'plain')
+/**
+ * `xs` is a chip of the board card's footer, in the same box as its neighbours
+ * (KanbanCard `CHIP`): 24px tall, 4px each side, a hover fill since a click
+ * copies. As bare inline text it measured identical to them and still read as
+ * sitting off their line, beside a row of boxes. `-ml-1` hands the padding back
+ * so the text stays on the card's content edge, under the title. `transition`
+ * rather than `transition-colors`, so a board that reveals the ID on hover
+ * fades it in like the card's other hover-only controls.
+ */
 const plainClass = computed(() => props.size === 'xs'
-  ? 'card-id text-2xs text-dimmed hover:text-toned'
-  : 'card-id text-muted hover:text-toned')
+  ? 'card-id text-2xs text-dimmed hover:text-toned h-6 px-1 -ml-1 rounded-md hover:bg-elevated transition'
+  : 'card-id text-muted hover:text-toned transition-colors')
 
 const { copiedState, copyUrl, copyId } = useCopyTicketId(
   () => props.projectSlug,
@@ -46,10 +55,10 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
 <template>
   <UTooltip :text="copiedState === 'url' ? 'Link copied!' : 'Copy link'">
     <span
-      class="group/copy relative inline-flex items-center select-none cursor-pointer transition-colors"
+      class="group/copy relative inline-flex items-center select-none cursor-pointer"
       :class="[
         variant === 'pill'
-          ? 'card-id font-mono text-xs font-semibold text-dimmed bg-elevated px-1.5 py-0.5 rounded-md hover:text-toned'
+          ? 'card-id font-mono text-xs font-semibold text-dimmed bg-elevated px-1.5 py-0.5 rounded-md hover:text-toned transition-colors'
           : plainClass,
         // The tooltip re-renders on state change, but a pointer already resting
         // on the element will not re-trigger it, so the copy is confirmed in

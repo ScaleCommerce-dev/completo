@@ -37,6 +37,8 @@ const props = defineProps<{
   activePriorityFilters?: string[]
   /** Board mode only — whether cards show a description excerpt. */
   hiddenCardFields?: string[]
+  /** Boards and lists: whether sub-tasks get cards (rows) of their own. */
+  showSubtasks?: boolean
   viewName?: string
   /**
    * Owned by the parent, because the parent is what does the deleting.
@@ -56,7 +58,7 @@ const emit = defineEmits<{
   'reorder': [columns: { id: string, position: number }[]]
   'link': [statusId: string]
   'update-filters': [filters: { tagFilters?: string[], statusFilters?: string[], assigneeFilters?: string[], priorityFilters?: string[] }]
-  'update-display': [display: { hiddenCardFields: string[] }]
+  'update-display': [display: { hiddenCardFields?: string[], showSubtasks?: boolean }]
   'rename': [name: string]
   'delete-view': []
 }>()
@@ -239,6 +241,7 @@ const localStatusFilters = ref<string[]>([])
 const localAssigneeFilters = ref<string[]>([])
 const localPriorityFilters = ref<string[]>([])
 const localHiddenFields = ref<string[]>([])
+const localShowSubtasks = ref(false)
 const editName = ref('')
 
 /** Order-insensitive: a set toggled off and on again is not a change to write. */
@@ -266,6 +269,7 @@ function resetToProps() {
   localAssigneeFilters.value = [...(props.activeAssigneeFilters || [])]
   localPriorityFilters.value = [...(props.activePriorityFilters || [])]
   localHiddenFields.value = [...(props.hiddenCardFields || [])]
+  localShowSubtasks.value = !!props.showSubtasks
   editName.value = props.viewName || ''
 }
 
@@ -302,9 +306,14 @@ function flushWrites() {
   const filters = changedFilters()
   if (Object.keys(filters).length) emit('update-filters', filters)
 
+  const display: { hiddenCardFields?: string[], showSubtasks?: boolean } = {}
   if (isBoard.value && !sameSet(localHiddenFields.value, props.hiddenCardFields)) {
-    emit('update-display', { hiddenCardFields: [...localHiddenFields.value] })
+    display.hiddenCardFields = [...localHiddenFields.value]
   }
+  if (isView.value && localShowSubtasks.value !== !!props.showSubtasks) {
+    display.showSubtasks = localShowSubtasks.value
+  }
+  if (Object.keys(display).length) emit('update-display', display)
 }
 
 function scheduleWrite() {
@@ -317,7 +326,7 @@ function scheduleWrite() {
 // their own toggles, tags and assignees are `v-model` on a USelectMenu. Watching
 // the state rather than wiring each control is what keeps those in step.
 watch(
-  [localTagFilters, localStatusFilters, localAssigneeFilters, localPriorityFilters, localHiddenFields],
+  [localTagFilters, localStatusFilters, localAssigneeFilters, localPriorityFilters, localHiddenFields, localShowSubtasks],
   scheduleWrite
 )
 
@@ -354,9 +363,10 @@ const activeFilterCount = computed(() =>
  * "Cards" either: what belongs here next is WIP limits and swimlanes, which are
  * properties of the board rather than of a card.
  *
- * Board-only for now. A list controls its description through the Description
- * field column, so there is nothing to put here for one, and an empty tab is
- * worse than an absent one.
+ * A list controls its description through the Description field column, so
+ * for a list this tab holds only the sub-task switch. My Tasks has no tab: it
+ * always shows sub-tasks, because one assigned to you must never vanish from
+ * your own list.
  */
 const tabItems = computed(() => [
   {
@@ -376,7 +386,7 @@ const tabItems = computed(() => [
         count: activeFilterCount.value
       }]
     : []),
-  ...(isBoard.value
+  ...(isView.value
     ? [{
         label: 'Display',
         value: 'display' as const,
@@ -834,17 +844,20 @@ const showDeleteConfirm = ref(false)
           </template>
 
           <template #display>
-            <div class="flex flex-col gap-2.5">
+            <div
+              v-if="isBoard"
+              class="flex flex-col gap-2.5"
+            >
               <UiSectionLabel
                 icon="i-lucide-square-menu"
                 label="Card shows"
               />
               <!--
-                A grid of labels rather than eight switches each with a sentence
+                A grid of labels rather than ten switches each with a sentence
                 under it: this is a picker for what a card displays, the board's
                 version of a list's Fields dialog, and at that length prose per
                 row is what turns a decision into a control panel. The one thing
-                worth saying applies to all eight, so it is said once below.
+                worth saying applies to all of them, so it is said once below.
 
                 Two columns, filled row-major from `CARD_FIELDS`, so the order in
                 that file is the order on screen.
@@ -861,6 +874,24 @@ const showDeleteConfirm = ref(false)
               <p class="text-xs text-muted ms-3">
                 Hiding a field only stops the card painting it. Every field is
                 still there to set when you hover the card.
+              </p>
+            </div>
+            <div
+              class="flex flex-col gap-2.5"
+              :class="isBoard ? 'mt-5' : ''"
+            >
+              <UiSectionLabel
+                icon="i-lucide-list-tree"
+                label="Sub-tasks"
+              />
+              <USwitch
+                v-model="localShowSubtasks"
+                :label="isBoard ? 'Show sub-tasks as cards' : 'Show sub-tasks as rows'"
+                class="ms-3"
+              />
+              <p class="text-xs text-muted ms-3">
+                When off, a parent shows how many of its sub-tasks are done, and
+                you open it to see them.
               </p>
             </div>
           </template>

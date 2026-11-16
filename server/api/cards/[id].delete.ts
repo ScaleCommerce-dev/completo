@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { card } = await resolveCard(event)
+  const { user, card } = await resolveCard(event)
 
   // Collect storage keys before cascade delete removes attachment rows
   const attachmentKeys = db.select({ storageKey: schema.attachments.storageKey })
@@ -10,9 +10,17 @@ export default defineEventHandler(async (event) => {
     .all()
     .map(a => a.storageKey)
 
-  db.delete(schema.cards).where(eq(schema.cards.id, card.id)).run()
+  // Its sub-tasks become ordinary cards through the foreign key (`set null`);
+  // record that on them, and on its parent, in the same transaction.
+  const children = subtasksOf(card.id)
+  db.transaction(() => {
+    recordCardRemoval(user, card)
+    db.delete(schema.cards).where(eq(schema.cards.id, card.id)).run()
+  })
 
   emitCardRemoved(card.id, card.projectId)
+  for (const child of children) emitCardChange(child.id, card.projectId)
+  if (card.parentId) emitCardChange(card.parentId, card.projectId)
 
   // Clean up files on disk (best effort)
   if (attachmentKeys.length > 0) {
