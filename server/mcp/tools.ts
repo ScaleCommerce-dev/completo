@@ -395,7 +395,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'create_card',
-    description: 'Create a card. Lands at the bottom of its status. Status defaults to the project\'s first status (usually Backlog); name the status when the user said where it goes. Tags that do not exist yet are created. Give parent to create it as a sub-task of a card in the same project; sub-tasks have one level.',
+    description: 'Create a card. Lands at the bottom of its status. Status defaults to the project\'s first status that is not Done (usually Backlog); name the status when the user said where it goes. Tags that do not exist yet are created. Give parent to create it as a sub-task of a card in the same project; sub-tasks have one level.',
     inputSchema: schema({
       project: PROJECT_REF,
       title: { type: 'string' },
@@ -410,11 +410,11 @@ const TOOLS: Tool[] = [
     run: async (ctx, args) => {
       const project = await loadProject(ctx, need(args, 'project'))
       const statusRef = str(args, 'status')
-      const status = statusRef ? byName('status', project.statuses, statusRef) : project.statuses[0]
-      if (!status) throw new ToolError('Project has no statuses')
+      // Unnamed, the handler picks (`defaultStatusId`): `statuses` has no order to take a first from.
+      const status = statusRef ? byName('status', project.statuses, statusRef) : undefined
       const body: JsonObject = {
         title: need(args, 'title'),
-        statusId: status.id,
+        statusId: status?.id,
         description: str(args, 'description'),
         priority: priorityArg(args),
         dueDate: str(args, 'dueDate')

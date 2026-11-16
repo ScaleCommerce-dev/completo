@@ -1,4 +1,4 @@
-import type { Member, PersonRef } from '~/types/card'
+import type { Member, PersonRef, SubtaskProgress } from '~/types/card'
 
 interface MyTasksGroup {
   project: {
@@ -27,6 +27,8 @@ interface MyTasksGroup {
     status: { id: string, name: string, color: string | null } | null
     tags: Array<{ id: string, name: string, color: string }>
     dueDate: string | null
+    parentId: number | null
+    subtasks: SubtaskProgress | null
     // Returned by the endpoint since it started sharing `fetchCardMetadata` and
     // `fetchCardCreators` with the project views, and undeclared here until the
     // card panel needed them — the table only ever read the fields above. An
@@ -160,6 +162,9 @@ export function useMyTasks() {
       // No `tags`/`attachmentCount` on the response, so assigning it over the
       // row leaves those intact rather than blanking them.
       if (found && card && isLatest()) Object.assign(found.card, card)
+      if ('statusId' in updates || 'parentId' in updates) {
+        void refreshProgress([snapshot?.parentId, card?.parentId as number | null | undefined])
+      }
 
       // This view *is* "cards assigned to me" (see my-tasks.get.ts), so handing
       // one to somebody else removes it. The refetch used to do that as a side
@@ -171,6 +176,26 @@ export function useMyTasks() {
     } catch (e) {
       if (found && snapshot && isLatest()) Object.assign(found.card, snapshot)
       toast.add({ title: 'Failed to update card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+    }
+  }
+
+  /**
+   * Re-read the progress of the parents a change touched, where they are rows here.
+   * A project view learns this from its event stream (the server emits the parent
+   * on a sub-task's status or parent change); My Tasks has none, so ticking a
+   * sub-task done left its parent counting it open, with its Done control disabled
+   * until a reload. Progress is the server's (`subtaskProgress`), not recounted here.
+   */
+  async function refreshProgress(parentIds: Array<number | null | undefined>) {
+    for (const id of new Set(parentIds.filter((x): x is number => x != null))) {
+      if (!findCard(id)) continue
+      try {
+        const { subtasks } = await $fetch<{ subtasks: SubtaskProgress | null }>(`/api/cards/${id}`)
+        const parent = findCard(id)
+        if (parent) parent.card.subtasks = subtasks
+      } catch {
+        // The row keeps its old count; the server still guards the move.
+      }
     }
   }
 

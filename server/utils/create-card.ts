@@ -1,11 +1,12 @@
-import { eq, and } from 'drizzle-orm'
+import { eq, and, asc, sql } from 'drizzle-orm'
 
 interface CreateCardParams {
   projectId: string
   userId: string
   userName: string
   body: {
-    statusId: string
+    /** Defaults to `defaultStatusId(projectId)`. */
+    statusId?: string
     title: string
     description?: string
     priority?: 'low' | 'medium' | 'high' | 'urgent'
@@ -24,12 +25,35 @@ interface CreateCardParams {
   tags?: Array<{ id: string, name: string }>
 }
 
+/**
+ * Where a card lands when nobody named a status: the project's oldest status that is
+ * not its Done status, or Done when that is all there is. Statuses have no position,
+ * so creation order is the only order a project has; picking "the first row" of an
+ * unordered query instead started sub-tasks and template copies in Done whenever
+ * Done was the oldest surviving status, and the parent then counted them finished.
+ */
+export function defaultStatusId(projectId: string): string | undefined {
+  const project = db.select({ doneStatusId: schema.projects.doneStatusId }).from(schema.projects)
+    .where(eq(schema.projects.id, projectId))
+    .get()
+  const ids = db.select({ id: schema.statuses.id }).from(schema.statuses)
+    .where(eq(schema.statuses.projectId, projectId))
+    .orderBy(asc(sql`rowid`))
+    .all()
+    .map(r => r.id)
+  return ids.find(id => id !== project?.doneStatusId) ?? ids[0]
+}
+
 export function createCard({ projectId, userId, userName, body, tags = [] }: CreateCardParams) {
-  const { statusId, title, description, priority, assigneeId, dueDate } = body
+  const { title, description, priority, assigneeId, dueDate } = body
   const parentId = body.parentId == null ? null : requireParent({ projectId, parentId: body.parentId }).id
 
-  if (!statusId || !title) {
-    throw createError({ statusCode: 400, message: 'Status ID and title are required' })
+  if (!title) {
+    throw createError({ statusCode: 400, message: 'Title is required' })
+  }
+  const statusId = body.statusId || defaultStatusId(projectId)
+  if (!statusId) {
+    throw createError({ statusCode: 400, message: 'Project has no statuses' })
   }
 
   // Validate statusId belongs to this project

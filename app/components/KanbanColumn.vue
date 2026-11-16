@@ -75,9 +75,12 @@ const toast = useToast()
 const kanban = inject<{ projectKey: ComputedRef<string | undefined> }>('kanbanContext')!
 let refusedDrop: { card: BoardCard, column: string } | null = null
 
-function allowMove(evt: { draggedContext: { element: BoardCard }, to: HTMLElement }) {
+// The rule guards *entering* Done (`server/utils/subtasks.ts`), so a parent already in
+// Done may still be reordered there: a drag that starts in the same column changes no status.
+function allowMove(evt: { draggedContext: { element: BoardCard }, from: HTMLElement, to: HTMLElement }) {
   const done = evt.to.closest<HTMLElement>('[data-done-column]')
-  if (done && openSubtaskCount(evt.draggedContext.element) > 0) {
+  const within = done && evt.from.closest('[data-done-column]') === done
+  if (done && !within && openSubtaskCount(evt.draggedContext.element) > 0) {
     refusedDrop = { card: evt.draggedContext.element, column: done.dataset.doneColumn || 'Done' }
     return false
   }

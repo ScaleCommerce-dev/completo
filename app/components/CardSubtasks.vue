@@ -17,7 +17,7 @@ const props = defineProps<{
   cardId: number
   projectId: string
   subtasks: SubtaskRow[]
-  /** The project's statuses in project order; the first is where a new one starts. */
+  /** The project's statuses, to name each sub-task's. */
   statuses: CardStatus[]
   doneStatusId?: string | null
 }>()
@@ -47,8 +47,7 @@ function cancelComposing() {
 
 async function commitDraft(keepOpen = true) {
   const title = draft.value.trim()
-  const statusId = props.statuses[0]?.id
-  if (!title || !statusId) {
+  if (!title) {
     if (!keepOpen) composing.value = false
     return
   }
@@ -57,7 +56,8 @@ async function commitDraft(keepOpen = true) {
   try {
     await $fetch(`/api/projects/${props.projectId}/cards`, {
       method: 'POST',
-      body: { statusId, title, parentId: props.cardId }
+      // No status: the server starts it in the project's first status that is not Done.
+      body: { title, parentId: props.cardId }
     })
     draft.value = ''
     emit('created')

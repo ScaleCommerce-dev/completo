@@ -53,14 +53,26 @@ describe('POST /api/projects/:id/cards', async () => {
     expect(card.priority).toBe('medium')
   })
 
-  it('rejects missing required fields', async () => {
+  it('rejects a card without a title', async () => {
     const project = await createTestProject(user, { name: `Card Validate ${Date.now()}` })
 
     await expectError($fetch(`/api/projects/${project.id}/cards`, {
       method: 'POST',
-      body: { title: 'No Status' },
+      body: { title: '' },
       headers: user.headers
     }), 400)
+  })
+
+  it('starts a card without a status in the project\'s first status that is not Done', async () => {
+    const project = await createTestProject(user, { name: `Card Default Status ${Date.now()}` })
+    const detail = await $fetch<{ statuses: Array<{ id: string }>, doneStatusId: string }>(`/api/projects/${project.id}`, { headers: user.headers })
+
+    const card = await $fetch<{ statusId: string }>(`/api/projects/${project.id}/cards`, {
+      method: 'POST',
+      body: { title: 'No Status' },
+      headers: user.headers
+    })
+    expect(card.statusId).toBe(detail.statuses.find(s => s.id !== detail.doneStatusId)!.id)
   })
 
   it('sets createdById to the current user', async () => {

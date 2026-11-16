@@ -6986,13 +6986,13 @@
       "CardInput": {
         "type": "object",
         "required": [
-          "statusId",
           "title"
         ],
         "properties": {
           "statusId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "Defaults to the project's oldest status that is not its Done status."
           },
           "title": {
             "type": "string"

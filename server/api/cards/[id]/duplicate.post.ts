@@ -107,25 +107,22 @@ export default defineEventHandler(async (event) => {
     tags: tagIds.map(id => projectTags.get(id)!)
   })
 
-  // The project's first status, not the board column the copy went to: where a
-  // sub-task added by hand starts (CardSubtasks takes `statuses[0]` of the list
-  // the API hands out, which is this query unordered).
+  // Where a sub-task added by hand starts (`defaultStatusId`), not the board column
+  // the copy went to.
   const subtasks = db.select({ title: schema.cards.title, description: schema.cards.description })
     .from(schema.cards)
     .where(and(eq(schema.cards.parentId, source.id), eq(schema.cards.projectId, source.projectId)))
     .orderBy(asc(schema.cards.id))
     .all()
   if (subtasks.length) {
-    const firstStatus = db.select({ id: schema.statuses.id }).from(schema.statuses)
-      .where(eq(schema.statuses.projectId, targetProjectId))
-      .get()!
+    const firstStatusId = defaultStatusId(targetProjectId)!
     for (const sub of subtasks) {
       createCard({
         projectId: targetProjectId,
         userId: user.id,
         userName: user.name,
         body: {
-          statusId: firstStatus.id,
+          statusId: firstStatusId,
           title: sub.title,
           description: resetTaskList(sub.description) || undefined,
           parentId: copy.id

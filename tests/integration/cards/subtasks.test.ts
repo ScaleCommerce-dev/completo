@@ -138,6 +138,27 @@ describe('sub-tasks', () => {
     expect((await getCard(user, parent.id)).subtasks).toEqual({ total: 2, done: 0 })
   })
 
+  it('starts a sub-task outside Done when no status is named, even where Done is the oldest status', async () => {
+    // Statuses have no position, and both the panel and a template copy took "the first
+    // row": in a project whose oldest surviving status was Done, every new sub-task was
+    // born finished and its parent counted it done.
+    const { project, done } = await setup(user)
+    const { statuses } = await $fetch<{ statuses: Status[] }>(`/api/projects/${project.id}`, { headers: user.headers })
+    for (const s of statuses.filter(s => s.id !== done)) {
+      await $fetch(`/api/statuses/${s.id}`, { method: 'DELETE', headers: user.headers })
+    }
+    const todo = await $fetch<{ id: string }>(`/api/projects/${project.id}/statuses`, { method: 'POST', body: { name: 'To Do' }, headers: user.headers })
+
+    const parent = await createTestCard(user, project.id, todo.id)
+    const sub = await $fetch<{ id: number, statusId: string }>(`/api/projects/${project.id}/cards`, { method: 'POST', body: { title: 'Sub', parentId: parent.id }, headers: user.headers })
+    expect(sub.statusId).toBe(todo.id)
+
+    const board = await createTestBoard(user, project.id)
+    const copy = await $fetch<{ id: number }>(`/api/cards/${parent.id}/duplicate`, { method: 'POST', body: { title: 'Copy', boardId: board.id }, headers: user.headers })
+    const copied = await getCard(user, copy.id)
+    expect(copied.subtasks).toEqual({ total: 1, done: 0 })
+  })
+
   it('turns sub-tasks into ordinary cards when their parent is deleted', async () => {
     const { project, open } = await setup(user)
     const parent = await createTestCard(user, project.id, open)
