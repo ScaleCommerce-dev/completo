@@ -20,7 +20,7 @@ export function usePasswordChange() {
     passwordError.value = ''
     passwordSuccess.value = false
     try {
-      const result = await $fetch<{ revokedTokens: number, revokedGrants: number }>('/api/user/password', {
+      const result = await $fetch<{ revokedTokens: number, revokedGrants: number, revokedAgentTokens: number }>('/api/user/password', {
         method: 'PUT',
         body: { currentPassword: currentPassword.value, newPassword: newPassword.value }
       })
@@ -28,10 +28,11 @@ export function usePasswordChange() {
       // or a CI pipeline breaking an hour later is a mystery.
       const revoked = [
         result.revokedTokens ? plural(result.revokedTokens, 'API token') : '',
-        result.revokedGrants ? plural(result.revokedGrants, 'connected app') : ''
+        result.revokedGrants ? plural(result.revokedGrants, 'connected app') : '',
+        result.revokedAgentTokens ? plural(result.revokedAgentTokens, 'agent token') : ''
       ].filter(Boolean)
       if (revoked.length) {
-        useToast().add({ title: 'Password changed', description: `${revoked.join(' and ')} revoked. Create new ones where you still need them.`, color: 'info' })
+        useToast().add({ title: 'Password changed', description: `${new Intl.ListFormat('en', { type: 'conjunction' }).format(revoked)} revoked. Create new ones where you still need them.`, color: 'info' })
       }
       currentPassword.value = ''
       newPassword.value = ''

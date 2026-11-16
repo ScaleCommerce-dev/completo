@@ -115,6 +115,51 @@ describe('OAuth for MCP', () => {
     expect((await register({ redirect_uris: ['http://localhost:9000/cb'] })).status).toBe(201)
   })
 
+  it('limits what an anonymous registration may store', async () => {
+    // Registration is open to anyone, and had no limit: each POST could store megabytes.
+    const many = Array.from({ length: 11 }, (_, i) => `https://client.example/cb${i}`)
+    expect((await register({ redirect_uris: many })).status).toBe(400)
+    expect((await register({ redirect_uris: [`https://client.example/${'a'.repeat(2100)}`] })).status).toBe(400)
+
+    const huge = await fetch(url('/oauth/register'), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ client_name: 'x', redirect_uris: [REDIRECT], padding: 'a'.repeat(20 * 1024) })
+    })
+    expect(huge.status).toBe(413)
+  })
+
+  it('prunes old registrations nobody consented to, and keeps the ones in use', async () => {
+    // Unknown client: 401 invalid_client. Known client, bad refresh token: 400 invalid_grant.
+    const known = async (clientId: string) =>
+      (await token({ grant_type: 'refresh_token', client_id: clientId, refresh_token: 'dzor_nope' })).status !== 401
+
+    const { body: unused } = await register()
+    const { body: pending } = await register()
+    const { challenge } = pkce()
+    await consent(user, { client_id: pending.client_id as string, redirect_uri: REDIRECT, code_challenge: challenge, state: 's' })
+    const { client: granted } = await signIn(user)
+    for (const c of [unused, pending, granted]) {
+      await $fetch('/api/_test/set-oauth-client-created-at', { method: 'POST', body: { clientId: c.client_id, daysAgo: 8 } })
+    }
+
+    expect((await register()).status).toBe(201)
+    expect(await known(unused.client_id as string)).toBe(false)
+    expect(await known(pending.client_id as string)).toBe(true)
+    expect(await known(granted.client_id as string)).toBe(true)
+  })
+
+  it('tells the consent page where the code goes, apart from the name the client chose', async () => {
+    // Anyone can register as "Claude"; the redirect host is what the page leads with.
+    const { body: client } = await register({ client_name: 'Claude', redirect_uris: ['https://evil.example/cb'] })
+    const { challenge } = pkce()
+    const info = await $fetch<Record<string, unknown>>('/api/oauth/authorize', {
+      query: { response_type: 'code', client_id: client.client_id as string, redirect_uri: 'https://evil.example/cb', code_challenge: challenge, code_challenge_method: 'S256', state: 's' },
+      headers: user.headers
+    })
+    expect(info).toMatchObject({ clientName: 'Claude', redirectHost: 'evil.example', clientHost: null })
+  })
+
   it('shows the consent page only to a signed-in user, for a registered redirect', async () => {
     const { body: client } = await register()
     const { challenge } = pkce()

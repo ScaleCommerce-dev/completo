@@ -220,6 +220,20 @@ export function suspendAgents(agentIds: string[]): number {
 }
 
 /**
+ * Revoke the tokens and grants of every agent `managerId` manages, returning how
+ * many API tokens went. For a password change or reset: whoever held the account
+ * could mint a token for one of these agents, and that token kept acting in their
+ * projects after the owner took the account back. The agents themselves stay.
+ */
+export function revokeManagedAgentCredentials(managerId: string): number {
+  const ids = db.select({ id: schema.users.id }).from(schema.users)
+    .where(and(eq(schema.users.kind, 'agent'), eq(schema.users.managedById, managerId)))
+    .all()
+    .map(r => r.id)
+  return revokeAgentCredentials(ids)
+}
+
+/**
  * Delete every credential the given agents hold, returning how many API tokens
  * went. Call inside the caller's transaction. Shared by suspension and transfer:
  * a token is held by whoever minted it, so a credential that outlives a change of

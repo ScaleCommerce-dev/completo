@@ -30,7 +30,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { lookup } from 'node:dns/promises'
 import { BlockList } from 'node:net'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 import { BoundedCache, fetchJsonBounded } from './bounded-fetch'
 
@@ -148,15 +148,44 @@ export function isAcceptableRedirectUri(uri: string): boolean {
   return u.protocol === 'http:' && isLoopback(u.hostname)
 }
 
+/**
+ * How many redirect URIs a client may have, and how long each may be, whether it
+ * registers or names a metadata document. Both are anonymous; a real client has one
+ * or two short ones. Registration had no limit, so each anonymous POST could store
+ * megabytes.
+ */
+const CLIENT_MAX_REDIRECT_URIS = 10
+const CLIENT_MAX_URI_LENGTH = 2048
+
+/**
+ * A registered client nobody completed a consent for is pruned after this long. A
+ * client that registers and never comes back leaves a row behind, and registration
+ * is open to anyone; a client that does come back later simply registers again.
+ */
+const UNUSED_CLIENT_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+/** Delete registrations older than `UNUSED_CLIENT_TTL_MS` that no grant or pending code names. */
+function pruneUnusedClients() {
+  const cutoff = Math.floor((Date.now() - UNUSED_CLIENT_TTL_MS) / 1000)
+  db.run(sql`DELETE FROM ${schema.oauthClients}
+    WHERE ${schema.oauthClients.createdAt} < ${cutoff}
+      AND ${schema.oauthClients.id} NOT IN (SELECT ${schema.oauthGrants.clientId} FROM ${schema.oauthGrants})
+      AND ${schema.oauthClients.id} NOT IN (SELECT ${schema.oauthCodes.clientId} FROM ${schema.oauthCodes})`)
+}
+
 export function registerClient(input: {
   name?: unknown
   redirectUris?: unknown
   authMethod?: unknown
 }): { client: OAuthClient, secret: string | null } {
   const uris = Array.isArray(input.redirectUris) ? input.redirectUris : []
-  if (!uris.length || !uris.every(u => typeof u === 'string' && isAcceptableRedirectUri(u))) {
-    throw new OAuthError('invalid_redirect_uri', 'redirect_uris must be https URLs, or http on localhost, without a fragment')
+  if (uris.length > CLIENT_MAX_REDIRECT_URIS) {
+    throw new OAuthError('invalid_redirect_uri', `At most ${CLIENT_MAX_REDIRECT_URIS} redirect_uris`)
   }
+  if (!uris.length || !uris.every(u => typeof u === 'string' && u.length <= CLIENT_MAX_URI_LENGTH && isAcceptableRedirectUri(u))) {
+    throw new OAuthError('invalid_redirect_uri', `redirect_uris must be https URLs, or http on localhost, without a fragment, of at most ${CLIENT_MAX_URI_LENGTH} characters`)
+  }
+  pruneUnusedClients()
   const method = input.authMethod === undefined ? 'none' : input.authMethod
   if (!AUTH_METHODS.includes(method as AuthMethod)) {
     throw new OAuthError('invalid_client_metadata', `token_endpoint_auth_method must be one of ${AUTH_METHODS.join(', ')}`)
@@ -188,8 +217,6 @@ export function registerClient(input: {
  */
 const METADATA_MAX_BYTES = 32 * 1024
 const METADATA_TIMEOUT_MS = 5000
-const METADATA_MAX_REDIRECT_URIS = 10
-const METADATA_MAX_URI_LENGTH = 2048
 const METADATA_CACHE_ENTRIES = 500
 const METADATA_TTL_MS = 60 * 60 * 1000
 
@@ -231,11 +258,11 @@ async function fetchMetadataClient(clientId: string): Promise<OAuthClient> {
   if (!doc || typeof doc !== 'object' || doc.client_id !== clientId || !Array.isArray(doc.redirect_uris)) {
     throw new OAuthError('invalid_client', 'Client metadata document is missing or does not name itself', 401, false)
   }
-  if (doc.redirect_uris.length > METADATA_MAX_REDIRECT_URIS) {
-    throw new OAuthError('invalid_client', `Client metadata document lists more than ${METADATA_MAX_REDIRECT_URIS} redirect_uris`, 401, false)
+  if (doc.redirect_uris.length > CLIENT_MAX_REDIRECT_URIS) {
+    throw new OAuthError('invalid_client', `Client metadata document lists more than ${CLIENT_MAX_REDIRECT_URIS} redirect_uris`, 401, false)
   }
   const redirectUris = doc.redirect_uris.filter((r): r is string =>
-    typeof r === 'string' && r.length <= METADATA_MAX_URI_LENGTH && isAcceptableRedirectUri(r))
+    typeof r === 'string' && r.length <= CLIENT_MAX_URI_LENGTH && isAcceptableRedirectUri(r))
   if (!redirectUris.length) {
     throw new OAuthError('invalid_client', 'Client metadata document has no acceptable redirect_uris', 401, false)
   }

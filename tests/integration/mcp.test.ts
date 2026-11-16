@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import { url } from '../setup/server'
+import { url, $fetch } from '../setup/server'
 import { registerTestUser, createTestToken, type TestUser } from '../setup/auth'
 import { createTestProject, createTestBoard, createTestCard, createTestComment, createInvitation, getBoard } from '../setup/fixtures'
 
@@ -266,6 +266,44 @@ describe('POST /mcp', () => {
       expect(res.isError).toBe(true)
       expect(res.content[0]!.text).toContain('Unknown status "Doing"')
       expect(res.content[0]!.text).toContain('"In Progress"')
+    })
+
+    it('creates no card when a tag the caller may not create is named', async () => {
+      // Creating a tag is owner-only. The card used to be made first, and the error
+      // after it read as "nothing happened", so a retry made a second card.
+      const member = await registerTestUser()
+      await $fetch(`/api/projects/${project.id}/members`, { method: 'POST', body: { email: member.email }, headers: user.headers })
+      const memberHeaders = (await createTestToken(member)).headers
+      const title = `Tagged by a member ${Date.now()}`
+      const res = await call(memberHeaders, 'create_card', { project: project.slug, title, tags: ['Brand new tag'] })
+      expect(res.isError).toBe(true)
+      const found = await call(headers, 'list_cards', { project: project.slug, limit: 200 })
+      expect(found.data.filter((c: { title: string }) => c.title === title)).toEqual([])
+
+      // An existing tag, named with stray spaces, is found rather than duplicated.
+      const ok = await call(memberHeaders, 'create_card', { project: project.slug, title, tags: ['  Bug '] })
+      expect(ok.isError).toBe(false)
+      expect(ok.data.tags).toEqual(['Bug'])
+    })
+
+    it('refuses a ticket whose project key does not match the card, instead of writing to it', async () => {
+      // Card numbers are global, so "XY-42" used to mean card 42 of any project.
+      const card = await call(headers, 'create_card', { project: project.slug, title: 'Right card' })
+      const wrong = card.data.ticket.replace(/^[A-Z]+-/, 'ZZZ-')
+      for (const [tool, args] of [
+        ['update_card', { card: wrong, title: 'Hijacked' }],
+        ['add_comment', { card: wrong, body: 'Wrong place' }],
+        ['list_comments', { card: wrong }]
+      ] as const) {
+        const res = await call(headers, tool, args)
+        expect(res.isError, tool).toBe(true)
+        expect(res.content[0]!.text, tool).toContain(card.data.ticket)
+      }
+      const after = await call(headers, 'get_card', { card: card.data.ticket })
+      expect(after.data.title).toBe('Right card')
+      expect(after.data.comments).toEqual([])
+      // The bare number and the right key still work.
+      expect((await call(headers, 'get_card', { card: String(card.data.ticket).split('-')[1] })).isError).toBe(false)
     })
 
     it('hides another member\'s project behind not-found', async () => {

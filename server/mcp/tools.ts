@@ -167,8 +167,22 @@ async function loadProject(ctx: ToolContext, ref: string): Promise<ApiProject> {
   }
 }
 
+/**
+ * The card a ref names, checked against the project key it was given with.
+ *
+ * Card numbers are global, so `cardNumber` alone turned "AB-42" into card 42 of
+ * whatever project it belongs to: a mistyped or invented key wrote to another
+ * project's card, and the output named the real ticket only after the write.
+ */
 async function loadCard(ctx: ToolContext, ref: unknown): Promise<ApiCardDetail> {
-  return ctx.get<ApiCardDetail>(`/api/cards/${cardNumber(ref)}`)
+  const card = await ctx.get<ApiCardDetail>(`/api/cards/${cardNumber(ref)}`)
+  const s = String(ref ?? '').trim()
+  const key = s.includes('-') ? s.slice(0, s.lastIndexOf('-')).toUpperCase() : null
+  const actual = card.project?.key?.toUpperCase()
+  if (key && actual && key !== actual) {
+    throw new ToolError(`${s} does not exist: card ${card.id} is ${actual}-${card.id}. Check the ticket id.`)
+  }
+  return card
 }
 
 function cardUrl(ctx: ToolContext, slug: string, ticket: string) {
@@ -394,7 +408,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'create_card',
-    description: 'Create a card. Lands at the bottom of its status. Status defaults to the project\'s first status that is not Done (usually Backlog); name the status when the user said where it goes. Tags that do not exist yet are created. Give parent to create it as a sub-task of a card in the same project; sub-tasks have one level.',
+    description: 'Create a card. Lands at the bottom of its status. Status defaults to the project\'s first status that is not Done (usually Backlog); name the status when the user said where it goes. Tags that do not exist yet are created if the caller owns the project; otherwise name existing tags (see get_project). Give parent to create it as a sub-task of a card in the same project; sub-tasks have one level.',
     inputSchema: schema({
       project: PROJECT_REF,
       title: { type: 'string' },
@@ -425,9 +439,13 @@ const TOOLS: Tool[] = [
         const members = await ctx.get<ApiMember[]>(`/api/projects/${project.id}/members`)
         body.assigneeId = await resolveAssignee(ctx, members, assignee)
       }
+      // Tags before the card: a tag this caller may not create fails here, while
+      // nothing exists yet. Resolved after it, the card was made and the call still
+      // answered with an error, so a model retried and made a second card.
+      const tagNames = Array.isArray(args.tags) ? args.tags.map(String) : []
+      const tagIds = tagNames.length ? await resolveTagIds(ctx, project, tagNames) : []
       const created = await ctx.send<ApiCard>('POST', `/api/projects/${project.id}/cards`, body)
-      const tags = Array.isArray(args.tags) ? args.tags.map(String).filter(Boolean) : []
-      if (tags.length) await applyTags(ctx, project, created.id, [], tags, [])
+      if (tagIds.length) await ctx.send('PUT', `/api/cards/${created.id}/tags`, { tagIds })
       const card = await loadCard(ctx, created.id)
       return cardView(ctx, card, project, card.statuses)
     }
@@ -508,7 +526,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'tag_card',
-    description: 'Add or remove tags on a card by name. A tag that does not exist in the project yet is created on add. Removing a tag the card does not carry is not an error.',
+    description: 'Add or remove tags on a card by name. A tag that does not exist in the project yet is created on add, if the caller owns the project. Removing a tag the card does not carry is not an error.',
     inputSchema: schema({
       card: CARD_REF,
       add: { type: 'array', items: { type: 'string' } },
@@ -532,7 +550,8 @@ const TOOLS: Tool[] = [
     inputSchema: schema({ card: CARD_REF }, ['card']),
     annotations: { readOnlyHint: true },
     run: async (ctx, args) => {
-      const comments = await ctx.get<ApiComment[]>(`/api/cards/${cardNumber(need(args, 'card'))}/comments`)
+      const card = await loadCard(ctx, need(args, 'card'))
+      const comments = await ctx.get<ApiComment[]>(`/api/cards/${card.id}/comments`)
       return comments.map(commentView)
     }
   },
@@ -541,7 +560,8 @@ const TOOLS: Tool[] = [
     description: 'Post a comment on a card as the caller. Markdown. @Name mentions notify that member.',
     inputSchema: schema({ card: CARD_REF, body: { type: 'string' } }, ['card', 'body']),
     run: async (ctx, args) => {
-      const comment = await ctx.send<ApiComment>('POST', `/api/cards/${cardNumber(need(args, 'card'))}/comments`, { body: need(args, 'body') })
+      const card = await loadCard(ctx, need(args, 'card'))
+      const comment = await ctx.send<ApiComment>('POST', `/api/cards/${card.id}/comments`, { body: need(args, 'body') })
       return { author: comment.authorName, body: comment.body, createdAt: comment.createdAt }
     }
   },
@@ -578,6 +598,29 @@ const TOOLS: Tool[] = [
 ]
 
 /** Set a card's tags from names, creating the ones the project lacks. */
+/**
+ * The ids for tag names in `project`, creating the ones that do not exist yet.
+ * Names are trimmed first, as the tag schema stores them: an untrimmed " Bug "
+ * matched nothing and created a second "Bug". Creating a tag is owner-only, so for
+ * anyone else a missing name fails here; callers resolve before they write, so
+ * that failure leaves nothing half-made behind.
+ */
+async function resolveTagIds(ctx: ToolContext, project: { id: string, tags: ApiTag[] }, names: string[]): Promise<string[]> {
+  const tags = [...project.tags]
+  const ids: string[] = []
+  for (const raw of names) {
+    const name = raw.trim()
+    if (!name) continue
+    let tag = tags.find(t => t.name === name) ?? tags.find(t => t.name.toLowerCase() === name.toLowerCase())
+    if (!tag) {
+      tag = await ctx.send<ApiTag>('POST', `/api/projects/${project.id}/tags`, { name })
+      tags.push(tag)
+    }
+    ids.push(tag.id)
+  }
+  return ids
+}
+
 async function applyTags(
   ctx: ToolContext,
   project: { id: string, tags: ApiTag[] },
@@ -586,18 +629,11 @@ async function applyTags(
   add: string[],
   remove: string[]
 ) {
-  const tags = [...project.tags]
   const ids = new Set(currentIds)
-  for (const name of add) {
-    let tag = tags.find(t => t.name === name) ?? tags.find(t => t.name.toLowerCase() === name.toLowerCase())
-    if (!tag) {
-      tag = await ctx.send<ApiTag>('POST', `/api/projects/${project.id}/tags`, { name })
-      tags.push(tag)
-    }
-    ids.add(tag.id)
-  }
-  for (const name of remove) {
-    const tag = tags.find(t => t.name === name) ?? tags.find(t => t.name.toLowerCase() === name.toLowerCase())
+  for (const id of await resolveTagIds(ctx, project, add)) ids.add(id)
+  for (const raw of remove) {
+    const name = raw.trim()
+    const tag = project.tags.find(t => t.name === name) ?? project.tags.find(t => t.name.toLowerCase() === name.toLowerCase())
     if (tag) ids.delete(tag.id)
   }
   await ctx.send('PUT', `/api/cards/${cardId}/tags`, { tagIds: [...ids] })

@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { resetPasswordSchema } from '#shared/schemas/auth'
 
 export default defineEventHandler(async (event) => {
@@ -36,12 +36,7 @@ export default defineEventHandler(async (event) => {
   // projects and history; their manager generates new tokens for the ones they know.
   db.delete(schema.apiTokens).where(eq(schema.apiTokens.userId, user.id)).run()
   db.delete(schema.oauthGrants).where(eq(schema.oauthGrants.userId, user.id)).run()
-  const managedAgents = db.select({ id: schema.users.id }).from(schema.users)
-    .where(and(eq(schema.users.kind, 'agent'), eq(schema.users.managedById, user.id)))
-  const revokedAgentTokens = db.delete(schema.apiTokens)
-    .where(inArray(schema.apiTokens.userId, managedAgents))
-    .returning({ id: schema.apiTokens.id })
-    .all().length
+  const revokedAgentTokens = revokeManagedAgentCredentials(user.id)
 
   // Every other sign-in ends, including one a past holder of the password still has
   // open; the person resetting is signed in fresh.

@@ -14,7 +14,15 @@ definePageMeta({ layout: 'auth' })
 const route = useRoute()
 const { user } = useUserSession()
 
-const info = ref<{ clientName: string, redirectHost: string } | null>(null)
+const info = ref<{ clientName: string, redirectHost: string, clientHost: string | null } | null>(null)
+
+/**
+ * What the page is named by: the host the code is sent to. The client's name is
+ * whatever it registered, so anyone can call themselves "Claude"; anyone who
+ * gets the code has the account, and the redirect host is where it goes. The
+ * name is shown, in quotes, as the app's own claim.
+ */
+const destination = computed(() => info.value?.redirectHost ?? '')
 const error = ref('')
 const loading = ref(true)
 const submitting = ref<'allow' | 'deny' | null>(null)
@@ -57,7 +65,7 @@ async function decide(decision: 'allow' | 'deny') {
   <div class="auth-glass">
     <div class="pt-7 pb-2">
       <h2 class="auth-title">
-        {{ info ? `Connect ${info.clientName}` : 'Connect an app' }}
+        {{ info ? `Connect ${destination}` : 'Connect an app' }}
       </h2>
     </div>
 
@@ -75,8 +83,8 @@ async function decide(decision: 'allow' | 'deny') {
 
       <template v-else-if="info">
         <p class="text-sm text-muted leading-relaxed">
-          <span class="font-medium text-default">{{ info.clientName }}</span>
-          wants to use Completo as you. It will be able to read and change every project you belong to, exactly as you can, until you disconnect it on your profile page.
+          An app at <span class="font-medium text-default">{{ destination }}</span>, which calls itself
+          <span class="font-medium text-default">"{{ info.clientName }}"</span>, wants to use Completo as you. It will be able to read and change every project you belong to, exactly as you can, until you disconnect it on your profile page.
         </p>
 
         <div class="flex items-center gap-3 rounded-lg border border-default bg-default px-3 py-2.5">
@@ -101,9 +109,21 @@ async function decide(decision: 'allow' | 'deny') {
           </NuxtLink>
         </div>
 
-        <p class="text-xs text-dimmed">
-          You will be sent back to {{ info.redirectHost }}.
-        </p>
+        <div class="flex items-start gap-2 rounded-lg border border-default bg-muted px-3 py-2.5 text-sm text-default">
+          <UIcon
+            name="i-lucide-globe"
+            class="text-base text-dimmed shrink-0 mt-0.5"
+          />
+          <p class="min-w-0">
+            Allow sends you, and access to your account, to
+            <span class="font-mono font-medium break-all">{{ info.redirectHost }}</span>.
+            <span
+              v-if="info.clientHost && info.clientHost !== info.redirectHost"
+              class="block text-muted"
+            >The app describes itself at <span class="font-mono break-all">{{ info.clientHost }}</span>.</span>
+            <span class="block text-muted">Only allow it if you recognise this address. The name above is the app's own claim.</span>
+          </p>
+        </div>
 
         <div class="flex items-center gap-2">
           <UButton
