@@ -335,9 +335,9 @@ async function confirmCreate() {
 }
 
 /** Absolute date for the `title` attribute — the cell itself shows "5mo ago". */
-function formatDate(date: string | Date | null) {
+function lastSeenTitle(date: string | Date | null) {
   if (!date) return 'Never signed in'
-  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return formatDate(date)
 }
 
 /**
@@ -485,7 +485,7 @@ const TABLE_UI = {
         <template #lastSeenAt-cell="{ row }">
           <span
             class="font-mono tabular-nums text-xs text-dimmed"
-            :title="formatDate(row.original.lastSeenAt)"
+            :title="lastSeenTitle(row.original.lastSeenAt)"
           >
             {{ row.original.lastSeenAt ? relativeTime(row.original.lastSeenAt) : 'Never' }}
           </span>

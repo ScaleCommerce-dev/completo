@@ -32,13 +32,9 @@ var moveCmd = &cobra.Command{
 			return err
 		}
 
-		s := findStatusByName(proj.Statuses, targetStatus)
-		if s == nil {
-			fmt.Printf("Status %q not found. Available statuses:\n", targetStatus)
-			for _, st := range proj.Statuses {
-				fmt.Printf("  %s\n", st.Name)
-			}
-			return fmt.Errorf("status %q not found", targetStatus)
+		s, err := requireStatus(proj.Statuses, targetStatus)
+		if err != nil {
+			return err
 		}
 
 		// Move to position 0 (top of the column)

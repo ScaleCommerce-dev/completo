@@ -44,30 +44,11 @@ export default defineEventHandler(async (event) => {
     createdById: user.id
   }).run()
 
-  // Check if project has any statuses yet
-  let projectStatuses = db.select().from(schema.statuses)
+  // Never empty: project creation makes the default statuses, and the last one
+  // cannot be deleted (statuses/[id].delete.ts).
+  const projectStatuses = db.select().from(schema.statuses)
     .where(eq(schema.statuses.projectId, project.id))
     .all()
-
-  if (projectStatuses.length === 0) {
-    // Create default statuses at project level
-    const defaultStatuses = ['Backlog', 'To Do', 'In Progress', 'Review', 'Done']
-    const defaultColors = ['#a1a1aa', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981']
-
-    for (let i = 0; i < defaultStatuses.length; i++) {
-      const colId = crypto.randomUUID()
-      db.insert(schema.statuses).values({
-        id: colId,
-        projectId: project.id,
-        name: defaultStatuses[i]!,
-        color: defaultColors[i]!
-      }).run()
-    }
-
-    projectStatuses = db.select().from(schema.statuses)
-      .where(eq(schema.statuses.projectId, project.id))
-      .all()
-  }
 
   // Determine which statuses to link
   const selectedStatusIds = body.columns?.length

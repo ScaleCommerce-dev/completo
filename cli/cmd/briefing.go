@@ -25,12 +25,9 @@ Without flags, prints the current briefing. Use --file to upload one or more
 files as the briefing, or --clear to remove it.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := mustClient()
-		slug := cfg.Project
-		if len(args) > 0 {
-			slug = args[0]
-		}
-		if slug == "" {
-			return fmt.Errorf("project required: pass as argument or set PROJECT in .completo")
+		slug, err := projectSlug(cfg, args)
+		if err != nil {
+			return err
 		}
 
 		projID, err := resolveProjectID(client, slug)

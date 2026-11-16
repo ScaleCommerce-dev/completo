@@ -31,7 +31,7 @@ async function signOut() {
     @keydown="handlePasswordKeydown"
   >
     <div class="px-card pt-4 pb-2">
-      <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Security</span>
+      <UiSectionLabel label="Security" />
     </div>
 
     <div class="mx-card mt-2 rounded-lg border border-default divide-y divide-default overflow-hidden">

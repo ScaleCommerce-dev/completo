@@ -111,14 +111,20 @@ async function create() {
 
         <div class="flex flex-col gap-4 sm:w-32">
           <div>
-            <span class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5">Colour</span>
+            <UiSectionLabel
+              label="Colour"
+              class="mb-1.5"
+            />
             <ColorPicker
               v-model="color"
               size="md"
             />
           </div>
           <div>
-            <span class="block text-xs font-semibold uppercase tracking-label text-dimmed mb-1.5">Preview</span>
+            <UiSectionLabel
+              label="Preview"
+              class="mb-1.5"
+            />
             <div class="flex items-center gap-1.5">
               <UiAvatar
                 :alt="name || 'Agent'"

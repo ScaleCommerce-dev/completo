@@ -113,9 +113,6 @@ func TestConfigDefaults(t *testing.T) {
 	if cfg.TodoStatus != "To Do" {
 		t.Errorf("TodoStatus = %q, want %q", cfg.TodoStatus, "To Do")
 	}
-	if cfg.InProgressStatus != "In Progress" {
-		t.Errorf("InProgressStatus = %q, want %q", cfg.InProgressStatus, "In Progress")
-	}
 }
 
 func TestCompletoLocalOverrides(t *testing.T) {

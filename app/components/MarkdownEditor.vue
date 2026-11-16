@@ -140,7 +140,7 @@ function onKeydown(e: KeyboardEvent) {
   emit('textarea-keydown', e)
 }
 
-defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
+defineExpose({ textareaEl, editTab, startEditing })
 </script>
 
 <template>
@@ -203,6 +203,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
           </span>
         </template>
         <button
+          aria-label="Bold"
           type="button"
           class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
           @mousedown.prevent
@@ -223,6 +224,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
           </span>
         </template>
         <button
+          aria-label="Italic"
           type="button"
           class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
           @mousedown.prevent
@@ -244,6 +246,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
           </span>
         </template>
         <button
+          aria-label="Inline code"
           type="button"
           class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
           @mousedown.prevent
@@ -257,6 +260,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
       </UTooltip>
       <UTooltip text="Code block">
         <button
+          aria-label="Code block"
           type="button"
           class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
           @mousedown.prevent
@@ -271,6 +275,7 @@ defineExpose({ textareaEl, insertMarkdown, editTab, startEditing, autoResize })
       <div class="w-px h-4 bg-accented mx-1" />
       <UTooltip text="Quote">
         <button
+          aria-label="Quote"
           type="button"
           class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
           @mousedown.prevent

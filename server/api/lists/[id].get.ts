@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user, list, membership } = await resolveList(event, { columnAccess: false })
@@ -26,7 +26,8 @@ export default defineEventHandler(async (event) => {
   const cardRows = db.select().from(schema.cards)
     .leftJoin(schema.users, eq(schema.cards.assigneeId, schema.users.id))
     .leftJoin(schema.statuses, eq(schema.cards.statusId, schema.statuses.id))
-    .where(eq(schema.cards.projectId, list.projectId))
+    // Expired done cards are left out in the query (`notExpiredDone`).
+    .where(and(eq(schema.cards.projectId, list.projectId), project ? notExpiredDone(project) : undefined))
     .all()
   const members = db.select(memberRefColumns())
     .from(schema.projectMembers)
@@ -41,17 +42,7 @@ export default defineEventHandler(async (event) => {
       status: row.statuses ? { id: row.statuses.id, name: row.statuses.name, color: row.statuses.color } : null
     }))
 
-  // Filter out done cards past retention window
-  let cards = allProjectCards
-  if (project?.doneStatusId && project.doneRetentionDays != null) {
-    const cutoff = Date.now() - project.doneRetentionDays * 86400000
-    cards = allProjectCards.filter((card) => {
-      if (card.statusId !== project.doneStatusId) return true
-      return card.updatedAt.getTime() >= cutoff
-    })
-  }
-
-  const cardsWithTags = enrichCardsWithMetadata(cards, { userId: user.id })
+  const cardsWithTags = enrichCardsWithMetadata(allProjectCards, { userId: user.id })
 
   // Fetch project-level tags
   const projectTags = db.select().from(schema.tags)

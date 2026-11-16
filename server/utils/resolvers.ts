@@ -1,4 +1,5 @@
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql, type SQL } from 'drizzle-orm'
+import type { AnySQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core'
 import type { H3Event } from 'h3'
 
 /** Fetch project by slug or ID + auth check. Returns membership for role access. */
@@ -184,12 +185,18 @@ export async function resolveList(event: H3Event, opts?: { columnAccess?: boolea
   return { user, list, membership }
 }
 
+/**
+ * The highest `position` among the rows `where` selects, or -1 when there are
+ * none, so `+ 1` is the next one (positions are `max + 1`, never a count). In SQL:
+ * these used to load every row's position and reduce it in JavaScript.
+ */
+export function maxPosition(table: SQLiteTable & { position: AnySQLiteColumn }, where: SQL | undefined): number {
+  return db.select({ pos: sql<number>`coalesce(max(${table.position}), -1)` }).from(table).where(where).get()!.pos
+}
+
 /** Max listColumns position for a list. */
 export function getMaxListColumnPosition(listId: string): number {
-  return db.select({ pos: schema.listColumns.position }).from(schema.listColumns)
-    .where(eq(schema.listColumns.listId, listId))
-    .all()
-    .reduce((max, r) => Math.max(max, r.pos), -1)
+  return maxPosition(schema.listColumns, eq(schema.listColumns.listId, listId))
 }
 
 /** Admin-only guard. */
@@ -201,16 +208,10 @@ export async function requireAdmin(event: H3Event) {
 
 /** Max boardColumns position for a board. */
 export function getMaxBoardColumnPosition(boardId: string): number {
-  return db.select({ pos: schema.boardColumns.position }).from(schema.boardColumns)
-    .where(eq(schema.boardColumns.boardId, boardId))
-    .all()
-    .reduce((max, r) => Math.max(max, r.pos), -1)
+  return maxPosition(schema.boardColumns, eq(schema.boardColumns.boardId, boardId))
 }
 
 /** Max myTasksColumns position for a user. */
 export function getMaxMyTasksColumnPosition(userId: string): number {
-  return db.select({ pos: schema.myTasksColumns.position }).from(schema.myTasksColumns)
-    .where(eq(schema.myTasksColumns.userId, userId))
-    .all()
-    .reduce((max, r) => Math.max(max, r.pos), -1)
+  return maxPosition(schema.myTasksColumns, eq(schema.myTasksColumns.userId, userId))
 }

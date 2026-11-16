@@ -1,3 +1,5 @@
+// Explicit, not auto-imported: tests import this file directly.
+import { plural } from './formatting'
 /**
  * People and agents in lists: how pickers group them, how the Agents page groups
  * them by manager, and how a hand-over or transfer says what it costs.
@@ -24,11 +26,6 @@ export interface PickablePerson {
 
 export function isAgent(p: { kind?: string } | null | undefined): boolean {
   return p?.kind === 'agent'
-}
-
-/** `3 agents`, `1 agent`. */
-export function plural(n: number, one: string, many = `${one}s`): string {
-  return `${n} ${n === 1 ? one : many}`
 }
 
 /**

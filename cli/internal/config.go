@@ -14,12 +14,11 @@ type Config struct {
 	Token string
 	User  string
 
-	// Project-scoped (from .completo in working dir)
-	Project          string
-	TodoStatus       string
-	InProgressStatus string
-	HandoffStatus    string
-	Instructions     string
+	// Project-scoped (from .completo in working dir). IN_PROGRESS_STATUS,
+	// HANDOFF_STATUS and INSTRUCTIONS live in the same file, but for the agent to
+	// read (skills/completo/SKILL.md); no command uses them.
+	Project    string
+	TodoStatus string
 }
 
 func LoadConfig(envFile string) (*Config, error) {
@@ -47,9 +46,6 @@ func LoadConfig(envFile string) (*Config, error) {
 		if vals, err := parseEnvFile(projectFile); err == nil {
 			cfg.Project = vals["PROJECT"]
 			cfg.TodoStatus = vals["TODO_STATUS"]
-			cfg.InProgressStatus = vals["IN_PROGRESS_STATUS"]
-			cfg.HandoffStatus = vals["HANDOFF_STATUS"]
-			cfg.Instructions = vals["INSTRUCTIONS"]
 		}
 
 		// Load .completo.local alongside .completo (local dev overrides, gitignored)
@@ -91,9 +87,6 @@ func LoadConfig(envFile string) (*Config, error) {
 	// Defaults
 	if cfg.TodoStatus == "" {
 		cfg.TodoStatus = "To Do"
-	}
-	if cfg.InProgressStatus == "" {
-		cfg.InProgressStatus = "In Progress"
 	}
 
 	return cfg, nil
@@ -139,15 +132,6 @@ func applyValues(cfg *Config, vals map[string]string) {
 	}
 	if v := vals["TODO_STATUS"]; v != "" {
 		cfg.TodoStatus = v
-	}
-	if v := vals["IN_PROGRESS_STATUS"]; v != "" {
-		cfg.InProgressStatus = v
-	}
-	if v := vals["HANDOFF_STATUS"]; v != "" {
-		cfg.HandoffStatus = v
-	}
-	if v := vals["INSTRUCTIONS"]; v != "" {
-		cfg.Instructions = v
 	}
 }
 

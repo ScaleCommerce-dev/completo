@@ -27,7 +27,7 @@ export function useAiDescription(descriptionRef: Ref<string>) {
   const previousDescription = ref('')
   let abortController: AbortController | null = null
 
-  async function generate(context: AiDescriptionContext, payload?: AiGeneratePayload | 'generate' | 'improve') {
+  async function generate(context: AiDescriptionContext, payload?: AiGeneratePayload) {
     if (isGenerating.value) return
     isGenerating.value = true
     error.value = null
@@ -35,16 +35,8 @@ export function useAiDescription(descriptionRef: Ref<string>) {
 
     abortController = new AbortController()
 
-    // Support legacy mode string for backward compat
-    let mode: string | undefined
-    let skillId: string | undefined
-    let userPrompt: string | undefined
-    if (typeof payload === 'string') {
-      mode = payload
-    } else if (payload) {
-      skillId = payload.skillId
-      userPrompt = payload.userPrompt
-    }
+    const skillId = payload?.skillId
+    const userPrompt = payload?.userPrompt
 
     // Save original before any changes
     previousDescription.value = descriptionRef.value
@@ -68,7 +60,7 @@ export function useAiDescription(descriptionRef: Ref<string>) {
             description: context.description,
             tags: context.tags,
             priority: context.priority,
-            mode: mode || (!skillId && !userPrompt ? (context.description?.trim() ? 'improve' : 'generate') : undefined),
+            mode: !skillId && !userPrompt ? (context.description?.trim() ? 'improve' : 'generate') : undefined,
             skillId,
             userPrompt,
             pageUrl: window.location.pathname

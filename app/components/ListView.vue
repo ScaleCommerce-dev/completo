@@ -16,11 +16,9 @@ const props = defineProps<{
   projectKey?: string
   projectSlug?: string
   doneStatusId?: string | null
-  canConfigureColumns?: boolean
   isFiltered?: boolean
   sortField?: string | null
   sortDirection?: 'asc' | 'desc' | null
-  canSaveSort?: boolean
   readOnlyFields?: string[]
   /**
    * The list *is* the page body (the list view), so it starts at the content

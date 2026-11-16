@@ -1,9 +1,5 @@
 <script setup lang="ts">
 const props = defineProps<{
-  title: string
-  description: string
-  tags?: string[]
-  priority?: string
   isGenerating: boolean
   error?: string | null
   scope?: AiSkillScope
@@ -120,6 +116,7 @@ function handleCustomPrompt() {
                 @keydown.stop
               >
               <button
+                aria-label="Send prompt"
                 type="button"
                 class="p-1.5 rounded-lg text-dimmed hover:text-primary hover:bg-primary/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 :disabled="!customPrompt.trim()"

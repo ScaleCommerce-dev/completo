@@ -219,7 +219,7 @@ export function readAgentFields(body: { name?: unknown, description?: unknown, c
 
   if (body.color !== undefined) {
     const raw = body.color
-    if (raw !== null && (typeof raw !== 'string' || !/^#[0-9a-f]{6}$/i.test(raw))) {
+    if (raw !== null && !isHexColor(raw)) {
       throw createError({ statusCode: 400, message: 'Colour must be a hex value like #f97316' })
     }
     fields.color = raw ? raw.toLowerCase() : null

@@ -522,9 +522,17 @@ function toggleTag(tagId: string) {
     </component>
 
     <div class="p-2.5 pl-3">
-      <!-- The object. -->
+      <!-- The object. The title is the card's keyboard entry: a button, so Tab
+           reaches it and Enter opens the card (its click bubbles to the card's
+           own handler). The card itself is a `div` because it holds other
+           controls, and a button cannot. Inline, so `line-clamp` still applies. -->
       <p class="text-sm font-semibold leading-snug text-highlighted tracking-name line-clamp-2 pr-6">
-        {{ card.title }}
+        <button
+          type="button"
+          class="inline text-left"
+        >
+          {{ card.title }}
+        </button>
       </p>
 
       <p

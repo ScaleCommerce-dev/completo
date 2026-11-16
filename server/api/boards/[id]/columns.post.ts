@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Status name is required' })
   }
 
-  if (color && !/^#[0-9A-Fa-f]{6}$/.test(color)) {
+  if (color && !isHexColor(color)) {
     throw createError({ statusCode: 400, message: 'Color must be a valid hex color (#RRGGBB)' })
   }
 
@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
     id: statusId,
     projectId: board.projectId,
     name,
-    color: color || '#6366f1'
+    color: color || DEFAULT_COLOR
   }).run()
 
   // Link to the current board only

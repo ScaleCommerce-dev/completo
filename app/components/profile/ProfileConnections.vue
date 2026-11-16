@@ -34,7 +34,7 @@ async function revoke(id: string) {
 
 function when(iso: string | null): string {
   if (!iso) return 'never'
-  return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  return formatDate(iso)
 }
 </script>
 
@@ -45,7 +45,7 @@ function when(iso: string | null): string {
         name="i-lucide-plug-zap"
         class="text-base text-dimmed"
       />
-      <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Connected apps</span>
+      <UiSectionLabel label="Connected apps" />
     </div>
 
     <div class="px-card pb-4">

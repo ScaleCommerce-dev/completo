@@ -1,10 +1,8 @@
 import { eq, asc } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
-  const { user } = await resolveAuth(event)
-  if (!user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
+  // resolveAuth throws 401 itself.
+  await resolveAuth(event)
 
   const query = getQuery(event)
   const rawScope = query.scope as string | undefined

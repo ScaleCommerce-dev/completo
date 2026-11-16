@@ -45,6 +45,15 @@ export function formatTimestamp(iso: string, opts?: { seconds?: boolean }): stri
   })
 }
 
+/**
+ * A calendar date, "Nov 16, 2026". One spelling: five local helpers wrote this in
+ * three locales, so a date read "16 Nov 2026" on an agent's page and "Nov 16, 2026"
+ * on the profile.
+ */
+export function formatDate(iso: string | Date): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 export function formatTicketId(projectKey: string | undefined, id: number): string {
   return `${projectKey || 'TK'}-${id}`
 }
@@ -64,13 +73,13 @@ export function formatDueDate(dueDate: string | Date): string {
 }
 
 /**
- * A count with its noun, pluralised. `pluralize(1, 'board')` → "1 board".
+ * A count with its noun, pluralised: `plural(1, 'board')` → "1 board". Irregular
+ * plurals take the third argument: `plural(n, 'person', 'people')`.
  *
  * For stat rows that used to be a bare number behind an icon — "12  1  6" on a project
- * card, "12" on a view card. A reader who doesn't already know the icon vocabulary can't
- * recover which number is which, and there is nothing to hover. Irregular plurals take
- * the second argument: `pluralize(n, 'person', 'people')`.
+ * card. A reader who doesn't already know the icon vocabulary can't recover which
+ * number is which, and there is nothing to hover.
  */
-export function pluralize(count: number, singular: string, plural?: string): string {
-  return `${count} ${count === 1 ? singular : (plural ?? `${singular}s`)}`
+export function plural(n: number, one: string, many = `${one}s`): string {
+  return `${n} ${n === 1 ? one : many}`
 }

@@ -22,12 +22,9 @@ var listCmd = &cobra.Command{
 	Short: "List cards in a project, optionally filtered by status, priority, or assignee",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := mustClient()
-		slug := cfg.Project
-		if len(args) > 0 {
-			slug = args[0]
-		}
-		if slug == "" {
-			return fmt.Errorf("project required: pass as argument or set PROJECT in .completo")
+		slug, err := projectSlug(cfg, args)
+		if err != nil {
+			return err
 		}
 
 		proj, err := fetchProject(client, slug)
@@ -38,13 +35,9 @@ var listCmd = &cobra.Command{
 		opts := listCardsOpts{Limit: listLimit}
 
 		if listStatus != "" {
-			s := findStatusByName(proj.Statuses, listStatus)
-			if s == nil {
-				fmt.Printf("Status %q not found. Available statuses:\n", listStatus)
-				for _, st := range proj.Statuses {
-					fmt.Printf("  %s\n", st.Name)
-				}
-				return fmt.Errorf("status %q not found", listStatus)
+			s, err := requireStatus(proj.Statuses, listStatus)
+			if err != nil {
+				return err
 			}
 			opts.StatusID = s.ID
 		}

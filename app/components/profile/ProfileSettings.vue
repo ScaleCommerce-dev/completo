@@ -27,10 +27,6 @@ const props = defineProps<{
 watch(() => props.profileData?.emailNotifications, (value) => {
   if (value !== undefined) profileEmailNotifications.value = value
 }, { immediate: true })
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
 </script>
 
 <template>
@@ -102,7 +98,7 @@ function formatDate(iso: string): string {
 
       <!-- Settings rows -->
       <div class="px-card pt-3 pb-1">
-        <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Preferences</span>
+        <UiSectionLabel label="Preferences" />
       </div>
 
       <div class="mx-card mt-2 rounded-lg border border-default divide-y divide-default overflow-hidden">

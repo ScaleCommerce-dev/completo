@@ -46,9 +46,7 @@ var createCmd = &cobra.Command{
 		if err != nil {
 			if cmd.Flags().Changed("status") {
 				fmt.Fprintln(os.Stderr, "Available statuses:")
-				for _, st := range proj.Statuses {
-					fmt.Fprintf(os.Stderr, "  %s\n", st.Name)
-				}
+				printStatusNames(proj.Statuses)
 			}
 			return err
 		}

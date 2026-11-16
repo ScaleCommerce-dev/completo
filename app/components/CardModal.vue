@@ -670,32 +670,18 @@ watch(showDraftDiscardConfirm, (shown) => {
  * else on an existing card is pending. Falling through to "nothing happens"
  * there would look like the shortcut had broken.
  */
-function handleKeydown(e: KeyboardEvent) {
-  if (!((e.metaKey || e.ctrlKey) && e.key === 'Enter')) return
-  if ((e.target as HTMLElement | null)?.closest?.('[data-comment-editor]')) return
-
-  if (isEdit.value) {
-    if (!editingDescription.value) return
-    e.preventDefault()
-    e.stopImmediatePropagation()
-    saveDescription()
-    return
-  }
-
-  e.preventDefault()
-  e.stopImmediatePropagation()
-  submit()
-}
+useCmdEnter(() => {
+  if (isEdit.value) saveDescription()
+  else submit()
+}, { active: () => open.value && (!isEdit.value || editingDescription.value) })
 
 watch(open, (isOpen) => {
   if (isOpen) {
-    document.addEventListener('keydown', handleKeydown, true)
     // Sync statusId prop for create mode
     if (!isEdit.value && props.statusId) {
       selectedStatusId.value = props.statusId
     }
   } else {
-    document.removeEventListener('keydown', handleKeydown, true)
     // The title is debounced, so closing within that window would drop the last
     // keystrokes. Closing is a commit point, not a discard.
     flushTitle()
@@ -707,8 +693,6 @@ watch(open, (isOpen) => {
     nextTick(() => titleInput.value?.focus())
   }
 })
-
-onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
 </script>
 
 <template>

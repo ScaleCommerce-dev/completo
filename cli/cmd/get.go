@@ -227,5 +227,5 @@ func formatCard(c *cardResponse) string {
 		fields = append(fields, internal.Field{Key: "description", Value: desc})
 	}
 
-	return internal.FormatFields(fields, false)
+	return internal.FormatFields(fields)
 }

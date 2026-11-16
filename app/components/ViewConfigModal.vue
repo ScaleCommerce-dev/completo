@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DEFAULT_COLOR } from '#shared/utils/colors'
 // Explicit import: shared/utils is auto-imported for Nitro but not into app components.
 import { LIST_FIELDS } from '#shared/utils/list-fields'
 import { CARD_FIELDS, type CardField } from '#shared/utils/card-fields'
@@ -452,21 +453,16 @@ function onDragEnd() {
 
 // ─── Board-mode: new column ───
 const newColumnName = ref('')
-const newColumnColor = ref('#6366f1')
-const newColorOpen = ref(false)
+const newColumnColor = ref(DEFAULT_COLOR)
 
 function addBoardColumn() {
   if (!newColumnName.value.trim()) return
   emit('add', newColumnName.value.trim(), newColumnColor.value)
   newColumnName.value = ''
-  newColumnColor.value = '#6366f1'
+  newColumnColor.value = DEFAULT_COLOR
 }
 
-// Track which column's color popover is open
-const colorPopoverOpen = ref<Record<string, boolean>>({})
-
 function pickColor(colId: string, color: string) {
-  colorPopoverOpen.value[colId] = false
   emit('update', colId, { color })
 }
 
@@ -585,28 +581,18 @@ const showDeleteConfirm = ref(false)
                     />
                     <!-- Board mode: color dot (editable if canAddColumns) -->
                     <template v-if="isBoard">
-                      <UPopover
+                      <ColorSwatchPicker
                         v-if="canAddColumns"
-                        v-model:open="colorPopoverOpen[col.id]"
-                      >
-                        <button
-                          type="button"
-                          class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition"
-                          :style="{ backgroundColor: col.color || '#a1a1aa' }"
-                        />
-                        <template #content>
-                          <div class="p-2">
-                            <ColorPicker
-                              :model-value="col.color || '#a1a1aa'"
-                              @update:model-value="pickColor(col.id, $event)"
-                            />
-                          </div>
-                        </template>
-                      </UPopover>
-                      <div
+                        :model-value="col.color || '#a1a1aa'"
+                        size="sm"
+                        label="Change colour"
+                        close-on-pick
+                        @update:model-value="pickColor(col.id, $event)"
+                      />
+                      <UiStatusDot
                         v-else
-                        class="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10"
-                        :style="{ backgroundColor: col.color || '#a1a1aa' }"
+                        :color="col.color"
+                        size="lg"
                       />
                     </template>
                     <!-- List mode: field icon -->
@@ -621,6 +607,7 @@ const showDeleteConfirm = ref(false)
                     <div class="flex items-center gap-0.5 opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 transition-opacity">
                       <UTooltip text="Remove column">
                         <UButton
+                          aria-label="Remove column"
                           icon="i-lucide-trash-2"
                           variant="ghost"
                           color="error"
@@ -640,18 +627,7 @@ const showDeleteConfirm = ref(false)
               class="flex items-center gap-2"
               @submit.prevent="addBoardColumn"
             >
-              <UPopover v-model:open="newColorOpen">
-                <button
-                  type="button"
-                  class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition"
-                  :style="{ backgroundColor: newColumnColor }"
-                />
-                <template #content>
-                  <div class="p-2">
-                    <ColorPicker v-model="newColumnColor" />
-                  </div>
-                </template>
-              </UPopover>
+              <ColorSwatchPicker v-model="newColumnColor" />
               <UInput
                 v-model="newColumnName"
                 placeholder="New column name (project-wide)"
@@ -676,12 +652,13 @@ const showDeleteConfirm = ref(false)
                 :key="col.id"
                 class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted transition-colors group"
               >
-                <div
-                  class="w-2 h-2 rounded-full shrink-0"
-                  :style="{ backgroundColor: col.color || '#a1a1aa' }"
+                <UiStatusDot
+                  :color="col.color"
+                  size="sm"
                 />
                 <span class="text-base font-medium flex-1 text-dimmed">{{ col.name }}</span>
                 <UButton
+                  :aria-label="`Add ${col.name}`"
                   icon="i-lucide-plus"
                   variant="ghost"
                   color="neutral"
@@ -709,6 +686,7 @@ const showDeleteConfirm = ref(false)
                 />
                 <span class="text-base font-medium flex-1 text-dimmed">{{ f.label }}</span>
                 <UButton
+                  :aria-label="`Add ${f.label}`"
                   icon="i-lucide-plus"
                   variant="ghost"
                   color="neutral"

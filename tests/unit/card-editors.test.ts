@@ -199,17 +199,17 @@ describe('the card surfaces have no surface-level save', () => {
  */
 describe('the shortcut belongs to an editor', () => {
   it('lets a comment editor claim it first, by containment', () => {
-    // Containment rather than listener order, so neither side depends on which
-    // component mounted first.
-    for (const src of [CARD_MODAL, CARD_PAGE]) {
-      expect(src).toMatch(/closest\?\.\('\[data-comment-editor\]'\)/)
-    }
+    // Containment rather than listener order (`useCmdEnter`): a handler scoped to
+    // the comment editor wins inside it, whichever surface mounted first.
+    expect(read('app/components/CommentList.vue')).toMatch(/useCmdEnter\([\s\S]*?within: '\[data-comment-editor\]'/)
+    expect(read('app/composables/useCmdEnter.ts')).toMatch(/live\.find\(h => h\.within && target\?\.closest\?\.\(h\.within\)\)\s*\?\? live\.find\(h => !h\.within\)/)
   })
 
   it('does nothing on an existing card with no editor open', () => {
-    // The branch that used to fall through to a card-level submit.
-    expect(CARD_MODAL).toMatch(/if \(!editingDescription\.value\) return/)
-    expect(CARD_PAGE).toMatch(/if \(!editingDescription\.value\) return/)
+    // The branch that used to fall through to a card-level submit: the card is
+    // only an active ⌘↵ target while its description is being edited.
+    expect(CARD_MODAL).toMatch(/active: \(\) => open\.value && \(!isEdit\.value \|\| editingDescription\.value\)/)
+    expect(CARD_PAGE).toMatch(/useCmdEnter\(submit, \{ active: \(\) => editingDescription\.value \}\)/)
   })
 })
 

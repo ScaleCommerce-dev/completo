@@ -1,4 +1,4 @@
-interface ApiToken {
+export interface ApiToken {
   id: string
   name: string
   tokenPrefix: string
@@ -99,7 +99,7 @@ export function useApiTokens(options: {
 
   function formatTokenDate(iso: string | null): string {
     if (!iso) return 'Never'
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    return formatDate(iso)
   }
 
   return {
@@ -116,7 +116,6 @@ export function useApiTokens(options: {
     startDeleteToken,
     cancelDeleteToken,
     confirmDeleteToken,
-    formatTokenDate,
-    fetchTokens
+    formatTokenDate
   }
 }

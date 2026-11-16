@@ -32,12 +32,7 @@ export default defineEventHandler(async (event) => {
             .where(eq(schema.projectMembers.userId, user.id)))
     ))
     .all()
-    .filter((row) => {
-      const project = row.projects
-      if (!project.doneStatusId || project.doneRetentionDays == null) return true
-      if (row.cards.statusId !== project.doneStatusId) return true
-      return row.cards.updatedAt.getTime() >= Date.now() - project.doneRetentionDays * 86400000
-    })
+    .filter(row => !isExpiredDone(row.cards, row.projects))
 
   const { member } = createUserRefs(agents)
   const agentById = new Map(agents.map(a => [a.id, member(a)]))

@@ -203,30 +203,18 @@ async function confirmRemove(id: string) {
 /**
  * Cmd+Enter submits whichever editor the keystroke came from.
  *
- * The card page and CardModal each bind Cmd+Enter to saving the card, on a
- * document capture listener (a `@keydown` on the form doesn't work — portals break
- * it, see CLAUDE.md). Those handlers bail out when the event originates inside a
- * `[data-comment-editor]`, and this one claims it instead, so the shortcut follows
- * focus rather than always saving the card. Both check containment rather than
- * relying on listener order, so neither depends on which mounted first.
+ * The card page and CardModal bind Cmd+Enter to saving the card. Scoped to
+ * `[data-comment-editor]`, this handler wins for a key pressed inside a comment
+ * editor however they mounted (`useCmdEnter`), so the shortcut follows focus
+ * rather than always saving the card.
  */
-function handleCmdEnter(e: KeyboardEvent) {
-  if (!((e.metaKey || e.ctrlKey) && e.key === 'Enter')) return
-
-  const scope = (e.target as HTMLElement | null)?.closest?.('[data-comment-editor]') as HTMLElement | null
-  if (!scope) return
-
-  e.preventDefault()
-  e.stopImmediatePropagation()
+useCmdEnter((e) => {
   if (saving.value) return
-
-  const which = scope.dataset.commentEditor
+  const scope = (e.target as HTMLElement).closest<HTMLElement>('[data-comment-editor]')
+  const which = scope?.dataset.commentEditor
   if (which === 'new') submit()
   else if (which) saveEdit(which)
-}
-
-onMounted(() => document.addEventListener('keydown', handleCmdEnter, true))
-onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
+}, { within: '[data-comment-editor]' })
 </script>
 
 <template>
@@ -473,6 +461,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
                   text="Edit"
                 >
                   <UButton
+                    aria-label="Edit"
                     icon="i-lucide-pencil"
                     variant="ghost"
                     color="neutral"
@@ -482,6 +471,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleCmdEnter, true))
                 </UTooltip>
                 <UTooltip :text="isOwn(comment) ? 'Delete' : 'Delete as moderator'">
                   <UButton
+                    :aria-label="isOwn(comment) ? 'Delete' : 'Delete as moderator'"
                     icon="i-lucide-trash-2"
                     variant="ghost"
                     color="neutral"

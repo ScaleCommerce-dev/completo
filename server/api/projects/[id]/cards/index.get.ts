@@ -74,13 +74,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // Done retention filter (default: exclude expired done cards)
-  if (!includeDone && project.doneStatusId && project.doneRetentionDays != null) {
-    // updatedAt is stored as epoch seconds (integer with mode: 'timestamp')
-    const cutoffSeconds = Math.floor((Date.now() - project.doneRetentionDays * 86400000) / 1000)
-    conditions.push(
-      sql`NOT (${schema.cards.statusId} = ${project.doneStatusId} AND ${schema.cards.updatedAt} < ${cutoffSeconds})`
-    )
-  }
+  const retention = includeDone ? undefined : notExpiredDone(project)
+  if (retention) conditions.push(retention)
 
   // Tag filter via subquery
   if (tagId) {

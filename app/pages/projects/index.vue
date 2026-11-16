@@ -263,9 +263,9 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
                otherwise break into a ragged block of single words. -->
           <div class="flex items-center gap-2 mt-3 pt-3 border-t border-muted text-xs font-medium text-dimmed">
             <span class="truncate">
-              {{ pluralize(project.openCards || 0, 'card') }}
+              {{ plural(project.openCards || 0, 'card') }}
               &middot;
-              {{ pluralize(project.memberCount || 0, 'person', 'people') }}
+              {{ plural(project.memberCount || 0, 'person', 'people') }}
               <template v-if="project.lastActivity">
                 &middot; {{ relativeTime(project.lastActivity) }}
               </template>
@@ -273,15 +273,12 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
 
             <!-- Spacer + role badge + avatar stack -->
             <div class="ml-auto flex items-center gap-2 shrink-0">
-              <span
+              <UBadge
                 v-if="project.role !== 'admin'"
-                class="text-2xs font-bold uppercase tracking-label px-1.5 py-0.5 rounded-full"
-                :class="project.role === 'owner'
-                  ? 'bg-primary/10 text-primary'
-                  : 'bg-elevated text-muted'"
-              >
-                {{ project.role }}
-              </span>
+                :label="project.role"
+                :color="project.role === 'owner' ? 'primary' : 'neutral'"
+                variant="soft"
+              />
               <div
                 v-if="project.memberAvatars?.length"
                 class="flex items-center -space-x-1.5"

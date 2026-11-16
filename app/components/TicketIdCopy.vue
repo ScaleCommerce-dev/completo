@@ -75,6 +75,7 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
       >
         <UTooltip :text="copiedState === 'url' ? 'Copied!' : 'Copy link'">
           <button
+            aria-label="Copy link"
             type="button"
             class="p-0.5 rounded-md hover:bg-elevated hover:text-primary transition-colors"
             :class="{ 'text-success!': copiedState === 'url' }"
@@ -88,6 +89,7 @@ const iconOffset = computed(() => variant.value === 'pill' ? '-right-11' : '-rig
         </UTooltip>
         <UTooltip :text="copiedState === 'id' ? 'Copied!' : 'Copy ticket ID'">
           <button
+            aria-label="Copy ticket ID"
             type="button"
             class="p-0.5 rounded-md hover:bg-elevated hover:text-primary transition-colors"
             :class="{ 'text-success!': copiedState === 'id' }"

@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { DEFAULT_COLOR, isHexColor } from '#shared/utils/colors'
+
 const props = withDefaults(defineProps<{
   modelValue?: string
   size?: 'sm' | 'md'
 }>(), {
-  modelValue: '#6366f1',
+  modelValue: DEFAULT_COLOR,
   size: 'sm'
 })
 
@@ -25,7 +27,7 @@ function onHexInput(e: Event) {
   const raw = (e.target as HTMLInputElement).value.trim()
   hexInput.value = raw
   const hex = raw.startsWith('#') ? raw : `#${raw}`
-  if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+  if (isHexColor(hex)) {
     emit('update:modelValue', hex.toLowerCase())
   }
 }
@@ -33,7 +35,7 @@ function onHexInput(e: Event) {
 function onHexBlur() {
   const raw = hexInput.value.trim()
   const hex = raw.startsWith('#') ? raw : `#${raw}`
-  if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+  if (isHexColor(hex)) {
     hexInput.value = hex.toLowerCase()
     emit('update:modelValue', hex.toLowerCase())
   } else {
@@ -48,6 +50,7 @@ function onHexBlur() {
       <button
         v-for="c in COLOR_PALETTE"
         :key="c"
+        :aria-label="`Colour ${c}`"
         type="button"
         class="rounded-full ring-1 ring-black/10 dark:ring-white/10 hover:scale-125 transition-transform"
         :class="[

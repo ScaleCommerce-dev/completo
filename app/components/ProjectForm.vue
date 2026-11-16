@@ -164,16 +164,7 @@ const canSubmit = computed(() => {
   return true
 })
 
-function handleKeydown(e: KeyboardEvent) {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-    e.preventDefault()
-    e.stopImmediatePropagation()
-    onSubmit()
-  }
-}
-
-onMounted(() => document.addEventListener('keydown', handleKeydown, true))
-onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
+useCmdEnter(onSubmit)
 
 function onSubmit() {
   if (!canSubmit.value) return
@@ -223,24 +214,25 @@ function confirmDelete() {
   >
     <!-- Name input -->
     <div class="px-dialog pt-5 pb-1">
-      <input
+      <UInput
         v-model="formName"
-        type="text"
         aria-label="Project name"
         placeholder="Project name..."
         autofocus
-        class="w-full min-h-11 text-base font-semibold text-highlighted placeholder:text-muted bg-default border border-default rounded-field px-3 py-2 transition-colors"
-      >
+        class="w-full"
+        :ui="{ base: 'font-semibold text-highlighted' }"
+      />
     </div>
 
     <!-- Description -->
     <div class="px-dialog pt-1">
-      <textarea
+      <UTextarea
         v-model="formDescription"
         aria-label="Project description"
         placeholder="What is this project about?"
-        rows="2"
-        class="w-full text-base text-toned placeholder:text-muted bg-default border border-default rounded-field px-3 py-2.5 transition-colors resize-none leading-relaxed"
+        :rows="2"
+        class="w-full"
+        :ui="{ base: 'text-toned resize-none leading-relaxed' }"
       />
     </div>
 
@@ -264,9 +256,7 @@ function confirmDelete() {
             name="i-lucide-sparkles"
             class="text-xs text-secondary"
           />
-          <span class="text-xs font-semibold uppercase tracking-label text-dimmed">
-            Agent Briefing
-          </span>
+          <UiSectionLabel label="Agent Briefing" />
           <span class="text-2xs text-dimmed">
             Sent as context to AI
           </span>

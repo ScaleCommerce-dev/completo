@@ -7,7 +7,6 @@ import {
   priorityTextClass,
   priorityBarClass,
   priorityChartClass,
-  priorityUiColor,
   priorityIcon,
   priorityLabel,
   identityColor,
@@ -741,7 +740,6 @@ describe('priority', () => {
     for (const p of PRIORITIES) {
       expect(priorityTextClass(p.value), p.value).toMatch(/^text-/)
       expect(priorityChartClass(p.value), p.value).toMatch(/^bg-/)
-      expect(priorityUiColor(p.value), p.value).toBeTruthy()
       expect(priorityIcon(p.value), p.value).toMatch(/^i-lucide-/)
       expect(priorityLabel(p.value), p.value).toBe(p.label)
     }

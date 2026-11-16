@@ -75,6 +75,28 @@ export function ensureNotSuspended(user: { suspendedAt: Date | null }) {
   }
 }
 
+/** How long each emailed link lives. A reset signs the caller in, so it is short. */
+const EMAIL_TOKEN_LIFETIME_MS = {
+  verify: 24 * 60 * 60 * 1000,
+  reset: 60 * 60 * 1000,
+  setup: 24 * 60 * 60 * 1000
+} as const
+
+/**
+ * A fresh single-purpose token for an emailed link. The purpose is what
+ * `lookupVerificationToken` checks; see CLAUDE.md for why the table is scoped by it.
+ */
+export function issueEmailToken(userId: string, purpose: keyof typeof EMAIL_TOKEN_LIFETIME_MS): string {
+  const token = crypto.randomUUID()
+  db.insert(schema.emailVerificationTokens).values({
+    userId,
+    token,
+    purpose,
+    expiresAt: new Date(Date.now() + EMAIL_TOKEN_LIFETIME_MS[purpose])
+  }).run()
+  return token
+}
+
 /**
  * Look up an email token and its associated user, for one specific purpose.
  *

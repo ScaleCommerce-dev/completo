@@ -26,14 +26,7 @@ export default defineEventHandler(async (event) => {
     .run()
 
   // Create new token with 1-hour expiry
-  const token = crypto.randomUUID()
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000)
-  db.insert(schema.emailVerificationTokens).values({
-    userId: user.id,
-    token,
-    purpose: 'reset',
-    expiresAt
-  }).run()
+  const token = issueEmailToken(user.id, 'reset')
 
   if (isEmailEnabled()) {
     try {

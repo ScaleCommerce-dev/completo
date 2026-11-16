@@ -26,24 +26,16 @@ interface Candidate { id: number, title: string }
 const candidates = ref<Candidate[]>([])
 
 /** Debounced, so typing a word is one request rather than one per letter. */
-let timer: ReturnType<typeof setTimeout> | null = null
+const request = useDebouncedRequest()
 function load() {
-  if (timer) clearTimeout(timer)
-  timer = setTimeout(async () => {
-    timer = null
-    try {
-      const rows = await $fetch<Candidate[]>(`/api/projects/${props.projectId}/cards`, {
-        query: { parentId: 'none', q: searchTerm.value.trim() || undefined, sort: 'updatedAt', order: 'desc', limit: 20, includeDone: 'true' }
-      })
-      candidates.value = rows.filter(c => c.id !== props.cardId)
-    } catch {
-      candidates.value = []
-    }
-  }, 200)
+  const q = searchTerm.value.trim() || undefined
+  request.run(() => $fetch<Candidate[]>(`/api/projects/${props.projectId}/cards`, {
+    query: { parentId: 'none', q, sort: 'updatedAt', order: 'desc', limit: 20, includeDone: 'true' }
+  }), {
+    then: (rows) => { candidates.value = rows.filter(c => c.id !== props.cardId) },
+    catch: () => { candidates.value = [] }
+  })
 }
-onScopeDispose(() => {
-  if (timer) clearTimeout(timer)
-})
 
 watch(open, (isOpen) => {
   if (isOpen) load()

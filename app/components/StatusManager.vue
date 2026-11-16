@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { DEFAULT_COLOR } from '#shared/utils/colors'
+
 interface Status {
   id: string
   name: string
@@ -18,8 +20,7 @@ const emit = defineEmits<{
 }>()
 
 const newColName = ref('')
-const newColColor = ref('#6366f1')
-const newColColorOpen = ref(false)
+const newColColor = ref(DEFAULT_COLOR)
 const showAddColPopover = ref(false)
 const newColNameInput = ref<HTMLInputElement | null>(null)
 
@@ -108,7 +109,7 @@ async function addProjectStatus() {
   const body = { name: newColName.value.trim(), color: newColColor.value }
   if (!await write(() => $fetch(`/api/projects/${props.projectId}/statuses`, { method: 'POST', body }), 'Failed to add status')) return
   newColName.value = ''
-  newColColor.value = '#6366f1'
+  newColColor.value = DEFAULT_COLOR
   emit('refresh')
 }
 
@@ -181,7 +182,7 @@ async function confirmMoveAndDelete() {
   try {
     await $fetch(`/api/statuses/${col.id}`, { method: 'DELETE', body: { moveToStatusId } })
     pendingMove.value = null
-    toast.add({ title: `${pluralize(moved, 'card')} moved to ${destination}`, color: 'success' })
+    toast.add({ title: `${plural(moved, 'card')} moved to ${destination}`, color: 'success' })
     emit('refresh')
   } catch (e) {
     toast.add({ title: 'Failed to delete status', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
@@ -207,10 +208,7 @@ async function setDoneStatus(statusId: string | null) {
         v-if="editingColId === col.id"
         class="flex items-center gap-1 px-2 py-1 rounded-md bg-default border border-primary/60 shrink-0"
       >
-        <span
-          class="block w-2.5 h-2.5 rounded-full shrink-0"
-          :style="{ backgroundColor: col.color || '#a1a1aa' }"
-        />
+        <UiStatusDot :color="col.color" />
         <input
           v-model="editingColName"
           type="text"
@@ -220,6 +218,7 @@ async function setDoneStatus(statusId: string | null) {
           @keydown.escape="cancelEditStatus"
         >
         <UButton
+          aria-label="Save"
           icon="i-lucide-check"
           variant="ghost"
           color="neutral"
@@ -227,6 +226,7 @@ async function setDoneStatus(statusId: string | null) {
           @click="saveEditStatus"
         />
         <UButton
+          aria-label="Cancel"
           icon="i-lucide-x"
           variant="ghost"
           color="neutral"
@@ -253,10 +253,9 @@ async function setDoneStatus(statusId: string | null) {
             name="i-lucide-circle-check-big"
             class="text-xs text-success"
           />
-          <span
+          <UiStatusDot
             v-else
-            class="block w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10"
-            :style="{ backgroundColor: col.color || '#a1a1aa' }"
+            :color="col.color"
           />
           <!--
             The one place the flat `text-success` is not enough: `--ui-success`
@@ -282,9 +281,10 @@ async function setDoneStatus(statusId: string | null) {
         </button>
         <template #content>
           <div class="p-2.5 w-44">
-            <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
-              Color
-            </p>
+            <UiSectionLabel
+              label="Color"
+              class="mb-2"
+            />
             <ColorPicker
               :model-value="col.color || '#a1a1aa'"
               class="mb-3"
@@ -356,10 +356,9 @@ async function setDoneStatus(statusId: string | null) {
           name="i-lucide-circle-check-big"
           class="text-xs text-success"
         />
-        <span
+        <UiStatusDot
           v-else
-          class="block w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10"
-          :style="{ backgroundColor: col.color || '#a1a1aa' }"
+          :color="col.color"
         />
         <span
           class="text-xs font-medium"
@@ -396,22 +395,15 @@ async function setDoneStatus(statusId: string | null) {
           class="p-3 w-52"
           @submit.prevent="addProjectStatus(); showAddColPopover = false"
         >
-          <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
-            New status
-          </p>
+          <UiSectionLabel
+            label="New status"
+            class="mb-2"
+          />
           <div class="flex items-center gap-2 mb-2">
-            <UPopover v-model:open="newColColorOpen">
-              <button
-                type="button"
-                class="w-4 h-4 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition"
-                :style="{ backgroundColor: newColColor }"
-              />
-              <template #content>
-                <div class="p-2">
-                  <ColorPicker v-model="newColColor" />
-                </div>
-              </template>
-            </UPopover>
+            <ColorSwatchPicker
+              v-model="newColColor"
+              size="md"
+            />
             <input
               ref="newColNameInput"
               v-model="newColName"
@@ -452,8 +444,8 @@ async function setDoneStatus(statusId: string | null) {
       v-model:open="confirmingMove"
       icon="i-lucide-trash-2"
       :title="`Delete ${pendingMove?.name ?? 'status'}`"
-      :description="`${pluralize(movingCount, 'card')} will move to another status. None are deleted.`"
-      :action-label="`Move ${pluralize(movingCount, 'card')} & delete`"
+      :description="`${plural(movingCount, 'card')} will move to another status. None are deleted.`"
+      :action-label="`Move ${plural(movingCount, 'card')} & delete`"
       :disabled="!moveTargetId"
       :loading="movingAndDeleting"
       @confirm="confirmMoveAndDelete"

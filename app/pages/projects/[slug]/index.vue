@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { DEFAULT_COLOR } from '#shared/utils/colors'
+
 definePageMeta({ layout: 'default' })
 
 const route = useRoute()
@@ -118,8 +120,7 @@ const configTab = ref<'statuses' | 'tags'>('statuses')
 
 // ─── Tag management ───
 const newTagName = ref('')
-const newTagColor = ref('#6366f1')
-const newTagColorOpen = ref(false)
+const newTagColor = ref(DEFAULT_COLOR)
 const showAddTagPopover = ref(false)
 const newTagNameInput = ref<HTMLInputElement | null>(null)
 
@@ -177,7 +178,7 @@ async function addProjectTag() {
   // throw away what was typed while leaving nothing to show for it.
   if (!ok) return
   newTagName.value = ''
-  newTagColor.value = '#6366f1'
+  newTagColor.value = DEFAULT_COLOR
   showAddTagPopover.value = false
 }
 
@@ -417,6 +418,7 @@ async function confirmDeleteTag(tagId: string) {
                   @keydown.escape="cancelEditTag"
                 >
                 <UButton
+                  aria-label="Save"
                   icon="i-lucide-check"
                   variant="ghost"
                   color="neutral"
@@ -424,6 +426,7 @@ async function confirmDeleteTag(tagId: string) {
                   @click="saveEditTag"
                 />
                 <UButton
+                  aria-label="Cancel"
                   icon="i-lucide-x"
                   variant="ghost"
                   color="neutral"
@@ -451,9 +454,10 @@ async function confirmDeleteTag(tagId: string) {
                 </button>
                 <template #content>
                   <div class="p-2.5 w-44">
-                    <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
-                      Color
-                    </p>
+                    <UiSectionLabel
+                      label="Color"
+                      class="mb-2"
+                    />
                     <ColorPicker
                       :model-value="tag.color"
                       size="md"
@@ -526,25 +530,15 @@ async function confirmDeleteTag(tagId: string) {
                   class="p-3 w-52"
                   @submit.prevent="addProjectTag"
                 >
-                  <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
-                    New tag
-                  </p>
+                  <UiSectionLabel
+                    label="New tag"
+                    class="mb-2"
+                  />
                   <div class="flex items-center gap-2 mb-2">
-                    <UPopover v-model:open="newTagColorOpen">
-                      <button
-                        type="button"
-                        class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition"
-                        :style="{ backgroundColor: newTagColor }"
-                      />
-                      <template #content>
-                        <div class="p-2">
-                          <ColorPicker
-                            v-model="newTagColor"
-                            size="md"
-                          />
-                        </div>
-                      </template>
-                    </UPopover>
+                    <ColorSwatchPicker
+                      v-model="newTagColor"
+                      picker-size="md"
+                    />
                     <input
                       ref="newTagNameInput"
                       v-model="newTagName"
@@ -648,7 +642,7 @@ async function confirmDeleteTag(tagId: string) {
                   </div>
                   <!-- "12 cards · 34m ago", not "12" behind a stack-of-layers icon. -->
                   <div class="flex items-center justify-end gap-2 text-xs text-dimmed">
-                    <span class="whitespace-nowrap">{{ pluralize(view.cardCount ?? 0, 'card') }}</span>
+                    <span class="whitespace-nowrap">{{ plural(view.cardCount ?? 0, 'card') }}</span>
                     <template v-if="view.lastActivity">
                       <span aria-hidden="true">&middot;</span>
                       <span class="whitespace-nowrap">{{ relativeTime(view.lastActivity) }}</span>
@@ -695,7 +689,6 @@ async function confirmDeleteTag(tagId: string) {
         v-model:open="showNewView"
         :project-id="project.id"
         :project-name="project.name"
-        :project-slug="slug"
         :statuses="projectStatuses"
         :tags="projectTags"
         @created="onViewCreated"

@@ -6,7 +6,6 @@ const dbPath = process.env.DATABASE_URL || 'sqlite.db'
 const sqlite = new Database(dbPath, { fileMustExist: false })
 sqlite.pragma('journal_mode = WAL')
 sqlite.pragma('foreign_keys = ON')
-sqlite.pragma('auto_vacuum = INCREMENTAL')
 
 export const db = drizzle(sqlite, { schema })
 export { schema }

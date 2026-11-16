@@ -91,7 +91,7 @@ const addError = ref('')
 const adding = ref(false)
 const showResults = ref(false)
 const highlightIndex = ref(-1)
-let searchTimeout: ReturnType<typeof setTimeout> | null = null
+const search = useDebouncedRequest()
 
 function isValidEmail(str: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str)
@@ -100,29 +100,25 @@ function isValidEmail(str: string): boolean {
 watch(searchQuery, (val) => {
   addError.value = ''
   highlightIndex.value = -1
-  if (searchTimeout) clearTimeout(searchTimeout)
   const q = val.trim()
   if (q.length < 2) {
+    search.cancel()
+    searching.value = false
     searchResults.value = []
     showResults.value = false
     return
   }
   searching.value = true
   showResults.value = true
-  searchTimeout = setTimeout(async () => {
-    try {
-      const results = await $fetch<SearchUser[]>('/api/users/search', { params: { q } })
-      if (searchQuery.value.trim() === q) {
-        const memberIds = new Set((members.value || []).map(m => m.id))
-        // Agents join through "Add agent", which only offers the ones allowed here.
-        searchResults.value = results.filter(u => !memberIds.has(u.id) && !isAgent(u))
-      }
-    } catch {
-      searchResults.value = []
-    } finally {
-      searching.value = false
-    }
-  }, 200)
+  search.run(() => $fetch<SearchUser[]>('/api/users/search', { params: { q } }), {
+    then: (results) => {
+      const memberIds = new Set((members.value || []).map(m => m.id))
+      // Agents join through "Add agent", which only offers the ones allowed here.
+      searchResults.value = results.filter(u => !memberIds.has(u.id) && !isAgent(u))
+    },
+    catch: () => { searchResults.value = [] },
+    finally: () => { searching.value = false }
+  })
 })
 
 async function addMember(user: SearchUser) {
@@ -593,15 +589,13 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
               </template>
             </button>
           </UDropdownMenu>
-          <span
+          <UBadge
             v-else
-            class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0"
-            :class="m.role === 'owner'
-              ? 'bg-primary/10 text-primary'
-              : 'bg-elevated text-muted'"
-          >
-            {{ m.role }}
-          </span>
+            :label="m.role"
+            :color="m.role === 'owner' ? 'primary' : 'neutral'"
+            variant="soft"
+            class="shrink-0"
+          />
         </li>
 
         <template v-if="isOwnerOrAdmin">
@@ -806,16 +800,14 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
               />
             </button>
           </UDropdownMenu>
-          <span
+          <UBadge
             v-else
-            class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 flex items-center gap-1 bg-elevated text-muted"
-          >
-            <UIcon
-              name="i-lucide-lock"
-              class="text-2xs"
-            />
-            Member
-          </span>
+            label="Member"
+            icon="i-lucide-lock"
+            color="neutral"
+            variant="soft"
+            class="shrink-0"
+          />
         </li>
       </ul>
 

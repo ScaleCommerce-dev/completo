@@ -173,9 +173,7 @@ async function submit() {
       </p>
 
       <div class="mt-5">
-        <span class="text-xs font-semibold uppercase tracking-label text-dimmed">
-          {{ loading ? 'Their agents' : `${firstName} manages ${plural(agents.length, 'agent')}` }}
-        </span>
+        <UiSectionLabel :label="loading ? 'Their agents' : `${firstName} manages ${plural(agents.length, 'agent')}`" />
 
         <div class="mt-2 rounded-lg border border-default px-3 py-2">
           <div class="flex items-center gap-2 min-w-0">

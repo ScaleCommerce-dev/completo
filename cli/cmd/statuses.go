@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/scalecommerce-dev/completo/cli/internal"
 	"github.com/spf13/cobra"
@@ -16,7 +17,7 @@ type projectDetail struct {
 	DoneStatusID      *string  `json:"doneStatusId"`
 	DoneRetentionDays *int     `json:"doneRetentionDays"`
 	Statuses          []status `json:"statuses"`
-	Boards []struct {
+	Boards            []struct {
 		ID   string `json:"id"`
 		Slug string `json:"slug"`
 	} `json:"boards"`
@@ -33,12 +34,9 @@ var statusesCmd = &cobra.Command{
 	Short: "List statuses for a project",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := mustClient()
-		slug := cfg.Project
-		if len(args) > 0 {
-			slug = args[0]
-		}
-		if slug == "" {
-			return fmt.Errorf("project required: pass as argument or set PROJECT in .completo")
+		slug, err := projectSlug(cfg, args)
+		if err != nil {
+			return err
 		}
 
 		proj, err := fetchProject(client, slug)
@@ -88,6 +86,34 @@ func fetchProject(client *internal.Client, slugOrID string) (*projectDetail, err
 		return nil, fmt.Errorf("failed to parse project: %w", err)
 	}
 	return &proj, nil
+}
+
+// projectSlug is the positional project argument, or PROJECT from .completo.
+func projectSlug(cfg *internal.Config, args []string) (string, error) {
+	if len(args) > 0 {
+		return args[0], nil
+	}
+	if cfg.Project == "" {
+		return "", fmt.Errorf("project required: pass as argument or set PROJECT in .completo")
+	}
+	return cfg.Project, nil
+}
+
+// requireStatus finds a status by its exact name, or lists the project's statuses
+// on stderr and fails. Stderr, so a failed lookup never lands in --json output.
+func requireStatus(statuses []status, name string) (*status, error) {
+	if s := findStatusByName(statuses, name); s != nil {
+		return s, nil
+	}
+	fmt.Fprintf(os.Stderr, "Status %q not found. Available statuses:\n", name)
+	printStatusNames(statuses)
+	return nil, fmt.Errorf("status %q not found", name)
+}
+
+func printStatusNames(statuses []status) {
+	for _, st := range statuses {
+		fmt.Fprintf(os.Stderr, "  %s\n", st.Name)
+	}
 }
 
 func findStatusByName(statuses []status, name string) *status {

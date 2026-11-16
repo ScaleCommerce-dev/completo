@@ -122,14 +122,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Normal registration: require email verification
-  const token = crypto.randomUUID()
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
-  db.insert(schema.emailVerificationTokens).values({
-    userId,
-    token,
-    purpose: 'verify',
-    expiresAt
-  }).run()
+  const token = issueEmailToken(userId, 'verify')
 
   if (isEmailEnabled()) {
     try {

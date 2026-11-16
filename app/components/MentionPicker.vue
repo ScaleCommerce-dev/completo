@@ -36,18 +36,14 @@ const searchedPeople = ref<MentionUser[] | null>(null)
 const cardResults = ref<Array<{ id: number, title: string }>>([])
 const searchInput = useTemplateRef<HTMLInputElement>('searchInput')
 
-let searchTimeout: ReturnType<typeof setTimeout> | null = null
+// Cancelled on unmount too: the editor closes on Escape or Cancel while a search
+// typed 200ms ago is still pending, and its answer must not land afterwards.
+const search = useDebouncedRequest()
 
-/**
- * Every path that *ends* a search already clears this — picking a result, closing
- * the picker, typing past the trigger. Unmount was the one that did not, and it is
- * the likeliest: the editor closes on Escape or Cancel while a search typed 300ms
- * ago is still pending, and the callback then fetches and assigns into a component
- * that is gone.
- */
-onBeforeUnmount(() => {
-  if (searchTimeout) clearTimeout(searchTimeout)
-})
+// The combobox pattern: focus stays in the input, and the highlighted result is
+// announced through `aria-activedescendant` as the arrows move it.
+const listId = useId()
+const optionId = (i: number) => `${listId}-${i}`
 
 /**
  * People, your agents, then other agents: the assignee menu's three groups, from
@@ -87,7 +83,6 @@ function userIndex(groupKey: string, i: number) {
 }
 
 watch(query, (q) => {
-  if (searchTimeout) clearTimeout(searchTimeout)
   const trimmed = q.trim()
   index.value = 0
 
@@ -95,22 +90,24 @@ watch(query, (q) => {
   // server: a single letter matches most of the project and the round-trip buys
   // nothing. The overwhelmingly common mention is someone already on the project.
   if (trimmed.length <= 1) {
+    search.cancel()
     searchedPeople.value = null
     cardResults.value = []
     return
   }
 
-  searchTimeout = setTimeout(async () => {
-    const [users, cards] = await Promise.all([
-      $fetch<MentionUser[]>('/api/users/search', { params: { q: trimmed } }).catch(() => [] as MentionUser[]),
-      props.projectSlug
-        ? $fetch<Array<{ id: number, title: string }>>(`/api/projects/${props.projectSlug}/cards/search`, { params: { q: trimmed } }).catch(() => [] as Array<{ id: number, title: string }>)
-        : Promise.resolve([] as Array<{ id: number, title: string }>)
-    ])
-    searchedPeople.value = users.filter(u => !isAgent(u))
-    cardResults.value = cards
-    index.value = 0
-  }, 200)
+  search.run(() => Promise.all([
+    $fetch<MentionUser[]>('/api/users/search', { params: { q: trimmed } }).catch(() => [] as MentionUser[]),
+    props.projectSlug
+      ? $fetch<Array<{ id: number, title: string }>>(`/api/projects/${props.projectSlug}/cards/search`, { params: { q: trimmed } }).catch(() => [] as Array<{ id: number, title: string }>)
+      : Promise.resolve([] as Array<{ id: number, title: string }>)
+  ]), {
+    then: ([users, cards]) => {
+      searchedPeople.value = users.filter(u => !isAgent(u))
+      cardResults.value = cards
+      index.value = 0
+    }
+  })
 })
 
 function onKeydown(e: KeyboardEvent) {
@@ -148,8 +145,6 @@ function focus() {
 onMounted(() => {
   focus()
 })
-
-defineExpose({ focus })
 </script>
 
 <template>
@@ -168,23 +163,39 @@ defineExpose({ focus })
         ref="searchInput"
         v-model="query"
         aria-label="Search members or cards to mention"
+        role="combobox"
+        aria-autocomplete="list"
+        :aria-controls="listId"
+        :aria-expanded="allResults.length > 0"
+        :aria-activedescendant="allResults.length ? optionId(index) : undefined"
         placeholder="Search members or cards..."
         class="w-full pl-8 pr-3 py-2.5 text-sm text-default placeholder:text-dimmed bg-transparent border-0"
         @keydown="onKeydown"
       >
     </div>
-    <div class="max-h-[240px] overflow-y-auto">
+    <div
+      :id="listId"
+      role="listbox"
+      aria-label="Mention suggestions"
+      class="max-h-[240px] overflow-y-auto"
+    >
       <div
         v-for="group in groups"
         :key="group.key"
+        role="group"
+        :aria-label="group.label"
       >
         <div class="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-label text-dimmed">
           {{ group.label }}
         </div>
         <button
           v-for="(user, i) in group.users"
+          :id="optionId(userIndex(group.key, i))"
           :key="'u-' + user.id"
           type="button"
+          role="option"
+          tabindex="-1"
+          :aria-selected="userIndex(group.key, i) === index"
           class="w-full flex items-center gap-2.5 px-3 py-1.5 text-left text-sm transition-colors"
           :class="userIndex(group.key, i) === index ? 'bg-primary/10 text-primary' : 'text-default hover:bg-elevated'"
           @mousedown.prevent
@@ -203,14 +214,22 @@ defineExpose({ focus })
           <span class="ml-auto text-xs text-dimmed truncate">{{ isAgent(user) ? user.description : user.email }}</span>
         </button>
       </div>
-      <div v-if="cardResults.length > 0">
+      <div
+        v-if="cardResults.length > 0"
+        role="group"
+        aria-label="Cards"
+      >
         <div class="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-label text-dimmed">
           Cards
         </div>
         <button
           v-for="(c, i) in cardResults"
+          :id="optionId(userResults.length + i)"
           :key="'c-' + c.id"
           type="button"
+          role="option"
+          tabindex="-1"
+          :aria-selected="(userResults.length + i) === index"
           class="w-full flex items-center gap-2.5 px-3 py-1.5 text-left text-sm transition-colors"
           :class="(userResults.length + i) === index ? 'bg-primary/10 text-primary' : 'text-default hover:bg-elevated'"
           @mousedown.prevent

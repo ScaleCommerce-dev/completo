@@ -17,18 +17,14 @@ interface Attachment {
 export function useAttachments(cardId: Ref<number | null | undefined>) {
   const toast = useToast()
   const attachments = ref<Attachment[]>([])
-  const loading = ref(false)
   const uploading = ref(false)
 
   async function fetchAttachments() {
     if (!cardId.value) return
-    loading.value = true
     try {
       attachments.value = await $fetch<Attachment[]>(`/api/cards/${cardId.value}/attachments`)
     } catch {
       // Silent fail — card might not exist yet
-    } finally {
-      loading.value = false
     }
   }
 
@@ -75,11 +71,9 @@ export function useAttachments(cardId: Ref<number | null | undefined>) {
 
   return {
     attachments,
-    loading,
     uploading,
     upload,
     remove,
-    fetchAttachments,
     downloadUrl
   }
 }

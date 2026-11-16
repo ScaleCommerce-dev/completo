@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { sqliteTable, text, integer, index, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 import { CARD_HISTORY_FIELDS } from '../../shared/utils/card-history-fields'
+import { DEFAULT_COLOR } from '../../shared/utils/colors'
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -176,7 +177,7 @@ export const tags = sqliteTable('tags', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
-  color: text('color').notNull().default('#6366f1')
+  color: text('color').notNull().default(DEFAULT_COLOR)
 }, table => [
   index('tags_project_idx').on(table.projectId)
 ])

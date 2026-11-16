@@ -754,6 +754,7 @@ defineExpose({
                       <button
                         v-for="att in imageAttachments"
                         :key="att.id"
+                        :aria-label="`Insert ${att.originalName}`"
                         type="button"
                         class="aspect-square rounded-md overflow-hidden border border-default hover:border-primary hover:ring-1 hover:ring-primary/30 transition-colors"
                         :title="att.originalName"
@@ -832,10 +833,6 @@ defineExpose({
             </template>
             <AiWriteButton
               v-else
-              :title="title"
-              :description="description"
-              :tags="tags"
-              :priority="priority"
               :is-generating="aiGenerating"
               :error="aiError"
               :scope="aiScope"

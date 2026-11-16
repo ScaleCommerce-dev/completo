@@ -26,12 +26,18 @@
 - **AI settings passed to the Docker image are honoured.** `-e AI_PROVIDER=...` and the matching API key were read when the image was built, not when it ran, so AI stayed off unless the `NUXT_` spellings were used.
 - **Large projects load faster**, with indexes on the tables every view reads.
 - **`user:create` stores the email address in lowercase**, so an admin created as `Admin@Example.com` can sign in; an existing account stored that way is repaired the next time the container starts with `ADMIN_USER_EMAIL`. `user:set-role` refuses to make an agent an admin, and leaves demoting someone who manages agents to the app, which removes those agents from projects their manager is not in.
+- **Cards open from the keyboard.** Tab reaches a card's title on the board and a row's title in lists, and Enter opens it. Thirty icon-only buttons (the formatting toolbar, colour swatches, inline save and cancel, copy and delete buttons) now have names a screen reader announces, and the @-mention picker is announced as a list of suggestions.
+- **Search-as-you-type shows the results for what you typed last.** In the @-mention picker, the parent picker and the member search, a slow answer for an earlier query could replace the results for the full one.
+- **The new board or list dialog checks the address reliably.** Clearing the address no longer leaves a spinner, switching between board and list no longer keeps the other's answer, and pressing ⌘↵ twice no longer creates the view twice. Its checkboxes are real checkboxes, and its tag chips have the same readable colours as everywhere else.
+- **Agent and profile token lists match.** Both offer the same expiry choices and say when a token was never used.
+- **Dates read the same everywhere**, as "Nov 16, 2026"; an agent's page said "16 Nov 2026".
 
 ### CLI
 
 - `completo create --parent TK-12` creates a sub-task, and `completo update TK-13 --parent TK-12` (or `--parent none`) moves or detaches one. `completo get` lists a card's sub-tasks and shows a sub-task's parent. `completo list --parent TK-12` lists one card's sub-tasks, `--parent none` only cards that are not sub-tasks, and the list shows a PARENT column when it contains a sub-task. Moving a parent with open sub-tasks to Done fails and names them.
 - **A project's `.completo.local` can no longer receive your exported token.** A file that set `COMPLETO_URL` along with any `COMPLETO_TOKEN` passed the check, and an exported `COMPLETO_TOKEN` then replaced its token and went to the file's server. The CLI now refuses unless the token it sends is the file's own, or the server is the one in `~/.completo/.env`.
 - **`completo self-update` verifies what it installs** against the release's `checksums.txt`, as the install script does, and refuses when it cannot. It also reports a failed update check instead of saying "Already up to date", no longer hangs on a stalled download, and works when the system temp directory is on another disk. The install script no longer installs without a checksum.
+- **A mistyped status no longer corrupts `--json` output.** `list`, `move` and `next` printed the list of valid statuses to standard output, and `assign` its list of members; both now go to standard error.
 
 ### Upgrading
 
@@ -43,6 +49,7 @@
 ### Dev
 
 - CI runs with read-only permissions by default, on pull requests as well as pushes, and runs `go vet` and `go test` for the CLI; the release workflow grants write access only to the jobs that push images or publish the release.
+- Removed the `swagger-ui-dist` devDependency (nothing imported it) and the start-up incremental vacuum (it never freed anything: `auto_vacuum` only takes effect on an empty database, and the boot cleanup's full `VACUUM` already reclaims space).
 
 ## v0.17.0 (2026-11-12)
 

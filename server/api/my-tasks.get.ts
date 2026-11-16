@@ -94,15 +94,7 @@ export default defineEventHandler(async (event) => {
   const groups = allProjects.map((project) => {
     const projectStatuses = allStatuses.filter(s => s.projectId === project.id)
 
-    // Filter out done cards past retention window
-    let projectCards = visibleCards.filter(c => c.projectId === project.id)
-    if (project.doneStatusId && project.doneRetentionDays != null) {
-      const cutoff = Date.now() - project.doneRetentionDays * 86400000
-      projectCards = projectCards.filter((card) => {
-        if (card.statusId !== project.doneStatusId) return true
-        return card.updatedAt.getTime() >= cutoff
-      })
-    }
+    const projectCards = visibleCards.filter(c => c.projectId === project.id && !isExpiredDone(c, project))
 
     const cardsWithTags = projectCards.map(card => ({
       ...card,

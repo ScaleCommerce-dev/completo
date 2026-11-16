@@ -56,7 +56,6 @@
     "eslint": "^10.14.0",
     "happy-dom": "^21.0.4",
     "ofetch": "^1.5.1",
-    "swagger-ui-dist": "^5.34.1",
     "typescript": "^5.9.3",
     "vitest": "^5.1.0",
     "vue-tsc": "^3.3.14"

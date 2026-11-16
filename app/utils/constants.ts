@@ -192,17 +192,6 @@ export function priorityIcon(priority: string): string {
 }
 
 /**
- * Priority colour for a UButton/UDropdownMenu `color` prop. Mirrors
- * `priorityTextClass` in Nuxt UI's vocabulary — this used to be declared
- * independently in KanbanCard, CardModal and the card detail page.
- */
-export function priorityUiColor(priority: string): 'error' | 'warning' | 'neutral' {
-  if (priority === 'urgent') return 'error'
-  if (priority === 'high') return 'warning'
-  return 'neutral'
-}
-
-/**
  * An absent value in a list column.
  *
  * These cells are editable popover triggers, so removing the em-dash entirely would

@@ -250,17 +250,7 @@ onBeforeRouteLeave(() => {
  * editor claims it first; otherwise it belongs to the description, which is the
  * only thing on this page that is still explicitly saved.
  */
-function handleKeydown(e: KeyboardEvent) {
-  if (!((e.metaKey || e.ctrlKey) && e.key === 'Enter')) return
-  if ((e.target as HTMLElement | null)?.closest?.('[data-comment-editor]')) return
-  if (!editingDescription.value) return
-  e.preventDefault()
-  e.stopImmediatePropagation()
-  submit()
-}
-
-onMounted(() => document.addEventListener('keydown', handleKeydown, true))
-onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
+useCmdEnter(submit, { active: () => editingDescription.value })
 
 /**
  * Commits the description, from the button under the editor it belongs to. The

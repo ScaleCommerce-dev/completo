@@ -13,7 +13,7 @@ func TestFormatFields(t *testing.T) {
 		{Key: "status", Value: "To Do"},
 	}
 
-	result := FormatFields(fields, false)
+	result := FormatFields(fields)
 
 	// All keys should be present
 	if !strings.Contains(result, "ticket:") {
@@ -33,7 +33,7 @@ func TestFormatFieldsMultiline(t *testing.T) {
 		{Key: "description", Value: "line 1\nline 2\nline 3"},
 	}
 
-	result := FormatFields(fields, false)
+	result := FormatFields(fields)
 
 	// Multi-line values should be indented
 	if !strings.Contains(result, "description:\n") {
@@ -41,19 +41,6 @@ func TestFormatFieldsMultiline(t *testing.T) {
 	}
 	if !strings.Contains(result, "  line 1\n") {
 		t.Error("multi-line value lines should be indented")
-	}
-}
-
-func TestFormatFieldsJSON(t *testing.T) {
-	fields := []Field{
-		{Key: "ticket", Value: "TK-1"},
-		{Key: "title", Value: "Test"},
-	}
-
-	result := FormatFields(fields, true)
-
-	if !strings.Contains(result, `"ticket": "TK-1"`) {
-		t.Errorf("JSON output missing expected content: %s", result)
 	}
 }
 

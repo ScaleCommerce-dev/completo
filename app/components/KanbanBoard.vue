@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DEFAULT_COLOR } from '#shared/utils/colors'
 import type { BoardCard, CardStatus, Member } from '~/types/card'
 // `shared/utils` is auto-imported for Nitro but not for app components.
 import { cardFieldVisible, type CardField } from '#shared/utils/card-fields'
@@ -55,15 +56,14 @@ function handleCardChange(columnId: string, evt: { added?: { element: { id: numb
 const showAddColumn = ref(false)
 const mode = ref<'pick' | 'create'>('pick')
 const newColumnName = ref('')
-const newColumnColor = ref('#6366f1')
-const newColorOpen = ref(false)
+const newColumnColor = ref(DEFAULT_COLOR)
 const nameInput = ref<HTMLInputElement>()
 
 function openAddColumn() {
   showAddColumn.value = true
   mode.value = 'pick'
   newColumnName.value = ''
-  newColumnColor.value = '#6366f1'
+  newColumnColor.value = DEFAULT_COLOR
 }
 
 function switchToCreate() {
@@ -81,13 +81,13 @@ function submitColumn() {
   emit('add-column', newColumnName.value.trim(), newColumnColor.value)
   showAddColumn.value = false
   newColumnName.value = ''
-  newColumnColor.value = '#6366f1'
+  newColumnColor.value = DEFAULT_COLOR
 }
 
 function cancelAddColumn() {
   showAddColumn.value = false
   newColumnName.value = ''
-  newColumnColor.value = '#6366f1'
+  newColumnColor.value = DEFAULT_COLOR
 }
 
 // ─── Horizontal scroll affordance ───────────────────────────────────────────
@@ -301,7 +301,10 @@ function onCardClick(columnId: string, card: BoardCard) {
             v-if="availableColumns?.length"
             class="flex flex-col gap-1"
           >
-            <span class="text-xs font-bold text-muted uppercase tracking-label mb-0.5">Available columns</span>
+            <UiSectionLabel
+              label="Available columns"
+              class="mb-0.5"
+            />
             <button
               v-for="col in availableColumns"
               :key="col.id"
@@ -376,18 +379,7 @@ function onCardClick(columnId: string, card: BoardCard) {
               @keydown.escape="cancelAddColumn"
             >
             <div class="flex items-center gap-2">
-              <UPopover v-model:open="newColorOpen">
-                <button
-                  type="button"
-                  class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition"
-                  :style="{ backgroundColor: newColumnColor }"
-                />
-                <template #content>
-                  <div class="p-2">
-                    <ColorPicker v-model="newColumnColor" />
-                  </div>
-                </template>
-              </UPopover>
+              <ColorSwatchPicker v-model="newColumnColor" />
               <span class="text-xs text-dimmed">Color</span>
               <div class="flex-1" />
               <UButton

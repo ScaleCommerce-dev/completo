@@ -76,6 +76,7 @@ function applyFilterAsIcon() {
         <button
           v-for="ic in filteredIcons"
           :key="ic"
+          :aria-label="`Icon ${ic}`"
           type="button"
           class="flex items-center justify-center w-full aspect-square rounded-md transition-colors"
           :class="props.modelValue === ic

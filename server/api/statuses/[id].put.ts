@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   const { status } = await resolveStatus(event)
   const { name, color } = await readBody<{ name?: string, color?: string }>(event)
 
-  if (color !== undefined && color !== null && !/^#[0-9A-Fa-f]{6}$/.test(color)) {
+  if (color !== undefined && color !== null && !isHexColor(color)) {
     throw createError({ statusCode: 400, message: 'Color must be a valid hex color (#RRGGBB)' })
   }
 

@@ -67,7 +67,8 @@ export default defineEventHandler(async (event) => {
   const cardRows = statusIds.length
     ? db.select().from(schema.cards)
         .leftJoin(schema.users, eq(schema.cards.assigneeId, schema.users.id))
-        .where(inArray(schema.cards.statusId, statusIds))
+        // Expired done cards are left out in the query (`notExpiredDone`).
+        .where(and(inArray(schema.cards.statusId, statusIds), project ? notExpiredDone(project) : undefined))
         .all()
     : []
   const members = db.select(memberRefColumns())
@@ -81,17 +82,7 @@ export default defineEventHandler(async (event) => {
     assignee: ref(row.users)
   }))
 
-  // Filter out done cards past retention window
-  let boardCards = allBoardCards
-  if (project?.doneStatusId && project.doneRetentionDays != null) {
-    const cutoff = Date.now() - project.doneRetentionDays * 86400000
-    boardCards = allBoardCards.filter((card) => {
-      if (card.statusId !== project.doneStatusId) return true
-      return card.updatedAt.getTime() >= cutoff
-    })
-  }
-
-  const cardsWithTags = enrichCardsWithMetadata(boardCards, { userId: user.id })
+  const cardsWithTags = enrichCardsWithMetadata(allBoardCards, { userId: user.id })
 
   // Fetch project-level tags for the picker
   const projectTags = db.select().from(schema.tags)

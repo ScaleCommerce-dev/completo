@@ -16,12 +16,9 @@ var nextCmd = &cobra.Command{
 	Long:  "Returns the first card (by position) in the given status. Use --all to list every card in the status. Uses the project from .completo if not specified.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := mustClient()
-		slug := cfg.Project
-		if len(args) > 0 {
-			slug = args[0]
-		}
-		if slug == "" {
-			return fmt.Errorf("project required: pass as argument or set PROJECT in .completo")
+		slug, err := projectSlug(cfg, args)
+		if err != nil {
+			return err
 		}
 
 		statusName := nextStatus
@@ -34,13 +31,9 @@ var nextCmd = &cobra.Command{
 			return err
 		}
 
-		s := findStatusByName(proj.Statuses, statusName)
-		if s == nil {
-			fmt.Printf("Status %q not found. Available statuses:\n", statusName)
-			for _, st := range proj.Statuses {
-				fmt.Printf("  %s\n", st.Name)
-			}
-			return fmt.Errorf("status %q not found", statusName)
+		s, err := requireStatus(proj.Statuses, statusName)
+		if err != nil {
+			return err
 		}
 
 		if nextAll {

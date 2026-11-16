@@ -18,7 +18,6 @@ interface Tag {
 const props = defineProps<{
   projectId: string
   projectName: string
-  projectSlug: string
   statuses: Status[]
   tags: Tag[]
 }>()
@@ -46,9 +45,17 @@ const selectedListFields = ref<Set<string>>(new Set(DEFAULT_LIST_FIELDS))
 const selectedTagFilters = ref<Set<string>>(new Set())
 
 const slugValid = computed(() => isValidSlug(viewSlug.value))
-const slugAvailable = ref<boolean | null>(null)
-const slugChecking = ref(false)
-let slugCheckTimeout: ReturnType<typeof setTimeout> | null = null
+// The shared check: it aborts a superseded request, so an emptied slug or a switch
+// between board and list (two endpoints) never leaves a spinner or a stale answer.
+const slugCheck = useAvailabilityCheck({
+  endpoint: () => viewType.value === 'board' ? '/api/boards/check-slug' : '/api/lists/check-slug',
+  paramName: 'slug',
+  validate: isValidSlug,
+  params: () => ({ projectId: props.projectId })
+})
+const slugAvailable = slugCheck.available
+const slugChecking = slugCheck.checking
+onBeforeUnmount(slugCheck.cleanup)
 
 watch(viewName, (val) => {
   if (!viewSlugManuallyEdited.value) {
@@ -56,27 +63,7 @@ watch(viewName, (val) => {
   }
 })
 
-watch(viewSlug, (val) => {
-  slugAvailable.value = null
-  if (slugCheckTimeout) clearTimeout(slugCheckTimeout)
-  if (!val || !slugValid.value) return
-  slugChecking.value = true
-  const checkEndpoint = viewType.value === 'board' ? '/api/boards/check-slug' : '/api/lists/check-slug'
-  slugCheckTimeout = setTimeout(async () => {
-    try {
-      const { available } = await $fetch<{ available: boolean }>(checkEndpoint, {
-        params: { slug: val, projectId: props.projectId }
-      })
-      if (viewSlug.value === val) {
-        slugAvailable.value = available
-      }
-    } catch {
-      slugAvailable.value = null
-    } finally {
-      slugChecking.value = false
-    }
-  }, 300)
-})
+watch([viewSlug, viewType], ([slug]) => slugCheck.check(slug))
 
 function resetForm() {
   viewStep.value = 1
@@ -85,19 +72,14 @@ function resetForm() {
   viewSlug.value = ''
   viewSlugManuallyEdited.value = false
   createError.value = ''
-  slugAvailable.value = null
+  slugCheck.reset()
   selectedBoardColumns.value = new Set(props.statuses.map(s => s.id))
   selectedListFields.value = new Set(DEFAULT_LIST_FIELDS)
   selectedTagFilters.value = new Set()
 }
 
 watch(open, (val) => {
-  if (val) {
-    resetForm()
-    document.addEventListener('keydown', handleKeydown, true)
-  } else {
-    document.removeEventListener('keydown', handleKeydown, true)
-  }
+  if (val) resetForm()
 })
 
 function onSlugInput(e: Event) {
@@ -107,14 +89,10 @@ function onSlugInput(e: Event) {
   viewSlugManuallyEdited.value = true
 }
 
-function handleKeydown(e: KeyboardEvent) {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-    e.preventDefault()
-    e.stopImmediatePropagation()
-    if (viewStep.value === 3) createView()
-    else if (viewStep.value === 2 && viewName.value.trim() && slugValid.value && slugAvailable.value !== false) viewStep.value = 3
-  }
-}
+useCmdEnter(() => {
+  if (viewStep.value === 3) createView()
+  else if (viewStep.value === 2 && viewName.value.trim() && slugValid.value && slugAvailable.value !== false) viewStep.value = 3
+}, { active: () => open.value })
 
 /** The footer's summary line: what this view will contain, before it exists. */
 const selectionSummary = computed(() => {
@@ -167,6 +145,7 @@ function toggleCreateTagFilter(tagId: string) {
 }
 
 async function createView() {
+  if (creatingView.value) return
   if (!viewName.value.trim() || !slugValid.value || slugAvailable.value === false) return
   creatingView.value = true
   createError.value = ''
@@ -202,8 +181,6 @@ async function createView() {
     creatingView.value = false
   }
 }
-
-onUnmounted(() => document.removeEventListener('keydown', handleKeydown, true))
 
 /**
  * The dialog's own header, per step.
@@ -307,14 +284,14 @@ const STEP_HEADINGS = computed(() => {
         @submit.prevent="goToStep3"
       >
         <div class="px-dialog pt-2 pb-1">
-          <input
+          <UInput
             v-model="viewName"
-            type="text"
             :aria-label="`${viewType === 'board' ? 'Board' : 'List'} name`"
             :placeholder="`${viewType === 'board' ? 'Board' : 'List'} name...`"
             autofocus
-            class="w-full min-h-11 text-base font-semibold text-highlighted placeholder:text-muted bg-default border border-default rounded-field px-3 py-2 transition-colors"
-          >
+            class="w-full"
+            :ui="{ base: 'font-semibold text-highlighted' }"
+          />
         </div>
 
         <div class="mx-dialog mt-4 rounded-lg border border-default divide-y divide-default overflow-hidden">
@@ -396,76 +373,44 @@ const STEP_HEADINGS = computed(() => {
         <div class="px-dialog py-4 max-h-[320px] overflow-y-auto">
           <!-- Board: checkbox statuses -->
           <template v-if="viewType === 'board'">
-            <!--
-                A real control, not a clickable div. These rows are checkboxes in
-                everything but markup — they carry a checked state and toggle it —
-                so `role="checkbox"` with `aria-checked` is what makes the state
-                announced and the row reachable. The tag chips further down were
-                already buttons; these were the odd ones out, and a keyboard could
-                not choose a single column for a new board.
-              -->
-            <button
+            <!-- `UCheckbox`, not a hand-drawn box: it is keyboard-operable and
+                 announced as a checkbox, and its fill is the theme's accent rather
+                 than a `bg-primary` square (the text-safe tint, not the fill). -->
+            <UCheckbox
               v-for="status in statuses"
               :key="status.id"
-              type="button"
-              role="checkbox"
-              :aria-checked="selectedBoardColumns.has(status.id)"
-              class="w-full text-left flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors"
-              @click="toggleBoardColumn(status.id)"
+              :model-value="selectedBoardColumns.has(status.id)"
+              class="px-2 py-2 rounded-lg hover:bg-muted transition-colors"
+              :ui="{ label: 'flex items-center gap-3 text-base font-medium text-default' }"
+              @update:model-value="toggleBoardColumn(status.id)"
             >
-              <div
-                class="flex items-center justify-center w-5 h-5 rounded-md border-2 transition-colors shrink-0"
-                :class="selectedBoardColumns.has(status.id)
-                  ? 'bg-primary border-primary'
-                  : 'border-accented'"
-              >
-                <UIcon
-                  v-if="selectedBoardColumns.has(status.id)"
-                  name="i-lucide-check"
-                  class="text-white text-xs"
-                />
-              </div>
-              <span
-                class="w-2.5 h-2.5 rounded-full shrink-0"
-                :style="{ backgroundColor: status.color || '#a1a1aa' }"
-              />
-              <span class="text-base font-medium text-default">{{ status.name }}</span>
-            </button>
+              <template #label>
+                <UiStatusDot :color="status.color" />
+                {{ status.name }}
+              </template>
+            </UCheckbox>
           </template>
 
           <!-- List: checkbox fields -->
           <template v-else>
-            <button
+            <UCheckbox
               v-for="f in LIST_FIELD_OPTIONS"
               :key="f.field"
-              type="button"
-              role="checkbox"
-              :aria-checked="selectedListFields.has(f.field)"
-              class="w-full text-left flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted transition-colors"
-              @click="toggleListField(f.field)"
-            >
-              <div
-                class="flex items-center justify-center w-5 h-5 rounded-md border-2 transition-colors shrink-0"
-                :class="selectedListFields.has(f.field)
-                  ? 'bg-primary border-primary'
-                  : 'border-accented'"
-              >
-                <UIcon
-                  v-if="selectedListFields.has(f.field)"
-                  name="i-lucide-check"
-                  class="text-white text-xs"
-                />
-              </div>
-              <span class="text-base font-medium text-default">{{ f.label }}</span>
-            </button>
+              :model-value="selectedListFields.has(f.field)"
+              :label="f.label"
+              class="px-2 py-2 rounded-lg hover:bg-muted transition-colors"
+              :ui="{ label: 'text-base font-medium text-default' }"
+              @update:model-value="toggleListField(f.field)"
+            />
           </template>
 
           <!-- Tag filters (both board and list) -->
           <template v-if="tags.length">
             <div class="mt-3 pt-3 border-t border-muted">
-              <div class="text-xs font-bold text-muted uppercase tracking-label mb-2">
-                Tag Filters
-              </div>
+              <UiSectionLabel
+                label="Tag Filters"
+                class="mb-2"
+              />
               <p class="text-xs text-dimmed mb-2">
                 Only show cards matching selected tags
               </p>
@@ -474,21 +419,21 @@ const STEP_HEADINGS = computed(() => {
                   v-for="tag in tags"
                   :key="tag.id"
                   type="button"
-                  class="tag-toggle inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition duration-150 active:scale-95"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition duration-150 active:scale-95"
                   :class="selectedTagFilters.has(tag.id)
-                    ? ''
-                    : 'bg-elevated text-dimmed hover:text-toned tag-toggle-inactive'"
-                  :style="selectedTagFilters.has(tag.id) ? {
-                    color: tag.color,
-                    backgroundColor: tag.color + '22',
-                    boxShadow: `inset 0 0 0 1.5px ${tag.color}`
-                  } : {}"
+                    ? 'swatch'
+                    : 'bg-elevated text-dimmed hover:text-toned'"
+                  :style="selectedTagFilters.has(tag.id) ? { '--swatch': tag.color } : {}"
+                  :aria-pressed="selectedTagFilters.has(tag.id)"
                   @click="toggleCreateTagFilter(tag.id)"
                 >
+                  <!-- The same chip as the view settings' filters, through `.swatch`:
+                       a raw `tag.color + '22'` tint kept a dark stored hex unreadable. -->
                   <UIcon
                     :name="selectedTagFilters.has(tag.id) ? 'i-lucide-check' : 'i-lucide-circle'"
                     class="text-2xs"
-                    :style="selectedTagFilters.has(tag.id) ? {} : { color: tag.color }"
+                    :class="selectedTagFilters.has(tag.id) ? '' : 'swatch-text'"
+                    :style="selectedTagFilters.has(tag.id) ? {} : { '--swatch': tag.color }"
                   />
                   {{ tag.name }}
                 </button>

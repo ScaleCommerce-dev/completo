@@ -42,9 +42,7 @@ export function useArmedDelete(options: { timeoutMs?: number } = {}) {
     timer = setTimeout(disarm, timeoutMs)
   }
 
-  const isArmed = (id: string) => armedId.value === id
-
   onUnmounted(disarm)
 
-  return { armedId, arm, disarm, isArmed }
+  return { armedId, arm, disarm }
 }

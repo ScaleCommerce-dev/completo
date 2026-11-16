@@ -1,8 +1,11 @@
 export function useAvailabilityCheck(opts: {
-  endpoint: string
+  /** A getter when it depends on state, as a board's and a list's slug do. */
+  endpoint: MaybeRefOrGetter<string>
   paramName: string
   validate: (value: string) => boolean
   excludeId?: Ref<string | undefined>
+  /** Further query parameters, such as the project a view's slug is scoped to. */
+  params?: () => Record<string, string>
 }) {
   const available = ref<boolean | null>(null)
   const checking = ref(false)
@@ -22,10 +25,10 @@ export function useAvailabilityCheck(opts: {
     timeout = setTimeout(async () => {
       abortController = new AbortController()
       try {
-        const params: Record<string, string> = { [opts.paramName]: value }
+        const params: Record<string, string> = { ...opts.params?.(), [opts.paramName]: value }
         const excludeId = opts.excludeId?.value
         if (excludeId) params.exclude = excludeId
-        const res = await $fetch<{ available: boolean }>(opts.endpoint, {
+        const res = await $fetch<{ available: boolean }>(toValue(opts.endpoint), {
           params,
           signal: abortController.signal
         })

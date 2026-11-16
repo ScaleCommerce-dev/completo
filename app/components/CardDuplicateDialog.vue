@@ -45,7 +45,7 @@ const projectKey = ref('TK')
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
-const titleInput = ref<HTMLInputElement>()
+const titleInput = ref<{ inputRef?: HTMLInputElement | null }>()
 
 function asArray(value: string | string[] | null): string[] {
   if (Array.isArray(value)) return value
@@ -139,8 +139,8 @@ watch(open, async (isOpen) => {
   }
   targetProjectSlug.value = props.projectSlug
   await nextTick()
-  titleInput.value?.focus()
-  titleInput.value?.select()
+  titleInput.value?.inputRef?.focus()
+  titleInput.value?.inputRef?.select()
 })
 
 async function submit() {
@@ -176,14 +176,14 @@ async function submit() {
     <template #body>
       <form @submit.prevent="submit">
         <div class="px-dialog pt-2 pb-1">
-          <input
+          <UInput
             ref="titleInput"
             v-model="title"
-            type="text"
             aria-label="Title of the copy"
             placeholder="Title"
-            class="w-full min-h-11 text-base font-semibold text-highlighted placeholder:text-muted bg-default border border-default rounded-field px-3 py-2 transition-colors"
-          >
+            class="w-full"
+            :ui="{ base: 'font-semibold text-highlighted' }"
+          />
         </div>
 
         <div class="mx-dialog mt-4 flex flex-col gap-3">

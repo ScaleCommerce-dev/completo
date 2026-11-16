@@ -289,6 +289,7 @@ defineExpose({
       >
         <UTooltip text="Insert image">
           <button
+            aria-label="Insert image"
             type="button"
             class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
             @mousedown.prevent
@@ -311,6 +312,7 @@ defineExpose({
                 <button
                   v-for="att in imageAttachments"
                   :key="att.id"
+                  :aria-label="`Insert ${att.originalName}`"
                   type="button"
                   class="aspect-square rounded-md overflow-hidden border border-default hover:border-primary hover:ring-1 hover:ring-primary/30 transition-colors"
                   :title="att.originalName"
@@ -354,6 +356,7 @@ defineExpose({
       <div class="w-px h-4 bg-accented mx-1" />
       <UTooltip text="Mention @">
         <button
+          aria-label="Mention @"
           type="button"
           class="p-1.5 rounded-md text-dimmed hover:text-default hover:bg-elevated transition-colors"
           @mousedown.prevent
@@ -399,10 +402,6 @@ defineExpose({
       </div>
       <AiWriteButton
         v-else
-        :title="title"
-        :description="description"
-        :tags="tags"
-        :priority="priority"
         :is-generating="aiGenerating"
         :error="aiError"
         :scope="aiScope"

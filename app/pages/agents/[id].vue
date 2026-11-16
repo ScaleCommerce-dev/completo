@@ -11,10 +11,9 @@ definePageMeta({ layout: 'default' })
  * CLAUDE.md). Name and description are seamless fields that commit on blur or
  * Enter and revert on Escape; the colour commits on pick.
  *
- * The token block is the profile's (`ProfileTokens`, through `useApiTokens`)
- * pointed at this agent, and the one-time reveal adds what the profile's has in
- * prose: copy-ready setup for the CLI, Claude Code and an `.mcp.json`, filled in,
- * because the token exists on screen exactly once.
+ * The token block is the profile's (`ApiTokens`) pointed at this agent, and the
+ * one-time reveal adds what the profile's has in prose: copy-ready setup for the
+ * CLI, Claude Code and an `.mcp.json` (`AgentsTokenSetup`).
  *
  * The manager and admins reach this page; only admins transfer. An agent with no
  * manager cannot be woken until an admin gives it one, since an active agent
@@ -78,64 +77,15 @@ async function commitColor(color: string) {
 }
 
 // ─── Tokens ──────────────────────────────────────────────────────────────────
-const {
-  tokens,
-  tokenName,
-  tokenExpiry,
-  tokenLoading,
-  createdToken,
-  createdTokenName,
-  tokenCopied,
-  deletingTokenId,
-  createToken,
-  copyToken,
-  startDeleteToken,
-  cancelDeleteToken,
-  confirmDeleteToken,
-  formatTokenDate
-} = useApiTokens({
-  endpoint: `/api/agents/${agentId}/tokens`,
-  // The list is the agent's own, so every refresh of the agent (a suspend, an
-  // unsuspend, a transfer) moves it, and the token count everywhere on this page.
-  list: { tokens: computed(() => agent.value?.tokens ?? []), reload: refresh }
-})
-
-const tokenInput = useTemplateRef<HTMLInputElement>('tokenInput')
+// The list is the agent's own, so every refresh of the agent (a suspend, an
+// unsuspend, a transfer) moves it, and the token count everywhere on this page.
+const tokenList = { tokens: computed(() => agent.value?.tokens ?? []), reload: refresh }
+const tokenBlock = useTemplateRef<{ focus: () => void }>('tokenBlock')
 
 // Landing here from Create: an agent with no token can do nothing yet.
 onMounted(() => {
-  if (route.query.new) nextTick(() => tokenInput.value?.focus())
+  if (route.query.new) nextTick(() => tokenBlock.value?.focus())
 })
-
-const SNIPPETS = [
-  { value: 'cli', label: 'CLI' },
-  { value: 'cc', label: 'Claude Code' },
-  { value: 'json', label: 'MCP config' }
-]
-const snippetTab = ref('cli')
-const { copied: snippetCopied, copy: copySnippet } = useCopyText()
-
-// The app is client-only (`ssr: false`), so the origin in the address bar is the one to paste.
-const origin = computed(() => (import.meta.client ? window.location.origin : ''))
-
-const snippet = computed(() => {
-  const token = createdToken.value ?? ''
-  if (snippetTab.value === 'cc') {
-    return `claude mcp add --transport http completo \\\n  ${origin.value}/mcp \\\n  --header "Authorization: Bearer ${token}"`
-  }
-  if (snippetTab.value === 'json') {
-    return JSON.stringify({
-      mcpServers: { completo: { type: 'http', url: `${origin.value}/mcp`, headers: { Authorization: `Bearer ${token}` } } }
-    }, null, 2)
-  }
-  return `export COMPLETO_URL=${origin.value}\nexport COMPLETO_TOKEN=${token}\nexport COMPLETO_USER=${agent.value?.email ?? ''}`
-})
-
-const snippetHelp = computed(() => ({
-  cli: 'Or let `completo config` save them to ~/.completo/.env on the agent\'s machine. COMPLETO_USER is what --me resolves to.',
-  cc: `Run it where the agent works. Everything it does through MCP shows as ${agent.value?.name ?? 'the agent'}.`,
-  json: 'For .mcp.json, or any MCP client that takes a URL and a header.'
-}[snippetTab.value]))
 
 // ─── Projects ────────────────────────────────────────────────────────────────
 const { armedId: armedProject, arm: armProject, disarm: disarmProject } = useArmedDelete()
@@ -170,7 +120,6 @@ async function suspend() {
   try {
     const result = await $fetch<{ revokedTokens: number }>(`/api/agents/${agentId}/suspend`, { method: 'POST' })
     showSuspend.value = false
-    createdToken.value = null
     await refresh()
     toast.add({
       title: `${agent.value?.name} suspended`,
@@ -190,7 +139,7 @@ async function unsuspend() {
     await $fetch(`/api/agents/${agentId}/unsuspend`, { method: 'POST' })
     await refresh()
     toast.add({ title: `${agent.value?.name} is active again`, description: 'Generate a token so it can work.', color: 'success' })
-    nextTick(() => tokenInput.value?.focus())
+    nextTick(() => tokenBlock.value?.focus())
   } catch (e: unknown) {
     toast.add({ title: 'Could not unsuspend', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
   } finally {
@@ -223,10 +172,6 @@ const deleteImpact = computed(() => {
   const cards = a.assignedCardCount ? ` Its ${plural(a.assignedCardCount, 'card')} ${a.assignedCardCount === 1 ? 'becomes' : 'become'} unassigned.` : ''
   return `${lead.charAt(0).toUpperCase()}${lead.slice(1)}${cards} Its comments and uploads stay.`
 })
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 </script>
 
 <template>
@@ -354,205 +299,26 @@ function formatDate(iso: string) {
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-6 items-start">
-        <!-- Tokens -->
-        <div class="rounded-xl border border-default bg-default shadow-raise overflow-hidden">
-          <div class="px-card pt-4 pb-2 flex items-center gap-2">
-            <UIcon
-              name="i-lucide-key-round"
-              class="text-base text-dimmed"
+        <ApiTokens
+          ref="tokenBlock"
+          :endpoint="`/api/agents/${agentId}/tokens`"
+          :list="tokenList"
+          placeholder="Token name (e.g. GitLab CI)"
+          create-label="Generate token"
+          verb="Revoke"
+          :empty-text="`No tokens yet. Until it has one, ${agent.name} can do nothing.`"
+          :blocked="agent.suspended ? 'Suspended, so it holds no tokens. Unsuspend it to generate one.' : null"
+          show-count
+        >
+          Each token acts as {{ agent.name }}, inside {{ agent.name }}'s projects and nowhere else. Generate one per machine or pipeline, so you can revoke one without stopping the others.
+          <template #created="{ token }">
+            <AgentsTokenSetup
+              :token="token"
+              :agent-name="agent.name"
+              :agent-email="agent.email"
             />
-            <span class="text-xs font-semibold uppercase tracking-label text-dimmed">API tokens</span>
-            <span class="ml-auto c2s-count">{{ tokens.length }}</span>
-          </div>
-
-          <div class="px-card pb-3">
-            <p class="text-sm text-dimmed leading-relaxed">
-              Each token acts as {{ agent.name }}, inside {{ agent.name }}'s projects and nowhere else. Generate one per machine or pipeline, so you can revoke one without stopping the others.
-            </p>
-          </div>
-
-          <p
-            v-if="agent.suspended"
-            class="mx-card rounded-lg border border-default bg-muted px-3 py-2.5 text-sm text-muted"
-          >
-            Suspended, so it holds no tokens. Unsuspend it to generate one.
-          </p>
-          <div
-            v-else
-            class="mx-card rounded-lg border border-default overflow-hidden"
-          >
-            <div
-              data-focus-field="inset"
-              class="flex items-center gap-2 px-3 py-2.5 bg-default border-b border-transparent"
-            >
-              <input
-                ref="tokenInput"
-                v-model="tokenName"
-                type="text"
-                aria-label="Token name"
-                placeholder="Token name (e.g. GitLab CI)"
-                maxlength="100"
-                class="flex-1 min-w-0 text-base text-highlighted placeholder:text-dimmed bg-transparent border-0"
-                @keydown.enter.prevent="createToken"
-              >
-              <select
-                v-model="tokenExpiry"
-                aria-label="Token expiry"
-                class="text-sm text-muted bg-transparent border-0 cursor-pointer"
-              >
-                <option value="">
-                  No expiry
-                </option>
-                <option value="30">
-                  30 days
-                </option>
-                <option value="90">
-                  90 days
-                </option>
-                <option value="365">
-                  1 year
-                </option>
-              </select>
-              <UButton
-                label="Generate token"
-                icon="i-lucide-plus"
-                class="shrink-0"
-                :disabled="!tokenName.trim()"
-                :loading="tokenLoading"
-                @click="createToken"
-              />
-            </div>
-          </div>
-
-          <!-- One-time reveal -->
-          <div
-            v-if="createdToken"
-            class="mx-card mt-3 rounded-lg border border-success/30 bg-success/5 p-3"
-          >
-            <div class="flex items-center gap-2 mb-2">
-              <UIcon
-                name="i-lucide-check-circle"
-                class="text-base text-success shrink-0"
-              />
-              <span class="text-sm font-medium text-success">Token "{{ createdTokenName }}" created. Copy it now, it won't be shown again.</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <code class="flex-1 min-w-0 text-xs font-mono text-default bg-default rounded-md px-2 py-1.5 border border-default truncate select-all">{{ createdToken }}</code>
-              <UButton
-                :label="tokenCopied ? 'Copied!' : 'Copy'"
-                :icon="tokenCopied ? 'i-lucide-check' : 'i-lucide-copy'"
-                variant="ghost"
-                color="neutral"
-                size="sm"
-                class="shrink-0"
-                :class="tokenCopied ? 'text-success! bg-success/10' : ''"
-                @click="copyToken"
-              />
-              <UButton
-                label="Dismiss"
-                variant="ghost"
-                color="neutral"
-                size="xs"
-                class="shrink-0"
-                @click="createdToken = null"
-              />
-            </div>
-
-            <div class="mt-3 pt-3 border-t border-success/20">
-              <div class="flex flex-wrap items-center gap-2">
-                <UiSectionLabel
-                  label="Use it"
-                  icon="i-lucide-terminal"
-                />
-                <UTabs
-                  v-model="snippetTab"
-                  :items="SNIPPETS"
-                  :content="false"
-                  size="xs"
-                  class="ml-auto"
-                />
-              </div>
-              <div class="relative mt-2">
-                <pre class="rounded-md border border-default bg-default px-3 py-2.5 pr-20 text-xs font-mono text-default overflow-x-auto thin-scroll">{{ snippet }}</pre>
-                <UButton
-                  :label="snippetCopied ? 'Copied!' : 'Copy'"
-                  :icon="snippetCopied ? 'i-lucide-check' : 'i-lucide-copy'"
-                  variant="ghost"
-                  color="neutral"
-                  size="xs"
-                  class="absolute top-1.5 right-1.5"
-                  :class="snippetCopied ? 'text-success! bg-success/10' : ''"
-                  :aria-label="`Copy the ${SNIPPETS.find(s => s.value === snippetTab)?.label} setup`"
-                  @click="copySnippet(snippet)"
-                />
-              </div>
-              <p class="mt-1.5 text-xs text-dimmed leading-relaxed">
-                {{ snippetHelp }}
-              </p>
-            </div>
-          </div>
-
-          <!-- Token list -->
-          <div
-            v-if="tokens.length"
-            class="mx-card mt-3 mb-5 rounded-lg border border-default divide-y divide-default overflow-hidden"
-          >
-            <div
-              v-for="token in tokens"
-              :key="token.id"
-              class="group flex items-center px-3 py-2.5 bg-default"
-            >
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium text-default truncate">{{ token.name }}</span>
-                  <code class="text-xs font-mono text-dimmed bg-elevated rounded-md px-1.5 py-0.5 shrink-0">{{ token.tokenPrefix }}...</code>
-                  <UBadge
-                    v-if="token.isExpired"
-                    color="error"
-                    label="Expired"
-                  />
-                </div>
-                <div class="flex flex-wrap items-center gap-x-3 mt-0.5 text-xs text-dimmed">
-                  <span>Created {{ formatTokenDate(token.createdAt) }}</span>
-                  <span v-if="token.expiresAt">{{ token.isExpired ? 'Expired' : 'Expires' }} {{ formatTokenDate(token.expiresAt) }}</span>
-                  <span>{{ token.lastUsedAt ? `Last used ${relativeTime(token.lastUsedAt)}` : 'Not used yet' }}</span>
-                </div>
-              </div>
-              <div class="shrink-0 ml-3">
-                <UTooltip
-                  v-if="deletingTokenId !== token.id"
-                  text="Revoke token"
-                >
-                  <UButton
-                    icon="i-lucide-trash-2"
-                    variant="ghost"
-                    color="neutral"
-                    size="xs"
-                    :aria-label="`Revoke ${token.name}`"
-                    class="hover:text-error hover:bg-error/10 opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 max-sm:opacity-60"
-                    @click="startDeleteToken(token.id)"
-                  />
-                </UTooltip>
-                <UiInlineConfirm
-                  v-else
-                  label="this token"
-                  @confirm="confirmDeleteToken(token.id)"
-                  @cancel="cancelDeleteToken"
-                />
-              </div>
-            </div>
-          </div>
-          <div
-            v-else
-            class="px-card pb-5 pt-3 flex items-center gap-2 text-sm text-dimmed"
-          >
-            <UIcon
-              name="i-lucide-key-round"
-              class="text-base"
-            />
-            No tokens yet. Until it has one, {{ agent.name }} can do nothing.
-          </div>
-        </div>
+          </template>
+        </ApiTokens>
 
         <!-- Right column -->
         <div class="flex flex-col gap-4">
@@ -562,7 +328,7 @@ function formatDate(iso: string) {
                 name="i-lucide-folder-kanban"
                 class="text-base text-dimmed"
               />
-              <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Projects</span>
+              <UiSectionLabel label="Projects" />
               <span class="ml-auto c2s-count">{{ agent.projectCount }}</span>
             </div>
             <div
@@ -585,13 +351,13 @@ function formatDate(iso: string) {
                   class="text-sm font-medium text-default truncate hover:text-primary"
                 >{{ p.name }}</NuxtLink>
                 <span class="font-mono text-xs text-dimmed shrink-0">{{ p.key }}</span>
-                <span class="ml-auto flex items-center gap-1 text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 bg-elevated text-muted">
-                  <UIcon
-                    name="i-lucide-lock"
-                    class="text-2xs"
-                  />
-                  Member
-                </span>
+                <UBadge
+                  label="Member"
+                  icon="i-lucide-lock"
+                  color="neutral"
+                  variant="soft"
+                  class="ml-auto shrink-0"
+                />
                 <UiInlineConfirm
                   v-if="armedProject === p.id"
                   :label="`it from ${p.name}`"

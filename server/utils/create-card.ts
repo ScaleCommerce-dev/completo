@@ -75,10 +75,7 @@ export function createCard({ projectId, userId, userName, body, tags = [] }: Cre
   }
 
   const inserted = db.transaction(() => {
-    const maxPos = db.select({ pos: schema.cards.position }).from(schema.cards)
-      .where(eq(schema.cards.statusId, statusId))
-      .all()
-      .reduce((max, r) => Math.max(max, r.pos), -1)
+    const maxPos = maxPosition(schema.cards, eq(schema.cards.statusId, statusId))
 
     const row = db.insert(schema.cards).values({
       statusId,

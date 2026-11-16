@@ -7,14 +7,12 @@
  * with tracking-wide — so the same label rendered at three sizes and two weights
  * depending on which screen you were looking at.
  *
- * `count` renders a tabular figure after the label; `rule` extends a hairline
- * across the remaining width, which is how the notification groups read.
+ * `count` renders a tabular figure after the label.
  */
 withDefaults(defineProps<{
   label?: string
   icon?: string
   count?: number | string | null
-  rule?: boolean
 }>(), {
   count: null
 })
@@ -30,16 +28,6 @@ withDefaults(defineProps<{
       />
       <slot>{{ label }}</slot>
     </span>
-
-    <!-- `border-t border-default`, not `h-px bg-border`: there is no
-         `--color-border` token in this app, so `bg-border` resolved to nothing and
-         this hairline has never been drawn. It went unnoticed because `rule` has
-         zero call sites — the same trap `useTextDraft` fell into, which is why
-         CLAUDE.md counts call sites. Hairlines are borders here, everywhere else. -->
-    <div
-      v-if="rule"
-      class="flex-1 border-t border-default"
-    />
 
     <span
       v-if="count !== null && count !== undefined"

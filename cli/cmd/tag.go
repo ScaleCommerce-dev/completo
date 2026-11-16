@@ -261,12 +261,9 @@ var tagsCmd = &cobra.Command{
 	Short: "List a project's tags",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := mustClient()
-		slug := cfg.Project
-		if len(args) > 0 {
-			slug = args[0]
-		}
-		if slug == "" {
-			return fmt.Errorf("project required: pass as argument or set PROJECT in .completo")
+		slug, err := projectSlug(cfg, args)
+		if err != nil {
+			return err
 		}
 
 		projectID, err := resolveProjectID(client, slug)

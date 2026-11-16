@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -66,9 +67,9 @@ var assignCmd = &cobra.Command{
 			}
 		}
 		if userID == "" {
-			fmt.Println("Available members:")
+			fmt.Fprintln(os.Stderr, "Available members:")
 			for _, m := range members {
-				fmt.Printf("  %s (%s)\n", m.Email, m.Name)
+				fmt.Fprintf(os.Stderr, "  %s (%s)\n", m.Email, m.Name)
 			}
 			return fmt.Errorf("user %q not found in project members", targetEmail)
 		}

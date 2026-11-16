@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -12,16 +11,7 @@ type Field struct {
 	Value string
 }
 
-func FormatFields(fields []Field, jsonOutput bool) string {
-	if jsonOutput {
-		m := make(map[string]string, len(fields))
-		for _, f := range fields {
-			m[f.Key] = f.Value
-		}
-		b, _ := json.MarshalIndent(m, "", "  ")
-		return string(b)
-	}
-
+func FormatFields(fields []Field) string {
 	var sb strings.Builder
 	maxKey := 0
 	for _, f := range fields {

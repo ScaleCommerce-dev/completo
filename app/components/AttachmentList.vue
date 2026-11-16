@@ -92,7 +92,7 @@ const dropRow = computed(() => {
   return { icon: 'i-lucide-paperclip', label: 'Add a file, or drop it here', spin: false }
 })
 
-defineExpose({ upload, uploadFiles, uploading })
+defineExpose({ uploadFiles })
 </script>
 
 <template>

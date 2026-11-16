@@ -76,8 +76,13 @@ func (c *Client) do(method, path string, body io.Reader) (*http.Response, error)
 	return resp, nil
 }
 
-func (c *Client) Get(path string) (json.RawMessage, error) {
-	resp, err := c.do("GET", path, nil)
+// request sends payload (nil for none) as JSON and returns the raw response body.
+func (c *Client) request(method, path string, payload any) (json.RawMessage, error) {
+	body, err := jsonBody(payload)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.do(method, path, body)
 	if err != nil {
 		return nil, err
 	}
@@ -89,52 +94,17 @@ func (c *Client) Get(path string) (json.RawMessage, error) {
 	return json.RawMessage(b), nil
 }
 
+func (c *Client) Get(path string) (json.RawMessage, error) { return c.request("GET", path, nil) }
+
 func (c *Client) Put(path string, payload any) (json.RawMessage, error) {
-	body, err := jsonBody(payload)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := c.do("PUT", path, body)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return json.RawMessage(b), nil
+	return c.request("PUT", path, payload)
 }
 
 func (c *Client) Post(path string, payload any) (json.RawMessage, error) {
-	body, err := jsonBody(payload)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := c.do("POST", path, body)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return json.RawMessage(b), nil
+	return c.request("POST", path, payload)
 }
 
-func (c *Client) Delete(path string) (json.RawMessage, error) {
-	resp, err := c.do("DELETE", path, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return json.RawMessage(b), nil
-}
+func (c *Client) Delete(path string) (json.RawMessage, error) { return c.request("DELETE", path, nil) }
 
 func jsonBody(payload any) (io.Reader, error) {
 	if payload == nil {

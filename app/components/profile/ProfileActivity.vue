@@ -27,7 +27,7 @@ function priorityCount(priority: string): number {
 <template>
   <div class="mt-6 rounded-xl border border-default bg-default shadow-raise overflow-hidden">
     <div class="px-card pt-4 pb-2">
-      <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Activity</span>
+      <UiSectionLabel label="Activity" />
     </div>
 
     <!-- Priority breakdown -->
@@ -83,7 +83,7 @@ function priorityCount(priority: string): number {
       class="border-t border-muted"
     >
       <div class="px-card pt-3 pb-1">
-        <span class="text-xs font-semibold uppercase tracking-label text-dimmed">Projects</span>
+        <UiSectionLabel label="Projects" />
       </div>
       <div class="px-card pb-4 pt-1 space-y-1">
         <NuxtLink
@@ -111,12 +111,12 @@ function priorityCount(priority: string): number {
             </div>
             <span class="text-xs text-dimmed">{{ project.openCards }} open {{ project.openCards === 1 ? 'card' : 'cards' }}</span>
           </div>
-          <span
-            class="text-2xs font-bold uppercase tracking-label px-1.5 py-0.5 rounded-full shrink-0"
-            :class="project.role === 'owner'
-              ? 'bg-primary/10 text-primary'
-              : 'bg-elevated text-muted'"
-          >{{ project.role }}</span>
+          <UBadge
+            :label="project.role"
+            :color="project.role === 'owner' ? 'primary' : 'neutral'"
+            variant="soft"
+            class="shrink-0"
+          />
           <UIcon
             name="i-lucide-chevron-right"
             class="text-base text-dimmed group-hover:text-dimmed transition-colors shrink-0"

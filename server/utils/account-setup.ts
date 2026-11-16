@@ -16,13 +16,7 @@ export async function sendAccountSetupLink(
     .where(eq(schema.emailVerificationTokens.userId, user.id))
     .run()
 
-  const token = crypto.randomUUID()
-  db.insert(schema.emailVerificationTokens).values({
-    userId: user.id,
-    token,
-    purpose: 'setup',
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
-  }).run()
+  const token = issueEmailToken(user.id, 'setup')
 
   if (!isEmailEnabled()) return
 

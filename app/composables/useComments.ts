@@ -81,5 +81,5 @@ export function useComments(cardId: Ref<number | null | undefined>) {
     else comments.value = []
   }, { immediate: true })
 
-  return { comments, loading, saving, add, edit, remove, fetchComments }
+  return { comments, loading, saving, add, edit, remove }
 }
