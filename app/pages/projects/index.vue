@@ -1,30 +1,12 @@
 <script setup lang="ts">
+import type { ProjectListItem } from '~/composables/useNavigation'
+
 definePageMeta({ layout: 'default' })
 useSeoMeta({ title: 'Projects · Completo' })
 
-interface ProjectListItem {
-  id: string
-  name: string
-  slug: string
-  key: string
-  description: string | null
-  briefing: string | null
-  icon: string | null
-  doneStatusId: string | null
-  doneRetentionDays: number | null
-  role: string
-  starred: boolean
-  boardCount: number
-  listCount: number
-  totalCards: number
-  openCards: number
-  memberCount: number
-  memberAvatars: Array<{ name: string, avatarUrl: string | null, kind?: 'human' | 'agent', color?: string | null }>
-  lastActivity: string | null
-}
-
-const { data: projects, refresh, status, error } = await useFetch<ProjectListItem[]>('/api/projects')
-const { refreshProjects } = useNavigation()
+// The sidebar's list: one fetch for both, so a star or an edit shows in each
+// without a second copy to keep in step.
+const { projects, projectsStatus: status, projectsError: error, refreshProjects: refresh } = useNavigation()
 const { user } = useUserSession()
 
 /**
@@ -59,12 +41,6 @@ const orderedProjects = computed(() => {
   ]
 })
 
-/** The page's own copy of the flag; the sidebar's is patched by the button. */
-function setRowStarred(projectId: string, starred: boolean) {
-  if (!projects.value) return
-  projects.value = projects.value.map(p => p.id === projectId ? { ...p, starred } : p)
-}
-
 // Edit project — the dialog is shared with the project page's Settings button.
 const showEditProject = ref(false)
 const editTarget = ref<ProjectListItem | null>(null)
@@ -77,7 +53,7 @@ function openEditProject(project: ProjectListItem, e?: Event) {
 }
 
 async function onProjectChanged() {
-  await Promise.all([refresh(), refreshProjects()])
+  await refresh()
 }
 
 // Summary stats
@@ -249,7 +225,6 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
                 :project-id="project.id"
                 :project-name="project.name"
                 :starred="project.starred"
-                @update:starred="setRowStarred(project.id, $event)"
               />
             </div>
           </div>

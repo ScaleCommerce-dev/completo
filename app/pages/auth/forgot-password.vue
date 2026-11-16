@@ -24,36 +24,15 @@ async function requestReset() {
 </script>
 
 <template>
-  <div
+  <AuthCheckEmail
     v-if="submitted"
-    class="auth-glass"
+    prompt="Remember your password?"
+    to="/login"
+    label="Sign in"
   >
-    <!-- Success state -->
-    <div class="py-7 flex flex-col items-center gap-4 text-center">
-      <div class="w-12 h-12 rounded-full bg-success/15 flex items-center justify-center">
-        <UIcon
-          name="i-lucide-mail-check"
-          class="text-success text-xl"
-        />
-      </div>
-      <h2 class="auth-title">
-        Check your email
-      </h2>
-      <p class="text-sm text-muted">
-        If an account exists for <span class="font-semibold text-default">{{ email }}</span>,
-        we've sent a password reset link.
-      </p>
-      <div class="border-t border-muted pt-4 mt-2 w-full">
-        <p class="text-sm text-center text-muted">
-          Remember your password?
-          <NuxtLink
-            to="/login"
-            class="text-primary font-semibold hover:underline"
-          >Sign in</NuxtLink>
-        </p>
-      </div>
-    </div>
-  </div>
+    If an account exists for <span class="font-semibold text-default">{{ email }}</span>,
+    we've sent a password reset link.
+  </AuthCheckEmail>
 
   <div
     v-else
@@ -100,16 +79,10 @@ async function requestReset() {
       </div>
     </form>
 
-    <div class="pb-6 pt-1">
-      <div class="border-t border-muted pt-4">
-        <p class="text-sm text-center text-muted">
-          Remember your password?
-          <NuxtLink
-            to="/login"
-            class="text-primary font-semibold hover:underline"
-          >Sign in</NuxtLink>
-        </p>
-      </div>
-    </div>
+    <AuthFooter
+      prompt="Remember your password?"
+      to="/login"
+      label="Sign in"
+    />
   </div>
 </template>

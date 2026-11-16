@@ -36,6 +36,8 @@
 - **Deleting a project deletes its attachment files**, instead of leaving them on disk.
 - **Removing someone who is not a member of a project is refused**, instead of succeeding and sending them a "removed you from" notification.
 
+- **The notifications list shows your newest 200.** It returned every notification ever received, so an account that never cleared them loaded more on every open. The unread count is unaffected.
+
 ### CLI
 
 - `completo create --parent TK-12` creates a sub-task, and `completo update TK-13 --parent TK-12` (or `--parent none`) moves or detaches one. `completo get` lists a card's sub-tasks and shows a sub-task's parent. `completo list --parent TK-12` lists one card's sub-tasks, `--parent none` only cards that are not sub-tasks, and the list shows a PARENT column when it contains a sub-task. Moving a parent with open sub-tasks to Done fails and names them.
@@ -51,6 +53,7 @@
 - **`PUT /api/boards/{id}/cards/reorder` is removed.** Nothing in Completo used it, and it let a card with open sub-tasks into Done. Move cards one at a time with `PUT /api/cards/{id}/move`.
 - **A migration adds indexes and removes duplicate rows** (a person listed twice in one project, a tag twice on one card, a status twice on one board) before making each unique. It runs on its own at start-up.
 - **The API refuses malformed values with a 400 naming the field,** where it used to store them, ignore them or fail with a 500. This covers every endpoint that takes a body except the OAuth token, registration and revocation endpoints, which keep the OAuth error format. Examples: a priority outside low, medium, high and urgent, a card title that is blank or not text, a due date that is not a date, a view filter that is not a list (`null` now clears one), a blank status, tag or view name, a retention below one day on project creation, a token expiry that is not a number, a comment that is not text, and an update that names nothing to change (`PUT /api/admin/settings` and `PUT /api/admin/skills/{id}` with nothing in them used to answer 200). Names and titles are stored trimmed. An upload whose declared size is over the limit is refused before its body is read.
+- **Writes from another site are refused, and Completo can no longer be framed.** A browser request that changes something is answered 403 when the browser says it came from another site, including a sibling subdomain, which the session cookie alone did not stop. The API, the CLI and MCP clients are unaffected: they send no such headers or authenticate with a token. Every response now carries `Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`, so an install embedded in an iframe stops loading there. Behind a reverse proxy, pass the original `Host` (or `X-Forwarded-Host`) or set `APP_URL`, because the check compares a request's origin with those.
 - **`POST /api/projects/{id}/cards` no longer requires `statusId`;** without it, the card starts in the project's first status that is not Done. `completo create` relies on this, so update the server along with the CLI.
 
 ### Dev

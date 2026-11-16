@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { DOMAIN_RESTRICTED_MESSAGE, OAUTH_UNVERIFIED_MESSAGE } from '#shared/utils/auth-messages'
-
 definePageMeta({ layout: 'auth' })
 
 const route = useRoute()
@@ -20,13 +18,7 @@ const tokenError = computed(() => {
   if (isTokenExpired.value) return 'Verification link has expired.'
   return ''
 })
-const oauthError = computed(() => {
-  if (route.query.error === 'oauth') return 'Sign-in failed. Please try again.'
-  if (route.query.error === 'oauth-suspended') return 'Your account has been suspended.'
-  if (route.query.error === 'oauth-domain') return DOMAIN_RESTRICTED_MESSAGE
-  if (route.query.error === 'oauth-unverified') return OAUTH_UNVERIFIED_MESSAGE
-  return ''
-})
+const oauthError = useOAuthError()
 
 const { enterApp } = useAuthTransition()
 
@@ -187,16 +179,10 @@ async function resendVerification() {
       </div>
     </form>
 
-    <div class="pb-6 pt-1">
-      <div class="border-t border-muted pt-4">
-        <p class="text-sm text-center text-muted">
-          Don't have an account?
-          <NuxtLink
-            to="/register"
-            class="text-primary font-semibold hover:underline"
-          >Register</NuxtLink>
-        </p>
-      </div>
-    </div>
+    <AuthFooter
+      prompt="Don't have an account?"
+      to="/register"
+      label="Register"
+    />
   </div>
 </template>

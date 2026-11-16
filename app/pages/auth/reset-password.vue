@@ -82,16 +82,10 @@ async function resetPassword() {
       </div>
     </form>
 
-    <div class="pb-6 pt-1">
-      <div class="border-t border-muted pt-4">
-        <p class="text-sm text-center text-muted">
-          Link expired?
-          <NuxtLink
-            to="/auth/forgot-password"
-            class="text-primary font-semibold hover:underline"
-          >Request a new one</NuxtLink>
-        </p>
-      </div>
-    </div>
+    <AuthFooter
+      prompt="Link expired?"
+      to="/auth/forgot-password"
+      label="Request a new one"
+    />
   </div>
 </template>

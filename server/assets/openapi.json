@@ -3,7 +3,7 @@
   "info": {
     "title": "Completo API",
     "version": "1.0.0",
-    "description": "REST API for Completo \u2014 Kanban board management.\n\nThis spec covers endpoints useful for headless (non-browser) API usage. Frontend-internal endpoints (slug/key validation, UI column config, notifications, OAuth redirects, registration flows) are omitted.\n\nAuthenticate via session cookie (POST /auth/login) or Bearer token (create one at POST /api/user/tokens)."
+    "description": "REST API for Completo \u2014 Kanban board management.\n\nThis spec covers endpoints useful for headless (non-browser) API usage. Browser-only flows are omitted: sign-in provider redirects, registration, email verification and password reset under /auth, and the HTML docs page. The endpoints the app itself uses (slug and key checks, list and My Tasks columns, notifications, live event streams, the OAuth consent page) are documented as well.\n\nAuthenticate via session cookie (POST /auth/login) or Bearer token (create one at POST /api/user/tokens)."
   },
   "servers": [
     {
@@ -66,6 +66,10 @@
     {
       "name": "My Tasks",
       "description": "Cards assigned to current user"
+    },
+    {
+      "name": "Notifications",
+      "description": "In-app notifications for the signed-in user"
     },
     {
       "name": "Agents",
@@ -407,7 +411,8 @@
                 ],
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1
                   },
                   "key": {
                     "type": "string",
@@ -436,7 +441,8 @@
                   "doneRetentionDays": {
                     "type": "integer",
                     "nullable": true,
-                    "description": "Days to keep done cards visible. null = unlimited. Default: 30."
+                    "description": "Days to keep done cards visible. null = unlimited. Default: 30.",
+                    "minimum": 1
                   }
                 }
               }
@@ -646,14 +652,16 @@
                     "type": "string"
                   },
                   "description": {
-                    "type": "string"
+                    "type": "string",
+                    "nullable": true
                   },
                   "briefing": {
                     "type": "string",
                     "nullable": true
                   },
                   "icon": {
-                    "type": "string"
+                    "type": "string",
+                    "nullable": true
                   },
                   "slug": {
                     "type": "string"
@@ -670,9 +678,11 @@
                   "doneRetentionDays": {
                     "type": "integer",
                     "nullable": true,
-                    "description": "Days to keep done cards visible, or null for unlimited"
+                    "description": "Days to keep done cards visible, or null for unlimited",
+                    "minimum": 1
                   }
-                }
+                },
+                "minProperties": 1
               }
             }
           }
@@ -1371,12 +1381,17 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Stored trimmed; blank is refused"
                   },
                   "color": {
-                    "type": "string"
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$",
+                    "description": "Hex color (#RRGGBB)"
                   }
-                }
+                },
+                "minProperties": 1
               }
             }
           }
@@ -1732,7 +1747,9 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Stored trimmed; blank is refused"
                   },
                   "slug": {
                     "type": "string"
@@ -1758,8 +1775,47 @@
                   "showSubtasks": {
                     "type": "boolean",
                     "description": "Whether sub-tasks appear as cards of their own. Off by default; a parent shows its sub-tasks' progress either way."
+                  },
+                  "tagFilters": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true,
+                    "description": "Tag IDs a card must carry (any). An empty list or null clears the filter."
+                  },
+                  "statusFilters": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true,
+                    "description": "Status IDs to show. An empty list or null clears the filter."
+                  },
+                  "assigneeFilters": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true,
+                    "description": "User IDs to show. An empty list or null clears the filter."
+                  },
+                  "priorityFilters": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                        "urgent"
+                      ]
+                    },
+                    "nullable": true,
+                    "description": "Priorities to show. An empty list or null clears the filter."
                   }
-                }
+                },
+                "minProperties": 1
               }
             }
           }
@@ -2028,10 +2084,13 @@
                           "description": "Status ID"
                         },
                         "position": {
-                          "type": "integer"
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000
                         }
                       }
-                    }
+                    },
+                    "minItems": 1
                   }
                 }
               }
@@ -2057,6 +2116,67 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/api/boards/check-slug": {
+      "get": {
+        "tags": [
+          "Boards"
+        ],
+        "summary": "Check board slug availability",
+        "operationId": "checkBoardSlug",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "description": "Slug to check",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exclude",
+            "in": "query",
+            "required": false,
+            "description": "Board ID to ignore (when renaming)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whether the value is free. `false` when the value is empty.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "available": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }
@@ -2338,7 +2458,9 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Stored trimmed; blank is refused"
                   },
                   "slug": {
                     "type": "string"
@@ -2346,8 +2468,73 @@
                   "showSubtasks": {
                     "type": "boolean",
                     "description": "Whether sub-tasks appear as rows of their own, each under its parent. On by default; a parent shows its sub-tasks' progress either way."
+                  },
+                  "tagFilters": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true,
+                    "description": "Tag IDs a card must carry (any). An empty list or null clears the filter."
+                  },
+                  "statusFilters": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true,
+                    "description": "Status IDs to show. An empty list or null clears the filter."
+                  },
+                  "assigneeFilters": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true,
+                    "description": "User IDs to show. An empty list or null clears the filter."
+                  },
+                  "priorityFilters": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                        "urgent"
+                      ]
+                    },
+                    "nullable": true,
+                    "description": "Priorities to show. An empty list or null clears the filter."
+                  },
+                  "sortField": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": [
+                      "ticketId",
+                      "title",
+                      "status",
+                      "assignee",
+                      "creator",
+                      "priority",
+                      "dueDate",
+                      "createdAt",
+                      "updatedAt",
+                      "commentCount",
+                      "attachmentCount"
+                    ],
+                    "description": "A sortable field, or null for manual order"
+                  },
+                  "sortDirection": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": [
+                      "asc",
+                      "desc"
+                    ]
                   }
-                }
+                },
+                "minProperties": 1
               }
             }
           }
@@ -2383,6 +2570,299 @@
         "responses": {
           "200": {
             "description": "List deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/lists/{id}/columns": {
+      "post": {
+        "tags": [
+          "Lists"
+        ],
+        "summary": "Add field column to list",
+        "description": "Adds a card field as a column of this list table, at the end.",
+        "operationId": "addListColumn",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "List ID or slug",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "field"
+                ],
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "enum": [
+                      "done",
+                      "ticketId",
+                      "title",
+                      "status",
+                      "assignee",
+                      "creator",
+                      "priority",
+                      "tags",
+                      "dueDate",
+                      "createdAt",
+                      "updatedAt",
+                      "description",
+                      "commentCount",
+                      "attachmentCount"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created column",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "field": {
+                      "type": "string",
+                      "enum": [
+                        "done",
+                        "ticketId",
+                        "title",
+                        "status",
+                        "assignee",
+                        "creator",
+                        "priority",
+                        "tags",
+                        "dueDate",
+                        "createdAt",
+                        "updatedAt",
+                        "description",
+                        "commentCount",
+                        "attachmentCount"
+                      ]
+                    },
+                    "position": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/lists/{id}/columns/reorder": {
+      "put": {
+        "tags": [
+          "Lists"
+        ],
+        "summary": "Reorder list columns",
+        "operationId": "reorderListColumns",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "List ID or slug",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "columns"
+                ],
+                "properties": {
+                  "columns": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "position"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "List column ID"
+                        },
+                        "position": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/lists/{id}/columns/{columnId}": {
+      "delete": {
+        "tags": [
+          "Lists"
+        ],
+        "summary": "Remove list column",
+        "operationId": "deleteListColumn",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "List ID or slug",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "columnId",
+            "in": "path",
+            "required": true,
+            "description": "List column ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/lists/check-slug": {
+      "get": {
+        "tags": [
+          "Lists"
+        ],
+        "summary": "Check list slug availability",
+        "operationId": "checkListSlug",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "description": "Slug to check",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exclude",
+            "in": "query",
+            "required": false,
+            "description": "List ID to ignore (when renaming)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whether the value is free. `false` when the value is empty.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "available": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -2688,10 +3168,13 @@
                 "type": "object",
                 "properties": {
                   "title": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Stored trimmed; blank is refused"
                   },
                   "description": {
-                    "type": "string"
+                    "type": "string",
+                    "nullable": true
                   },
                   "priority": {
                     "type": "string",
@@ -2723,7 +3206,8 @@
                     "nullable": true,
                     "description": "Make the card a sub-task of this card (same project, not a sub-task itself), or null to make it an ordinary card again. A card that has sub-tasks cannot be given a parent."
                   }
-                }
+                },
+                "minProperties": 1
               }
             }
           }
@@ -2826,7 +3310,9 @@
                     "format": "uuid"
                   },
                   "position": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
                   }
                 }
               }
@@ -3050,12 +3536,17 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Stored trimmed; blank is refused"
                   },
                   "color": {
-                    "type": "string"
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$",
+                    "description": "Hex color (#RRGGBB)"
                   }
-                }
+                },
+                "minProperties": 1
               }
             }
           }
@@ -3555,7 +4046,9 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Stored trimmed; blank is refused"
                   },
                   "avatarUrl": {
                     "type": "string",
@@ -3565,7 +4058,8 @@
                     "type": "string",
                     "enum": [
                       "light",
-                      "dark"
+                      "dark",
+                      "system"
                     ],
                     "nullable": true
                   },
@@ -3573,7 +4067,8 @@
                     "type": "boolean",
                     "description": "Turn card-activity emails (assigned / mentioned) on or off."
                   }
-                }
+                },
+                "minProperties": 1
               }
             }
           }
@@ -5150,6 +5645,73 @@
         }
       }
     },
+    "/api/cards/{id}/ai/comment": {
+      "post": {
+        "tags": [
+          "AI"
+        ],
+        "summary": "Revise a comment draft",
+        "description": "Revises a comment draft with AI, using the card and its recent comments as context. Needs a comment skill (`skillId`) or a free-text `userPrompt`. Streams the revised text via SSE. Project briefing is included as context.",
+        "operationId": "reviseComment",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "body"
+                ],
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The comment draft"
+                  },
+                  "skillId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "description": "A skill whose scope is `comment`"
+                  },
+                  "userPrompt": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Free-text instruction, used when no skill is given"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SSE stream of the revised comment",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
     "/api/comments/{id}": {
       "put": {
         "tags": [
@@ -6618,6 +7180,104 @@
         }
       }
     },
+    "/api/projects/check-slug": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Check project slug availability",
+        "operationId": "checkProjectSlug",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "description": "Slug to check",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exclude",
+            "in": "query",
+            "required": false,
+            "description": "Project ID to ignore (when editing)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whether the value is free. `false` when the value is empty.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "available": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/projects/check-key": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Check project key availability",
+        "operationId": "checkProjectKey",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "description": "Key to check (uppercased)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exclude",
+            "in": "query",
+            "required": false,
+            "description": "Project ID to ignore (when editing)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whether the value is free. `false` when the value is empty.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "available": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/api/my-tasks/agents": {
       "get": {
         "tags": [
@@ -6695,6 +7355,697 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/my-tasks/columns": {
+      "post": {
+        "tags": [
+          "My Tasks"
+        ],
+        "summary": "Add My Tasks column",
+        "description": "Adds a card field as a column of the caller's My Tasks table.",
+        "operationId": "addMyTasksColumn",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "field"
+                ],
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "enum": [
+                      "done",
+                      "ticketId",
+                      "title",
+                      "status",
+                      "assignee",
+                      "creator",
+                      "priority",
+                      "tags",
+                      "dueDate",
+                      "createdAt",
+                      "updatedAt",
+                      "description",
+                      "commentCount",
+                      "attachmentCount"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created column",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "field": {
+                      "type": "string",
+                      "enum": [
+                        "done",
+                        "ticketId",
+                        "title",
+                        "status",
+                        "assignee",
+                        "creator",
+                        "priority",
+                        "tags",
+                        "dueDate",
+                        "createdAt",
+                        "updatedAt",
+                        "description",
+                        "commentCount",
+                        "attachmentCount"
+                      ]
+                    },
+                    "position": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/my-tasks/columns/reorder": {
+      "put": {
+        "tags": [
+          "My Tasks"
+        ],
+        "summary": "Reorder My Tasks columns",
+        "operationId": "reorderMyTasksColumns",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "columns"
+                ],
+                "properties": {
+                  "columns": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "position"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "My Tasks column ID"
+                        },
+                        "position": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10000
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/my-tasks/columns/{columnId}": {
+      "delete": {
+        "tags": [
+          "My Tasks"
+        ],
+        "summary": "Remove My Tasks column",
+        "operationId": "deleteMyTasksColumn",
+        "parameters": [
+          {
+            "name": "columnId",
+            "in": "path",
+            "required": true,
+            "description": "My Tasks column ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/my-tasks/collapse": {
+      "post": {
+        "tags": [
+          "My Tasks"
+        ],
+        "summary": "Toggle a project group",
+        "description": "Collapses or expands one project's group on My Tasks for the caller.",
+        "operationId": "toggleMyTasksCollapse",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "projectId"
+                ],
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The group's new state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "collapsed": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "List notifications",
+        "description": "The caller's notifications, newest first.",
+        "operationId": "listNotifications",
+        "responses": {
+          "200": {
+            "description": "Notifications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Notification"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/notifications/unread-count": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Count unread notifications",
+        "operationId": "countUnreadNotifications",
+        "responses": {
+          "200": {
+            "description": "Unread count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/notifications/{id}": {
+      "patch": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Mark notification read",
+        "operationId": "markNotificationRead",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Notification ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/notifications/mark-all-read": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Mark all notifications read",
+        "operationId": "markAllNotificationsRead",
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/notifications/cleanup": {
+      "delete": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Delete read notifications",
+        "operationId": "deleteReadNotifications",
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/notifications/stream": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Notification stream",
+        "description": "Server-sent events: a `notification` event per new notification for the caller (data: the notification as JSON), and a `ping` every 25 seconds. The stream closes once the caller loses access.",
+        "operationId": "streamNotifications",
+        "responses": {
+          "200": {
+            "description": "SSE stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/events": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Project event stream",
+        "description": "Server-sent events for one project, which the board and list views use to stay live: one event per change, named by its type (for example a card or view change), with a JSON payload, and a `ping` every 25 seconds. The stream closes once the caller loses access to the project.",
+        "operationId": "streamProjectEvents",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "description": "Project ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/users/search": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Search users by name",
+        "description": "Up to 10 users whose name contains `q` (at least 2 characters; shorter returns `[]`). Returns names, never email. Suspended agents are left out.",
+        "operationId": "searchUsers",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Part of a name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserSummary"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/auth/providers": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Configured sign-in providers",
+        "description": "Which OAuth sign-in providers this instance has configured. No authentication required.",
+        "operationId": "getAuthProviders",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Providers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "github": {
+                      "type": "boolean"
+                    },
+                    "google": {
+                      "type": "boolean"
+                    },
+                    "microsoft": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/invitations/{token}": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Look up an invitation",
+        "description": "What an emailed invitation link is for, so the sign-up page can show it. No authentication required; an unknown or expired token is 404.",
+        "operationId": "getInvitation",
+        "security": [],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "description": "Invitation token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "projectName": {
+                      "type": "string"
+                    },
+                    "inviterName": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/oauth/authorize": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "summary": "Describe an authorization request",
+        "description": "Used by the consent page at /oauth/authorize. Validates the OAuth authorization request in the query (client_id, redirect_uri, PKCE, resource, state) and says who is asking. Browser session only.",
+        "operationId": "describeAuthorization",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "clientName": {
+                      "type": "string"
+                    },
+                    "redirectHost": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "summary": "Record the consent decision",
+        "description": "Used by the consent page. The body carries the same authorization request fields as the GET query, plus `decision`; a missing decision counts as a denial. Returns where to send the browser: the client's redirect_uri with a code, or with an OAuth error. Browser session only.",
+        "operationId": "decideAuthorization",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "allow",
+                      "deny"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Redirect target",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "redirectTo": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -7007,10 +8358,13 @@
             "description": "Defaults to the project's oldest status that is not its Done status."
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "description": "Stored trimmed; blank is refused"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "priority": {
             "type": "string",
@@ -7351,6 +8705,26 @@
           },
           "message": {
             "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "description": "For a body that failed validation: every issue found, not only the first.",
+            "properties": {
+              "issues": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -7629,11 +9003,85 @@
             "description": "When the change was made, to the millisecond."
           }
         }
+      },
+      "Notification": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "description": "For example card_assigned, mentioned"
+          },
+          "title": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "linkUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "cardId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "readAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorAvatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorKind": {
+            "type": "string",
+            "enum": [
+              "human",
+              "agent"
+            ],
+            "nullable": true
+          },
+          "actorColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorManagedBy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            ],
+            "nullable": true,
+            "description": "For an agent actor, its manager"
+          }
+        }
       }
     },
     "responses": {
       "BadRequest": {
-        "description": "Bad request \u2014 invalid or missing parameters",
+        "description": "Bad request: a malformed body, a field of the wrong type or value, or an update that names nothing to change. `message` names the field.",
         "content": {
           "application/json": {
             "schema": {

@@ -50,7 +50,9 @@ interface View {
   slug: string
 }
 
-const { data: projectData } = await useFetch(`/api/projects/${projectSlug}`)
+// Not awaited: it only fills the view switcher, and awaiting it held the view's
+// own skeleton back until the project had loaded too.
+const { data: projectData } = useFetch(`/api/projects/${projectSlug}`)
 
 /** The project's other views, for the switcher in `ViewHeader`. */
 const projectViews = computed(() => {

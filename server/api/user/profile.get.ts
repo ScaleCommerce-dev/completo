@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
@@ -58,16 +58,19 @@ export default defineEventHandler(async (event) => {
   const projectIds = projects.map(p => p.id)
   const openCardsByProject: Map<string, number> = new Map()
   if (projectIds.length > 0) {
-    const allProjectCards = db.select({
+    // Counted in SQL per project and status, rather than one row per card.
+    const groups = db.select({
       projectId: schema.cards.projectId,
-      statusId: schema.cards.statusId
+      statusId: schema.cards.statusId,
+      count: sql<number>`count(*)`
     }).from(schema.cards)
       .where(inArray(schema.cards.projectId, projectIds))
+      .groupBy(schema.cards.projectId, schema.cards.statusId)
       .all()
 
-    for (const card of allProjectCards) {
-      if (doneStatusIds.has(card.statusId)) continue
-      openCardsByProject.set(card.projectId, (openCardsByProject.get(card.projectId) || 0) + 1)
+    for (const group of groups) {
+      if (doneStatusIds.has(group.statusId)) continue
+      openCardsByProject.set(group.projectId, (openCardsByProject.get(group.projectId) || 0) + group.count)
     }
   }
 

@@ -1,5 +1,8 @@
 import { eq, desc } from 'drizzle-orm'
 
+/** How many notifications the list returns, newest first. */
+const NOTIFICATION_LIST_LIMIT = 200
+
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
 
@@ -24,6 +27,10 @@ export default defineEventHandler(async (event) => {
     .leftJoin(schema.users, eq(schema.notifications.actorId, schema.users.id))
     .where(eq(schema.notifications.userId, user.id))
     .orderBy(desc(schema.notifications.createdAt))
+    // The newest only. Nothing prunes notifications on its own, so an account
+    // that never clears them grew this response without bound; the unread badge
+    // has its own count (`unread-count.get.ts`) and does not depend on the list.
+    .limit(NOTIFICATION_LIST_LIMIT)
     .all()
 
   // Whether the actor is an agent, and whose, so the avatar can show it.

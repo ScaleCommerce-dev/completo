@@ -1,15 +1,30 @@
 /**
- * Only what `/api/projects` actually returns and this composable actually uses.
- * It previously also declared `boards?: { id, name }[]`, which that endpoint has
- * never returned — it returns `boardCount`. Anything reading it got `undefined`.
+ * A row of `/api/projects`: what the sidebar and ⌘K use (name, slug, icon, the
+ * star) and what All Projects shows on its cards. One type because it is one
+ * response, read from one `useFetch` below.
  */
-interface Project {
+export interface ProjectListItem {
   id: string
   name: string
   slug: string
-  icon?: string | null
+  key: string
+  description: string | null
+  briefing: string | null
+  icon: string | null
+  doneStatusId: string | null
+  doneRetentionDays: number | null
+  role: string
   starred: boolean
+  boardCount: number
+  listCount: number
+  totalCards: number
+  openCards: number
+  memberCount: number
+  memberAvatars: Array<{ name: string, avatarUrl: string | null, kind?: 'human' | 'agent', color?: string | null }>
+  lastActivity: string | null
 }
+
+type Project = Pick<ProjectListItem, 'id' | 'name' | 'slug' | 'icon' | 'starred'>
 
 interface NavItem { label: string, icon: string, to: string }
 
@@ -25,10 +40,16 @@ function projectItem(p: Project): NavItem {
 }
 
 export function useNavigation() {
-  // One call site, so one `useFetch` key: every caller of this composable —
-  // the layout, All Projects, the star button — shares this `projects` ref,
-  // which is what lets a star show up in the sidebar without a refetch.
-  const { data: projects, refresh: refreshProjects } = useFetch<Project[]>('/api/projects')
+  // One explicit key, so every caller (the layout, All Projects, the star
+  // button, the project page) shares this one list and its status. All Projects
+  // used to hold a second copy under its own auto-generated key, kept in step by
+  // patching its row on every star and refreshing both after every edit.
+  const {
+    data: projects,
+    refresh: refreshProjects,
+    status: projectsStatus,
+    error: projectsError
+  } = useFetch<ProjectListItem[]>('/api/projects', { key: 'projects' })
   const { user } = useUserSession()
   const toast = useToast()
 
@@ -124,5 +145,5 @@ export function useNavigation() {
     }
   }
 
-  return { navSections, paletteItems, projects, refreshProjects, setStarred }
+  return { navSections, paletteItems, projects, projectsStatus, projectsError, refreshProjects, setStarred }
 }

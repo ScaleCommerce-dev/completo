@@ -30,8 +30,10 @@ interface PendingInvitation {
 }
 
 const { user: currentUser } = useUserSession()
-const { data: users, refresh, status: usersStatus, error: usersError } = await useFetch<AdminUser[]>('/api/admin/users')
-const { data: pendingInvitations, refresh: refreshInvitations } = await useFetch<PendingInvitation[]>('/api/admin/invitations')
+// Not awaited: the page renders from `usersStatus`, and awaiting each in turn
+// made the second request wait for the first.
+const { data: users, refresh, status: usersStatus, error: usersError } = useFetch<AdminUser[]>('/api/admin/users')
+const { data: pendingInvitations, refresh: refreshInvitations } = useFetch<PendingInvitation[]>('/api/admin/invitations')
 
 // Delete user state
 const showDeleteModal = ref(false)
@@ -409,6 +411,7 @@ const TABLE_UI = {
     >
       <UTable
         :data="users || []"
+        :loading="usersStatus === 'pending' && !users"
         :columns="userColumns"
         :ui="TABLE_UI"
         :meta="{ class: { tr: (row: { original: AdminUser }) => row.original.suspendedAt ? 'bg-error/5 hover:bg-error/10' : '' } }"

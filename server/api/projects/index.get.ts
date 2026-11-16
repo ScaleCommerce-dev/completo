@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
@@ -65,29 +65,31 @@ export default defineEventHandler(async (event) => {
     .where(inArray(schema.lists.projectId, projectIds))
     .all()
 
-  // Batch: cards per project
-  const allCards = db.select().from(schema.cards)
+  // Per project: how many cards, how many are not done, and when one last
+  // changed. Counted in SQL: this backs the sidebar, and it used to load every
+  // column of every card in every visible project, descriptions included, to
+  // produce these three numbers. `IS NOT` is SQLite's null-safe inequality, so a
+  // project without a done status counts every card as open.
+  const cardStats = db.select({
+    projectId: schema.cards.projectId,
+    total: sql<number>`count(*)`,
+    open: sql<number>`sum(case when ${schema.cards.statusId} is not ${schema.projects.doneStatusId} then 1 else 0 end)`,
+    lastActivity: sql<number | null>`max(coalesce(${schema.cards.updatedAt}, ${schema.cards.createdAt}))`
+  })
+    .from(schema.cards)
+    .innerJoin(schema.projects, eq(schema.cards.projectId, schema.projects.id))
     .where(inArray(schema.cards.projectId, projectIds))
+    .groupBy(schema.cards.projectId)
     .all()
-  // Build doneStatusId lookup per project
-  const doneStatusByProject = new Map<string, string | null>()
-  for (const { project } of projects) {
-    doneStatusByProject.set(project.id, project.doneStatusId)
-  }
 
   const cardCountByProject = new Map<string, number>()
   const openCardCountByProject = new Map<string, number>()
   const lastActivityByProject = new Map<string, string>()
-  for (const card of allCards) {
-    cardCountByProject.set(card.projectId, (cardCountByProject.get(card.projectId) || 0) + 1)
-    if (card.statusId !== doneStatusByProject.get(card.projectId)) {
-      openCardCountByProject.set(card.projectId, (openCardCountByProject.get(card.projectId) || 0) + 1)
-    }
-    const ts = card.updatedAt?.toISOString() || card.createdAt?.toISOString()
-    if (ts) {
-      const current = lastActivityByProject.get(card.projectId)
-      if (!current || ts > current) lastActivityByProject.set(card.projectId, ts)
-    }
+  for (const row of cardStats) {
+    cardCountByProject.set(row.projectId, row.total)
+    openCardCountByProject.set(row.projectId, row.open)
+    // Timestamps are stored in seconds (drizzle `mode: 'timestamp'`).
+    if (row.lastActivity != null) lastActivityByProject.set(row.projectId, new Date(row.lastActivity * 1000).toISOString())
   }
 
   // Batch: members per project (count + first 3 avatars)

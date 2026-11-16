@@ -87,16 +87,10 @@ async function setupAccount() {
       </div>
     </form>
 
-    <div class="pb-6 pt-1">
-      <div class="border-t border-muted pt-4">
-        <p class="text-sm text-center text-muted">
-          Already have a password?
-          <NuxtLink
-            to="/login"
-            class="text-primary font-semibold hover:underline"
-          >Sign in</NuxtLink>
-        </p>
-      </div>
-    </div>
+    <AuthFooter
+      prompt="Already have a password?"
+      to="/login"
+      label="Sign in"
+    />
   </div>
 </template>

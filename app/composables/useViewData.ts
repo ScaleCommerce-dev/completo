@@ -109,15 +109,51 @@ export function useViewData<T extends ViewDataResponse>(
   })
 
   // ─── Card CRUD (identical across views) ───
+
+  /**
+   * A card just created, in the shape a view row has. The POST answers with the
+   * row and its assignee; the rest of a view card is either derivable here
+   * (status, parent) or what any card has at birth (no tags, files, comments or
+   * sub-tasks). The server's live `card.upsert` for the same card follows and is
+   * merged over this row by `applyCardUpsert`, so anything approximated here,
+   * such as the creator, is corrected without a refetch.
+   */
+  function newViewCard(created: Record<string, unknown> & { id: number, statusId: string, parentId?: number | null }): ViewCard {
+    const parentId = created.parentId ?? null
+    const parent = parentId ? cardList.value?.find(c => c.id === parentId) as { id: number, title?: string } | undefined : undefined
+    return {
+      ...created,
+      status: statusList.value.find(s => s.id === created.statusId) ?? null,
+      tags: [],
+      attachmentCount: 0,
+      commentCount: 0,
+      subtasks: null,
+      parent: parent ? { id: parent.id, title: parent.title ?? '' } : null,
+      creator: user.value ? { id: user.value.id, name: user.value.name, avatarUrl: user.value.avatarUrl ?? null } : null,
+      hasUnread: false
+    } as unknown as ViewCard
+  }
+
+  /**
+   * Creating adds the card to the view rather than refetching the whole view,
+   * which is what every other card mutation already does (see below). Whether it
+   * is drawn is the view's own business, decided at render time from the same
+   * filters a live update goes through; a board additionally holds only cards
+   * in its own columns, which `cardBelongsToView` checks.
+   */
   async function createCard(statusId: string, title: string, cardOpts?: { description?: string, priority?: string, assigneeId?: string, dueDate?: string | null }) {
     const card = await mutate(
-      () => $fetch(`/api/projects/${data.value!.project!.id}/cards`, {
+      () => $fetch<Record<string, unknown> & { id: number, statusId: string, parentId?: number | null }>(`/api/projects/${data.value!.project!.id}/cards`, {
         method: 'POST',
         body: { statusId, title, description: cardOpts?.description, priority: cardOpts?.priority, assigneeId: cardOpts?.assigneeId, dueDate: cardOpts?.dueDate }
       }),
       'Failed to create card'
     )
-    await refresh()
+    const cards = cardList.value
+    // The live event may have landed first; it carries the full row, so keep it.
+    if (card && cards && !findCard(card.id)) {
+      applyCardUpsert(cards as unknown as BaseCard[], newViewCard(card) as unknown as BaseCard, cardBelongsToView(viewType, statusList.value.map(s => s.id), card))
+    }
     return card
   }
 

@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user, project, membership } = await resolveProject(event)
@@ -12,8 +12,19 @@ export default defineEventHandler(async (event) => {
   const allBoardColumns = boardIds.length
     ? db.select().from(schema.boardColumns).where(inArray(schema.boardColumns.boardId, boardIds)).all()
     : []
-  const allCards = db.select().from(schema.cards)
+  // Every number below derives from a card's status and priority, so the cards are
+  // counted in groups of those two rather than loaded: this used to select every
+  // column of every card, descriptions included. A few rows per status come back.
+  const cardGroups = db.select({
+    statusId: schema.cards.statusId,
+    priority: schema.cards.priority,
+    count: sql<number>`count(*)`,
+    // Seconds (drizzle `mode: 'timestamp'`).
+    lastUpdated: sql<number>`max(${schema.cards.updatedAt})`
+  })
+    .from(schema.cards)
     .where(eq(schema.cards.projectId, project.id))
+    .groupBy(schema.cards.statusId, schema.cards.priority)
     .all()
 
   // Build status→board mapping
@@ -26,16 +37,17 @@ export default defineEventHandler(async (event) => {
   // Per-board stats (open cards only — exclude done status)
   const boardCardCounts = new Map<string, number>()
   const boardLastActivity = new Map<string, Date | null>()
-  for (const card of allCards) {
-    const boardIdsForStatus = statusToBoardIds.get(card.statusId)
+  for (const group of cardGroups) {
+    const boardIdsForStatus = statusToBoardIds.get(group.statusId)
     if (!boardIdsForStatus) continue
+    const updated = new Date(group.lastUpdated * 1000)
     for (const bid of boardIdsForStatus) {
-      if (card.statusId !== project.doneStatusId) {
-        boardCardCounts.set(bid, (boardCardCounts.get(bid) || 0) + 1)
+      if (group.statusId !== project.doneStatusId) {
+        boardCardCounts.set(bid, (boardCardCounts.get(bid) || 0) + group.count)
       }
       const current = boardLastActivity.get(bid)
-      if (!current || card.updatedAt > current) {
-        boardLastActivity.set(bid, card.updatedAt)
+      if (!current || updated > current) {
+        boardLastActivity.set(bid, updated)
       }
     }
   }
@@ -63,19 +75,19 @@ export default defineEventHandler(async (event) => {
   }))
 
   // Project-level stats (open cards only — exclude done status)
-  const openCards = project.doneStatusId
-    ? allCards.filter(c => c.statusId !== project.doneStatusId)
-    : allCards
+  const openGroups = cardGroups.filter(g => g.statusId !== project.doneStatusId)
+  const openCardCount = openGroups.reduce((n, g) => n + g.count, 0)
+  const totalCardCount = cardGroups.reduce((n, g) => n + g.count, 0)
   const priorityCounts = { urgent: 0, high: 0, medium: 0, low: 0 }
-  for (const card of openCards) {
-    const p = card.priority as keyof typeof priorityCounts
-    if (p in priorityCounts) priorityCounts[p]++
+  for (const group of openGroups) {
+    const p = group.priority as keyof typeof priorityCounts
+    if (p in priorityCounts) priorityCounts[p] += group.count
   }
 
   // Per-status card counts
   const statusCardCounts = new Map<string, number>()
-  for (const card of allCards) {
-    statusCardCounts.set(card.statusId, (statusCardCounts.get(card.statusId) || 0) + 1)
+  for (const group of cardGroups) {
+    statusCardCounts.set(group.statusId, (statusCardCounts.get(group.statusId) || 0) + group.count)
   }
 
   const projectStatuses = db.select().from(schema.statuses)
@@ -105,7 +117,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // List card count = all open project cards (not filtered by board columns)
-  const listCardCount = openCards.length
+  const listCardCount = openCardCount
 
   const lists = projectLists.map(l => ({
     ...l,
@@ -132,8 +144,8 @@ export default defineEventHandler(async (event) => {
     statuses: projectStatuses,
     tags: projectTags,
     role: membership.role,
-    totalCards: allCards.length,
-    openCards: openCards.length,
+    totalCards: totalCardCount,
+    openCards: openCardCount,
     priorityCounts
   }
 })
