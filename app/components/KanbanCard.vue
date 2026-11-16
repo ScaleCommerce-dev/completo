@@ -249,7 +249,8 @@ const ID_REVEAL = 'opacity-0 sm:group-hover:opacity-100 max-sm:opacity-60 group-
  * you can click (the hover fill needs room) and kept on the ones you cannot, so
  * the rhythm does not depend on which is which.
  */
-const CHIP = 'flex items-center gap-1 h-6 px-1 shrink-0 whitespace-nowrap'
+const CHIP_BASE = 'flex items-center gap-1 px-1 shrink-0 whitespace-nowrap'
+const CHIP = `${CHIP_BASE} h-6`
 
 /**
  * One hover idiom for every control on the card.
@@ -280,14 +281,18 @@ const SLOT = 'flex items-center justify-center size-6 shrink-0 hover:bg-elevated
  * depend on hue — a filled date among plain ones reads as "needs attention" in
  * greyscale too — and what you scan a board for is the late cards. The tint
  * replaces the hover fill rather than sitting under it, so hovering deepens it.
- * Same `CHIP` box either way, so a date turning urgent moves nothing.
+ *
+ * The pill is 20px tall, centred in the chips' 24px row: the height of the
+ * avatar beside it, so the two filled shapes at the edge share a top and a
+ * bottom. At the full 24px it read as a block taller than the avatar. Width and
+ * padding are `CHIP`'s either way, so a date turning urgent moves nothing.
  */
 const DUE_CHIP = {
-  'overdue': 'text-error bg-error/10 hover:bg-error/20',
-  'due-soon': 'text-warning bg-warning/10 hover:bg-warning/20',
-  'future': 'text-muted hover:bg-elevated'
+  'overdue': 'h-5 text-error bg-error/10 hover:bg-error/20',
+  'due-soon': 'h-5 text-warning bg-warning/10 hover:bg-warning/20',
+  'future': 'h-6 text-muted hover:bg-elevated'
 } as const
-const SLOT_DUE = `${CHIP} cursor-pointer transition-colors`
+const SLOT_DUE = `${CHIP_BASE} cursor-pointer transition-colors`
 
 /**
  * An empty field's editor: no width at rest, a slot once the card is pointed at
