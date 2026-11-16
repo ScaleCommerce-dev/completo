@@ -1,21 +1,11 @@
 import { eq } from 'drizzle-orm'
+import { adminUserCreateSchema } from '#shared/schemas/admin'
 
 export default defineEventHandler(async (event) => {
   const { user: admin } = await requireAdmin(event)
-  const { name, email } = await readBody<{ name: string, email: string }>(event)
-
-  if (!name || !email) {
-    throw createError({ statusCode: 400, message: 'Name and email are required' })
-  }
-
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(email)) {
-    throw createError({ statusCode: 400, message: 'Invalid email format' })
-  }
+  const { name, email: normalizedEmail } = await readBodyAs(event, adminUserCreateSchema)
 
   // Check duplicate email (generic error — don't leak existence)
-  const normalizedEmail = email.trim().toLowerCase()
   const existing = db.select().from(schema.users).where(eq(schema.users.email, normalizedEmail)).get()
   if (existing) {
     throw createError({ statusCode: 400, message: 'Unable to create account. Please try a different email.' })

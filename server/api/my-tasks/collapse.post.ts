@@ -1,12 +1,9 @@
 import { eq, and } from 'drizzle-orm'
+import { myTasksCollapseSchema } from '#shared/schemas/view'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
-  const { projectId } = await readBody<{ projectId: string }>(event)
-
-  if (!projectId) {
-    throw createError({ statusCode: 400, message: 'projectId is required' })
-  }
+  const { projectId } = await readBodyAs(event, myTasksCollapseSchema)
 
   // Verify user is a member (or admin) — return 404 to avoid leaking project existence
   try {

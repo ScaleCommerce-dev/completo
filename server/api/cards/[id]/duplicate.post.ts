@@ -1,4 +1,5 @@
 import { and, eq, asc } from 'drizzle-orm'
+import { cardDuplicateSchema } from '#shared/schemas/card'
 
 /**
  * Duplicate a card into a board — of its own project or of any other project the
@@ -34,23 +35,14 @@ import { and, eq, asc } from 'drizzle-orm'
  */
 export default defineEventHandler(async (event) => {
   const { user, card: source } = await resolveCard(event)
-  const body = await readBody<{ title?: string, boardId?: string, tagIds?: string[] }>(event)
-
-  const title = typeof body?.title === 'string' ? body.title.trim() : ''
-  if (!title) {
-    throw createError({ statusCode: 400, message: 'Title is required' })
-  }
-  if (!body.boardId) {
-    throw createError({ statusCode: 400, message: 'boardId is required' })
-  }
+  const body = await readBodyAs(event, cardDuplicateSchema)
+  const title = body.title
 
   // The target board may be in another project, but only one the caller is a
   // member of: reading the source is checked by resolveCard, writing into the
   // target is checked here. A board the caller can't see is a 404, not a 403, so
   // probing ids reveals nothing (same rule as every other project resource).
-  const board = typeof body.boardId === 'string'
-    ? db.select().from(schema.boards).where(eq(schema.boards.id, body.boardId)).get()
-    : undefined
+  const board = db.select().from(schema.boards).where(eq(schema.boards.id, body.boardId)).get()
   if (!board) {
     throw createError({ statusCode: 404, message: 'Board not found' })
   }
@@ -78,9 +70,9 @@ export default defineEventHandler(async (event) => {
       .all()
       .map(t => [t.id, t])
   )
-  const requestedTagIds = Array.isArray(body.tagIds) ? body.tagIds : safeParseJson<string[]>(board.tagFilters, [])
+  const requestedTagIds = body.tagIds ?? safeParseJson<string[]>(board.tagFilters, [])
   for (const tagId of requestedTagIds) {
-    if (typeof tagId !== 'string' || !projectTags.has(tagId)) {
+    if (!projectTags.has(tagId)) {
       throw createError({ statusCode: 400, message: 'Tag does not belong to this project' })
     }
   }

@@ -1,11 +1,8 @@
 import { eq } from 'drizzle-orm'
+import { loginSchema } from '#shared/schemas/auth'
 
 export default defineEventHandler(async (event) => {
-  const { email, password } = await readBody<{ email: string, password: string }>(event)
-
-  if (!email || !password) {
-    throw createError({ statusCode: 400, message: 'Email and password are required' })
-  }
+  const { email, password } = await readBodyAs(event, loginSchema)
 
   // Normalised to match how register/OAuth/admin-create store it — `users.email` is UNIQUE
   // but not COLLATE NOCASE, so an exact-case lookup made sign-in capitalisation-sensitive.

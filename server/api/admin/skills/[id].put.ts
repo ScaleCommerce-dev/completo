@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm'
+import { skillUpdateSchema } from '#shared/schemas/admin'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -9,33 +10,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Skill not found' })
   }
 
-  const body = await readBody(event)
+  const { name, prompt, scope } = await readBodyAs(event, skillUpdateSchema)
   const updates: Record<string, string | Date> = {}
-
-  if (body.name !== undefined) {
-    if (typeof body.name !== 'string' || !body.name.trim()) {
-      throw createError({ statusCode: 400, message: 'Name cannot be empty' })
-    }
-    updates.name = body.name.trim()
-  }
-
-  if (body.prompt !== undefined) {
-    if (typeof body.prompt !== 'string' || !body.prompt.trim()) {
-      throw createError({ statusCode: 400, message: 'Prompt cannot be empty' })
-    }
-    updates.prompt = body.prompt.trim()
-  }
-
-  if (body.scope !== undefined) {
-    if (!isAiSkillScope(body.scope)) {
-      throw createError({ statusCode: 400, message: `Scope must be one of: ${AI_SKILL_SCOPES.join(', ')}` })
-    }
-    updates.scope = body.scope
-  }
-
-  if (Object.keys(updates).length === 0) {
-    return skill
-  }
+  if (name !== undefined) updates.name = name
+  if (prompt !== undefined) updates.prompt = prompt
+  if (scope !== undefined) updates.scope = scope
 
   updates.updatedAt = new Date()
 

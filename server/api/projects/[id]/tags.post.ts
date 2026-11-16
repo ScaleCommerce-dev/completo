@@ -1,16 +1,9 @@
 import { eq } from 'drizzle-orm'
+import { tagCreateSchema } from '#shared/schemas/project'
 
 export default defineEventHandler(async (event) => {
   const { user: _user, project } = await resolveProject(event, { auth: 'owner' })
-  const { name, color } = await readBody<{ name: string, color?: string }>(event)
-
-  if (!name) {
-    throw createError({ statusCode: 400, message: 'Tag name is required' })
-  }
-
-  if (color && !isHexColor(color)) {
-    throw createError({ statusCode: 400, message: 'Color must be a valid hex color (#RRGGBB)' })
-  }
+  const { name, color } = await readBodyAs(event, tagCreateSchema)
 
   const tagId = crypto.randomUUID()
   db.insert(schema.tags).values({

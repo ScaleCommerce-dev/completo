@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { SORTABLE_LIST_FIELDS } from '../utils/list-fields'
+import { LIST_FIELD_KEYS, SORTABLE_LIST_FIELDS, isListField } from '../utils/list-fields'
 import { NOTHING_TO_UPDATE, position, priority, requiredText, slug, somethingToUpdate } from './common'
 
 /**
@@ -48,4 +48,48 @@ export function storedFilter(values: readonly string[] | null): string | null {
 export const columnReorderSchema = z.object({
   columns: z.array(z.object({ id: z.string({ error: 'Each column needs an id' }), position }), { error: 'Columns array is required' })
     .min(1, { error: 'Columns array is required' })
+})
+
+/**
+ * `POST /api/projects/:id/{boards,lists}`. An empty or absent slug is derived from
+ * the name by the handler. `columns` are status ids for a board and field names for
+ * a list, so each endpoint narrows them with its own schema below.
+ */
+const viewCreateFields = (kind: 'Board' | 'List') => ({
+  name: requiredText(`${kind} name`),
+  slug: z.string({ error: 'Invalid slug format' }).optional(),
+  tagFilters: idFilter('tagFilters').optional()
+})
+
+export const boardCreateSchema = z.object({
+  ...viewCreateFields('Board'),
+  columns: z.array(z.string({ error: 'columns must be a list of status ids' }), { error: 'columns must be a list of status ids' }).optional()
+})
+
+const INVALID_FIELD = `Invalid field. Must be one of: ${LIST_FIELD_KEYS.join(', ')}`
+
+export const listCreateSchema = z.object({
+  ...viewCreateFields('List'),
+  columns: z.array(z.string({ error: 'columns must be a list of field names' }), { error: 'columns must be a list of field names' })
+    .superRefine((fields, ctx) => {
+      const invalid = fields.filter(f => !isListField(f))
+      if (invalid.length) ctx.addIssue({ code: 'custom', message: `Invalid field(s): ${invalid.join(', ')}. Must be one of: ${LIST_FIELD_KEYS.join(', ')}` })
+    })
+    .optional()
+})
+
+/** `POST /api/lists/:id/columns` and `POST /api/my-tasks/columns`: one field column. */
+export const fieldColumnCreateSchema = z.object({
+  field: z.string({ error: 'Field is required' }).min(1, { error: 'Field is required' })
+    .refine(isListField, { error: INVALID_FIELD })
+})
+
+/** `POST /api/boards/:id/columns/link`: an existing status of the board's project. */
+export const columnLinkSchema = z.object({
+  statusId: z.string({ error: 'statusId is required' }).min(1, { error: 'statusId is required' })
+})
+
+/** `POST /api/my-tasks/collapse`: the project group to fold or unfold. */
+export const myTasksCollapseSchema = z.object({
+  projectId: z.string({ error: 'projectId is required' }).min(1, { error: 'projectId is required' })
 })

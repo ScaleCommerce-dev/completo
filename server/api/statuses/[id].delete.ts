@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm'
+import { statusDeleteSchema } from '#shared/schemas/project'
 
 /**
  * Deleting a status moves its cards. It never deletes them.
@@ -28,7 +29,7 @@ export default defineEventHandler(async (event) => {
 
   // A DELETE may legitimately arrive with no body at all — the empty-status case
   // needs none — so both spellings are accepted and neither is required.
-  const body = await readBody<{ moveToStatusId?: string } | undefined>(event).catch(() => undefined)
+  const body = await readBodyAs(event, statusDeleteSchema)
   const moveToStatusId = body?.moveToStatusId ?? getQuery(event).moveToStatusId as string | undefined
 
   const siblings = db.select().from(schema.statuses)

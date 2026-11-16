@@ -1,16 +1,9 @@
 import { eq, and } from 'drizzle-orm'
+import { fieldColumnCreateSchema } from '#shared/schemas/view'
 
 export default defineEventHandler(async (event) => {
   const { user: _user, list } = await resolveList(event)
-  const { field } = await readBody<{ field: string }>(event)
-
-  if (!field) {
-    throw createError({ statusCode: 400, message: 'Field is required' })
-  }
-
-  if (!isListField(field)) {
-    throw createError({ statusCode: 400, message: `Invalid field. Must be one of: ${LIST_FIELD_KEYS.join(', ')}` })
-  }
+  const { field } = await readBodyAs(event, fieldColumnCreateSchema)
 
   // Check for duplicate field in this list
   const existing = db.select().from(schema.listColumns)

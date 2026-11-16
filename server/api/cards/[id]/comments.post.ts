@@ -1,13 +1,10 @@
 import { eq } from 'drizzle-orm'
+import { commentSchema } from '#shared/schemas/comment'
 
 export default defineEventHandler(async (event) => {
   const { user, card } = await resolveCard(event)
 
-  const body = await readBody<{ body?: string }>(event)
-  const text = body?.body?.trim()
-  if (!text) {
-    throw createError({ statusCode: 400, message: 'Comment body is required' })
-  }
+  const { body: text } = await readBodyAs(event, commentSchema)
 
   const comment = db.insert(schema.comments).values({
     cardId: card.id,

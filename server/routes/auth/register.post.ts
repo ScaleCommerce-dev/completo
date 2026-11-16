@@ -1,15 +1,8 @@
 import { eq } from 'drizzle-orm'
+import { registerSchema } from '#shared/schemas/auth'
 
 export default defineEventHandler(async (event) => {
-  const { name, email, password, invitation } = await readBody<{ name: string, email: string, password: string, invitation?: string }>(event)
-
-  if (!name || !email || !password) {
-    throw createError({ statusCode: 400, message: 'Name, email, and password are required' })
-  }
-
-  if (password.length < 8) {
-    throw createError({ statusCode: 400, message: 'Password must be at least 8 characters' })
-  }
+  const { name, email, password, invitation } = await readBodyAs(event, registerSchema)
 
   // Normalise before anything compares or stores it. `users.email` is UNIQUE but has no
   // COLLATE NOCASE, so an un-normalised address here created a second row for someone who

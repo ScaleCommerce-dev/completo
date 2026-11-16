@@ -1,15 +1,12 @@
 import { eq } from 'drizzle-orm'
+import { accountDeleteSchema } from '#shared/schemas/auth'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
   if (user.kind === 'agent') {
     throw createError({ statusCode: 403, message: 'An agent is deleted by its manager' })
   }
-  const { password } = await readBody<{ password: string }>(event)
-
-  if (!password) {
-    throw createError({ statusCode: 400, message: 'Password is required' })
-  }
+  const { password } = await readBodyAs(event, accountDeleteSchema)
 
   if (user.isAdmin) {
     throw createError({ statusCode: 403, message: 'Admin accounts cannot be self-deleted' })

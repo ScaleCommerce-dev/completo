@@ -1,4 +1,5 @@
 import { eq, and } from 'drizzle-orm'
+import { memberRoleSchema } from '#shared/schemas/member'
 
 export default defineEventHandler(async (event) => {
   const { project, user } = await resolveProject(event, { auth: 'owner' })
@@ -7,11 +8,7 @@ export default defineEventHandler(async (event) => {
   }
   const userId = getRouterParam(event, 'userId')!
 
-  const body = await readBody(event)
-  const role = body?.role
-  if (role !== 'owner' && role !== 'member') {
-    throw createError({ statusCode: 400, message: 'Role must be "owner" or "member"' })
-  }
+  const { role } = await readBodyAs(event, memberRoleSchema)
 
   const targetMembership = db.select().from(schema.projectMembers)
     .where(and(

@@ -1,12 +1,9 @@
 import { eq, and } from 'drizzle-orm'
+import { columnLinkSchema } from '#shared/schemas/view'
 
 export default defineEventHandler(async (event) => {
   const { user: _user, board } = await resolveBoard(event)
-  const { statusId } = await readBody<{ statusId: string }>(event)
-
-  if (!statusId) {
-    throw createError({ statusCode: 400, message: 'statusId is required' })
-  }
+  const { statusId } = await readBodyAs(event, columnLinkSchema)
 
   const status = db.select().from(schema.statuses).where(eq(schema.statuses.id, statusId)).get()
   if (!status) {

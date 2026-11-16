@@ -1,15 +1,8 @@
 import { eq } from 'drizzle-orm'
+import { setupAccountSchema } from '#shared/schemas/auth'
 
 export default defineEventHandler(async (event) => {
-  const { token, password, name } = await readBody<{ token: string, password: string, name?: string }>(event)
-
-  if (!token || !password) {
-    throw createError({ statusCode: 400, message: 'Token and password are required' })
-  }
-
-  if (password.length < 8) {
-    throw createError({ statusCode: 400, message: 'Password must be at least 8 characters' })
-  }
+  const { token, password, name } = await readBodyAs(event, setupAccountSchema)
 
   // Validate token and look up user
   const { user } = lookupVerificationToken(token, 'setup', 'setup link')

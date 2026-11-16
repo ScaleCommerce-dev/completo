@@ -1,15 +1,12 @@
 import { eq, and } from 'drizzle-orm'
+import { memberAddSchema } from '#shared/schemas/member'
 
 export default defineEventHandler(async (event) => {
   const { project, user } = await resolveProject(event, { auth: 'owner' })
   if (user.kind === 'agent') {
     throw createError({ statusCode: 403, message: 'Agents cannot manage members' })
   }
-  const { userId, email } = await readBody<{ userId?: string, email?: string }>(event)
-
-  if (!userId && !email) {
-    throw createError({ statusCode: 400, message: 'userId or email is required' })
-  }
+  const { userId, email } = await readBodyAs(event, memberAddSchema)
 
   // Every stored address is lowercased (migration 0004), so an un-normalised lookup can
   // never match a mixed-case input — `Owner@Acme.com` used to fall straight through to the

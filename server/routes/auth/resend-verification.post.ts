@@ -1,7 +1,8 @@
 import { eq, and } from 'drizzle-orm'
+import { resendVerificationSchema } from '#shared/schemas/auth'
 
 export default defineEventHandler(async (event) => {
-  const { email } = await readBody<{ email?: string }>(event)
+  const { email } = await readBodyAs(event, resendVerificationSchema) ?? {}
   // Read expired token from httpOnly cookie (set by verify-email redirect)
   const token = getCookie(event, 'expired-verification-token')
 

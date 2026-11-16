@@ -1,27 +1,19 @@
 import { eq } from 'drizzle-orm'
+import { aiDescriptionSchema } from '#shared/schemas/ai'
 
 export default defineEventHandler(async (event) => {
   // Resolve project from URL — also checks membership
   const { user: _user, project } = await resolveProject(event)
 
-  const body = await readBody(event)
-  const { title, description, tags, priority, mode, skillId, userPrompt, pageUrl: _pageUrl } = body || {}
-
-  if (!title || typeof title !== 'string' || !title.trim()) {
-    throw createError({ statusCode: 400, message: 'Title is required' })
-  }
+  const { title, description, tags, priority, mode, skillId, userPrompt } = await readBodyAs(event, aiDescriptionSchema)
 
   assertAiInputLength({
     Title: { value: title, max: AI_INPUT_LIMITS.title },
     Description: { value: description, max: AI_INPUT_LIMITS.text },
     Prompt: { value: userPrompt, max: AI_INPUT_LIMITS.prompt }
   })
-  if (Array.isArray(tags) && tags.join(', ').length > AI_INPUT_LIMITS.title) {
+  if (tags && tags.join(', ').length > AI_INPUT_LIMITS.title) {
     throw createError({ statusCode: 400, message: 'Too many tags for AI assistance' })
-  }
-
-  if (mode && mode !== 'generate' && mode !== 'improve') {
-    throw createError({ statusCode: 400, message: 'Mode must be "generate" or "improve"' })
   }
 
   const projectBriefing = project.briefing || ''

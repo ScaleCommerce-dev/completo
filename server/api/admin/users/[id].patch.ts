@@ -1,11 +1,10 @@
 import { eq } from 'drizzle-orm'
+import { adminUserPatchSchema } from '#shared/schemas/admin'
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireAdmin(event)
 
   const id = getRouterParam(event, 'id')!
-  const body = await readBody<{ suspended?: boolean, isAdmin?: boolean, canCreateAgents?: boolean }>(event)
-
   if (id === user.id) {
     throw createError({ statusCode: 400, message: 'Cannot modify yourself' })
   }
@@ -21,22 +20,20 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Agents are managed under /api/agents' })
   }
 
+  const body = await readBodyAs(event, adminUserPatchSchema)
+
   const updates: Record<string, Date | number | null> = {}
 
-  if (typeof body.suspended === 'boolean') {
+  if (body.suspended !== undefined) {
     updates.suspendedAt = body.suspended ? new Date() : null
   }
 
-  if (typeof body.isAdmin === 'boolean') {
+  if (body.isAdmin !== undefined) {
     updates.isAdmin = body.isAdmin ? 1 : 0
   }
 
-  if (typeof body.canCreateAgents === 'boolean') {
+  if (body.canCreateAgents !== undefined) {
     updates.canCreateAgents = body.canCreateAgents ? 1 : 0
-  }
-
-  if (Object.keys(updates).length === 0) {
-    throw createError({ statusCode: 400, message: 'No valid fields to update' })
   }
 
   // The person as they would be after this change. Losing the ability to manage

@@ -1,10 +1,11 @@
 import { randomBytes } from 'node:crypto'
+import { agentCreateSchema } from '#shared/schemas/agent'
 
 /** Create an agent. The creator becomes its manager. */
 export default defineEventHandler(async (event) => {
   const { user } = await requireAgentCreator(event)
-  const body = await readBody<{ name?: unknown, description?: unknown, color?: unknown }>(event)
-  const fields = readAgentFields(body ?? {}, { requireName: true })
+  const fields = await readBodyAs(event, agentCreateSchema)
+  assertAgentNameFree(fields.name)
 
   // The address is never mailed or shown where a person's would be, but `users.email`
   // is unique, so a clash on the short suffix is retried rather than surfaced.
@@ -14,8 +15,8 @@ export default defineEventHandler(async (event) => {
       db.insert(schema.users).values({
         id,
         kind: 'agent',
-        email: agentEmail(fields.name!, randomBytes(2).toString('hex')),
-        name: fields.name!,
+        email: agentEmail(fields.name, randomBytes(2).toString('hex')),
+        name: fields.name,
         description: fields.description ?? null,
         color: fields.color ?? null,
         passwordHash: AGENT_PASSWORD_HASH,
@@ -31,7 +32,7 @@ export default defineEventHandler(async (event) => {
       return describeAgent(loadUserRow(id)!)
     } catch (err) {
       const message = (err as Error).message
-      // Two creates racing past readAgentFields' check: the index is the backstop.
+      // Two creates racing past assertAgentNameFree: the index is the backstop.
       if (message.includes('users_agent_name_lower_unique')) {
         throw createError({ statusCode: 409, message: `An agent called "${fields.name}" already exists` })
       }

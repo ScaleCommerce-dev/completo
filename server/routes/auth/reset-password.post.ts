@@ -1,15 +1,8 @@
 import { and, eq, inArray } from 'drizzle-orm'
+import { resetPasswordSchema } from '#shared/schemas/auth'
 
 export default defineEventHandler(async (event) => {
-  const { token, password } = await readBody<{ token: string, password: string }>(event)
-
-  if (!token || !password) {
-    throw createError({ statusCode: 400, message: 'Token and password are required' })
-  }
-
-  if (password.length < 8) {
-    throw createError({ statusCode: 400, message: 'Password must be at least 8 characters' })
-  }
+  const { token, password } = await readBodyAs(event, resetPasswordSchema)
 
   // Validate token and look up user. Only a token minted by forgot-password qualifies —
   // an email-verification or account-setup token must not be redeemable for a password.

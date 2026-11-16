@@ -1,3 +1,5 @@
+import { consentSchema } from '#shared/schemas/oauth'
+
 /**
  * The decision. Allow mints a code bound to the user, client, redirect URI and
  * PKCE challenge; deny carries `access_denied` back. Either way the answer is a
@@ -5,7 +7,7 @@
  */
 export default defineEventHandler(async (event) => {
   const { session } = await requireActiveSession(event)
-  const body = (await readBody<Record<string, unknown>>(event)) ?? {}
+  const body = await readBodyAs(event, consentSchema)
   let req: AuthorizeRequest
   try {
     req = await parseAuthorizeRequest(event, body)

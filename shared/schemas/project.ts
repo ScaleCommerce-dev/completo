@@ -44,3 +44,29 @@ export const nameColorUpdateSchema = z.object({
   name: requiredText('Name').optional(),
   color: hexColor.optional()
 }).refine(somethingToUpdate, NOTHING_TO_UPDATE)
+
+/** A colour on create: optional, and empty or null picks `DEFAULT_COLOR` as before. */
+const optionalColor = z.union([z.literal(''), hexColor]).nullish()
+
+/**
+ * `POST /api/projects/:id/statuses` and `POST /api/boards/:id/columns`, which both
+ * create a project status.
+ */
+export const statusCreateSchema = z.object({
+  name: requiredText('Status name'),
+  color: optionalColor
+})
+
+/** `POST /api/projects/:id/tags`. */
+export const tagCreateSchema = z.object({
+  name: requiredText('Tag name'),
+  color: optionalColor
+})
+
+/**
+ * `DELETE /api/statuses/:id`. The body is optional: deleting an empty status needs
+ * none, and `moveToStatusId` may come in the query instead.
+ */
+export const statusDeleteSchema = z.object({
+  moveToStatusId: z.string({ error: 'moveToStatusId must be a status id' }).optional()
+}).optional()

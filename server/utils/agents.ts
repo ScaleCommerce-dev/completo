@@ -178,54 +178,21 @@ export async function resolveManagedAgent(event: H3Event) {
 }
 
 /**
- * Validate the editable fields of an agent. Returns only what was sent, trimmed;
- * throws 400 on a bad value and 409 on a name another agent already has.
+ * Refuse a name another agent already has, with a 409. The shape of an agent's
+ * fields is `shared/schemas/agent.ts`; this is the part that needs the database.
+ * The unique index on `lower(name)` is the backstop for two creates racing past it.
  */
-export function readAgentFields(body: { name?: unknown, description?: unknown, color?: unknown }, opts: { requireName: boolean, exceptId?: string }) {
-  const fields: { name?: string, description?: string | null, color?: string | null } = {}
-
-  if (body.name !== undefined || opts.requireName) {
-    if (typeof body.name !== 'string' || !body.name.trim()) {
-      throw createError({ statusCode: 400, message: 'Name is required' })
-    }
-    const name = body.name.trim()
-    if (name.length > 100) {
-      throw createError({ statusCode: 400, message: 'Name must be 100 characters or less' })
-    }
-    const clash = db.select({ id: schema.users.id }).from(schema.users)
-      .where(and(
-        eq(schema.users.kind, 'agent'),
-        sql`lower(${schema.users.name}) = lower(${name})`
-      ))
-      .all()
-      .some(r => r.id !== opts.exceptId)
-    if (clash) {
-      throw createError({ statusCode: 409, message: `An agent called "${name}" already exists` })
-    }
-    fields.name = name
+export function assertAgentNameFree(name: string, exceptId?: string) {
+  const clash = db.select({ id: schema.users.id }).from(schema.users)
+    .where(and(
+      eq(schema.users.kind, 'agent'),
+      sql`lower(${schema.users.name}) = lower(${name})`
+    ))
+    .all()
+    .some(r => r.id !== exceptId)
+  if (clash) {
+    throw createError({ statusCode: 409, message: `An agent called "${name}" already exists` })
   }
-
-  if (body.description !== undefined) {
-    const raw = body.description
-    if (raw !== null && typeof raw !== 'string') {
-      throw createError({ statusCode: 400, message: 'Description must be a string' })
-    }
-    const description = raw?.trim() || null
-    if (description && description.length > 500) {
-      throw createError({ statusCode: 400, message: 'Description must be 500 characters or less' })
-    }
-    fields.description = description
-  }
-
-  if (body.color !== undefined) {
-    const raw = body.color
-    if (raw !== null && !isHexColor(raw)) {
-      throw createError({ statusCode: 400, message: 'Colour must be a hex value like #f97316' })
-    }
-    fields.color = raw ? raw.toLowerCase() : null
-  }
-
-  return fields
 }
 
 // âââ Changes âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
@@ -370,12 +337,12 @@ export function transferAgents(agentIds: string[], toUserId: string, actor: Hist
   })
 }
 
-/** Load agents by id for a bulk action, 404 if any id is not an agent. */
-export function loadAgentsForBulk(agentIds: unknown) {
-  if (!Array.isArray(agentIds) || !agentIds.length || !agentIds.every(id => typeof id === 'string')) {
-    throw createError({ statusCode: 400, message: 'agentIds must be a non-empty array of ids' })
-  }
-  const ids = [...new Set(agentIds as string[])]
+/**
+ * Load agents by id for a bulk action, 404 if any id is not an agent. The list's
+ * shape is checked where it arrives (`shared/schemas/agent.ts`).
+ */
+export function loadAgentsForBulk(agentIds: readonly string[]) {
+  const ids = [...new Set(agentIds)]
   const agents = db.select().from(schema.users)
     .where(and(inArray(schema.users.id, ids), eq(schema.users.kind, 'agent')))
     .all()

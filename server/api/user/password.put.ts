@@ -1,19 +1,12 @@
 import { eq } from 'drizzle-orm'
+import { passwordChangeSchema } from '#shared/schemas/auth'
 
 export default defineEventHandler(async (event) => {
   const { user, authMethod } = await resolveAuth(event)
   if (user.kind === 'agent') {
     throw createError({ statusCode: 403, message: 'Agents have no password' })
   }
-  const { currentPassword, newPassword } = await readBody<{ currentPassword: string, newPassword: string }>(event)
-
-  if (!currentPassword || !newPassword) {
-    throw createError({ statusCode: 400, message: 'Current password and new password are required' })
-  }
-
-  if (newPassword.length < 8) {
-    throw createError({ statusCode: 400, message: 'New password must be at least 8 characters' })
-  }
+  const { currentPassword, newPassword } = await readBodyAs(event, passwordChangeSchema)
 
   const userRecord = db.select().from(schema.users).where(eq(schema.users.id, user.id)).get()
   if (!userRecord) {

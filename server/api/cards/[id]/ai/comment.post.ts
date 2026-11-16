@@ -1,4 +1,5 @@
 import { eq, asc } from 'drizzle-orm'
+import { aiCommentSchema } from '#shared/schemas/ai'
 
 /**
  * Budget for the prior-thread context. Unbounded thread injection would eventually
@@ -11,13 +12,7 @@ export default defineEventHandler(async (event) => {
   // resolveCard gives auth + IDOR (404, not 403, for non-members)
   const { card } = await resolveCard(event)
 
-  const body = await readBody(event)
-  const { body: commentBody, skillId, userPrompt } = body || {}
-
-  const draft = typeof commentBody === 'string' ? commentBody.trim() : ''
-  if (!draft) {
-    throw createError({ statusCode: 400, message: 'Comment body is required' })
-  }
+  const { body: draft, skillId, userPrompt } = await readBodyAs(event, aiCommentSchema)
   assertAiInputLength({
     Comment: { value: draft, max: AI_INPUT_LIMITS.text },
     Prompt: { value: userPrompt, max: AI_INPUT_LIMITS.prompt }

@@ -36,3 +36,18 @@ export const cardMoveSchema = z.object({
   statusId: z.string({ error: 'statusId and position are required' }).min(1, { error: 'statusId and position are required' }),
   position
 })
+
+/** `PUT /api/cards/:id/tags`: the card's whole tag set, replacing what it had. */
+export const cardTagsSchema = z.object({
+  tagIds: z.array(z.string({ error: 'tagIds must be a list of tag ids' }), { error: 'tagIds must be an array' })
+})
+
+/**
+ * `POST /api/cards/:id/duplicate`. Without `tagIds` the copy takes the board's tag
+ * filter; a value that is not a list used to fall back to it silently.
+ */
+export const cardDuplicateSchema = z.object({
+  title: z.string({ error: 'Title is required' }).trim().min(1, { error: 'Title is required' }),
+  boardId: z.string({ error: 'boardId is required' }).min(1, { error: 'boardId is required' }),
+  tagIds: z.array(z.string({ error: 'tagIds must be a list of tag ids' }), { error: 'tagIds must be a list of tag ids' }).optional()
+})

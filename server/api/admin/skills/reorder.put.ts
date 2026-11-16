@@ -1,20 +1,10 @@
 import { eq } from 'drizzle-orm'
+import { skillReorderSchema } from '#shared/schemas/admin'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  const body = await readBody(event)
-  const { skills } = body || {}
-
-  if (!Array.isArray(skills) || skills.length === 0) {
-    throw createError({ statusCode: 400, message: 'Skills array is required' })
-  }
-
-  for (const s of skills) {
-    if (!s.id || typeof s.position !== 'number') {
-      throw createError({ statusCode: 400, message: 'Each skill must have id and position' })
-    }
-  }
+  const { skills } = await readBodyAs(event, skillReorderSchema)
 
   db.transaction((tx) => {
     for (const s of skills) {

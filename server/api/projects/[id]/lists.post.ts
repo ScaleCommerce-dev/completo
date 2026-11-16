@@ -1,20 +1,11 @@
 import { eq, and } from 'drizzle-orm'
+import { listCreateSchema } from '#shared/schemas/view'
 
 export default defineEventHandler(async (event) => {
   const { user, project } = await resolveProject(event)
-  const body = await readBody<{ name: string, slug?: string, columns?: string[], tagFilters?: string[] }>(event)
-
-  if (!body.name) {
-    throw createError({ statusCode: 400, message: 'List name is required' })
-  }
-
-  // Columns arrive from the create-view modal, but this endpoint took them on trust while
-  // POST /lists/:id/columns validated the same input — so a bogus field could only be
-  // inserted at creation time.
-  const invalid = body.columns?.filter(f => !isListField(f)) ?? []
-  if (invalid.length) {
-    throw createError({ statusCode: 400, message: `Invalid field(s): ${invalid.join(', ')}. Must be one of: ${LIST_FIELD_KEYS.join(', ')}` })
-  }
+  // Columns are checked against the field registry by the schema, as
+  // `POST /lists/:id/columns` checks one: this endpoint once took them on trust.
+  const body = await readBodyAs(event, listCreateSchema)
 
   // Generate or validate slug
   let slug = body.slug || generateSlug(body.name)

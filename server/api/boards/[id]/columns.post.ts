@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm'
+import { statusCreateSchema } from '#shared/schemas/project'
 
 export default defineEventHandler(async (event) => {
   const { user, board } = await resolveBoard(event)
@@ -6,15 +7,7 @@ export default defineEventHandler(async (event) => {
   // member who created the board through, which let a member add statuses only an
   // owner may rename or delete; statuses.post.ts is owner-only for the same act.
   requireProjectOwner(board.projectId, user.id, { isAdmin: user.isAdmin })
-  const { name, color } = await readBody<{ name: string, color?: string }>(event)
-
-  if (!name) {
-    throw createError({ statusCode: 400, message: 'Status name is required' })
-  }
-
-  if (color && !isHexColor(color)) {
-    throw createError({ statusCode: 400, message: 'Color must be a valid hex color (#RRGGBB)' })
-  }
+  const { name, color } = await readBodyAs(event, statusCreateSchema)
 
   // Create status at project level
   const statusId = crypto.randomUUID()

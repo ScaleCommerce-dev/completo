@@ -1,12 +1,9 @@
 import { eq, inArray } from 'drizzle-orm'
+import { cardTagsSchema } from '#shared/schemas/card'
 
 export default defineEventHandler(async (event) => {
   const { user, card } = await resolveCard(event)
-  const { tagIds } = await readBody<{ tagIds: string[] }>(event)
-
-  if (!Array.isArray(tagIds)) {
-    throw createError({ statusCode: 400, message: 'tagIds must be an array' })
-  }
+  const { tagIds } = await readBodyAs(event, cardTagsSchema)
 
   // Validate all tagIds belong to the card's project
   const projectTags = tagIds.length > 0

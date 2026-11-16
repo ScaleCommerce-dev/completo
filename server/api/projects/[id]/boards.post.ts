@@ -1,12 +1,9 @@
 import { eq, and } from 'drizzle-orm'
+import { boardCreateSchema } from '#shared/schemas/view'
 
 export default defineEventHandler(async (event) => {
   const { user, project } = await resolveProject(event)
-  const body = await readBody<{ name: string, slug?: string, columns?: string[], tagFilters?: string[] }>(event)
-
-  if (!body.name) {
-    throw createError({ statusCode: 400, message: 'Board name is required' })
-  }
+  const body = await readBodyAs(event, boardCreateSchema)
 
   // Generate or validate slug
   let slug = body.slug || generateSlug(body.name)

@@ -1,11 +1,8 @@
 import { eq } from 'drizzle-orm'
+import { forgotPasswordSchema } from '#shared/schemas/auth'
 
 export default defineEventHandler(async (event) => {
-  const { email } = await readBody<{ email: string }>(event)
-
-  if (!email) {
-    throw createError({ statusCode: 400, message: 'Email is required' })
-  }
+  const { email } = await readBodyAs(event, forgotPasswordSchema)
 
   // Always return the same message (anti-enumeration)
   const successMessage = 'If an account with that email exists, a password reset link has been sent.'
