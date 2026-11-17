@@ -30,26 +30,30 @@ export default defineEventHandler(async (event) => {
     .all()
 
   const listId = crypto.randomUUID()
-  db.insert(schema.lists).values({
-    id: listId,
-    projectId: project.id,
-    name: body.name,
-    slug,
-    // max + 1, not a count: after a delete, a count ties the new view with an existing one.
-    position: existingLists.reduce((max, v) => Math.max(max, v.position), -1) + 1,
-    tagFilters: body.tagFilters?.length ? JSON.stringify(body.tagFilters) : null,
-    createdById: user.id
-  }).run()
-
-  // Create default field columns
-  const columns = body.columns?.length ? body.columns : LIST_DEFAULT_FIELDS
-  for (let i = 0; i < columns.length; i++) {
-    db.insert(schema.listColumns).values({
-      listId,
-      field: columns[i]!,
-      position: i
+  // The view and its columns together: a list saved without them is an empty
+  // list the user did not ask for, with a name and slug now taken.
+  db.transaction(() => {
+    db.insert(schema.lists).values({
+      id: listId,
+      projectId: project.id,
+      name: body.name,
+      slug,
+      // max + 1, not a count: after a delete, a count ties the new view with an existing one.
+      position: existingLists.reduce((max, v) => Math.max(max, v.position), -1) + 1,
+      tagFilters: body.tagFilters?.length ? JSON.stringify(body.tagFilters) : null,
+      createdById: user.id
     }).run()
-  }
+
+    // Create default field columns
+    const columns = body.columns?.length ? body.columns : LIST_DEFAULT_FIELDS
+    for (let i = 0; i < columns.length; i++) {
+      db.insert(schema.listColumns).values({
+        listId,
+        field: columns[i]!,
+        position: i
+      }).run()
+    }
+  })
 
   setResponseStatus(event, 201)
   return db.select().from(schema.lists).where(eq(schema.lists.id, listId)).get()

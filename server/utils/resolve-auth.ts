@@ -18,6 +18,19 @@ interface AuthResult {
   authMethod: 'session' | 'token'
 }
 
+/**
+ * Whether an `Authorization` header names one of the two tokens `resolveAuth`
+ * reads: an API token (`dzo_`) or an OAuth access token (`dzoa_`). Middleware
+ * that steps aside for token requests asks this rather than its own prefix test,
+ * because any header looser than these falls through to the cookie session: a
+ * `Bearer dzox` once skipped the suspension check that way, and a bare `Bearer x`
+ * skipped the cross-site check.
+ */
+export function carriesAuthToken(authHeader: string | undefined): boolean {
+  return !!authHeader
+    && (authHeader.startsWith('Bearer dzo_') || authHeader.startsWith(`Bearer ${ACCESS_TOKEN_PREFIX}`))
+}
+
 export async function resolveAuth(event: H3Event): Promise<AuthResult> {
   const authHeader = getRequestHeader(event, 'authorization')
 

@@ -92,7 +92,7 @@ a `COMPLETO_URL` there must come with its own `COMPLETO_TOKEN`, or the CLI refus
 completo get TK-27              # a specific card
 completo next                  # top card of TODO_STATUS (lowest position)
 completo next --status Backlog # top card of another status
-completo next --all            # list every card in the status as a table
+completo next --all            # list the cards in the status as a table (up to 200)
 ```
 
 Use `--all` when the user wants to *choose* (e.g. "what's a quick win?") — scan titles and priorities
@@ -261,13 +261,13 @@ Run `completo <command> --help` for full, always-current flag lists. The essenti
 |---------|---------|
 | `completo projects` | List accessible projects |
 | `completo statuses [project]` | List a project's statuses (names are exact) |
-| `completo next [project] [--status X] [--all]` | Top card of a status, or all of them (`--all`) |
-| `completo list [project] [--status] [--priority] [--assignee] [--parent] [--limit]` | List/filter cards (limit default 50, max 200); `--parent TK-27` for its sub-tasks, `none` for top-level cards |
+| `completo next [project] [--status X] [--all]` | Top card of a status, or up to 200 of them (`--all`) |
+| `completo list [project] [--status] [--priority] [--assignee] [--parent] [--limit]` | List/filter cards (limit default 50, max 200); `--assignee` takes an email, name or ID; `--parent TK-27` for its sub-tasks, `none` for top-level cards |
 | `completo get <ticket-id>` | Fetch one card, with its latest comments |
 | `completo create <title> [flags]` | Create a card (see above) |
 | `completo update <ticket-id> [flags]` | Edit `--title` / `--description[-file]` / `--priority` / `--due` / `--parent` (`none` clears `--due` or `--parent`) |
 | `completo move <ticket-id> "Status"` | Move a card to a status (to the top of the column) |
-| `completo assign <ticket-id> --me` | Assign to yourself, or `completo assign <ticket-id> someone@example.com` for another member |
+| `completo assign <ticket-id> --me` | Assign to yourself, or `completo assign <ticket-id> <member>` for another member by email, name or ID (agents by name or ID) |
 | `completo tags [project]` | List a project's tags (names are exact) |
 | `completo tag <ticket-id> [add\|remove\|set] [tags...]` | Show or change a card's tags (no action lists them) |
 | `completo comment <ticket-id> [add\|edit\|delete] [args...]` | Show or manage a card's comments (no action lists them) |

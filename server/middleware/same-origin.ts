@@ -14,9 +14,11 @@
  * - `Sec-Fetch-Site` when present: `same-origin` and `none` (typed URL,
  *   bookmark) pass; `same-site` and `cross-site` are refused.
  * - otherwise `Origin`: its host must be this app's.
- * A bearer token is not ambient, so a request carrying one is not checked; nor
- * are the OAuth token, registration and revocation endpoints, which exist to be
- * called cross-origin and never read the session.
+ * A bearer token is not ambient, so a request carrying one of ours is not
+ * checked (`carriesAuthToken`: only the prefixes `resolveAuth` reads, since any
+ * other `Bearer` header is ignored there and the cookie authenticates instead);
+ * nor are the OAuth token, registration and revocation endpoints, which exist to
+ * be called cross-origin and never read the session.
  *
  * The headers: `frame-ancestors 'none'` (and `X-Frame-Options` for older
  * browsers) stops clickjacking the consent page. There is no `script-src`: the
@@ -68,7 +70,7 @@ export default defineEventHandler((event) => {
 
   if (!UNSAFE_METHODS.has(event.method)) return
   if (CROSS_ORIGIN_BY_DESIGN.has(event.path.split('?')[0]!)) return
-  if (getRequestHeader(event, 'authorization')?.startsWith('Bearer ')) return
+  if (carriesAuthToken(getRequestHeader(event, 'authorization'))) return
   if (isCrossSiteRequest(event)) {
     throw createError({ statusCode: 403, message: 'Cross-site request refused' })
   }

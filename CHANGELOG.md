@@ -31,9 +31,10 @@
 - **The new board or list dialog checks the address reliably.** Clearing the address no longer leaves a spinner, switching between board and list no longer keeps the other's answer, and pressing ⌘↵ twice no longer creates the view twice. Its checkboxes are real checkboxes, and its tag chips have the same readable colours as everywhere else.
 - **Agent and profile token lists match.** Both offer the same expiry choices and say when a token was never used.
 - **Dates read the same everywhere**, as "Nov 16, 2026"; an agent's page said "16 Nov 2026".
-- **Changing your password revokes your API tokens and connected apps**, as a reset already did, so nothing minted by whoever else knew the old password outlives the change. The profile says how many went.
+- **Changing your password revokes your API tokens and connected apps**, as a reset already did, so nothing minted by whoever else knew the old password outlives the change. The profile says how many went. A connection to an MCP client that was approved but not yet completed when the password changed can no longer complete.
 - **A password reset also revokes your agents' tokens.** Whoever held your account could have given an agent a token and kept acting in your projects. The agents keep their projects and history; generate new tokens for the ones you recognise.
 - **Deleting a project deletes its attachment files**, instead of leaving them on disk.
+- **The cards API refuses an unknown `priority` filter** with a 400 that lists the allowed values. `priority=bogus` used to return every card as if it had matched.
 - **Removing someone who is not a member of a project is refused**, instead of succeeding and sending them a "removed you from" notification.
 
 - **The notifications list shows your newest 200.** It returned every notification ever received, so an account that never cleared them loaded more on every open. The unread count is unaffected.
@@ -57,6 +58,8 @@
 
 - `completo create --parent TK-12` creates a sub-task, and `completo update TK-13 --parent TK-12` (or `--parent none`) moves or detaches one. `completo get` lists a card's sub-tasks and shows a sub-task's parent. `completo list --parent TK-12` lists one card's sub-tasks, `--parent none` only cards that are not sub-tasks, and the list shows a PARENT column when it contains a sub-task. Moving a parent with open sub-tasks to Done fails and names them.
 - **A project's `.completo.local` can no longer receive your exported token.** A file that set `COMPLETO_URL` along with any `COMPLETO_TOKEN` passed the check, and an exported `COMPLETO_TOKEN` then replaced its token and went to the file's server. The CLI now refuses unless the token it sends is the file's own, or the server is the one in `~/.completo/.env`.
+- **`completo assign` and `completo list --assignee` take an email, a name or an ID.** `assign` matched email only, so it could not assign a card to an agent, whose address is hidden; `--assignee` said it took a name but matched IDs only, and listed every card for anything else. A name that fits more than one member is refused rather than guessed.
+- **`completo list --priority` refuses an unknown priority** instead of listing every card, and **`completo next --all`** lists up to 200 cards rather than stopping at 50.
 - **`completo self-update` verifies what it installs** against the release's `checksums.txt`, as the install script does, and refuses when it cannot. It also reports a failed update check instead of saying "Already up to date", no longer hangs on a stalled download, and works when the system temp directory is on another disk. The install script no longer installs without a checksum.
 - **`completo create` no longer starts a card in Done** when the project's oldest status is Done and no `--status` or `TODO_STATUS` names one. It now starts in the project's first status that is not Done, as the app does.
 - **A mistyped status no longer corrupts `--json` output.** `list`, `move` and `next` printed the list of valid statuses to standard output, and `assign` its list of members; both now go to standard error.

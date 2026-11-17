@@ -57,8 +57,14 @@ export default defineEventHandler(async (event) => {
     conditions.push(eq(schema.cards.assigneeId, assigneeId))
   }
   if (priority) {
+    // An unknown value is refused like an unknown sort: dropped, it left the filter
+    // off, so `priority=bogus` listed every card as if it had matched.
     const valid = new Set(['low', 'medium', 'high', 'urgent'])
-    const priorities = priority.split(',').map(p => p.trim()).filter(p => valid.has(p))
+    const priorities = priority.split(',').map(p => p.trim()).filter(Boolean)
+    const unknown = priorities.filter(p => !valid.has(p))
+    if (unknown.length) {
+      throw createError({ statusCode: 400, message: `Invalid priority: ${unknown.join(', ')}. Allowed: ${[...valid].join(', ')}` })
+    }
     if (priorities.length === 1) {
       conditions.push(sql`${schema.cards.priority} = ${priorities[0]}`)
     } else if (priorities.length > 1) {

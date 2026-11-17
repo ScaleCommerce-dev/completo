@@ -13,7 +13,7 @@ var nextAll bool
 var nextCmd = &cobra.Command{
 	Use:   "next [project-slug]",
 	Short: "Fetch next card from a status (default: To Do)",
-	Long:  "Returns the first card (by position) in the given status. Use --all to list every card in the status. Uses the project from .completo if not specified.",
+	Long:  "Returns the first card (by position) in the given status. Use --all to list the cards in the status, up to 200. Uses the project from .completo if not specified.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := mustClient()
 		slug, err := projectSlug(cfg, args)
@@ -37,7 +37,7 @@ var nextCmd = &cobra.Command{
 		}
 
 		if nextAll {
-			return listCards(client, proj, listCardsOpts{StatusID: s.ID})
+			return listCards(client, proj, listCardsOpts{StatusID: s.ID, Limit: maxListLimit})
 		}
 
 		// Fetch first card in status, sorted by position
@@ -82,6 +82,6 @@ var nextCmd = &cobra.Command{
 
 func init() {
 	nextCmd.Flags().StringVar(&nextStatus, "status", "", "Status to fetch from (default: TODO_STATUS from .completo or 'To Do')")
-	nextCmd.Flags().BoolVar(&nextAll, "all", false, "List all cards in the status instead of just the top one")
+	nextCmd.Flags().BoolVar(&nextAll, "all", false, "List the cards in the status (up to 200) instead of just the top one")
 	rootCmd.AddCommand(nextCmd)
 }

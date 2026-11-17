@@ -35,7 +35,11 @@ export class ToolError extends Error {}
 export interface ToolContext {
   get<T>(path: string, query?: JsonObject): Promise<T>
   send<T>(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T>
-  /** Scheme and host the caller reached us on, for card links. */
+  /**
+   * Where links point: `APP_URL` when set, as in emails and the OAuth metadata, so
+   * a card link is the address people use rather than whatever host or forwarded
+   * header this request arrived with.
+   */
   origin: string
   userId: string
 }
@@ -672,11 +676,10 @@ export function toolContext(event: H3Event, userId: string): ToolContext {
       throw new ToolError(apiMessage(err))
     }
   }
-  const { protocol, host } = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
   return {
     get: (path, query) => call(path, { query }),
     send: (method, path, body) => call(path, { method, body }),
-    origin: `${protocol}//${host}`,
+    origin: publicOrigin(event),
     userId
   }
 }

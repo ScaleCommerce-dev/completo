@@ -121,6 +121,28 @@ describe('POST /mcp', () => {
     expect(body.map(r => r.id)).toEqual([1, 2])
   })
 
+  it('does not run a request sent as a notification, and answers nothing', async () => {
+    // No id: JSON-RPC forbids a reply, so a tool call here would run unseen.
+    const project = await createTestProject(user, { name: `MCP notify ${Date.now()}` })
+    const title = `Sent without an id ${Date.now()}`
+    for (const id of [undefined, null]) {
+      const res = await post({ jsonrpc: '2.0', id, method: 'tools/call', params: { name: 'create_card', arguments: { project: project.key, title } } }, headers)
+      expect(res.status).toBe(202)
+      expect(await res.text()).toBe('')
+    }
+    expect((await call(headers, 'list_cards', { project: project.key })).data).toEqual([])
+  })
+
+  it('refuses a batch over twenty messages before running any of it', async () => {
+    const ping = (id: number) => ({ jsonrpc: '2.0', id, method: 'ping' })
+    const res = await post(Array.from({ length: 21 }, (_, i) => ping(i)), headers)
+    expect(res.status).toBe(400)
+    expect((await res.json() as Rpc).error?.code).toBe(-32600)
+    const ok = await post(Array.from({ length: 20 }, (_, i) => ping(i)), headers)
+    expect(ok.status).toBe(200)
+    expect((await ok.json() as Rpc[]).length).toBe(20)
+  })
+
   describe('tools', () => {
     let project: { id: string, slug: string, key: string, name: string }
 

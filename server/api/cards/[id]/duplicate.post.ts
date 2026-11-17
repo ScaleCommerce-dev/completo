@@ -83,45 +83,51 @@ export default defineEventHandler(async (event) => {
     ? 'medium'
     : allowedPriorities[0]) as 'low' | 'medium' | 'high' | 'urgent'
 
-  const copy = createCard({
-    projectId: targetProjectId,
-    userId: user.id,
-    userName: user.name,
-    body: {
-      statusId: column.statusId,
-      title,
-      description: resetTaskList(source.description) || undefined,
-      priority,
-      parentId: source.parentId && source.projectId === targetProjectId ? source.parentId : undefined
-    },
-    // In the card's own transaction: a copy that exists without the tags would be
-    // invisible on a board that filters by them.
-    tags: tagIds.map(id => projectTags.get(id)!)
-  })
+  // The copy and its sub-tasks together (`createCard` nests as a savepoint), so a
+  // failure on one sub-task cannot leave a copy with only some of them, which a
+  // retry would then duplicate.
+  const { copy, subtasks } = db.transaction(() => {
+    const copy = createCard({
+      projectId: targetProjectId,
+      userId: user.id,
+      userName: user.name,
+      body: {
+        statusId: column.statusId,
+        title,
+        description: resetTaskList(source.description) || undefined,
+        priority,
+        parentId: source.parentId && source.projectId === targetProjectId ? source.parentId : undefined
+      },
+      // In the card's own transaction: a copy that exists without the tags would be
+      // invisible on a board that filters by them.
+      tags: tagIds.map(id => projectTags.get(id)!)
+    })
 
-  // Where a sub-task added by hand starts (`defaultStatusId`), not the board column
-  // the copy went to.
-  const subtasks = db.select({ title: schema.cards.title, description: schema.cards.description })
-    .from(schema.cards)
-    .where(and(eq(schema.cards.parentId, source.id), eq(schema.cards.projectId, source.projectId)))
-    .orderBy(asc(schema.cards.id))
-    .all()
-  if (subtasks.length) {
-    const firstStatusId = defaultStatusId(targetProjectId)!
-    for (const sub of subtasks) {
-      createCard({
-        projectId: targetProjectId,
-        userId: user.id,
-        userName: user.name,
-        body: {
-          statusId: firstStatusId,
-          title: sub.title,
-          description: resetTaskList(sub.description) || undefined,
-          parentId: copy.id
-        }
-      })
+    // Where a sub-task added by hand starts (`defaultStatusId`), not the board column
+    // the copy went to.
+    const subtasks = db.select({ title: schema.cards.title, description: schema.cards.description })
+      .from(schema.cards)
+      .where(and(eq(schema.cards.parentId, source.id), eq(schema.cards.projectId, source.projectId)))
+      .orderBy(asc(schema.cards.id))
+      .all()
+    if (subtasks.length) {
+      const firstStatusId = defaultStatusId(targetProjectId)!
+      for (const sub of subtasks) {
+        createCard({
+          projectId: targetProjectId,
+          userId: user.id,
+          userName: user.name,
+          body: {
+            statusId: firstStatusId,
+            title: sub.title,
+            description: resetTaskList(sub.description) || undefined,
+            parentId: copy.id
+          }
+        })
+      }
     }
-  }
+    return { copy, subtasks }
+  })
 
   setResponseStatus(event, 201)
   return { ...copy, tagIds, boardId: board.id, projectId: targetProjectId, subtaskCount: subtasks.length }

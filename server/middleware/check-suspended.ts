@@ -14,8 +14,7 @@ export default defineEventHandler(async (event) => {
   // accepts — a looser `dzo` let `Bearer dzox` skip this and fall through to the
   // cookie session. requireActiveSession() now checks suspension too, so this
   // middleware is the early exit, not the guard.
-  const authHeader = getRequestHeader(event, 'authorization')
-  if (authHeader?.startsWith('Bearer dzo_') || authHeader?.startsWith(`Bearer ${ACCESS_TOKEN_PREFIX}`)) return
+  if (carriesAuthToken(getRequestHeader(event, 'authorization'))) return
 
   let session
   try {

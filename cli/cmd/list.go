@@ -42,10 +42,22 @@ var listCmd = &cobra.Command{
 			opts.StatusID = s.ID
 		}
 		if listPriority != "" {
-			opts.Priority = listPriority
+			p, err := requirePriority(listPriority)
+			if err != nil {
+				return err
+			}
+			opts.Priority = p
 		}
 		if listAssignee != "" {
-			opts.Assignee = listAssignee
+			members, err := fetchMembers(client, proj.ID)
+			if err != nil {
+				return err
+			}
+			m, err := resolveMember(members, listAssignee)
+			if err != nil {
+				return err
+			}
+			opts.Assignee = m.ID
 		}
 		switch listParent {
 		case "":
@@ -66,11 +78,14 @@ var listCmd = &cobra.Command{
 func init() {
 	listCmd.Flags().StringVar(&listStatus, "status", "", "Filter by status name")
 	listCmd.Flags().StringVar(&listPriority, "priority", "", "Filter by priority (low, medium, high, urgent)")
-	listCmd.Flags().StringVar(&listAssignee, "assignee", "", "Filter by assignee name or ID")
+	listCmd.Flags().StringVar(&listAssignee, "assignee", "", "Filter by assignee: email, name or ID (agents by name or ID)")
 	listCmd.Flags().StringVar(&listParent, "parent", "", "Only the sub-tasks of this card (ticket ID), or \"none\" for cards that are not sub-tasks")
 	listCmd.Flags().IntVar(&listLimit, "limit", 50, "Maximum number of cards to return (1-200)")
 	rootCmd.AddCommand(listCmd)
 }
+
+// maxListLimit is the server's cap on one page of cards.
+const maxListLimit = 200
 
 type listCardsOpts struct {
 	StatusID string

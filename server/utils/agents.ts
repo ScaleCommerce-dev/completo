@@ -249,7 +249,32 @@ function revokeAgentCredentials(ids: string[]): number {
   // An agent has no session and so cannot complete an OAuth consent, but its
   // credentials are whatever rows name it: clear these too rather than rely on that.
   db.delete(schema.oauthGrants).where(inArray(schema.oauthGrants.userId, ids)).run()
+  db.delete(schema.oauthCodes).where(inArray(schema.oauthCodes.userId, ids)).run()
   return revoked
+}
+
+/**
+ * Everything a past holder of a person's password could have minted: API tokens,
+ * MCP grants, authorization codes not yet exchanged, and the credentials of the
+ * agents they manage. Shared by a password change and a reset. The codes matter
+ * because a code issued before the change still exchanged for a fresh grant
+ * afterwards, which undid the grant deletion within the code's lifetime.
+ * Call inside the caller's transaction.
+ */
+export function revokeAccountCredentials(userId: string) {
+  const revokedTokens = db.delete(schema.apiTokens)
+    .where(eq(schema.apiTokens.userId, userId))
+    .returning({ id: schema.apiTokens.id })
+    .all()
+    .length
+  const revokedGrants = db.delete(schema.oauthGrants)
+    .where(eq(schema.oauthGrants.userId, userId))
+    .returning({ id: schema.oauthGrants.id })
+    .all()
+    .length
+  db.delete(schema.oauthCodes).where(eq(schema.oauthCodes.userId, userId)).run()
+  const revokedAgentTokens = revokeManagedAgentCredentials(userId)
+  return { revokedTokens, revokedGrants, revokedAgentTokens }
 }
 
 /**

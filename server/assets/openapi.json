@@ -5312,7 +5312,7 @@
           {
             "name": "priority",
             "in": "query",
-            "description": "Filter by priority (comma-separated for multiple: 'high,urgent')",
+            "description": "Filter by priority (comma-separated for multiple: 'high,urgent'). An unknown value is a 400.",
             "schema": {
               "type": "string"
             }
@@ -5801,7 +5801,7 @@
           "MCP"
         ],
         "summary": "MCP endpoint (JSON-RPC 2.0)",
-        "description": "One JSON-RPC message or a batch per request, answered with JSON. Supported methods: initialize, ping, tools/list, tools/call; notifications are accepted with 202. Authenticate with a Bearer token in the Authorization header: an API token, or an OAuth access token from the sign-in flow (see the OAuth tag); a 401 carries WWW-Authenticate with resource_metadata. GET and DELETE answer 405: the server is stateless and issues no session id.",
+        "description": "One JSON-RPC message or a batch of at most 20 per request, answered with JSON. Supported methods: initialize, ping, tools/list, tools/call; notifications (messages without an id) are accepted with 202 and not run. Authenticate with a Bearer token in the Authorization header: an API token, or an OAuth access token from the sign-in flow (see the OAuth tag); a 401 carries WWW-Authenticate with resource_metadata. GET and DELETE answer 405: the server is stateless and issues no session id.",
         "operationId": "mcp",
         "requestBody": {
           "required": true,

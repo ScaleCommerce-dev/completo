@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { url } from '../setup/server'
-import { registerTestUser, type TestUser } from '../setup/auth'
+import { registerTestUser, createTestToken, type TestUser } from '../setup/auth'
 
 /**
  * `server/middleware/same-origin.ts`. A session cookie is `SameSite=Lax`, so a
@@ -32,6 +32,20 @@ describe('cross-site requests', () => {
     expect((await post({ origin: new URL(url('/')).origin })).status).toBe(200)
     // No browser headers at all: the CLI, MCP clients, this suite.
     expect((await post({})).status).toBe(200)
+  })
+
+  it('steps aside for our own tokens only, not for any Bearer header beside a cookie', async () => {
+    // `resolveAuth` ignores a Bearer header it does not recognise and authenticates
+    // by the cookie, so exempting every `Bearer` let the cookie through unchecked.
+    expect((await post({ 'sec-fetch-site': 'cross-site', 'authorization': 'Bearer x' })).status).toBe(403)
+    expect((await post({ 'sec-fetch-site': 'cross-site', 'authorization': 'Bearer dzox' })).status).toBe(403)
+    const { token } = await createTestToken(user)
+    const res = await fetch(url('/api/user/profile'), {
+      method: 'PUT',
+      headers: { 'authorization': `Bearer ${token}`, 'content-type': 'application/json', 'sec-fetch-site': 'cross-site' },
+      body: JSON.stringify({ name: 'Origin check' })
+    })
+    expect(res.status).toBe(200)
   })
 
   it('does not apply to reads, or to the OAuth endpoints meant to be called cross-origin', async () => {

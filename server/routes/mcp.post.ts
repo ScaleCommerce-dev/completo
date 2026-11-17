@@ -27,6 +27,14 @@ const INSTRUCTIONS = `Completo is a kanban app. Cards live in a project and have
 interface RpcRequest { jsonrpc?: string, id?: string | number | null, method?: string, params?: JsonObject }
 interface RpcResponse { jsonrpc: '2.0', id: string | number | null, result?: unknown, error?: { code: number, message: string, data?: unknown } }
 
+/**
+ * Messages one POST may carry. Each tool call is one or more API requests, and the
+ * rate limiter counts the POST, not what is inside it: unbounded, one request could
+ * carry thousands of writes. Clients send one message at a time (batching left the
+ * specification in 2025-06-18), so this only bounds abuse.
+ */
+const MAX_BATCH = 20
+
 const PARSE_ERROR = -32700
 const INVALID_REQUEST = -32600
 const METHOD_NOT_FOUND = -32601
@@ -75,6 +83,10 @@ export default defineEventHandler(async (event) => {
     setResponseStatus(event, 400)
     return fail(null, INVALID_REQUEST, 'Invalid request: empty batch')
   }
+  if (messages.length > MAX_BATCH) {
+    setResponseStatus(event, 400)
+    return fail(null, INVALID_REQUEST, `Invalid request: a batch carries at most ${MAX_BATCH} messages`)
+  }
 
   const ctx = toolContext(event, userId)
   const responses: RpcResponse[] = []
@@ -101,8 +113,11 @@ async function handle(message: unknown, ctx: ReturnType<typeof toolContext>): Pr
   }
   const isNotification = req.id === undefined || req.id === null
 
-  // A response to something we never sent, or a notification: nothing to answer.
-  if (req.method.startsWith('notifications/')) return null
+  // A notification is never answered (JSON-RPC 2.0 §4.1), and none of ours does
+  // anything: the `notifications/*` a client sends are informational, and a request
+  // method sent without an id is a client error. Running it anyway executed a
+  // `tools/call` whose result nobody could receive, and answered with `id: null`.
+  if (isNotification) return null
 
   switch (req.method) {
     case 'initialize': {
@@ -139,6 +154,6 @@ async function handle(message: unknown, ctx: ReturnType<typeof toolContext>): Pr
       }
     }
     default:
-      return isNotification ? null : fail(req.id, METHOD_NOT_FOUND, `Method not found: ${req.method}`)
+      return fail(req.id, METHOD_NOT_FOUND, `Method not found: ${req.method}`)
   }
 }

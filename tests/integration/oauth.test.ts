@@ -316,4 +316,28 @@ describe('OAuth for MCP', () => {
       expect(res.status).toBe(400)
     }
   })
+
+  it('a code issued before a password change does not exchange after it', async () => {
+    // The change deletes grants; an unexchanged code would mint a fresh one.
+    const password = 'old-password-123'
+    const holder = await registerTestUser({ password })
+    const { body: client } = await register()
+    const { verifier, challenge } = pkce()
+    const cb = await consent(holder, { client_id: client.client_id as string, redirect_uri: REDIRECT, code_challenge: challenge, state: 's' })
+    const changed = await fetch(url('/api/user/password'), {
+      method: 'PUT',
+      headers: { ...holder.headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ currentPassword: password, newPassword: 'new-password-456' })
+    })
+    expect(changed.status).toBe(200)
+    const exchanged = await token({
+      grant_type: 'authorization_code',
+      code: cb.searchParams.get('code')!,
+      redirect_uri: REDIRECT,
+      client_id: client.client_id as string,
+      code_verifier: verifier
+    })
+    expect(exchanged.status).toBe(400)
+    expect(exchanged.body.error).toBe('invalid_grant')
+  })
 })

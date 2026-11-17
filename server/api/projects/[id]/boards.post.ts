@@ -29,54 +29,58 @@ export default defineEventHandler(async (event) => {
     .all()
 
   const boardId = crypto.randomUUID()
-  db.insert(schema.boards).values({
-    id: boardId,
-    projectId: project.id,
-    name: body.name,
-    slug,
-    // max + 1, not a count: after a delete, a count ties the new view with an existing one.
-    position: existingBoards.reduce((max, v) => Math.max(max, v.position), -1) + 1,
-    tagFilters: body.tagFilters?.length ? JSON.stringify(body.tagFilters) : null,
-    hiddenCardFields: JSON.stringify(DEFAULT_HIDDEN_CARD_FIELDS),
-    createdById: user.id
-  }).run()
-
-  // Never empty: project creation makes the default statuses, and the last one
-  // cannot be deleted (statuses/[id].delete.ts).
-  const projectStatuses = db.select().from(schema.statuses)
-    .where(eq(schema.statuses.projectId, project.id))
-    .all()
-
-  // Determine which statuses to link
-  const selectedStatusIds = body.columns?.length
-    ? new Set(body.columns)
-    : null
-
-  // Link statuses to the new board
-  let linkPosition = 0
-  for (let i = 0; i < projectStatuses.length; i++) {
-    // If columns were specified, only link selected ones
-    if (selectedStatusIds && !selectedStatusIds.has(projectStatuses[i]!.id)) continue
-
-    // Try to get position from an existing board's board_columns
-    let position = linkPosition
-    if (existingBoards.length > 0) {
-      const existingBc = db.select().from(schema.boardColumns)
-        .where(eq(schema.boardColumns.boardId, existingBoards[0]!.id))
-        .all()
-        .find(bc => bc.statusId === projectStatuses[i]!.id)
-      if (existingBc) {
-        position = existingBc.position
-      }
-    }
-
-    db.insert(schema.boardColumns).values({
-      boardId,
-      statusId: projectStatuses[i]!.id,
-      position
+  // The view and its columns together: a board saved without them is an empty
+  // board the user did not ask for, with a name and slug now taken.
+  db.transaction(() => {
+    db.insert(schema.boards).values({
+      id: boardId,
+      projectId: project.id,
+      name: body.name,
+      slug,
+      // max + 1, not a count: after a delete, a count ties the new view with an existing one.
+      position: existingBoards.reduce((max, v) => Math.max(max, v.position), -1) + 1,
+      tagFilters: body.tagFilters?.length ? JSON.stringify(body.tagFilters) : null,
+      hiddenCardFields: JSON.stringify(DEFAULT_HIDDEN_CARD_FIELDS),
+      createdById: user.id
     }).run()
-    linkPosition++
-  }
+
+    // Never empty: project creation makes the default statuses, and the last one
+    // cannot be deleted (statuses/[id].delete.ts).
+    const projectStatuses = db.select().from(schema.statuses)
+      .where(eq(schema.statuses.projectId, project.id))
+      .all()
+
+    // Determine which statuses to link
+    const selectedStatusIds = body.columns?.length
+      ? new Set(body.columns)
+      : null
+
+    // Link statuses to the new board
+    let linkPosition = 0
+    for (let i = 0; i < projectStatuses.length; i++) {
+      // If columns were specified, only link selected ones
+      if (selectedStatusIds && !selectedStatusIds.has(projectStatuses[i]!.id)) continue
+
+      // Try to get position from an existing board's board_columns
+      let position = linkPosition
+      if (existingBoards.length > 0) {
+        const existingBc = db.select().from(schema.boardColumns)
+          .where(eq(schema.boardColumns.boardId, existingBoards[0]!.id))
+          .all()
+          .find(bc => bc.statusId === projectStatuses[i]!.id)
+        if (existingBc) {
+          position = existingBc.position
+        }
+      }
+
+      db.insert(schema.boardColumns).values({
+        boardId,
+        statusId: projectStatuses[i]!.id,
+        position
+      }).run()
+      linkPosition++
+    }
+  })
 
   setResponseStatus(event, 201)
   // Same normalization the GET and PUT do: a board is one shape wherever it is

@@ -55,4 +55,3 @@ func mustClient() *internal.Client {
 	}
 	return client
 }
-

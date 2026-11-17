@@ -33,6 +33,12 @@ describe('card-side request validation', () => {
     statusId = detail.statuses[0]!.id
   })
 
+  it('refuses an unknown priority filter instead of listing every card', async () => {
+    const res = await send(user, 'GET', `/api/projects/${projectId}/cards?priority=high,bogus`)
+    expect(res).toEqual({ status: 400, message: 'Invalid priority: bogus. Allowed: low, medium, high, urgent' })
+    expect((await send(user, 'GET', `/api/projects/${projectId}/cards?priority=high,urgent`)).status).toBe(200)
+  })
+
   it('refuses a comment body that is not text or is blank, on create and edit', async () => {
     const card = await createTestCard(user, projectId, statusId)
     expect(await send(user, 'POST', `/api/cards/${card.id}/comments`, { body: 42 })).toEqual({ status: 400, message: 'Comment body is required' })

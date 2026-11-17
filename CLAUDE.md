@@ -22,7 +22,7 @@ Before adding a line, ask whether it would stop a mistake that reading the relev
 
 Host-only exceptions: `zdev`, `git`, and `cd cli && go test ./...` (the dev image has no Go toolchain).
 
-Two traps in this setup have no code-level signal. **`.zdev/config.yaml` must not set `command:`** — zdev turns that into the container CMD, which flips zpinit out of supervise mode. And **editing `.zdev/entrypoint.d/` needs a rebuild**, because `.zdev` is excluded from the file sync and `zdev update` only rebuilds on Dockerfile *content* changes: touch `.zdev/Dockerfile` after editing an entrypoint script.
+Two traps in this setup have no code-level signal. **`.zdev/config.yaml` must not set `command:`** — zdev turns that into the container CMD, which flips zpinit out of supervise mode. And **editing `.zdev/zpinit/entrypoint.d/` needs a rebuild**, because `.zdev` is excluded from the file sync and `zdev update` only rebuilds on Dockerfile *content* changes: touch `.zdev/Dockerfile` after editing an entrypoint script.
 
 **Scripts run as `node scripts/foo.ts` — no tsx, no package manager,** because the prod runtime image has neither npm nor pnpm and the same command has to work in dev, in prod and on the host. Node strips types natively, which is erasable-syntax-only: **no `enum`, `namespace`, parameter properties or decorators in `scripts/*.ts`**, and relative imports would need explicit `.ts` extensions.
 
