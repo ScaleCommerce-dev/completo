@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 useHead({
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' }
@@ -15,9 +15,17 @@ useHead({
   }
 })
 
+const HOME_TITLE = 'Completo: All the Toppings. None of the Mess.'
+
 useSeoMeta({
-  title: 'Completo: All the Toppings. None of the Mess.',
+  title: HOME_TITLE,
   description: 'Drag. Drop. Completo.'
+})
+
+// Pages give their own title, and the app's name is appended once, here: twelve
+// pages used to spell out " · Completo" each.
+useHead({
+  titleTemplate: (title?: string) => !title ? 'Completo' : title === HOME_TITLE ? title : `${title}`
 })
 </script>
 

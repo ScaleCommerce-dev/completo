@@ -71,7 +71,7 @@ export interface OAuthClient {
 
 /** The URL the outside world uses, from APP_URL when set (same source as emailed links), else the request. */
 export function publicOrigin(event: H3Event): string {
-  const configured = process.env.APP_URL?.trim().replace(/\/+$/, '')
+  const configured = configuredAppUrl()
   if (configured) return configured
   const { protocol, host } = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
   return `${protocol}//${host}`

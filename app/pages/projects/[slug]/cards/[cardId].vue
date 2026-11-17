@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import type { Member, PersonRef, SubtaskProgress, SubtaskRow } from '~/types/card'
 
-definePageMeta({ layout: 'default' })
-
 const route = useRoute()
 const cardId = route.params.cardId as string
 const projectSlug = route.params.slug as string
@@ -43,8 +41,8 @@ const projectKey = computed(() => cardData.value?.project?.key || 'TK')
 
 useSeoMeta({
   title: () => card.value
-    ? `${formatTicketId(projectKey.value, card.value.id)} ${card.value.title} · Completo`
-    : 'Completo'
+    ? `${formatTicketId(projectKey.value, card.value.id)} ${card.value.title}`
+    : ''
 })
 
 const projectTagsData = computed(() => cardData.value?.projectTags || [])

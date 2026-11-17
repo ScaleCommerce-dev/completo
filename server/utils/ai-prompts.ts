@@ -91,7 +91,9 @@ export function sendAiStream(event: H3Event, stream: AsyncGenerator<string>, pro
     }
   })()
 
-  // Clean up if the client disconnects early
+  // The client left: the provider request is aborted through the stream's
+  // `signal` (`abortOnDisconnect`), which ends the loop above with an error that
+  // has nowhere to go.
   eventStream.onClosed(() => {
     streamPromise.catch(() => {})
   })

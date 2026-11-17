@@ -49,6 +49,9 @@
 - **Project settings keep what you type** while the project's statuses load, and the delete confirmation asks for the project's saved name. Removing a member and deleting a project show their progress until they finish.
 - **Board and list columns can be reordered from the keyboard** with Move up and Move down, and filter chips say whether they are on. Renaming a status puts the cursor in the field and returns it afterwards, and going Back while creating a view keeps the statuses you unticked.
 - **Agents and profile:** Enter creates an agent, handing over agents no longer acts on the previous person's list while the next one loads, connected apps say when they could not be loaded or disconnected, the profile shows your saved avatar, Sign Out on the profile works like the account menu's, and the account menu's Security link works a second time.
+- **`APP_URL` with a trailing slash no longer doubles it** in emailed links (`https://x//register`).
+- **Closing an AI answer before it finishes stops the request to the AI provider**, instead of letting it run to the end on your provider bill.
+- **The API docs at `/api/docs` use Swagger UI 5.35.0.**
 - **The cards API refuses an unknown `priority` filter** with a 400 that lists the allowed values. `priority=bogus` used to return every card as if it had matched.
 - **Removing someone who is not a member of a project is refused**, instead of succeeding and sending them a "removed you from" notification.
 
@@ -74,6 +77,7 @@
 - `completo create --parent TK-12` creates a sub-task, and `completo update TK-13 --parent TK-12` (or `--parent none`) moves or detaches one. `completo get` lists a card's sub-tasks and shows a sub-task's parent. `completo list --parent TK-12` lists one card's sub-tasks, `--parent none` only cards that are not sub-tasks, and the list shows a PARENT column when it contains a sub-task. Moving a parent with open sub-tasks to Done fails and names them.
 - **A project's `.completo.local` can no longer receive your exported token.** A file that set `COMPLETO_URL` along with any `COMPLETO_TOKEN` passed the check, and an exported `COMPLETO_TOKEN` then replaced its token and went to the file's server. The CLI now refuses unless the token it sends is the file's own, or the server is the one in `~/.completo/.env`.
 - **`completo assign` and `completo list --assignee` take an email, a name or an ID.** `assign` matched email only, so it could not assign a card to an agent, whose address is hidden; `--assignee` said it took a name but matched IDs only, and listed every card for anything else. A name that fits more than one member is refused rather than guessed.
+- `completo search` takes `--project`, like `create`, instead of only the project in `.completo`.
 - **`completo list --priority` refuses an unknown priority** instead of listing every card, and **`completo next --all`** lists up to 200 cards rather than stopping at 50.
 - **`completo self-update` verifies what it installs** against the release's `checksums.txt`, as the install script does, and refuses when it cannot. It also reports a failed update check instead of saying "Already up to date", no longer hangs on a stalled download, and works when the system temp directory is on another disk. The install script no longer installs without a checksum.
 - **`completo create` no longer starts a card in Done** when the project's oldest status is Done and no `--status` or `TODO_STATUS` names one. It now starts in the project's first status that is not Done, as the app does.
@@ -94,6 +98,7 @@
 ### Dev
 
 - CI runs with read-only permissions by default, on pull requests as well as pushes, and runs `go vet` and `go test` for the CLI; the release workflow grants write access only to the jobs that push images or publish the release.
+- `public/swagger-ui` records its version in `VERSION` and is refreshed with `scripts/update-swagger-ui.sh <version>`.
 - Removed the `swagger-ui-dist` devDependency (nothing imported it) and the start-up incremental vacuum (it never freed anything: `auto_vacuum` only takes effect on an empty database, and the boot cleanup's full `VACUUM` already reclaims space).
 
 ## v0.17.0 (2026-11-12)

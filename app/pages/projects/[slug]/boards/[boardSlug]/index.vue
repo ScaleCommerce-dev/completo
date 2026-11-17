@@ -1,6 +1,4 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'default' })
-
 const route = useRoute()
 const boardSlug = route.params.boardSlug as string
 const projectSlug = route.params.slug as string

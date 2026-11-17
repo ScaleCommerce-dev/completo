@@ -20,7 +20,7 @@ export async function sendAccountSetupLink(
 
   if (!isEmailEnabled()) return
 
-  const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+  const baseUrl = appBaseUrl()
   try {
     await sendAccountSetupEmail(user.email, inviterName, `${baseUrl}/auth/setup-account?token=${token}`)
   } catch (err) {

@@ -272,7 +272,7 @@ Run `completo <command> --help` for full, always-current flag lists. The essenti
 | `completo tag <ticket-id> [add\|remove\|set] [tags...]` | Show or change a card's tags (no action lists them) |
 | `completo comment <ticket-id> [add\|edit\|delete] [args...]` | Show or manage a card's comments (no action lists them) |
 | `completo my-tasks` | Cards assigned to you |
-| `completo search <query>` | Search cards in the project |
+| `completo search <query> [--project slug]` | Search cards in the project from `.completo`, or the one named |
 | `completo project-create <name> [flags]` | Create a project (see above) |
 | `completo briefing [--file F ...] [--clear]` | View / upload / clear the project's AI briefing |
 | `completo config` / `version` / `self-update` | Configure credentials / print version / update the CLI |

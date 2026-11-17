@@ -60,7 +60,8 @@ export default defineEventHandler(async (event) => {
       { role: 'system', content: systemPrompt },
       { role: 'user', content: effectiveUserPrompt }
     ],
-    temperature: 0.7
+    temperature: 0.7,
+    signal: abortOnDisconnect(event)
   })
 
   // Capture prompt source for rejection logging

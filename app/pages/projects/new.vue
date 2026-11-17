@@ -1,6 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'default' })
-useSeoMeta({ title: 'New project · Completo' })
+useSeoMeta({ title: 'New project' })
 
 const loading = ref(false)
 const error = ref('')

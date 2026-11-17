@@ -38,7 +38,7 @@ defineEmits<{
 }>()
 
 useSeoMeta({
-  title: () => `${props.viewName} · ${props.projectName} · Completo`
+  title: () => `${props.viewName} · ${props.projectName}`
 })
 
 const KIND_ICON = { board: 'i-lucide-layout-dashboard', list: 'i-lucide-list' } as const

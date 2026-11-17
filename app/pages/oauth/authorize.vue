@@ -14,8 +14,6 @@ definePageMeta({ layout: 'auth' })
 const route = useRoute()
 const { user } = useUserSession()
 
-const info = ref<{ clientName: string, redirectHost: string, clientHost: string | null } | null>(null)
-
 /**
  * What the page is named by: the host the code is sent to. The client's name is
  * whatever it registered, so anyone can call themselves "Claude"; anyone who
@@ -23,8 +21,6 @@ const info = ref<{ clientName: string, redirectHost: string, clientHost: string 
  * name is shown, in quotes, as the app's own claim.
  */
 const destination = computed(() => info.value?.redirectHost ?? '')
-const error = ref('')
-const loading = ref(true)
 const submitting = ref<'allow' | 'deny' | null>(null)
 
 /** The OAuth request, as it arrived. Only string params exist in it; anything else is noise. */
@@ -36,15 +32,11 @@ const params = computed(() => {
   return out
 })
 
-onMounted(async () => {
-  try {
-    info.value = await $fetch('/api/oauth/authorize', { query: params.value })
-  } catch (e: unknown) {
-    error.value = getErrorMessage(e, 'This sign-in request is not valid.')
-  } finally {
-    loading.value = false
-  }
-})
+// A page reads with `useFetch`; this was the same thing written out by hand.
+const { data: info, status, error: loadError } = await useFetch<{ clientName: string, redirectHost: string, clientHost: string | null }>('/api/oauth/authorize', { query: params })
+const loading = computed(() => status.value === 'pending' || status.value === 'idle')
+const decideError = ref('')
+const error = computed(() => decideError.value || (loadError.value ? getErrorMessage(loadError.value, 'This sign-in request is not valid.') : ''))
 
 async function decide(decision: 'allow' | 'deny') {
   submitting.value = decision
@@ -55,7 +47,7 @@ async function decide(decision: 'allow' | 'deny') {
     })
     window.location.assign(redirectTo)
   } catch (e: unknown) {
-    error.value = getErrorMessage(e, 'This sign-in request is not valid.')
+    decideError.value = getErrorMessage(e, 'This sign-in request is not valid.')
     submitting.value = null
   }
 }

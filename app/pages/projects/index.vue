@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import type { ProjectListItem } from '~/composables/useNavigation'
 
-definePageMeta({ layout: 'default' })
-useSeoMeta({ title: 'Projects · Completo' })
+useSeoMeta({ title: 'Projects' })
 
 // The sidebar's list: one fetch for both, so a star or an edit shows in each
 // without a second copy to keep in step.

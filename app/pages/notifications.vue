@@ -1,6 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'default' })
-useSeoMeta({ title: 'Notifications · Completo' })
+useSeoMeta({ title: 'Notifications' })
 
 const router = useRouter()
 const {

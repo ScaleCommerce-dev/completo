@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import type { AgentDetail } from '~/types/agent'
 
-definePageMeta({ layout: 'default' })
-
 /**
  * One agent: who it is, its tokens, its projects, and the two ways to stop it.
  *
@@ -30,7 +28,7 @@ watch(fetchError, (err) => {
   if (err) showError(err)
 }, { immediate: true })
 
-useSeoMeta({ title: () => `${agent.value?.name ?? 'Agent'} · Agents · Completo` })
+useSeoMeta({ title: () => `${agent.value?.name ?? 'Agent'} · Agents` })
 
 // ─── Fields, committed one at a time ─────────────────────────────────────────
 const nameDraft = ref('')

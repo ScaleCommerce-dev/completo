@@ -1,6 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'default' })
-useSeoMeta({ title: 'Settings · Completo' })
+useSeoMeta({ title: 'Settings' })
 
 // A failed load must not show the form: an empty field would read as "no
 // restriction", and saving it would clear the real list.

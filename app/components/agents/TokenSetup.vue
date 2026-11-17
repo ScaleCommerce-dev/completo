@@ -18,7 +18,7 @@ const tab = ref('cli')
 const { copied, copy } = useCopyText()
 
 // The app is client-only (`ssr: false`), so the origin in the address bar is the one to paste.
-const origin = computed(() => (import.meta.client ? window.location.origin : ''))
+const origin = computed(() => window.location.origin)
 
 const snippet = computed(() => {
   if (tab.value === 'cc') {

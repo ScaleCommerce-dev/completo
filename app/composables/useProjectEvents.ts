@@ -116,7 +116,7 @@ export function useProjectEvents(
   projectId: () => string | null | undefined,
   handlers: ProjectEventHandlers
 ): void {
-  if (!import.meta.client || typeof EventSource === 'undefined') return
+  if (typeof EventSource === 'undefined') return
 
   let joined: string | null = null
 

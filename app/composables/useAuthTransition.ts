@@ -22,7 +22,7 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 export function useAuthTransition() {
   const phase = useState<Phase>('auth-phase', () => 'idle')
-  const reduced = () => import.meta.client && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   async function run(out: Phase, into: Phase, go: () => Promise<unknown>) {
     if (phase.value !== 'idle') return

@@ -3,8 +3,7 @@ import type { DropdownMenuItem } from '@nuxt/ui/runtime/components/DropdownMenu.
 import type { AgentSummary } from '~/types/agent'
 import type { AgentStatusFilter, ManagerGroup } from '~/utils/people'
 
-definePageMeta({ layout: 'default' })
-useSeoMeta({ title: 'Agents · Completo' })
+useSeoMeta({ title: 'Agents' })
 
 /**
  * Agents: accounts for AI tools, one page for everyone who may manage them.

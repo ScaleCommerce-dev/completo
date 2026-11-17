@@ -103,7 +103,8 @@ export default defineEventHandler(async (event) => {
       { role: 'system', content: buildCommentSystemPrompt(project?.briefing || '') },
       { role: 'user', content: effectiveUserPrompt }
     ],
-    temperature: 0.3 // lower than descriptions: these skills edit existing text
+    temperature: 0.3, // lower than descriptions: these skills edit existing text
+    signal: abortOnDisconnect(event)
   })
 
   return sendAiStream(event, stream, userPrompt?.trim() || `[skill:${skillId}]`)

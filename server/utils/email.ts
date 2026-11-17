@@ -222,9 +222,19 @@ function buildEmailHtml(options: {
 </html>`
 }
 
-/** The public URL links in emails point at. */
+/**
+ * The public URL every link the server writes points at: emails, invitations,
+ * account setup, MCP card links, OAuth metadata. One reader for `APP_URL`, which
+ * ten call sites used to spell out with their own fallback, and none trimmed a
+ * trailing slash, so `APP_URL=https://x/` produced `https://x//register`.
+ */
 export function appBaseUrl(): string {
-  return process.env.APP_URL || 'http://localhost:3000'
+  return configuredAppUrl() || 'http://localhost:3000'
+}
+
+/** `APP_URL` as configured, without a trailing slash, or '' when unset. */
+export function configuredAppUrl(): string {
+  return process.env.APP_URL?.trim().replace(/\/+$/, '') || ''
 }
 
 /**
@@ -426,7 +436,7 @@ export async function sendBuiltEmail(to: string, email: BuiltEmail): Promise<voi
 }
 
 export async function sendProjectNotificationEmail(to: string, inviterName: string, projectName: string, projectSlug: string): Promise<void> {
-  const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+  const baseUrl = appBaseUrl()
   const projectUrl = `${baseUrl}/projects/${projectSlug}`
   const from = process.env.SMTP_FROM || 'Completo <noreply@completo.local>'
 
@@ -452,7 +462,7 @@ export async function sendProjectNotificationEmail(to: string, inviterName: stri
 }
 
 export async function sendAccountInviteEmail(to: string, inviterName: string, projectName: string, registerUrl: string): Promise<void> {
-  const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+  const baseUrl = appBaseUrl()
   const from = process.env.SMTP_FROM || 'Completo <noreply@completo.local>'
 
   const inviter = escapeEmailHtml(inviterName)
@@ -476,7 +486,7 @@ export async function sendAccountInviteEmail(to: string, inviterName: string, pr
 }
 
 export async function sendAccountSetupEmail(to: string, adminName: string, setupUrl: string): Promise<void> {
-  const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+  const baseUrl = appBaseUrl()
   const from = process.env.SMTP_FROM || 'Completo <noreply@completo.local>'
 
   const admin = escapeEmailHtml(adminName)
@@ -500,7 +510,7 @@ export async function sendAccountSetupEmail(to: string, adminName: string, setup
 }
 
 export async function sendPasswordResetEmail(to: string, token: string): Promise<void> {
-  const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+  const baseUrl = appBaseUrl()
   const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`
   const from = process.env.SMTP_FROM || 'Completo <noreply@completo.local>'
 
@@ -524,7 +534,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
 }
 
 export async function sendVerificationEmail(to: string, token: string): Promise<void> {
-  const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+  const baseUrl = appBaseUrl()
   const verifyUrl = `${baseUrl}/auth/verify-email?token=${token}`
   const from = process.env.SMTP_FROM || 'Completo <noreply@completo.local>'
 

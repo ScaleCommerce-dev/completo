@@ -16,7 +16,7 @@
 const props = defineProps<{ token: string }>()
 
 // The app is client-only (`ssr: false`), so the origin the user is looking at is the one to paste.
-const serverUrl = computed(() => `${import.meta.client ? window.location.origin : ''}/mcp`)
+const serverUrl = computed(() => `${window.location.origin}/mcp`)
 const headerValue = computed(() => `Bearer ${props.token}`)
 const claudeCodeCommand = computed(() =>
   `claude mcp add --transport http completo ${serverUrl.value} --header "Authorization: ${headerValue.value}"`

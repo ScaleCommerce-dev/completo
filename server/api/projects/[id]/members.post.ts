@@ -133,7 +133,7 @@ export default defineEventHandler(async (event) => {
 
   // Send invitation email
   if (isEmailEnabled()) {
-    const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+    const baseUrl = appBaseUrl()
     const registerUrl = `${baseUrl}/register?invitation=${token}`
     try {
       await sendAccountInviteEmail(normalizedEmail, user.name, project.name, registerUrl)

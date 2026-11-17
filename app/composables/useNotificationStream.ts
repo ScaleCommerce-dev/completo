@@ -20,7 +20,7 @@ interface NotificationEvent {
  * signed-in session.
  */
 export function useNotificationStream(): void {
-  if (!import.meta.client || typeof EventSource === 'undefined') return
+  if (typeof EventSource === 'undefined') return
 
   const { user } = useUserSession()
   const { refreshUnreadCount } = useUnreadCount()

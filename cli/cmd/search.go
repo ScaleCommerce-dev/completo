@@ -9,15 +9,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var searchProject string
+
 var searchCmd = &cobra.Command{
 	Use:   "search <query>",
-	Short: "Search cards in a project",
+	Short: "Search cards in a project (--project, or PROJECT from .completo)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := mustClient()
-		slug := cfg.Project
-		if slug == "" {
-			return fmt.Errorf("project required: set PROJECT in .completo")
+		// The query is the positional argument here, so the project comes by flag;
+		// the lookup and its message are the other commands' (`projectSlug`).
+		var named []string
+		if searchProject != "" {
+			named = []string{searchProject}
+		}
+		slug, err := projectSlug(cfg, named)
+		if err != nil {
+			return err
 		}
 
 		proj, err := fetchProject(client, slug)
@@ -65,5 +73,6 @@ var searchCmd = &cobra.Command{
 }
 
 func init() {
+	searchCmd.Flags().StringVarP(&searchProject, "project", "p", "", "Project slug (default: PROJECT from .completo)")
 	rootCmd.AddCommand(searchCmd)
 }

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'default' })
-useSeoMeta({ title: 'AI Skills · Completo' })
+useSeoMeta({ title: 'AI Skills' })
 
 interface Skill {
   id: string

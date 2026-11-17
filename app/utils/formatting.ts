@@ -60,7 +60,8 @@ export function formatTicketId(projectKey: string | undefined, id: number): stri
 
 export function formatTicketUrl(projectSlug: string | undefined, projectKey: string | undefined, id: number): string {
   const path = `/projects/${projectSlug}/cards/${formatTicketId(projectKey, id)}`
-  if (import.meta.client) return `${window.location.origin}${path}`
+  // The app has no server render, so this is only false in the unit tests, which run in node.
+  if (typeof window !== 'undefined') return `${window.location.origin}${path}`
   return path
 }
 

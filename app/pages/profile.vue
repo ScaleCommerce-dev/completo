@@ -1,6 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'default' })
-useSeoMeta({ title: 'Profile · Completo' })
+useSeoMeta({ title: 'Profile' })
 
 const { public: { appVersion } } = useRuntimeConfig()
 

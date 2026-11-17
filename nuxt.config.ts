@@ -26,6 +26,15 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  // How configuration is read, since the server does both:
+  //  - Plain settings (`APP_URL`, `SMTP_*`, `UPLOAD_*`, `AI_*`, `DATABASE_URL`) are read
+  //    from `process.env` at runtime, each through one helper (`appBaseUrl`,
+  //    `isEmailEnabled`, `aiSetting`, ...). The values below are evaluated when the
+  //    server is *built*, and Nuxt overrides them at runtime only under a `NUXT_`
+  //    name, so a Docker image given `-e AI_PROVIDER=...` kept the build's empty
+  //    value until the AI settings read the environment first.
+  //  - `runtimeConfig` holds what a module reads from it (`session`, the OAuth
+  //    providers) and build-time defaults the helpers fall back to.
   runtimeConfig: {
     session: {
       // password is provided via NUXT_SESSION_PASSWORD env var
@@ -52,7 +61,6 @@ export default defineNuxtConfig({
         domain: ''
       }
     },
-    sessionPassword: process.env.NUXT_SESSION_PASSWORD || '',
     debugAiLog: process.env.DEBUG_AI_LOG === 'true',
     aiProvider: process.env.AI_PROVIDER || '',
     aiModel: process.env.AI_MODEL || '',

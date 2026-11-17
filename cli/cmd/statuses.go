@@ -94,7 +94,7 @@ func projectSlug(cfg *internal.Config, args []string) (string, error) {
 		return args[0], nil
 	}
 	if cfg.Project == "" {
-		return "", fmt.Errorf("project required: pass as argument or set PROJECT in .completo")
+		return "", fmt.Errorf("project required: name it, or set PROJECT in .completo")
 	}
 	return cfg.Project, nil
 }

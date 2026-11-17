@@ -3,8 +3,7 @@ import type { DropdownMenuItem } from '@nuxt/ui/runtime/components/DropdownMenu.
 import type { TableColumn } from '@nuxt/ui/runtime/components/Table.vue'
 import type { HandOverAction } from '~/types/agent'
 
-definePageMeta({ layout: 'default' })
-useSeoMeta({ title: 'Users · Completo' })
+useSeoMeta({ title: 'Users' })
 
 interface AdminUser {
   id: string

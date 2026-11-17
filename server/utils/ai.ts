@@ -1,5 +1,6 @@
 import { appendFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import type { H3Event } from 'h3'
 
 const AI_LOG_FILE = resolve(process.cwd(), 'ai-debug.log')
 
@@ -36,6 +37,23 @@ interface AiStreamOptions {
   messages: AiMessage[]
   maxTokens?: number
   temperature?: number
+  /** Aborts the provider request; `abortOnDisconnect(event)` for an HTTP caller. */
+  signal?: AbortSignal
+}
+
+/**
+ * A signal that fires when the client goes away before the response is finished.
+ * Without it, closing the card or the AI menu mid-answer left the provider request
+ * running to `max_tokens`: tokens paid for that nobody would read, counted against
+ * nothing, since the rate limit counts requests.
+ */
+export function abortOnDisconnect(event: H3Event): AbortSignal {
+  const controller = new AbortController()
+  const res = event.node.res
+  res.once('close', () => {
+    if (!res.writableEnded) controller.abort()
+  })
+  return controller.signal
 }
 
 interface AiProviderConfig {
@@ -173,7 +191,8 @@ async function* streamAnthropic(config: AiProviderConfig, options: AiStreamOptio
       'x-api-key': config.apiKey,
       'anthropic-version': '2023-06-01'
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal: options.signal
   })
 
   if (!response.ok) {
@@ -213,7 +232,8 @@ async function* streamOpenAiCompatible(config: AiProviderConfig, options: AiStre
   const response = await fetch(`${config.baseUrl}/v1/chat/completions`, {
     method: 'POST',
     headers,
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal: options.signal
   })
 
   if (!response.ok) {
@@ -262,7 +282,9 @@ async function* parseSSE(response: Response, extractText: (data: Record<string, 
       }
     }
   } finally {
-    reader.releaseLock()
+    // Cancel, not just release: a consumer that stopped early (the client left)
+    // must close the provider's connection, or it keeps streaming into nothing.
+    await reader.cancel().catch(() => {})
   }
 }
 

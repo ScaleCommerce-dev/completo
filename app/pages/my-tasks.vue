@@ -1,6 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'default' })
-useSeoMeta({ title: 'My Tasks · Completo' })
+useSeoMeta({ title: 'My Tasks' })
 
 const {
   columns,

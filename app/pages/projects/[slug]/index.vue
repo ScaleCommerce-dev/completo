@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { DEFAULT_COLOR } from '#shared/utils/colors'
 
-definePageMeta({ layout: 'default' })
-
 const route = useRoute()
 const slug = route.params.slug as string
 
@@ -33,7 +31,7 @@ if (fetchError.value) {
 // Permissions
 const { user } = useUserSession()
 useSeoMeta({
-  title: () => project.value ? `${project.value.name} · Completo` : 'Completo'
+  title: () => project.value ? `${project.value.name}` : ''
 })
 
 const isOwnerOrAdmin = computed(() => project.value?.role === 'owner' || project.value?.role === 'admin')
