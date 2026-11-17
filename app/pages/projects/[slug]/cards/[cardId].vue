@@ -501,6 +501,7 @@ async function confirmDelete() {
             :subtasks="card.subtaskCards"
             :statuses="statusesData"
             :done-status-id="card.project.doneStatusId"
+            :progress="card.subtasks"
             @created="refreshCard"
             @open="openSubtask"
           />
@@ -530,7 +531,9 @@ async function confirmDelete() {
     <UiConfirmDialog
       v-model:open="showDeleteConfirm"
       title="Delete this card?"
-      description="Its comments and attachments go with it. This cannot be undone."
+      :description="card?.subtaskCards.length
+        ? `Its comments and attachments go with it. Its ${card.subtaskCards.length} sub-task${card.subtaskCards.length === 1 ? '' : 's'} stay, as ordinary cards. This cannot be undone.`
+        : 'Its comments and attachments go with it. This cannot be undone.'"
       action-label="Delete card"
       :loading="deletingCard"
       @confirm="confirmDelete"

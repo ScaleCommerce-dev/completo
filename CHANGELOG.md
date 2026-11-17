@@ -39,6 +39,8 @@
 - **You cannot delete your account while you are the only owner of a project.** The project was left with nobody able to manage it. The message names the projects: make someone else an owner, or delete them, first.
 - **A connected MCP app whose sign-in was copied is disconnected.** When a refresh token that was already used comes back, the connection is revoked, so a copy of it cannot keep working alongside the real app. The app asks you to sign in again.
 - **Over MCP, a project name that matches two projects is refused** instead of picking one, `list_cards` pages with `offset` and shortens long descriptions (`get_card` has them in full), and `list_comments` returns the newest 50 unless asked for more.
+- **Adding a sub-task from My Tasks updates its parent's progress** right away, instead of after a reload. Deleting a card that has sub-tasks says that they stay, as ordinary cards.
+- **An open card keeps up after the board reloads.** The card panel stopped showing live changes from others once the board refreshed in the background, until your next edit.
 - **The cards API refuses an unknown `priority` filter** with a 400 that lists the allowed values. `priority=bogus` used to return every card as if it had matched.
 - **Removing someone who is not a member of a project is refused**, instead of succeeding and sending them a "removed you from" notification.
 

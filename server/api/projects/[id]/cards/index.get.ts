@@ -18,7 +18,8 @@ export default defineEventHandler(async (event) => {
   const includeDone = query.includeDone === 'true'
   // `none` for cards without a parent (what the parent picker offers), or a
   // card id for that card's sub-tasks.
-  const parentParam = query.parentId as string | undefined
+  // An empty value is no filter: `Number('')` is 0, which matched nothing.
+  const parentParam = (query.parentId as string | undefined) || undefined
   const q = typeof query.q === 'string' ? query.q.trim() : ''
 
   // Validate sort field

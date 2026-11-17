@@ -80,12 +80,28 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
 
   // Card detail modal
   const showCardDetail = ref(false)
-  const selectedCard = ref<BaseCard | null>(null)
+
+  /**
+   * The open card, held by id and looked up in the view's rows. Holding the row
+   * object went stale on a refetch, which replaces every row: the panel kept the
+   * old object and stopped hearing live changes until the next edit put it back.
+   * A card that leaves the view (deleted, filtered out) keeps its last row, so
+   * an open panel does not turn into the create form under the user.
+   */
+  const selectedCardId = ref<number | null>(null)
+  let lastSelected: BaseCard | null = null
+  const selectedCard = computed<BaseCard | null>(() => {
+    const id = selectedCardId.value
+    if (id === null) return null
+    const live = allCards.value.find(c => c.id === id)
+    if (live) lastSelected = live
+    return live ?? (lastSelected?.id === id ? lastSelected : null)
+  })
 
   function openCardDetail(card: { id: number }) {
     const fullCard = allCards.value.find(c => c.id === card.id)
     if (fullCard) {
-      selectedCard.value = fullCard
+      selectedCardId.value = fullCard.id
       // Opening the card is reading its discussion: clear the unread dot now.
       // The comment-list fetch stamps read-state server-side so a refetch agrees.
       fullCard.hasUnread = false
@@ -127,10 +143,6 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
     await updateCard(cardId, updates as Partial<BaseCard>)
     if (tagIds !== undefined) {
       await updateCardTags(cardId, tagIds)
-    }
-    if (selectedCard.value?.id === cardId) {
-      const found = allCards.value.find(c => c.id === cardId)
-      selectedCard.value = found ?? null
     }
   }
 

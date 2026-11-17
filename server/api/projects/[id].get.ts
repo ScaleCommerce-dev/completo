@@ -69,6 +69,8 @@ export default defineEventHandler(async (event) => {
     // column stores while `boards/[id]` hands out an array for the same board —
     // and the spec promises an array for both.
     hiddenCardFields: normalizeHiddenCardFields(safeParseJson(b.hiddenCardFields, [])),
+    // A boolean, as `boards/[id]` returns it; the column stores 0 or 1.
+    showSubtasks: !!b.showSubtasks,
     cardCount: boardCardCounts.get(b.id) || 0,
     lastActivity: boardLastActivity.get(b.id)?.toISOString() || null,
     createdBy: b.createdById ? creatorsMap.get(b.createdById) || null : null
@@ -121,6 +123,7 @@ export default defineEventHandler(async (event) => {
 
   const lists = projectLists.map(l => ({
     ...l,
+    showSubtasks: !!l.showSubtasks,
     cardCount: listCardCount,
     createdBy: l.createdById ? creatorsMap.get(l.createdById) || null : null
   }))

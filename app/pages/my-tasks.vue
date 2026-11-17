@@ -15,6 +15,7 @@ const {
   toggleCollapse,
   updateCard,
   updateCardTags,
+  setProgress,
   findCard
 } = useMyTasks()
 
@@ -286,6 +287,7 @@ async function handleInlineTagUpdate(cardId: number, tagIds: string[]) {
       @update-tags="handleInlineTagUpdate"
       @navigate="cardWalk"
       @open-card="openCardById"
+      @subtasks-changed="setProgress"
     />
   </UiPage>
 </template>

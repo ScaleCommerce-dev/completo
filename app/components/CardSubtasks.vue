@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { CardStatus, SubtaskRow } from '~/types/card'
+import type { CardStatus, SubtaskProgress, SubtaskRow } from '~/types/card'
 
 /**
  * A parent's sub-tasks, in the card panel and on the card's own page.
@@ -20,6 +20,12 @@ const props = defineProps<{
   /** The project's statuses, to name each sub-task's. */
   statuses: CardStatus[]
   doneStatusId?: string | null
+  /**
+   * The count in the heading, as the server makes it (`subtaskProgress`), the same
+   * number the board shows on the card. It was recounted here from the rows,
+   * a third copy of the rule.
+   */
+  progress?: SubtaskProgress | null
 }>()
 
 const emit = defineEmits<{
@@ -28,7 +34,6 @@ const emit = defineEmits<{
 }>()
 
 const statusOf = (id: string) => props.statuses.find(s => s.id === id)
-const doneCount = computed(() => props.subtasks.filter(s => s.statusId === props.doneStatusId).length)
 
 const composing = ref(false)
 const draft = ref('')
@@ -76,7 +81,7 @@ async function commitDraft(keepOpen = true) {
     <UiSectionLabel
       icon="i-lucide-list-tree"
       label="Sub-tasks"
-      :count="subtasks.length ? `${doneCount}/${subtasks.length}` : null"
+      :count="progress?.total ? `${progress.done}/${progress.total}` : null"
     />
 
     <ul

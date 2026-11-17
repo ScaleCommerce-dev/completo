@@ -193,13 +193,18 @@ export function useMyTasks() {
     for (const id of new Set(parentIds.filter((x): x is number => x != null))) {
       if (!findCard(id)) continue
       try {
-        const { subtasks } = await $fetch<{ subtasks: SubtaskProgress | null }>(`/api/cards/${id}`)
-        const parent = findCard(id)
-        if (parent) parent.card.subtasks = subtasks
+        const { subtasks } = await $fetch<{ subtasks: SubtaskProgress | null }>(`/api/cards/${id}/subtasks`)
+        setProgress(id, subtasks)
       } catch {
         // The row keeps its old count; the server still guards the move.
       }
     }
+  }
+
+  /** Put a parent's progress on its row, from the panel or a re-read above. */
+  function setProgress(cardId: number, progress: SubtaskProgress | null) {
+    const found = findCard(cardId)
+    if (found) found.card.subtasks = progress
   }
 
   async function updateCardTags(cardId: number, tagIds: string[]) {
@@ -243,6 +248,7 @@ export function useMyTasks() {
     reorderColumns,
     toggleCollapse,
     updateCard,
+    setProgress,
     updateCardTags,
     // Exposed for the card panel, which needs the *live* row plus the group that
     // owns its lookups — a status or member only means anything within the group

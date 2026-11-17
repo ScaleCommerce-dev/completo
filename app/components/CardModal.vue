@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { BaseCard, CardStatus, Member, SubtaskRow, Tag } from '~/types/card'
+import type { BaseCard, CardStatus, Member, SubtaskProgress, SubtaskRow, Tag } from '~/types/card'
 import type { CardFilterState } from '~/utils/card-filters'
 
 const props = defineProps<{
@@ -14,12 +14,6 @@ const props = defineProps<{
   projectSlug?: string
   /** Viewer may delete others' comments (project owner or instance admin). */
   canModerate?: boolean
-  /**
-   * Set by a host that can walk a set of cards — the board, where the set is a
-   * column and the columns are themselves a set. Absent on a list view, which
-   * opens this same panel with nothing to step through, and that absence is what
-   * hides the controls there.
-   */
   /**
    * Set by a host that can walk a set of cards. Two shapes:
    *
@@ -108,6 +102,12 @@ const emit = defineEmits<{
   navigate: [direction: 'prev' | 'next' | 'prevColumn' | 'nextColumn']
   /** Open another card in the panel: a sub-task from its parent's list. */
   openCard: [cardId: number]
+  /**
+   * A sub-task was added here, with the card's progress as the server now counts
+   * it. A project view hears the same from its event stream; My Tasks has none,
+   * so its row kept the old count until a reload.
+   */
+  subtasksChanged: [cardId: number, progress: SubtaskProgress | null]
 }>()
 
 const isEdit = computed(() => !!props.card)
@@ -124,22 +124,38 @@ interface SubtaskDetail {
   project: { id: string, key: string, doneStatusId: string | null } | null
   statuses: CardStatus[]
   subtaskCards: SubtaskRow[]
+  /** The server's count (`subtaskProgress`), shown as is rather than recounted here. */
+  subtasks: SubtaskProgress | null
 }
 const subtaskDetail = ref<SubtaskDetail | null>(null)
 
+/**
+ * Only the newest load may land. Two loads for one card (a parent change, then a
+ * progress change from the event stream) could answer out of order, and the older
+ * answer then replaced the newer list; checking the card id alone did not catch it.
+ */
+let subtaskLoad = 0
+
 async function loadSubtaskDetail() {
   const id = props.card?.id
+  const mine = ++subtaskLoad
   if (!id) {
     subtaskDetail.value = null
     return
   }
   if (subtaskDetail.value?.id !== id) subtaskDetail.value = null
   try {
-    const detail = await $fetch<SubtaskDetail>(`/api/cards/${id}`)
-    if (props.card?.id === id) subtaskDetail.value = detail
+    const detail = await $fetch<SubtaskDetail>(`/api/cards/${id}/subtasks`)
+    if (mine === subtaskLoad && props.card?.id === id) subtaskDetail.value = detail
   } catch {
     // The section stays hidden; the panel's own fields still work.
   }
+}
+
+async function onSubtaskCreated() {
+  const id = props.card?.id
+  await loadSubtaskDetail()
+  if (id && subtaskDetail.value?.id === id) emit('subtasksChanged', id, subtaskDetail.value.subtasks)
 }
 
 watch(
@@ -246,6 +262,11 @@ const panelTop = ref<HTMLElement | null>(null)
 const bodyStart = ref<HTMLElement | null>(null)
 let bodyScroller: HTMLElement | null = null
 let bodyObserver: ResizeObserver | null = null
+/**
+ * Sections that mount after the panel does — the sub-task list, which waits for
+ * its own request — were never observed, so the bottom fade did not follow them.
+ */
+let bodyChildren: MutationObserver | null = null
 
 /**
  * The panel itself — Reka's dialog element, reached from the body the same way,
@@ -279,6 +300,13 @@ function watchBodyScroll() {
     bodyObserver = new ResizeObserver(updateBodyFade)
     bodyObserver.observe(bodyScroller)
     for (const section of bodyScroller.children) bodyObserver.observe(section)
+    bodyChildren = new MutationObserver(() => {
+      if (!bodyScroller || !bodyObserver) return
+      // Observing an element twice is a no-op, so every child is simply re-added.
+      for (const section of bodyScroller.children) bodyObserver.observe(section)
+      updateBodyFade()
+    })
+    bodyChildren.observe(bodyScroller, { childList: true })
   }
   updateBodyFade()
 }
@@ -287,6 +315,8 @@ function unwatchBodyScroll() {
   bodyScroller?.removeEventListener('scroll', updateBodyFade)
   bodyObserver?.disconnect()
   bodyObserver = null
+  bodyChildren?.disconnect()
+  bodyChildren = null
   bodyScroller = null
   panelEl.value = null
 }
@@ -421,31 +451,15 @@ function reset() {
 function submit() {
   if (isEdit.value || !canSubmit.value) return
 
-  const assigneeId = selectedAssigneeId.value === UNASSIGNED ? null : selectedAssigneeId.value
-
+  const data = getFormData()
   if (draftCardId.value) {
     // Draft was auto-created for attachments — update it with final form data
-    void Promise.resolve(props.onUpdate?.(draftCardId.value, {
-      title: title.value.trim(),
-      description: description.value.trim(),
-      priority: priority.value,
-      statusId: selectedStatusId.value,
-      assigneeId,
-      dueDate: selectedDueDate.value || null
-    }, selectedTagIds.value)).catch(() => {})
-    reset()
+    const { tagIds, ...fields } = data
+    void Promise.resolve(props.onUpdate?.(draftCardId.value, fields, tagIds)).catch(() => {})
   } else {
-    emit('create', {
-      title: title.value.trim(),
-      description: description.value.trim(),
-      priority: priority.value,
-      statusId: selectedStatusId.value,
-      assigneeId,
-      tagIds: selectedTagIds.value,
-      dueDate: selectedDueDate.value || null
-    })
-    reset()
+    emit('create', data)
   }
+  reset()
 
   open.value = false
 }
@@ -971,7 +985,8 @@ watch(open, (isOpen) => {
           :subtasks="subtaskDetail.subtaskCards"
           :statuses="subtaskDetail.statuses"
           :done-status-id="panelDoneStatusId"
-          @created="loadSubtaskDetail"
+          :progress="subtaskDetail.subtasks"
+          @created="onSubtaskCreated"
           @open="(id) => emit('openCard', id)"
         />
       </div>

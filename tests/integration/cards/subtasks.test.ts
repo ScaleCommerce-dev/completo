@@ -251,5 +251,33 @@ describe('sub-tasks', () => {
     expect((await getList(user, list.id)).showSubtasks).toBe(false)
 
     await expectError($fetch(`/api/boards/${board.id}`, { method: 'PUT', body: { showSubtasks: 'yes' }, headers: user.headers }), 400)
+
+    // The project endpoint returns the same booleans, not the column's 0 and 1.
+    const detail = await $fetch<{ boards: Array<{ id: string, showSubtasks: unknown }>, lists: Array<{ id: string, showSubtasks: unknown }> }>(`/api/projects/${project.id}`, { headers: user.headers })
+    expect(detail.boards.find(b => b.id === board.id)!.showSubtasks).toBe(true)
+    expect(detail.lists.find(l => l.id === list.id)!.showSubtasks).toBe(false)
+  })
+
+  it('serves the panel its sub-task side alone, and hides it from non-members', async () => {
+    const { project, open } = await setup(user)
+    const parent = await createTestCard(user, project.id, open, { title: 'Parent' })
+    const sub = await createSub(user, project.id, open, parent.id)
+    const side = await $fetch<Detail & { project: { id: string, key: string }, statuses: Status[] }>(`/api/cards/${parent.id}/subtasks`, { headers: user.headers })
+    expect(side.subtaskCards.map(c => c.ticket)).toEqual([`${project.key}-${sub.id}`])
+    expect(side.subtasks).toEqual({ total: 1, done: 0 })
+    expect(side.project.id).toBe(project.id)
+    expect(side.statuses.length).toBeGreaterThan(0)
+    expect(side).not.toHaveProperty('members')
+
+    const stranger = await registerTestUser()
+    await expectError($fetch(`/api/cards/${parent.id}/subtasks`, { headers: stranger.headers }), 404)
+  })
+
+  it('treats an empty parentId as no filter', async () => {
+    const { project, open } = await setup(user)
+    const parent = await createTestCard(user, project.id, open, { title: 'Parent' })
+    await createSub(user, project.id, open, parent.id)
+    const all = await $fetch<unknown[]>(`/api/projects/${project.id}/cards?parentId=`, { headers: user.headers })
+    expect(all.length).toBe(2)
   })
 })

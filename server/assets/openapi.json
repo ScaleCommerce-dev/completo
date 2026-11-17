@@ -5654,6 +5654,29 @@
         }
       }
     },
+    "/api/cards/{id}/subtasks": {
+      "get": {
+        "tags": [
+          "Cards"
+        ],
+        "summary": "Card sub-tasks",
+        "description": "A card's sub-task side without the rest of the card: its sub-tasks (each with ticket, title, status and assignee), its parent's id, the project's id, key and done status, the project's statuses, and the progress as boards show it (`subtasks`: total and done, or null).",
+        "operationId": "getCardSubtasks",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CardId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sub-task side of the card"
+          },
+          "404": {
+            "description": "Card not found, or not visible to the caller"
+          }
+        }
+      }
+    },
     "/api/cards/{id}/ai/comment": {
       "post": {
         "tags": [
