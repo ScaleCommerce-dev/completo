@@ -23,7 +23,18 @@ const props = defineProps<{
 const emit = defineEmits<{
   select: [item: { _type: 'user', id: string, name: string, email?: string | null } | { _type: 'card', id: number, title: string }]
   close: []
+  /** Focus left the picker for somewhere else: close without taking focus back. */
+  dismiss: []
 }>()
+
+/**
+ * The picker stayed open after a click elsewhere, and a later pick then wrote
+ * into the editor at a position the user had moved away from.
+ */
+function onFocusOut(e: FocusEvent) {
+  const root = e.currentTarget as HTMLElement
+  if (!root.contains(e.relatedTarget as Node | null)) emit('dismiss')
+}
 
 type MentionUser = Mentionable
 
@@ -148,7 +159,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="rounded-lg border border-default bg-default shadow-float overflow-hidden">
+  <div
+    class="rounded-lg border border-default bg-default shadow-float overflow-hidden"
+    @focusout="onFocusOut"
+  >
     <!-- The shell owns the edge, so focus colours it. See the focus rule in main.css:
          the input itself has no border to light up. -->
     <div

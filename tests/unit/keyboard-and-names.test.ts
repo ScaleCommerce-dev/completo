@@ -69,3 +69,31 @@ it('the add-people search is a combobox whose options work by click', () => {
   expect(members).not.toMatch(/@mousedown\.prevent="/)
   expect(members).toMatch(/@click="addMember\(u\)"/)
 })
+
+describe('readouts are named where a screen reader looks', () => {
+  // `aria-label` on a plain span or div is ignored, so these marks were silent.
+  it('gives the board card\'s marks and the list title\'s a role that takes a name', () => {
+    const card = code('app/components/KanbanCard.vue')
+    expect(card).toMatch(/role="img"\s+aria-label="Unread comments"/)
+    expect(card).toMatch(/role="img"\s+:aria-label="mark\.label"/)
+    const title = code('app/components/list/ListCellTitle.vue')
+    expect(title).toMatch(/role="img"\s+aria-label="Unread comments"/)
+  })
+
+  it('reads the panel position and the loading state as words', () => {
+    expect(code('app/components/CardModal.vue')).toMatch(/<span class="sr-only">\{\{ navAria\.count\(/)
+    expect(code('app/components/ListSkeleton.vue')).toMatch(/role="status"[\s\S]*?sr-only">Loading cards/)
+  })
+
+  it('makes Write and Preview a tab list', () => {
+    const md = code('app/components/MarkdownEditor.vue')
+    expect(md).toMatch(/role="tablist"/)
+    expect(md).toMatch(/role="tab"\s+:aria-selected=/)
+  })
+
+  it('lets Escape out of the AI prompt, and stops every other key', () => {
+    const ai = code('app/components/AiWriteButton.vue')
+    expect(ai).not.toMatch(/@keydown\.stop\b/)
+    expect(ai).toMatch(/if \(e\.key !== 'Escape'\) e\.stopPropagation\(\)/)
+  })
+})

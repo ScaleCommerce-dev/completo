@@ -302,7 +302,8 @@ function row(label: string, icon: string, align?: 'start') {
           -->
           <button
             type="button"
-            class="flex items-start gap-1 rounded-md px-1.5 py-1 -mx-1.5 transition-colors hover:bg-elevated text-left"
+            class="flex items-start gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-elevated text-left"
+            :class="isCompact ? '' : '-mx-1.5'"
             :aria-label="label"
           >
             <!-- `max-h-4` is one pill tall, so an overflowing tag wraps onto a

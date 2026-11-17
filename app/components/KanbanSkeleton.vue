@@ -15,9 +15,10 @@ const COLUMNS = [3, 2, 4, 1]
 <template>
   <div
     class="flex gap-3 px-4 py-4 flex-1 min-h-0 overflow-hidden"
+    role="status"
     aria-busy="true"
-    aria-label="Loading board"
   >
+    <span class="sr-only">Loading board</span>
     <div
       v-for="(cards, i) in COLUMNS"
       :key="i"

@@ -757,8 +757,7 @@ watch(open, (isOpen) => {
               <span
                 v-else-if="control.before === 'count' && nav.position"
                 class="px-1 font-mono tabular-nums text-2xs text-muted select-none"
-                :aria-label="navAria.count(nav.position.index, nav.position.count)"
-              >{{ nav.position.index }}/{{ nav.position.count }}</span>
+              ><span aria-hidden="true">{{ nav.position.index }}/{{ nav.position.count }}</span><span class="sr-only">{{ navAria.count(nav.position.index, nav.position.count) }}</span></span>
               <UTooltip
                 v-if="nav[control.flag] !== undefined"
                 :text="control.tip"

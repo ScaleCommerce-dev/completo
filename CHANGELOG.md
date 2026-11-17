@@ -41,6 +41,10 @@
 - **Over MCP, a project name that matches two projects is refused** instead of picking one, `list_cards` pages with `offset` and shortens long descriptions (`get_card` has them in full), and `list_comments` returns the newest 50 unless asked for more.
 - **Adding a sub-task from My Tasks updates its parent's progress** right away, instead of after a reload. Deleting a card that has sub-tasks says that they stay, as ordinary cards.
 - **An open card keeps up after the board reloads.** The card panel stopped showing live changes from others once the board refreshed in the background, until your next edit.
+- **Mentions and links in the editor land where you meant.** Picking someone after clicking elsewhere in the text no longer deletes the character before the cursor, the picker closes when you click away, and a person whose name contains a square bracket gets a working mention and a notification. A link typed as `example.com` opens that site instead of a missing page, and a link to an attachment opens the file.
+- **Files dropped while another is uploading are uploaded next**, instead of being ignored.
+- **Lists sort cards without a due date last** when sorting by due date in either direction; descending put them first.
+- **Escape closes the AI menu while you type a prompt**, and screen readers now hear the Write and Preview tabs, the list's Done column, a card's unread and comment markers, its position in the panel, and loading states.
 - **The cards API refuses an unknown `priority` filter** with a 400 that lists the allowed values. `priority=bogus` used to return every card as if it had matched.
 - **Removing someone who is not a member of a project is refused**, instead of succeeding and sending them a "removed you from" notification.
 

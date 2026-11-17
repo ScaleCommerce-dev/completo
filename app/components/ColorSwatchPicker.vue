@@ -37,7 +37,7 @@ function pick(color: string) {
     <button
       type="button"
       :aria-label="label"
-      class="rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10 hover:ring-2 hover:ring-primary transition"
+      class="rounded-full shrink-0 ring-1 ring-default hover:ring-2 hover:ring-primary transition"
       :class="SIZES[size]"
       :style="{ backgroundColor: modelValue }"
     />

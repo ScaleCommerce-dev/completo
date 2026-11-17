@@ -27,6 +27,7 @@ const emit = defineEmits<{ 'open-parent': [cardId: number] }>()
       <UIcon
         name="i-lucide-corner-down-right"
         class="shrink-0 text-sm text-dimmed"
+        role="img"
         :aria-label="`Sub-task of: ${parent.title}`"
       />
     </UTooltip>
@@ -35,6 +36,7 @@ const emit = defineEmits<{ 'open-parent': [cardId: number] }>()
     <span
       v-if="hasUnread"
       class="shrink-0 size-2 rounded-full bg-primary"
+      role="img"
       aria-label="Unread comments"
     />
     <!-- A button so the row can be opened from the keyboard: Enter's click bubbles

@@ -490,9 +490,11 @@ function toggleTag(tagId: string) {
       title already reserves this space, so neither overlays the title. Cleared
       the moment the card is opened (`useViewPage.openCardDetail`).
     -->
+    <!-- `role="img"`: a name on a plain span is ignored by screen readers. -->
     <span
       v-if="card.hasUnread"
       class="absolute top-1 right-1 z-[5] flex items-center justify-center size-6 pointer-events-none sm:group-hover:opacity-0 transition-opacity"
+      role="img"
       aria-label="Unread comments"
     >
       <span class="size-2 rounded-full bg-primary ring-2 ring-bg" />
@@ -644,6 +646,7 @@ function toggleTag(tagId: string) {
             >
               <span
                 :class="[CHIP, 'text-2xs text-dimmed']"
+                role="img"
                 :aria-label="mark.label"
               >
                 <UIcon
@@ -671,6 +674,7 @@ function toggleTag(tagId: string) {
                 relation.complete ? 'text-success' : 'text-dimmed',
                 relation.kind === 'parent' ? 'rounded-md hover:bg-elevated hover:text-toned transition-colors' : ''
               ]"
+              :role="relation.kind === 'parent' ? undefined : 'img'"
               :aria-label="relation.kind === 'parent' ? `Open parent, ${relation.label}` : relation.label"
               @pointerenter="light(true)"
               @pointerleave="light(false)"

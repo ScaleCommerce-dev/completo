@@ -35,20 +35,34 @@ async function ensureCard() {
  * because the card that has to exist first — and the composable that knows how
  * to make it — both live on this side.
  */
+/**
+ * Files that arrive while an upload runs wait their turn. They used to be
+ * dropped without a word: a second drop during a slow first one did nothing.
+ */
+const queued: File[] = []
+let draining = false
+
 async function uploadFiles(files: File[]) {
-  if (props.readonly || uploading.value || !files.length) return
+  if (props.readonly || !files.length) return
+  queued.push(...files)
+  if (draining) return
+  draining = true
   try {
     await ensureCard()
-  } catch {
-    return
-  }
-  if (!cardIdRef.value) return
-  for (const file of files) {
-    try {
-      await upload(file)
-    } catch {
-      // upload errors handled by composable
+    if (!cardIdRef.value) return
+    while (queued.length) {
+      const file = queued.shift()!
+      try {
+        await upload(file)
+      } catch {
+        // upload errors handled by composable
+      }
     }
+  } catch {
+    // The card could not be created; the host has said so.
+  } finally {
+    queued.length = 0
+    draining = false
   }
 }
 
@@ -236,20 +250,12 @@ defineExpose({ uploadFiles })
       to aim at, and it doubles as the section's empty state and its progress
       readout (see `dropRow`) so the height never changes.
 
-      Solid at rest, and dashed only while a file is over the card.
-
-      It was permanently dashed, on the reasoning that solid means a field you type
-      into and dashed means somewhere you drop something. On screen that reasoning
-      does not survive: at 1px the dash reads as *fainter* rather than as a
-      different kind of thing, so two solid rows and one dashed 24px apart looked
-      like an inconsistency rather than a distinction — and nobody learns
-      "dashed means droppable" from a single instance anyway. What teaches it is the
-      paperclip and the words, both of which are already here.
-
-      The convention is better spent on the state that needs it. Dashed arrives
-      with the primary border, the tint and "Drop to upload", at the one moment it
-      is legible, and the row is otherwise the same object as the description's
-      placeholder and the collapsed comment composer.
+      Dashed at rest, 1.5px, in the action-card colour: connect2scale's dropzone
+      (handoff `04` › Karten › Dropzone). It was once solid at rest, because a
+      *1px* dash read fainter than the solid rows beside it rather than as a
+      different kind of thing; at 1.5px in that colour it reads as a target,
+      which removed the premise (`card-editors.test.ts`). Under a drag the dash
+      stays and turns primary, with the tint and "Drop to upload".
 
       Dropping anywhere on the card works — the handlers belong to the surface,
       not to this rectangle — so this is a target and a label, never a boundary.

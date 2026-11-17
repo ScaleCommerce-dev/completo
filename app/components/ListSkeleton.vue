@@ -15,9 +15,11 @@ withDefaults(defineProps<{ rows?: number, columns?: number }>(), {
 <template>
   <div
     class="flex-1 overflow-hidden px-2"
+    role="status"
     aria-busy="true"
-    aria-label="Loading cards"
   >
+    <!-- Words, not `aria-label`: a name on a plain div is not read out. -->
+    <span class="sr-only">Loading cards</span>
     <div class="flex items-center gap-6 px-3 py-2 border-b border-default">
       <USkeleton
         v-for="c in columns"

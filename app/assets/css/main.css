@@ -1580,3 +1580,19 @@
   max-height: var(--prose-editor-max, none);
   overflow-y: auto;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE AI PILL
+
+   The one violet in the app, on the one control that summons a model: an AI
+   surface is a brand moment (CLAUDE.md › Aesthetic), and the shift says "this
+   one is different" without a label. Declared here rather than in
+   `AiWriteButton`'s scoped style, where six hexes and an rgba glow sat outside
+   the token system: a colour a component owns is a colour nobody revisits when
+   the palette moves.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --ai-pill-gradient: linear-gradient(-45deg, #7c3aed, #a855f7, #6366f1, #8b5cf6, #c084fc, #7c3aed);
+  --ai-pill-glow: rgb(139 92 246 / 0.35);
+}

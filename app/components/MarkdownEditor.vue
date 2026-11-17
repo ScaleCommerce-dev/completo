@@ -34,6 +34,18 @@ const emit = defineEmits<{
 }>()
 
 const editTab = ref<'write' | 'preview'>('write')
+
+const TABS = [
+  { value: 'write', label: 'Write', icon: 'i-lucide-pencil' },
+  { value: 'preview', label: 'Preview', icon: 'i-lucide-eye' }
+] as const
+
+/** Two tabs, so either arrow moves to the other one, and focus goes with it. */
+function switchTab(e: KeyboardEvent) {
+  editTab.value = editTab.value === 'write' ? 'preview' : 'write'
+  const list = e.currentTarget as HTMLElement
+  nextTick(() => list.querySelector<HTMLElement>('[aria-selected="true"]')?.focus())
+}
 const textareaEl = ref<HTMLTextAreaElement>()
 
 function insertMarkdown(type: 'bold' | 'italic' | 'code' | 'codeblock' | 'quote') {
@@ -155,36 +167,37 @@ defineExpose({ textareaEl, editTab, startEditing })
     class="rounded-lg border border-default transition-colors"
     :class="overlayOpen ? 'overflow-visible' : 'overflow-hidden'"
   >
-    <!-- Tabs -->
+    <!-- Tabs. A tab list, so a screen reader says which mode is on: as two plain
+         buttons the selected one was told apart by its underline alone. One tab
+         stop; the arrow keys switch, as in any tab list. -->
     <div class="flex items-center border-b border-default bg-muted">
-      <button
-        type="button"
-        class="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px"
-        :class="editTab === 'write'
-          ? 'text-default border-primary'
-          : 'text-dimmed border-transparent hover:text-toned'"
-        @click="editTab = 'write'"
+      <div
+        role="tablist"
+        aria-label="Editor mode"
+        class="flex items-center"
+        @keydown.left.prevent="switchTab"
+        @keydown.right.prevent="switchTab"
       >
-        <UIcon
-          name="i-lucide-pencil"
-          class="text-xs"
-        />
-        Write
-      </button>
-      <button
-        type="button"
-        class="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px"
-        :class="editTab === 'preview'
-          ? 'text-default border-primary'
-          : 'text-dimmed border-transparent hover:text-toned'"
-        @click="editTab = 'preview'"
-      >
-        <UIcon
-          name="i-lucide-eye"
-          class="text-xs"
-        />
-        Preview
-      </button>
+        <button
+          v-for="tab in TABS"
+          :key="tab.value"
+          type="button"
+          role="tab"
+          :aria-selected="editTab === tab.value"
+          :tabindex="editTab === tab.value ? 0 : -1"
+          class="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px"
+          :class="editTab === tab.value
+            ? 'text-default border-primary'
+            : 'text-dimmed border-transparent hover:text-toned'"
+          @click="editTab = tab.value"
+        >
+          <UIcon
+            :name="tab.icon"
+            class="text-xs"
+          />
+          {{ tab.label }}
+        </button>
+      </div>
       <template v-if="$slots['toolbar-right']">
         <div class="ml-auto flex items-center pr-3">
           <slot name="toolbar-right" />

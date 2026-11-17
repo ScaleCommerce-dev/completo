@@ -41,3 +41,14 @@ describe('extractMentionedUserIds', () => {
     expect(extractMentionedUserIds('just a normal comment')).toEqual([])
   })
 })
+
+describe('a display name with a bracket', () => {
+  // `@[Ann [QA]](id)` matched neither pattern: no pill, and nobody notified.
+  it('is written so both sides still read the mention', async () => {
+    const { mentionLabel, MENTION_PATTERN } = await import('../../app/utils/prose-mention')
+    const text = `@[${mentionLabel('Ann [QA]')}](user-9)`
+    expect(extractMentionedUserIds(text)).toEqual(['user-9'])
+    expect(text).toMatch(MENTION_PATTERN)
+    expect(mentionLabel('[]')).toBe('member')
+  })
+})

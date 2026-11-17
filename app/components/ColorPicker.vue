@@ -52,10 +52,13 @@ function onHexBlur() {
         :key="c"
         :aria-label="`Colour ${c}`"
         type="button"
-        class="rounded-full ring-1 ring-black/10 dark:ring-white/10 hover:scale-125 transition-transform"
+        class="rounded-full hover:scale-125 transition-transform"
         :class="[
           size === 'md' ? 'w-6 h-6' : 'w-5 h-5',
-          modelValue === c ? (size === 'md' ? 'ring-2 ring-offset-1 ring-offset-bg ring-primary' : 'ring-2 ring-primary') : ''
+          // One ring colour per state, from the tokens: the resting ring was a
+          // hand-kept light/dark pair, and it sat beside `ring-primary` on the
+          // selected swatch, two utilities for one property.
+          modelValue === c ? (size === 'md' ? 'ring-2 ring-offset-1 ring-offset-bg ring-primary' : 'ring-2 ring-primary') : 'ring-1 ring-default'
         ]"
         :style="{ backgroundColor: c }"
         @click="pickColor(c)"
@@ -63,7 +66,7 @@ function onHexBlur() {
     </div>
     <div class="flex items-center gap-1.5 pt-0.5">
       <div
-        class="w-5 h-5 rounded-full shrink-0 ring-1 ring-black/10 dark:ring-white/10"
+        class="w-5 h-5 rounded-full shrink-0 ring-1 ring-default"
         :style="{ backgroundColor: modelValue }"
       />
       <input

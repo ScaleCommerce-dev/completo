@@ -113,7 +113,7 @@ function handleCustomPrompt() {
                 placeholder="Custom prompt..."
                 class="flex-1 min-w-0 px-2.5 py-1.5 text-sm text-default placeholder:text-dimmed bg-muted border border-default rounded-lg transition-colors"
                 @keydown.enter.prevent="handleCustomPrompt"
-                @keydown.stop
+                @keydown="(e: KeyboardEvent) => { if (e.key !== 'Escape') e.stopPropagation() }"
               >
               <button
                 aria-label="Send prompt"
@@ -157,13 +157,13 @@ function handleCustomPrompt() {
 }
 
 .ai-pill:not(.text-error) {
-  background: linear-gradient(-45deg, #7c3aed, #a855f7, #6366f1, #8b5cf6, #c084fc, #7c3aed);
+  background: var(--ai-pill-gradient);
   background-size: 300% 300%;
   animation: gradient-shift 6s ease infinite;
 }
 
 .ai-pill:not(.text-error):hover {
   animation-duration: 2s;
-  box-shadow: 0 0 16px rgba(139, 92, 246, 0.35);
+  box-shadow: 0 0 16px var(--ai-pill-glow);
 }
 </style>

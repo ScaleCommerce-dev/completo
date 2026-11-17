@@ -473,8 +473,19 @@ function openLinkPopover() {
   linkOpen.value = true
 }
 
+/**
+ * What a typed address means. `google.com` has no scheme, so stored as is it was a
+ * path relative to the card, and the link opened a 404 inside the app. Anything
+ * that is not already a scheme, a path, a fragment or a query is taken as a web
+ * address.
+ */
+function normalizeHref(raw: string): string {
+  if (/^[a-z][a-z0-9+.-]*:/i.test(raw) || /^[/#?]/.test(raw)) return raw
+  return `https://${raw}`
+}
+
 function applyLink() {
-  const href = linkUrl.value.trim()
+  const href = normalizeHref(linkUrl.value.trim())
   const current = editor.value
   if (!href || !current) return
 
@@ -497,10 +508,23 @@ function removeLink() {
 const mentionOpen = ref(false)
 /** Set when the picker was opened by typing `@`, so accepting can remove it. */
 const mentionTypedTrigger = ref(false)
+/**
+ * Where the caret was when the picker opened: just after the typed `@`, or where
+ * the toolbar button was pressed. The pick goes there, not wherever the caret is
+ * by then: it used to delete the character before the *current* caret, which
+ * after a click elsewhere was some other letter.
+ */
+const mentionAt = ref(0)
 
 function openMention(fromTyping: boolean) {
   mentionTypedTrigger.value = fromTyping
+  mentionAt.value = editor.value?.state.selection.from ?? 0
   mentionOpen.value = true
+}
+
+function dismissMention() {
+  mentionOpen.value = false
+  mentionTypedTrigger.value = false
 }
 
 function closeMention() {
@@ -526,12 +550,13 @@ function onMentionSelect(item: { _type: 'user', id: string, name: string } | { _
   const current = editor.value
   if (!current) return
 
-  const chain = current.chain().focus()
+  const at = Math.min(mentionAt.value, current.state.doc.content.size)
+  const chain = current.chain().focus().setTextSelection(at)
 
-  // The `@` that opened the picker is part of the mention, not text in front of it.
-  if (mentionTypedTrigger.value) {
-    const { from } = current.state.selection
-    chain.deleteRange({ from: from - 1, to: from })
+  // The `@` that opened the picker is part of the mention, not text in front of it,
+  // if it is still there: the document may have changed while the picker was open.
+  if (mentionTypedTrigger.value && at > 0 && current.state.doc.textBetween(at - 1, at) === '@') {
+    chain.deleteRange({ from: at - 1, to: at })
   }
 
   if (item._type === 'user') {
@@ -919,6 +944,7 @@ defineExpose({
       :project-key="projectKey"
       @select="onMentionSelect"
       @close="closeMention"
+      @dismiss="dismissMention"
     />
   </div>
 </template>

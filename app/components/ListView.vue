@@ -214,9 +214,16 @@ const flatSorted = computed(() => {
         break
       }
       case 'dueDate': {
-        const da = a.dueDate ? new Date(a.dueDate).getTime() : Infinity
-        const db = b.dueDate ? new Date(b.dueDate).getTime() : Infinity
-        cmp = da - db
+        // Undated rows sort last in both directions, like nameless ones above:
+        // as Infinity they were last ascending and *first* descending, so the
+        // latest deadlines sat under a block of cards without one.
+        if (!a.dueDate || !b.dueDate) {
+          if (a.dueDate) return -1
+          if (b.dueDate) return 1
+          cmp = 0
+          break
+        }
+        cmp = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
         break
       }
       case 'createdAt':
@@ -360,7 +367,10 @@ const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.le
                   <UIcon
                     name="i-lucide-circle-check-big"
                     class="text-xs"
+                    aria-hidden="true"
                   />
+                  <!-- The column's name for a screen reader: the icon was all it had. -->
+                  <span class="sr-only">{{ fieldLabel(col.field) }}</span>
                 </template>
                 <template v-else>
                   {{ fieldLabel(col.field) }}

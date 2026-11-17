@@ -180,7 +180,7 @@ function selectMention(item: { _type: 'user' | 'card', id: string | number, name
   if (item._type === 'user') {
     // Carries a user-id reference so notifications resolve by identity, not display
     // name — display names aren't unique and used to notify the wrong person.
-    mentionText = `@[${item.name}](${mentionRef(String(item.id))}) `
+    mentionText = `@[${mentionLabel(item.name ?? '')}](${mentionRef(String(item.id))}) `
   } else {
     const slug = `${props.projectKey}-${item.id}`
     mentionText = `[${item.title} (${slug})](/projects/${props.projectSlug}/cards/${slug}) `
@@ -188,6 +188,13 @@ function selectMention(item: { _type: 'user' | 'card', id: string | number, name
 
   let before: string
   let after: string
+  // The typed `@` is replaced only while it is still where the picker opened; if
+  // the text moved under it, the mention goes at the caret instead of cutting
+  // whichever character now sits there.
+  if (mentionAnchorPos.value > 0 && description.value[mentionAnchorPos.value - 1] !== '@') {
+    mentionAnchorPos.value = -1
+    mentionCursorPos.value = el.selectionStart
+  }
   if (mentionAnchorPos.value >= 0) {
     before = description.value.slice(0, mentionAnchorPos.value - 1)
     after = description.value.slice(mentionAnchorPos.value)
@@ -480,6 +487,7 @@ defineExpose({
         :project-key="projectKey"
         @select="selectMention"
         @close="closeMention"
+        @dismiss="mentionActive = false"
       />
     </template>
   </MarkdownEditor>

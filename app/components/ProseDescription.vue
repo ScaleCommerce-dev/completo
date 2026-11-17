@@ -198,20 +198,25 @@ watch(rendered, () => nextTick(decorateCodeBlocks))
 
 const copyTimers = new Map<HTMLElement, ReturnType<typeof setTimeout>>()
 
-/** One delegated handler, so a block added by an edit needs no new listener. */
 /**
  * The rendered HTML is `v-html`, so its anchors are plain `<a>` elements, and a
  * card reference (`[Title (TK-5)](/projects/slug/cards/TK-5)`, as both editors
  * write it) reloaded the whole app on click. An in-app path from a plain left click
  * goes through the router instead; modified clicks, other buttons and anything
- * opening a new tab keep the browser's behaviour.
+ * opening a new tab keep the browser's behaviour. So do paths the server answers
+ * rather than the app (`SERVER_PATH`): an attachment link routed by the SPA
+ * landed on its 404 page instead of the file.
+ *
+ * One delegated handler, so a block added by an edit needs no new listener.
  */
+const SERVER_PATH = /^\/(?:api|auth|oauth|mcp|\.well-known|swagger)(?:[/?#]|$)/
+
 function onLinkClick(e: MouseEvent) {
   if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
   const link = (e.target as HTMLElement | null)?.closest<HTMLAnchorElement>('a[href]')
   if (!link || link.target === '_blank') return
   const href = link.getAttribute('href')!
-  if (!href.startsWith('/') || href.startsWith('//')) return
+  if (!href.startsWith('/') || href.startsWith('//') || SERVER_PATH.test(href)) return
   e.preventDefault()
   navigateTo(href)
 }

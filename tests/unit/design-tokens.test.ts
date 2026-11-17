@@ -797,6 +797,32 @@ describe('type scale', () => {
     [...css.matchAll(/--text-(\w+):\s*([\d.]+)rem/g)].map(m => [Number(m[2]) * 16, m[1]!] as const)
   )
 
+  it('declares no raw colour in a component\'s style block', () => {
+    // The class guards above read markup; a scoped `<style>` was the way round
+    // them, and AiWriteButton carried six hexes and an rgba glow there. A colour
+    // belongs in main.css as a token, where the palette's other colours are
+    // maintained, or here by name with a reason.
+    const THIRD_PARTY: Record<string, string> = {
+      'app/components/SocialLoginButtons.vue': 'GitHub, Google and Microsoft fix their sign-in buttons\' colours in their brand guidelines; they are theirs, not ours'
+    }
+    const offenders: string[] = []
+    const claimed = new Set<string>()
+    for (const file of vueFiles()) {
+      const name = file.replace(ROOT + '/', '')
+      const style = readFileSync(file, 'utf8').match(/<style[^>]*>([\s\S]*?)<\/style>/)?.[1]
+      if (!style) continue
+      const raw = style.split('\n').filter(l => /#[0-9a-fA-F]{3,8}(?![\w-])|\brgba?\(|\bhsla?\(/.test(l))
+      if (!raw.length) continue
+      if (name in THIRD_PARTY) {
+        claimed.add(name)
+        continue
+      }
+      offenders.push(...raw.map(l => `${name}: ${l.trim()}`))
+    }
+    expect(offenders).toEqual([])
+    for (const name of Object.keys(THIRD_PARTY)) expect(claimed.has(name), `${name} no longer needs its exemption`).toBe(true)
+  })
+
   it('leaves no arbitrary font sizes, in a class or in a style block', () => {
     // 726 inline `text-[Npx]` values spanned nineteen sizes, nine of them
     // half-pixel nudges for one specific element. Six named steps replace them.

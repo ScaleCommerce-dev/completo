@@ -23,6 +23,16 @@ import { Node, mergeAttributes } from '@tiptap/core'
  */
 export const MENTION_PATTERN = /^@\[([^\]]+)\]\(([^)\s]+)\)/
 
+/**
+ * A display name as a mention can store it. The pattern above (and the server's
+ * in `notifications.ts`) reads the label up to the first `]`, so a name with a
+ * bracket in it wrote a mention neither side recognised: no pill, and nobody was
+ * notified. The label is only what is shown; the id is what resolves.
+ */
+export function mentionLabel(name: string): string {
+  return name.replace(/[[\]]/g, '').trim() || 'member'
+}
+
 export const ProseMention = Node.create({
   name: 'completoMention',
 
@@ -101,6 +111,6 @@ export const ProseMention = Node.create({
     // text rather than emitting `@[Name]()`, which the tokenizer would not match
     // and which nothing could resolve.
     if (!id) return label ? `@${label}` : ''
-    return `@[${label}](${id})`
+    return `@[${mentionLabel(String(label ?? ''))}](${id})`
   }
 })
