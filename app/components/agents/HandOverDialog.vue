@@ -35,6 +35,8 @@ const toast = useToast()
 const agents = ref<AgentSummary[]>([])
 const candidates = ref<ManagerCandidate[]>([])
 const loading = ref(false)
+/** Whether this person's agents were read. Without them, there is nothing safe to submit. */
+const loaded = ref(false)
 const choice = ref<'transfer' | 'suspend'>('transfer')
 const toUserId = ref<string | undefined>()
 const showAll = ref(false)
@@ -47,14 +49,25 @@ watch(open, async (isOpen) => {
   toUserId.value = undefined
   showAll.value = false
   error.value = ''
+  // Cleared first: the last person's agents and candidates stayed on screen while
+  // this load ran, and if it failed, the dialog acted on them.
+  agents.value = []
+  candidates.value = []
+  loaded.value = false
   loading.value = true
+  const personId = props.person.id
   try {
-    agents.value = await $fetch<AgentSummary[]>('/api/agents', { query: { scope: 'all', managerId: props.person.id } })
-    candidates.value = agents.value.length
-      ? await $fetch<ManagerCandidate[]>('/api/agents/managers', { query: { agentIds: agents.value.map(a => a.id).join(',') } })
+    const found = await $fetch<AgentSummary[]>('/api/agents', { query: { scope: 'all', managerId: personId } })
+    const eligibleManagers = found.length
+      ? await $fetch<ManagerCandidate[]>('/api/agents/managers', { query: { agentIds: found.map(a => a.id).join(',') } })
       : []
+    // Opened for someone else while this was in flight.
+    if (props.person?.id !== personId) return
+    agents.value = found
+    candidates.value = eligibleManagers
+    loaded.value = true
   } catch (e: unknown) {
-    error.value = getErrorMessage(e, 'Failed to load their agents')
+    if (props.person?.id === personId) error.value = getErrorMessage(e, 'Failed to load their agents')
   } finally {
     loading.value = false
   }
@@ -105,7 +118,7 @@ const submitLabel = computed(() => {
   return `${first} and ${copy.value.verb}`
 })
 
-const canSubmit = computed(() => !loading.value && (choice.value === 'suspend' || !!toUserId.value))
+const canSubmit = computed(() => loaded.value && !loading.value && (choice.value === 'suspend' || !!toUserId.value))
 
 async function submit() {
   if (!props.person || !canSubmit.value || submitting.value) return

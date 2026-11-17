@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { execSync } from 'node:child_process'
 
 /**
  * Seven client bugs where the screen and the server disagreed, or a write went to
@@ -90,4 +91,12 @@ it('the theme controls save the choice to the account, not only to this browser'
     expect(src, p).toMatch(/setTheme\(/)
     expect(src, p).not.toMatch(/colorMode\.preference\s*=[^=]/)
   }
+})
+
+it('every clipboard write goes through writeClipboard, which works on plain HTTP', () => {
+  // `navigator.clipboard` is undefined outside a secure context, so a direct call
+  // threw there, and copying a one-time token did nothing.
+  const hits = execSync(`grep -rln "navigator.clipboard" ${join(ROOT, 'app')} || true`, { encoding: 'utf8' })
+    .trim().split('\n').filter(Boolean).map(f => f.replace(ROOT + '/', ''))
+  expect(hits).toEqual(['app/utils/clipboard.ts'])
 })

@@ -37,7 +37,9 @@ function onHexBlur() {
   const hex = raw.startsWith('#') ? raw : `#${raw}`
   if (isHexColor(hex)) {
     hexInput.value = hex.toLowerCase()
-    emit('update:modelValue', hex.toLowerCase())
+    // Typing the sixth character already sent it; sending it again on blur was a
+    // second PUT for every tag and agent colour typed by hand.
+    if (hex.toLowerCase() !== props.modelValue) emit('update:modelValue', hex.toLowerCase())
   } else {
     hexInput.value = props.modelValue
   }

@@ -282,7 +282,7 @@ const pendingRemove = ref<ProjectMember | null>(null)
  */
 const confirmingRemove = computed({
   get: () => !!pendingRemove.value,
-  set: (open: boolean) => { if (!open) pendingRemove.value = null }
+  set: (open: boolean) => { if (!open && !removing.value) pendingRemove.value = null }
 })
 
 function removeMember(m: ProjectMember) {
@@ -319,8 +319,9 @@ const removeDescription = computed(() => {
 async function confirmRemoveMember() {
   const m = pendingRemove.value
   if (!m) return
+  // The dialog stays open on its spinner until the request answers: closing it
+  // first meant `loading` was never seen.
   removing.value = m.id
-  pendingRemove.value = null
   try {
     const result = await $fetch<{ removedAgents?: Array<{ id: string, name: string }>, unassignedCards?: number }>(`/api/projects/${props.projectId}/members/${m.id}`, {
       method: 'DELETE'
@@ -333,6 +334,7 @@ async function confirmRemoveMember() {
       unassigned ? `${plural(unassigned, 'card')} unassigned.` : ''
     ].filter(Boolean).join(' ')
     toast.add({ title: `${m.name} removed from project`, description: details || undefined, color: 'success' })
+    pendingRemove.value = null
   } catch (e: unknown) {
     const err = e as { data?: { message?: string } }
     toast.add({ title: 'Failed to remove member', description: err?.data?.message, color: 'error' })

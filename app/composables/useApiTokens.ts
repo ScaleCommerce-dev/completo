@@ -83,7 +83,12 @@ export function useApiTokens(options: {
 
   async function copyToken() {
     if (!createdToken.value) return
-    await navigator.clipboard.writeText(createdToken.value)
+    // The token is shown once, so a failed copy is said: the user has to select it
+    // by hand before closing.
+    if (!await writeClipboard(createdToken.value)) {
+      useToast().add({ title: 'Couldn\'t copy the token', description: 'Select it and copy it by hand: it is not shown again.', color: 'warning' })
+      return
+    }
     tokenCopied.value = true
     setTimeout(() => {
       tokenCopied.value = false

@@ -61,9 +61,13 @@ async function create() {
     description="An account for an AI tool. It acts through API tokens and can never sign in."
   >
     <template #body>
+      <!-- Enter in a field creates. A form with two text fields and no submit
+           button inside it has no implicit submission (the button is in the
+           footer), so Enter did nothing. A textarea keeps its newline. -->
       <form
         class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-6"
         @submit.prevent="create"
+        @keydown.enter="(e: KeyboardEvent) => { if ((e.target as HTMLElement).tagName === 'INPUT' && !e.isComposing) { e.preventDefault(); create() } }"
       >
         <div class="flex flex-col gap-3 min-w-0">
           <UFormField label="Name">

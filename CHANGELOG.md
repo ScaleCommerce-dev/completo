@@ -45,6 +45,10 @@
 - **Files dropped while another is uploading are uploaded next**, instead of being ignored.
 - **Lists sort cards without a due date last** when sorting by due date in either direction; descending put them first.
 - **Escape closes the AI menu while you type a prompt**, and screen readers now hear the Write and Preview tabs, the list's Done column, a card's unread and comment markers, its position in the panel, and loading states.
+- **Copying works on an install served over plain HTTP.** Copying a new API token, a ticket link or a code block did nothing there, and the token is shown only once; if a copy still fails, you are told to copy the token by hand.
+- **Project settings keep what you type** while the project's statuses load, and the delete confirmation asks for the project's saved name. Removing a member and deleting a project show their progress until they finish.
+- **Board and list columns can be reordered from the keyboard** with Move up and Move down, and filter chips say whether they are on. Renaming a status puts the cursor in the field and returns it afterwards, and going Back while creating a view keeps the statuses you unticked.
+- **Agents and profile:** Enter creates an agent, handing over agents no longer acts on the previous person's list while the next one loads, connected apps say when they could not be loaded or disconnected, the profile shows your saved avatar, Sign Out on the profile works like the account menu's, and the account menu's Security link works a second time.
 - **The cards API refuses an unknown `priority` filter** with a 400 that lists the allowed values. `priority=bogus` used to return every card as if it had matched.
 - **Removing someone who is not a member of a project is refused**, instead of succeeding and sending them a "removed you from" notification.
 

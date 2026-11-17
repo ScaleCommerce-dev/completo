@@ -52,9 +52,9 @@ withDefaults(defineProps<{
   disabled?: boolean
   /** Shows the ⌘⏎ hint. Only pass when a global handler actually listens. */
   shortcut?: boolean
-  /** Left-aligned status or validation text, e.g. "Slug already taken". */
+  /** Left-aligned summary text, e.g. "5 statuses, 1 tag filter". Always dimmed: its
+   *  one caller summarises a choice. Errors belong in the form, beside the field. */
   status?: string
-  statusTone?: 'muted' | 'warning' | 'error' | 'success'
   /** `error` when the primary action is itself the destructive one — a delete
    *  confirmation has no separate destructive slot, the submit *is* the delete. */
   submitTone?: 'primary' | 'error'
@@ -76,7 +76,6 @@ withDefaults(defineProps<{
   submitLabel: 'Save',
   cancelLabel: 'Cancel',
   shortcut: true,
-  statusTone: 'muted',
   submitTone: 'primary',
   submitType: 'button'
 })
@@ -86,13 +85,6 @@ const emit = defineEmits<{
   cancel: []
   destructive: []
 }>()
-
-const STATUS_TONES = {
-  muted: 'text-dimmed',
-  warning: 'text-warning',
-  error: 'text-error',
-  success: 'text-success'
-}
 </script>
 
 <template>
@@ -108,8 +100,7 @@ const STATUS_TONES = {
 
     <span
       v-if="status"
-      class="text-sm font-medium truncate"
-      :class="STATUS_TONES[statusTone]"
+      class="text-sm font-medium truncate text-dimmed"
     >{{ status }}</span>
 
     <div class="ml-auto flex items-center gap-2 shrink-0">

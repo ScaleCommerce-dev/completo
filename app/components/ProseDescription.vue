@@ -233,14 +233,9 @@ async function onCodeCopy(e: MouseEvent) {
   const code = button.closest('.code-block')?.querySelector('pre')
   if (!code) return
 
-  try {
-    await navigator.clipboard.writeText(code.innerText.replace(/\n+$/, ''))
-  } catch {
-    // Rejects outside a secure context or when the document isn't focused. The
-    // text is still selectable, and an error toast here would be the loudest
-    // thing on screen for the least consequential failure there is.
-    return
-  }
+  // A failure shows nothing: the text is still selectable, and an error toast here
+  // would be the loudest thing on screen for the least consequential failure.
+  if (!await writeClipboard(code.innerText.replace(/\n+$/, ''))) return
 
   button.classList.add('copied')
   const running = copyTimers.get(button)

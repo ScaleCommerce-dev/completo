@@ -3,7 +3,6 @@ defineProps<{
   status: { id: string, name: string, color: string | null } | null
   statusId: string
   statuses: Array<{ id: string, name: string, color: string | null }>
-  readOnly?: boolean
   popoverOpen: boolean
   doneStatusId?: string | null
   openSubtasks?: number
@@ -16,27 +15,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <!-- read-only -->
-  <div
-    v-if="readOnly"
-    class="flex items-center gap-1.5"
-  >
-    <template v-if="status">
-      <UiStatusDot
-        :color="status.color"
-        size="sm"
-      />
-      <span class="text-toned truncate text-sm">{{ status.name }}</span>
-    </template>
-    <span
-      v-else
-      class="text-dimmed text-sm"
-    >-</span>
-  </div>
-
-  <!-- editable -->
   <StatusMenu
-    v-else
     :statuses="statuses"
     :status-id="statusId"
     :done-status-id="doneStatusId"

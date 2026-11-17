@@ -2,7 +2,6 @@
 const props = defineProps<{
   cardTags: Array<{ id: string, name: string, color: string }>
   tags?: Array<{ id: string, name: string, color: string }>
-  readOnly?: boolean
   popoverOpen: boolean
 }>()
 
@@ -30,9 +29,9 @@ const allTagNames = computed(() => props.cardTags.map(t => t.name).join(', '))
 </script>
 
 <template>
-  <!-- read-only -->
+  <!-- A project without tags has nothing to pick from: the cell only shows. -->
   <div
-    v-if="readOnly || !tags?.length"
+    v-if="!tags?.length"
     class="flex gap-2 items-center min-h-cell min-w-0"
   >
     <TagPill

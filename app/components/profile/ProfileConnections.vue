@@ -12,12 +12,20 @@ interface Grant {
 
 const grants = ref<Grant[]>([])
 const { armedId, arm, disarm } = useArmedDelete()
+const toast = useToast()
+
+/**
+ * A failed read is said, not shown as an empty list: "no connected apps" is a
+ * claim about what can act as you, and an outage is no basis for it.
+ */
+const loadError = ref<unknown>(null)
 
 async function load() {
   try {
     grants.value = await $fetch<Grant[]>('/api/user/oauth-grants')
-  } catch {
-    grants.value = []
+    loadError.value = null
+  } catch (e) {
+    loadError.value = e
   }
 }
 
@@ -27,6 +35,9 @@ async function revoke(id: string) {
   disarm()
   try {
     await $fetch(`/api/user/oauth-grants/${id}`, { method: 'DELETE' })
+  } catch (e) {
+    // Said out loud: a disconnect that silently failed leaves an app acting as you.
+    toast.add({ title: 'Failed to disconnect', description: getErrorMessage(e, 'Something went wrong'), color: 'error' })
   } finally {
     await load()
   }
@@ -54,8 +65,15 @@ function when(iso: string | null): string {
       </p>
     </div>
 
+    <UiLoadError
+      v-if="loadError"
+      what="connected apps"
+      :error="loadError"
+      class="py-6"
+      @retry="load"
+    />
     <div
-      v-if="grants.length"
+      v-else-if="grants.length"
       class="mx-card mb-5 rounded-lg border border-default divide-y divide-default overflow-hidden"
     >
       <div

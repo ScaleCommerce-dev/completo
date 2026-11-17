@@ -113,9 +113,25 @@ async function addProjectStatus() {
   emit('refresh')
 }
 
+/**
+ * Rename swaps the chip for a field. Focus goes into the field, and back to the
+ * chip after Save or Cancel: it used to stay on the menu item that had just been
+ * removed, which left a keyboard user on the page's body.
+ */
+const root = ref<HTMLElement | null>(null)
+
+function focusInRoot(selector: string, select = false) {
+  nextTick(() => {
+    const el = root.value?.querySelector<HTMLElement>(selector)
+    el?.focus()
+    if (select && el instanceof HTMLInputElement) el.select()
+  })
+}
+
 function startEditStatus(col: Status) {
   editingColId.value = col.id
   editingColName.value = col.name
+  focusInRoot('[data-status-rename]', true)
 }
 
 async function saveEditStatus() {
@@ -126,11 +142,14 @@ async function saveEditStatus() {
   editingColId.value = null
   editingColName.value = ''
   emit('refresh')
+  focusInRoot(`[data-status-chip="${id}"]`)
 }
 
 function cancelEditStatus() {
+  const id = editingColId.value
   editingColId.value = null
   editingColName.value = ''
+  if (id) focusInRoot(`[data-status-chip="${id}"]`)
 }
 
 function askWhereCardsGo(col: Status) {
@@ -198,7 +217,10 @@ async function setDoneStatus(statusId: string | null) {
 </script>
 
 <template>
-  <div class="flex items-center gap-1.5 px-3 py-2 overflow-x-auto">
+  <div
+    ref="root"
+    class="flex items-center gap-1.5 px-3 py-2 overflow-x-auto"
+  >
     <template
       v-for="col in statuses"
       :key="col.id"
@@ -213,6 +235,7 @@ async function setDoneStatus(statusId: string | null) {
           v-model="editingColName"
           type="text"
           aria-label="Status name"
+          data-status-rename
           class="w-24 text-xs font-medium text-highlighted bg-transparent border-0 border-b border-transparent py-0"
           @keydown.enter="saveEditStatus"
           @keydown.escape="cancelEditStatus"
@@ -242,6 +265,7 @@ async function setDoneStatus(statusId: string | null) {
       >
         <button
           type="button"
+          :data-status-chip="col.id"
           class="group/chip flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 transition-colors"
           :class="col.id === doneStatusId
             ? 'bg-success/10 ring-1 ring-success/30'

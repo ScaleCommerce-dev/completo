@@ -44,28 +44,22 @@ const props = withDefaults(defineProps<{
   description?: string
   /** Tints the icon. `error` for destructive, `secondary` for AI surfaces. */
   tone?: 'neutral' | 'primary' | 'error' | 'warning' | 'success' | 'secondary'
-  /** sm 400px · md 520px · lg 640px · xl 780px */
-  size?: 'md' | 'lg' | 'xl'
   /** Drop the body padding when the content manages its own (e.g. a card form). */
   flush?: boolean
   dismissible?: boolean
 }>(), {
   tone: 'neutral',
-  size: 'md',
   dismissible: true
 })
 
 const open = defineModel<boolean>('open', { required: true })
 
-// `md` is the connect2scale dialog, min(510px, 100% − 32px) — every form and
-// confirmation in the app. There is no narrower one: the guideline gives
-// dialogs one width, so a confirmation is not a smaller kind of thing. The
-// wider two are for content that is genuinely a table or a two-pane layout.
-const WIDTHS = {
-  md: 'sm:max-w-(--c2s-dialog-width)',
-  lg: 'sm:max-w-[640px]',
-  xl: 'sm:max-w-[780px]'
-}
+// The connect2scale dialog, min(510px, 100% − 32px) — every form and
+// confirmation in the app. The guideline gives dialogs one width, so a
+// confirmation is not a smaller kind of thing. A wider `lg`/`xl` was declared for
+// tables and two-pane layouts and never used; one is added back with its first
+// caller.
+const WIDTH = 'sm:max-w-(--c2s-dialog-width)'
 
 const TONES = {
   neutral: 'bg-elevated text-toned',
@@ -81,7 +75,7 @@ const TONES = {
 // dialogs were flush on a phone and padded twice (24px + their own px-5) from
 // 640px up, which is where they were designed and looked at.
 const ui = computed(() => ({
-  content: WIDTHS[props.size],
+  content: WIDTH,
   body: props.flush ? 'p-0 sm:p-0' : undefined
 }))
 
@@ -117,13 +111,6 @@ const headerTextRef = (el: RefTarget) => dropMissingDescription(asElement(el))
     :dismissible="dismissible"
     :ui="ui"
   >
-    <template
-      v-if="$slots.trigger"
-      #default
-    >
-      <slot name="trigger" />
-    </template>
-
     <!-- Overriding #header replaces UModal's default header, which is where the
          close button lives — so it has to be put back explicitly, or the dialog
          has no visible dismiss affordance at all. -->
@@ -162,7 +149,6 @@ const headerTextRef = (el: RefTarget) => dropMissingDescription(asElement(el))
             {{ description }}
           </p>
         </div>
-        <slot name="header-actions" />
         <UButton
           v-if="dismissible"
           icon="i-lucide-x"

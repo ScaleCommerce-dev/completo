@@ -43,12 +43,11 @@ const hasProviders = computed(() => enabledProviders.value.length > 0)
     class="flex flex-col gap-2.5"
   >
     <a
-      v-for="(provider, i) in enabledProviders"
+      v-for="provider in enabledProviders"
       :key="provider.key"
       :href="provider.href"
       class="social-btn group relative flex items-center w-full min-h-11 py-2.5 rounded-field text-sm font-semibold transition duration-200 active:scale-[0.97]"
       :class="`social-btn--${provider.key}`"
-      :style="{ animationDelay: `${i * 0.05}s` }"
     >
       <!-- GitHub Logo -->
       <svg
@@ -126,11 +125,10 @@ const hasProviders = computed(() => enabledProviders.value.length > 0)
     <!-- Divider -->
     <div
       class="flex items-center gap-3 my-1"
-      :style="{ animationDelay: `${enabledProviders.length * 0.05}s` }"
     >
-      <div class="flex-1 h-px bg-accented/60 dark:bg-gradient-to-r dark:from-transparent dark:via-border dark:to-transparent" />
+      <div class="flex-1 h-px bg-accented/60" />
       <span class="text-xs font-medium uppercase tracking-label text-dimmed">or</span>
-      <div class="flex-1 h-px bg-accented/60 dark:bg-gradient-to-r dark:from-transparent dark:via-border dark:to-transparent" />
+      <div class="flex-1 h-px bg-accented/60" />
     </div>
   </div>
 </template>

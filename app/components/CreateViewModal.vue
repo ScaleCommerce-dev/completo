@@ -110,7 +110,10 @@ function selectViewType(type: 'board' | 'list') {
 
 function goToStep3() {
   if (!viewName.value.trim() || !slugValid.value || slugAvailable.value === false) return
-  selectedBoardColumns.value = new Set(props.statuses.map(s => s.id))
+  // Filled here only when nothing is chosen yet (the statuses can arrive after the
+  // dialog opens). Refilling every time re-ticked what the user had unticked
+  // whenever they went Back and Next again, while ⌘↵ kept their choice.
+  if (!selectedBoardColumns.value.size) selectedBoardColumns.value = new Set(props.statuses.map(s => s.id))
   viewStep.value = 3
 }
 

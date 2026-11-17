@@ -41,7 +41,7 @@ watch(() => props.profileData?.emailNotifications, (value) => {
              already resolves src-or-initials, and the brand gradient belongs to
              the logo and the drag, not to every avatar. -->
         <UiAvatar
-          :src="(hasGravatar && !gravatarOverride) ? gravatarUrl : undefined"
+          :src="(hasGravatar && !gravatarOverride) ? gravatarUrl : (profileAvatarUrl || undefined)"
           :alt="profileName || 'You'"
           size="3xl"
           class="shrink-0 ring-[3px] ring-bg shadow-raise"
@@ -178,6 +178,7 @@ watch(() => props.profileData?.emailNotifications, (value) => {
               type="button"
               class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
               :class="profileColorMode === option.value ? 'bg-primary/10 text-primary' : 'text-dimmed hover:text-toned hover:bg-elevated'"
+              :aria-pressed="profileColorMode === option.value"
               @click="profileColorMode = option.value"
             >
               <UIcon

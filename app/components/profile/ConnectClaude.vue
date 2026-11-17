@@ -32,11 +32,7 @@ const copiedKey = ref<string | null>(null)
 let timer: ReturnType<typeof setTimeout> | null = null
 
 async function copy(key: string, text: string) {
-  try {
-    await navigator.clipboard.writeText(text)
-  } catch {
-    return
-  }
+  if (!await writeClipboard(text)) return
   copiedKey.value = key
   if (timer) clearTimeout(timer)
   timer = setTimeout(() => {

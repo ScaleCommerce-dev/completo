@@ -12,18 +12,14 @@ export function useCopyTicketId(
     }, 2000)
   }
 
+  // Through `writeClipboard`, which works on a plain-HTTP install too; a copy that
+  // still fails shows no "copied", rather than an unhandled rejection.
   async function copyUrl() {
-    await navigator.clipboard.writeText(
-      formatTicketUrl(toValue(projectSlug), toValue(projectKey), toValue(cardId))
-    )
-    showFeedback('url')
+    if (await writeClipboard(formatTicketUrl(toValue(projectSlug), toValue(projectKey), toValue(cardId)))) showFeedback('url')
   }
 
   async function copyId() {
-    await navigator.clipboard.writeText(
-      formatTicketId(toValue(projectKey), toValue(cardId))
-    )
-    showFeedback('id')
+    if (await writeClipboard(formatTicketId(toValue(projectKey), toValue(cardId)))) showFeedback('id')
   }
 
   return { copiedState, copyUrl, copyId }

@@ -13,16 +13,13 @@ const {
 } = usePasswordChange()
 
 const signingOut = ref(false)
+// The app's one sign-out, with its transition and its error message; this page
+// had its own copy with neither.
+const signOutOfApp = useSignOut()
 
 async function signOut() {
   signingOut.value = true
-  try {
-    await $fetch('/auth/logout', { method: 'POST' })
-    await useUserSession().clear()
-    navigateTo('/login')
-  } catch {
-    signingOut.value = false
-  }
+  if (!await signOutOfApp()) signingOut.value = false
 }
 </script>
 

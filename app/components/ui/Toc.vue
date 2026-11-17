@@ -101,10 +101,21 @@ onBeforeUnmount(() => {
 // The account menu links to `/profile#security` from anywhere, including from
 // Profile itself, where the page does not remount.
 const route = useRoute()
-watch(() => route.hash, (hash) => {
+function goToHash(hash: string) {
   const id = hash.slice(1)
   if (id && present.value.some(i => i.id === id)) go(id)
+}
+watch(() => route.hash, goToHash)
+
+// `go` moves the address with `history.replaceState`, which the router never
+// sees, so after one menu visit `route.hash` stayed `#security` while the page
+// scrolled elsewhere, and the next visit to the same address was a duplicate
+// navigation: no hash change, no scroll. The router still reports a duplicate
+// to `afterEach`, with a failure, so that is where the second visit is caught.
+const stopAfterEach = useRouter().afterEach((to, _from, failure) => {
+  if (failure && to.path === route.path) goToHash(to.hash)
 })
+onBeforeUnmount(stopAfterEach)
 </script>
 
 <template>

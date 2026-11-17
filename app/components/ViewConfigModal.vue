@@ -487,6 +487,16 @@ function onDragEnd() {
   emit('reorder', localColumns.value.map((c, i) => ({ id: c.id, position: i })))
 }
 
+/** Move a column one place, as a drag would, from the buttons beside it. */
+function moveColumn(index: number, delta: -1 | 1) {
+  const to = index + delta
+  if (to < 0 || to >= localColumns.value.length) return
+  const next = [...localColumns.value]
+  ;[next[index], next[to]] = [next[to]!, next[index]!]
+  localColumns.value = next
+  onDragEnd()
+}
+
 // ─── Board-mode: new column ───
 const newColumnName = ref('')
 const newColumnColor = ref(DEFAULT_COLOR)
@@ -611,7 +621,7 @@ const showDeleteConfirm = ref(false)
                 drag-class="sortable-drag"
                 @end="onDragEnd"
               >
-                <template #item="{ element: col }">
+                <template #item="{ element: col, index }">
                   <div
                     class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-muted transition-colors group"
                   >
@@ -645,6 +655,29 @@ const showDeleteConfirm = ref(false)
                       {{ isBoard ? col.name : fieldLabel(col.field || '') }}
                     </span>
                     <div class="flex items-center gap-0.5 opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 max-sm:opacity-60 transition-opacity">
+                      <!-- The keyboard's way to reorder: the grip only drags. -->
+                      <UTooltip text="Move up">
+                        <UButton
+                          :aria-label="`Move ${isBoard ? col.name : fieldLabel(col.field || '')} up`"
+                          icon="i-lucide-arrow-up"
+                          variant="ghost"
+                          color="neutral"
+                          size="xs"
+                          :disabled="index === 0"
+                          @click="moveColumn(index, -1)"
+                        />
+                      </UTooltip>
+                      <UTooltip text="Move down">
+                        <UButton
+                          :aria-label="`Move ${isBoard ? col.name : fieldLabel(col.field || '')} down`"
+                          icon="i-lucide-arrow-down"
+                          variant="ghost"
+                          color="neutral"
+                          size="xs"
+                          :disabled="index === localColumns.length - 1"
+                          @click="moveColumn(index, 1)"
+                        />
+                      </UTooltip>
                       <UTooltip text="Remove column">
                         <UButton
                           aria-label="Remove column"
@@ -671,6 +704,7 @@ const showDeleteConfirm = ref(false)
               <UInput
                 v-model="newColumnName"
                 placeholder="New column name (project-wide)"
+                aria-label="New column name"
                 class="flex-1"
               />
               <UButton
@@ -755,6 +789,7 @@ const showDeleteConfirm = ref(false)
                       ? 'swatch'
                       : 'bg-elevated text-dimmed hover:text-toned'"
                     :style="localStatusFilters.includes(s.id) ? { '--swatch': s.color || undefined } : {}"
+                    :aria-pressed="localStatusFilters.includes(s.id)"
                     @click="toggleStatusFilter(s.id)"
                   >
                     <UIcon
@@ -780,6 +815,7 @@ const showDeleteConfirm = ref(false)
                     :class="localPriorityFilters.includes(p)
                       ? [priorityTextClass(p), 'bg-elevated shadow-[inset_0_0_0_1.5px_currentColor]']
                       : 'bg-elevated text-dimmed hover:text-toned'"
+                    :aria-pressed="localPriorityFilters.includes(p)"
                     @click="togglePriorityFilter(p)"
                   >
                     <!-- Icon inherits currentColor, so the priority hue comes from

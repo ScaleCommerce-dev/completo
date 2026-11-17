@@ -87,7 +87,39 @@ function resetToDefaults() {
   slugCheck.reset()
 }
 
+/**
+ * The values the form was last filled from, so a later update for the same
+ * project can tell what the user has changed since. The settings dialog fills
+ * the form at once and again when the project's statuses arrive; the second fill
+ * used to overwrite whatever had been typed in between.
+ */
+let filledFrom: NonNullable<typeof props.initialData> | null = null
+
+function keep<T>(current: T, old: T, next: T): T {
+  return current === old ? next : current
+}
+
+function refill(data: NonNullable<typeof props.initialData>) {
+  const before = filledFrom
+  filledFrom = { ...data }
+  if (!before || before.id !== data.id) return false
+  // Same project: take each new value only where the field still holds the old one.
+  formName.value = keep(formName.value, before.name || '', data.name || '')
+  formKey.value = keep(formKey.value, before.key || '', data.key || '')
+  formSlug.value = keep(formSlug.value, before.slug || '', data.slug || '')
+  formDescription.value = keep(formDescription.value, before.description || '', data.description || '')
+  if (formBriefing.value === (before.briefing || '')) {
+    formBriefing.value = data.briefing || ''
+    showBriefingEditor.value = showBriefingEditor.value || !!data.briefing
+  }
+  formIcon.value = keep(formIcon.value, before.icon || 'folder', data.icon || 'folder')
+  doneStatusId.value = keep(doneStatusId.value, before.doneStatusId ?? null, data.doneStatusId ?? null)
+  doneRetentionDays.value = keep(doneRetentionDays.value, before.doneRetentionDays ?? null, data.doneRetentionDays ?? null)
+  return true
+}
+
 watch(() => props.initialData, (data) => {
+  if (data && refill(data)) return
   if (data) {
     formName.value = data.name || ''
     formKey.value = data.key || ''
@@ -101,6 +133,7 @@ watch(() => props.initialData, (data) => {
     keyManuallyEdited.value = true
     slugManuallyEdited.value = true
   } else {
+    filledFrom = null
     resetToDefaults()
   }
   showDeleteConfirm.value = false
@@ -186,8 +219,12 @@ function onSubmit() {
   }
 }
 
+/**
+ * The confirmation stays up on its spinner while the host deletes, and closes
+ * with the dialog. Hiding it before the request meant `deleting` was never seen,
+ * and a failure came back to a form that no longer showed what had been asked.
+ */
 function confirmDelete() {
-  showDeleteConfirm.value = false
   emit('delete')
 }
 </script>
@@ -452,7 +489,7 @@ function confirmDelete() {
     <UiInlineConfirm
       v-if="mode === 'edit' && showDeleteConfirm"
       label="this project"
-      :confirm-text="formName"
+      :confirm-text="initialData?.name ?? formName"
       message="This will permanently delete the project, all boards, statuses, and cards."
       :loading="deleting"
       class="mx-dialog mt-3"

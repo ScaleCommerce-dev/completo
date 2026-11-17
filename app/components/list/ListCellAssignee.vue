@@ -4,7 +4,6 @@ import type { Member, PersonRef } from '~/types/card'
 defineProps<{
   assignee: PersonRef | null
   members?: Member[]
-  readOnly?: boolean
   popoverOpen: boolean
 }>()
 
@@ -15,18 +14,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div
-    v-if="readOnly"
-    class="flex items-center min-h-cell"
-  >
-    <UiPerson
-      :person="assignee"
-      empty-on-hover
-    />
-  </div>
-
   <AssigneeMenu
-    v-else
     :members="members"
     :assignee-id="assignee?.id"
     :open="popoverOpen"

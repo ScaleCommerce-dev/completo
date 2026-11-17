@@ -40,7 +40,7 @@ const emit = defineEmits<{
   escape: []
 }>()
 
-const editorRef = ref<{ editTab: 'write' | 'preview', textareaEl?: HTMLTextAreaElement, startEditing: () => void, autoResize: () => void }>()
+const editorRef = ref<{ editTab: 'write' | 'preview', textareaEl?: HTMLTextAreaElement, startEditing: () => void }>()
 const aiKeepBtn = ref<HTMLButtonElement>()
 
 // ─── AI ───
@@ -315,9 +315,7 @@ defineExpose({
    */
   applyPendingAi() {
     if (aiPendingReview.value) aiAccept()
-  },
-  get editTab(): 'write' | 'preview' { return editorRef.value?.editTab ?? 'write' },
-  set editTab(val: 'write' | 'preview') { if (editorRef.value) editorRef.value.editTab = val }
+  }
 })
 </script>
 

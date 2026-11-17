@@ -19,7 +19,6 @@ const props = defineProps<{
   isFiltered?: boolean
   sortField?: string | null
   sortDirection?: 'asc' | 'desc' | null
-  readOnlyFields?: string[]
   /**
    * The list *is* the page body (the list view), so it starts at the content
    * area's gutter like the page title above it. Off where the list is embedded
@@ -450,7 +449,6 @@ const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.le
                 :statuses="statuses"
                 :done-status-id="doneStatusId"
                 :open-subtasks="openSubtaskCount(card)"
-                :read-only="readOnlyFields?.includes('status')"
                 :popover-open="isPopoverOpen(card.id, 'status')"
                 @select="selectStatus(card.id, $event)"
                 @update:popover-open="setPopoverOpen(card.id, 'status', $event)"
@@ -460,7 +458,6 @@ const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.le
                 v-else-if="col.field === 'assignee'"
                 :assignee="card.assignee"
                 :members="members"
-                :read-only="readOnlyFields?.includes('assignee')"
                 :popover-open="isPopoverOpen(card.id, 'assignee')"
                 @select="selectAssignee(card.id, $event)"
                 @update:popover-open="setPopoverOpen(card.id, 'assignee', $event)"
@@ -495,7 +492,6 @@ const { scroller, fadeStyle, updateFade } = useScrollFade(() => props.columns.le
                 v-else-if="col.field === 'tags'"
                 :card-tags="card.tags || []"
                 :tags="tags"
-                :read-only="readOnlyFields?.includes('tags')"
                 :popover-open="isPopoverOpen(card.id, 'tags')"
                 @toggle="toggleTag(card, $event)"
                 @update:popover-open="setPopoverOpen(card.id, 'tags', $event)"
