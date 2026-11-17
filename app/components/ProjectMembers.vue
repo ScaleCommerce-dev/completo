@@ -609,9 +609,10 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
             v-if="canChangeRole(m)"
             :items="roleMenuItems(m)"
           >
-            <!-- The badge beside it in a button's clothes: the same soft colours,
-                 and a chevron because it opens a menu. A hand-built pill until
-                 the primitives could do it. -->
+            <!-- The badge beside it in a button's clothes: the badge theme's shape
+                 and type (`app.config.ts` › badge), the same soft colours, and a
+                 chevron because it opens a menu. A hand-built pill until the
+                 primitives could do it. -->
             <UButton
               :label="m.role"
               :color="m.role === 'owner' ? 'primary' : 'neutral'"
@@ -619,7 +620,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
               size="xs"
               trailing-icon="i-lucide-chevron-down"
               :loading="changingRole === m.id"
-              class="shrink-0"
+              class="shrink-0 rounded-full font-bold uppercase tracking-wide"
             />
           </UDropdownMenu>
           <UBadge
@@ -652,7 +653,7 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
                 size="xs"
                 trailing-icon="i-lucide-chevron-down"
                 :loading="resendingInvitation === inv.id || cancellingInvitation === inv.id"
-                class="shrink-0"
+                class="shrink-0 rounded-full font-bold uppercase tracking-wide"
               />
             </UDropdownMenu>
           </li>

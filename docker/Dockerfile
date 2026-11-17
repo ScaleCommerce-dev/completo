@@ -18,6 +18,13 @@ RUN sed -i 's/^minimumReleaseAge:.*/minimumReleaseAge: 0/' pnpm-workspace.yaml \
 
 # Copy source and build
 COPY . .
+# Readable by everyone before anything is copied into the runtime stage, which
+# runs as a non-root user. `COPY` keeps a file's mode, and a working copy can hold
+# owner-only (600) files that a git checkout never would: a local build then
+# booted with `No file .../0002_*.sql found`, the migrator unable to read it.
+# Here rather than in the runtime stage, where a recursive chmod would copy
+# every file into a second layer.
+RUN find . -path ./node_modules -prune -o -exec chmod a+rX {} +
 RUN pnpm build
 
 # Install scripts/ runtime dependencies (better-sqlite3, dotenv, drizzle-orm)

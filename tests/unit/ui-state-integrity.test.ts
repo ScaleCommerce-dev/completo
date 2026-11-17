@@ -104,3 +104,11 @@ it('every clipboard write goes through writeClipboard, which works on plain HTTP
     .trim().split('\n').filter(Boolean).map(f => f.replace(ROOT + '/', ''))
   expect(hits).toEqual(['app/utils/clipboard.ts'])
 })
+
+it('page titles carry the app name once, from the title template', () => {
+  // A bulk edit that removed the per-page suffix also emptied the template's own,
+  // and every tab read "Projects" with no app name.
+  expect(code('app/app.vue')).toMatch(/titleTemplate:[^\n]*`\$\{title\} · Completo`/)
+  const pages = execSync(`grep -rln "· Completo" ${join(ROOT, 'app/pages')} || true`, { encoding: 'utf8' }).trim()
+  expect(pages).toBe('')
+})

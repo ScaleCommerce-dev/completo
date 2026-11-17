@@ -25,7 +25,7 @@ useSeoMeta({
 // Pages give their own title, and the app's name is appended once, here: twelve
 // pages used to spell out " · Completo" each.
 useHead({
-  titleTemplate: (title?: string) => !title ? 'Completo' : title === HOME_TITLE ? title : `${title}`
+  titleTemplate: (title?: string) => !title ? 'Completo' : title === HOME_TITLE ? title : `${title} · Completo`
 })
 </script>
 
