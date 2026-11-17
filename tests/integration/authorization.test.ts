@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch, url } from '../setup/server'
 import { registerTestUser, type TestUser } from '../setup/auth'
-import { createTestProject, createTestBoard, getBoard, createTestCard } from '../setup/fixtures'
+import { createTestProject, createTestBoard, getBoard, createTestCard, addProjectMember } from '../setup/fixtures'
 
 describe('Resource-level authorization', async () => {
   let owner: TestUser
@@ -20,11 +20,7 @@ describe('Resource-level authorization', async () => {
     project = await createTestProject(owner)
 
     // Add member to project
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: member.email },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { email: member.email })
 
     board = await createTestBoard(owner, project.id)
     fullBoard = await getBoard(owner, board.id)

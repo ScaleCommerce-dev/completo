@@ -31,35 +31,16 @@ interface Board {
 }
 
 export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }) {
+  const view = useViewData<Board>('boards', boardSlugOrId, opts)
   const {
     data: board,
-    error,
     viewId: boardId,
-    status,
     refresh,
     toast,
     mutate,
     markCardPending,
-    clearCardPending,
-    membersData,
-    tagsData,
-    tagFilters,
-    statusFilters,
-    assigneeFilters,
-    priorityFilters,
-    projectKey,
-    doneStatusId,
-    showSubtasks,
-    canConfigureColumns,
-    canModerateComments,
-    createCard,
-    updateCard,
-    deleteCard,
-    updateCardTags,
-    reorderColumns,
-    updateFilters,
-    updateDisplay
-  } = useViewData<Board>('boards', boardSlugOrId, opts)
+    clearCardPending
+  } = view
 
   const columnsData = computed(() => {
     // Copy before sorting. `useViewData` fetches with `deep: true`, so this array
@@ -196,65 +177,21 @@ export function useKanban(boardSlugOrId: string, opts?: { projectSlug?: string }
     return false
   })
 
-  // Rename has custom error handling (409 slug conflict fallback)
-  async function renameBoard(name: string): Promise<string | null> {
-    const slug = generateSlug(name)
-    try {
-      await $fetch(`/api/boards/${boardId.value}` as string, {
-        method: 'PUT' as const,
-        // A name with no latin letters or digits has no slug; it keeps the one it has.
-        body: slug ? { name, slug } : { name }
-      })
-      toast.add({ title: 'Board renamed', color: 'success' })
-      return slug || board.value?.slug || null
-    } catch (e: unknown) {
-      const err = e as { data?: { statusCode?: number } }
-      if (err?.data?.statusCode === 409) {
-        await $fetch(`/api/boards/${boardId.value}` as string, {
-          method: 'PUT' as const,
-          body: { name }
-        })
-        toast.add({ title: 'Board renamed', color: 'success' })
-        return board.value?.slug || null
-      }
-      toast.add({ title: 'Failed to rename board', color: 'error' })
-      throw e
-    }
-  }
-
+  // Everything the shared view composable has, plus what only this view adds.
+  // The list of forty pass-through names it replaced had to be kept in step by
+  // hand, twice.
   return {
+    ...view,
     board,
-    error,
     columnsData,
     cardsByColumn,
-    membersData,
-    tagsData,
-    tagFilters,
-    statusFilters,
-    assigneeFilters,
-    priorityFilters,
-    projectKey,
-    doneStatusId,
-    showSubtasks,
     hiddenCardFields,
     availableColumns,
-    canConfigureColumns,
-    canModerateComments,
     canAddColumns,
-    status,
-    refresh,
     moveCard,
-    createCard,
-    updateCard,
-    deleteCard,
     addColumn,
     updateColumn,
     deleteColumn,
-    linkColumn,
-    reorderColumns,
-    updateCardTags,
-    updateFilters,
-    updateDisplay,
-    renameBoard
+    linkColumn
   }
 }

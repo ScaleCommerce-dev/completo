@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events'
+import { createEventStream, type H3Event } from 'h3'
 
 /**
  * In-process fan-out bus for live updates: board/list view changes (scoped by
@@ -59,4 +60,57 @@ export function emitUserEvent(userId: string, type: AppEventType, payload?: unkn
 export function subscribeAppEvents(handler: (evt: AppEvent) => void): () => void {
   emitter.on(CHANNEL, handler)
   return () => emitter.off(CHANNEL, handler)
+}
+
+/**
+ * Serve the bus to one client as server-sent events: the project view stream
+ * and the notification stream, which each had this scaffolding in full.
+ *
+ * `select` picks the events for this client and names them. Every push re-runs
+ * `allowed` first and ends the stream when it fails: connect-time auth is not
+ * enough, since a stream held open across a removal, a suspension or a revoked
+ * token kept receiving. Pushes are chained so they stay in emit order while each
+ * awaits its check. A 25s heartbeat, a named event no client listens for, keeps
+ * idle proxies from reaping the connection and surfaces a half-open socket as a
+ * push failure, which ends in the same cleanup. `X-Accel-Buffering: no` is the
+ * standard opt-out of reverse-proxy buffering, which would hold every event until
+ * the connection closed.
+ */
+export function streamAppEvents(
+  event: H3Event,
+  opts: {
+    select: (evt: AppEvent) => { event: string, data: string } | null
+    allowed: () => Promise<boolean>
+  }
+) {
+  setResponseHeader(event, 'X-Accel-Buffering', 'no')
+  const stream = createEventStream(event)
+
+  let chain = Promise.resolve()
+  const send = (msg: { event: string, data: string }) => {
+    chain = chain.then(async () => {
+      if (!(await opts.allowed())) return cleanup()
+      await stream.push(msg)
+    }).catch(() => {
+      // A push after the socket dropped but before onClosed ran throws; the
+      // cleanup below is what actually reclaims the listener.
+    })
+  }
+
+  const unsubscribe = subscribeAppEvents((evt) => {
+    const msg = opts.select(evt)
+    if (msg) send(msg)
+  })
+  const heartbeat = setInterval(() => send({ event: 'ping', data: '1' }), 25_000)
+
+  // Shared by a dropped socket and a failed re-check, which ends the stream from
+  // our side; running it twice is harmless.
+  async function cleanup() {
+    clearInterval(heartbeat)
+    unsubscribe()
+    await stream.close()
+  }
+  stream.onClosed(cleanup)
+
+  return stream.send()
 }

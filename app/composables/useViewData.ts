@@ -225,32 +225,17 @@ export function useViewData<T extends ViewDataResponse>(
 
   async function updateCard(cardId: number, updates: Partial<BaseCard>) {
     const found = findCard(cardId)
-    const snapshot = found ? { ...found.card } : null
     const isLatest = beginWrite(cardId)
     markCardPending(cardId)
-
-    if (found) {
-      Object.assign(found.card, updates)
-      resolveNested(found.card, updates)
-    }
-
     try {
-      const card = await $fetch<Record<string, unknown>>(`/api/cards/${cardId}`, {
-        method: 'PUT',
-        body: updates
+      return await putCardFields({
+        cardId,
+        row: (found?.card ?? null) as Record<string, unknown> | null,
+        updates,
+        resolve: () => found && resolveNested(found.card, updates),
+        isLatest,
+        onError: e => toast.add({ title: 'Failed to update card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
       })
-      // The response carries the canonical row (updatedAt, and a resolved
-      // assignee). It has no `tags` or `attachmentCount` key, so assigning it
-      // leaves those intact rather than blanking them.
-      //
-      // Skipped once a newer write has been issued for this card: merging then
-      // would repaint the row with the value the *previous* edit set.
-      if (found && card && isLatest()) Object.assign(found.card, card)
-      return card
-    } catch (e) {
-      if (found && snapshot && isLatest()) Object.assign(found.card, snapshot)
-      toast.add({ title: 'Failed to update card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
-      throw e
     } finally {
       // Only the newest write clears the gate — an older write settling first must
       // not reopen the row to events while a newer edit is still in flight.
@@ -383,6 +368,67 @@ export function useViewData<T extends ViewDataResponse>(
     onViewInvalidate: scheduleRefresh
   })
 
+  /**
+   * Rename the view, and its slug with it when the name has one. A slug another
+   * view holds (409) keeps the old slug and renames anyway. Returns the slug the
+   * view now has, for the page to move its address to. One copy for boards and
+   * lists, which each had this word for word under their own name.
+   */
+  const NOUN = viewType === 'boards' ? 'Board' : 'List'
+  async function renameView(name: string): Promise<string | null> {
+    const slug = generateSlug(name)
+    const put = (body: Record<string, string>) => $fetch(`/api/${viewType}/${viewId.value}` as string, { method: 'PUT' as const, body })
+    try {
+      // A name with no latin letters or digits has no slug; it keeps the one it has.
+      await put(slug ? { name, slug } : { name })
+      toast.add({ title: `${NOUN} renamed`, color: 'success' })
+      return slug || (data.value as { slug?: string } | null)?.slug || null
+    } catch (e: unknown) {
+      const err = e as { data?: { statusCode?: number } }
+      if (err?.data?.statusCode === 409) {
+        await put({ name })
+        toast.add({ title: `${NOUN} renamed`, color: 'success' })
+        return (data.value as { slug?: string } | null)?.slug || null
+      }
+      toast.add({ title: `Failed to rename ${NOUN.toLowerCase()}`, color: 'error' })
+      throw e
+    }
+  }
+
+  /**
+   * The page's two view-level actions, for boards and lists alike: rename and
+   * follow the new slug in the address, and delete and go back to the project.
+   * Each page had its own copy. `deletingView` is the delete's pending state,
+   * owned here with the request so a failure cannot leave a spinner running.
+   */
+  const projectSlugForNav = () => opts?.projectSlug ?? data.value?.project?.slug
+  async function renameAndFollow(name: string) {
+    try {
+      const newSlug = await renameView(name)
+      if (newSlug && newSlug !== slugOrId) {
+        await navigateTo(`/projects/${projectSlugForNav()}/${viewType}/${newSlug}`, { replace: true })
+      } else {
+        await refresh()
+      }
+    } catch {
+      // `renameView` has said so.
+    }
+  }
+
+  const deletingView = ref(false)
+  async function deleteView() {
+    if (!data.value) return
+    deletingView.value = true
+    try {
+      await $fetch(`/api/${viewType}/${data.value.id}` as string, { method: 'DELETE' as const })
+      await navigateTo(`/projects/${projectSlugForNav()}`)
+    } catch (e) {
+      toast.add({ title: `Failed to delete ${NOUN.toLowerCase()}`, description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+    } finally {
+      deletingView.value = false
+    }
+  }
+
   return {
     data,
     error,
@@ -414,6 +460,10 @@ export function useViewData<T extends ViewDataResponse>(
     // View operations
     reorderColumns,
     updateFilters,
-    updateDisplay
+    updateDisplay,
+    renameView,
+    renameAndFollow,
+    deleteView,
+    deletingView
   }
 }

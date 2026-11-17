@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch } from '../setup/server'
 import { registerTestUser, type TestUser } from '../setup/auth'
-import { createTestProject, createTestBoard, createTestCard, getBoard } from '../setup/fixtures'
+import { createTestProject, createTestBoard, createTestCard, getBoard, addProjectMember } from '../setup/fixtures'
 
 describe('GET /api/my-tasks', async () => {
   let user: TestUser
@@ -56,11 +56,7 @@ describe('GET /api/my-tasks', async () => {
     const user2 = await registerTestUser()
     const project = await createTestProject(user, { name: `Other User ${Date.now()}` })
 
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: user2.email },
-      headers: user.headers
-    })
+    await addProjectMember(user, project.id, { email: user2.email })
 
     const board = await createTestBoard(user, project.id)
     const fullBoard = await getBoard(user, board.id)

@@ -1,59 +1,15 @@
-import { eq, and, ne } from 'drizzle-orm'
-import { listUpdateSchema, storedFilter } from '#shared/schemas/view'
+import { eq } from 'drizzle-orm'
+import { listUpdateSchema } from '#shared/schemas/view'
 
 export default defineEventHandler(async (event) => {
-  const { user: _user, list } = await resolveList(event)
-  const { name, slug, sortField, sortDirection, tagFilters, statusFilters, assigneeFilters, priorityFilters, showSubtasks } = await readBodyAs(event, listUpdateSchema)
+  const { list } = await resolveList(event)
+  const body = await readBodyAs(event, listUpdateSchema)
 
-  const updates: Record<string, string | number | null> = {}
+  // Name, slug, filters and the sub-task setting, as on a board (`server/utils/views.ts`).
+  const updates = sharedViewUpdates(schema.lists, list, body)
 
-  if (name !== undefined) {
-    updates.name = name
-  }
-
-  if (slug !== undefined) {
-    // Check uniqueness within project
-    const existing = db.select({ id: schema.lists.id })
-      .from(schema.lists)
-      .where(and(
-        eq(schema.lists.projectId, list.projectId),
-        eq(schema.lists.slug, slug),
-        ne(schema.lists.id, list.id)
-      ))
-      .get()
-    if (existing) {
-      throw createError({ statusCode: 409, message: 'Slug already taken in this project' })
-    }
-    updates.slug = slug
-  }
-
-  if (sortField !== undefined) {
-    updates.sortField = sortField
-  }
-
-  if (sortDirection !== undefined) {
-    updates.sortDirection = sortDirection
-  }
-
-  if (tagFilters !== undefined) {
-    updates.tagFilters = storedFilter(tagFilters)
-  }
-
-  if (statusFilters !== undefined) {
-    updates.statusFilters = storedFilter(statusFilters)
-  }
-
-  if (assigneeFilters !== undefined) {
-    updates.assigneeFilters = storedFilter(assigneeFilters)
-  }
-
-  if (priorityFilters !== undefined) {
-    updates.priorityFilters = storedFilter(priorityFilters)
-  }
-
-  if (showSubtasks !== undefined) {
-    updates.showSubtasks = showSubtasks ? 1 : 0
-  }
+  if (body.sortField !== undefined) updates.sortField = body.sortField
+  if (body.sortDirection !== undefined) updates.sortDirection = body.sortDirection
 
   db.update(schema.lists).set(updates).where(eq(schema.lists.id, list.id)).run()
 

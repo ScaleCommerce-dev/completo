@@ -1,5 +1,6 @@
 import { $fetch } from './server'
 import { tokenHeaders, type TestUser } from './auth'
+import { addProjectMember } from './fixtures'
 
 let agentCounter = 0
 
@@ -65,11 +66,7 @@ export async function setCanCreateAgents(admin: TestUser, user: TestUser, on: bo
 }
 
 export async function addMember(owner: TestUser, projectId: string, userId: string) {
-  return await $fetch(`/api/projects/${projectId}/members`, {
-    method: 'POST',
-    body: { userId },
-    headers: owner.headers
-  })
+  return await addProjectMember(owner, projectId, { userId })
 }
 
 /** An agent in the shape `mention()` takes, so it can be @mentioned in text. */

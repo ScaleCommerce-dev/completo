@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { registerTestUser, type TestUser } from '../../setup/auth'
-import { createTestProject, createTestBoard, getBoard, createTestCard, createTestTag, setCardTags, uploadAttachment } from '../../setup/fixtures'
+import { createTestProject, createTestBoard, getBoard, createTestCard, createTestTag, setCardTags, uploadAttachment, addProjectMember } from '../../setup/fixtures'
 import { $fetch, url, expectError } from '../../setup/server'
 
 interface CardResult {
@@ -49,11 +49,7 @@ describe('GET /api/projects/:id/cards', async () => {
     project = await createTestProject(owner)
 
     // Add member
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { userId: member.id },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { userId: member.id })
 
     board = await createTestBoard(owner, project.id)
     const fullBoard = await getBoard(owner, board.id)

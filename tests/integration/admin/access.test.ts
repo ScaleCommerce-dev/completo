@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch, url } from '../../setup/server'
 import { registerTestUser, createAdminUser, type TestUser } from '../../setup/auth'
-import { createTestProject, createTestBoard, getBoard, createTestCard } from '../../setup/fixtures'
+import { createTestProject, createTestBoard, getBoard, createTestCard, addProjectMember } from '../../setup/fixtures'
 
 describe('Admin access', async () => {
   let admin: TestUser
@@ -81,11 +81,7 @@ describe('Admin access', async () => {
 
   it('admin can manage members (owner-level action) on non-member projects', async () => {
     const extra = await registerTestUser()
-    const res = await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: extra.email },
-      headers: admin.headers
-    }) as Record<string, unknown>
+    const res = await addProjectMember(admin, project.id, { email: extra.email }) as Record<string, unknown>
     // Uniform response — no user existence leak
     expect(res.added).toBe(true)
 

@@ -1,4 +1,4 @@
-import type { BaseCard } from '~/types/card'
+import type { BaseCard, CardFormData } from '~/types/card'
 import { filterCards, hasActiveFilters, countActiveFilters, buildFilterSummary } from '~/utils/card-filters'
 import type { CardFilterState } from '~/utils/card-filters'
 
@@ -112,7 +112,7 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
   // Create card modal
   const showCreateCard = ref(false)
 
-  async function createCardFromFormData(data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }): Promise<number> {
+  async function createCardFromFormData(data: CardFormData): Promise<number> {
     const newCard = await createCard(data.statusId, data.title, {
       description: data.description || undefined,
       priority: data.priority,
@@ -126,17 +126,9 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
     return cardId
   }
 
-  async function ensureCardForDraft(data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }): Promise<number> {
-    return createCardFromFormData(data)
-  }
-
-  async function handleCreateCard(data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) {
+  async function handleCreateCard(data: CardFormData) {
     await createCardFromFormData(data)
     showCreateCard.value = false
-  }
-
-  async function deleteDraftCard(cardId: number) {
-    await deleteCard(cardId)
   }
 
   async function handleUpdateCard(cardId: number, updates: Record<string, unknown>, tagIds?: string[]) {
@@ -150,7 +142,7 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
    * There is no `handleDeleteCard` any more: the card panel used to carry a `⋯`
    * menu whose single item was Delete, and this was the only thing bound to it.
    * Deleting a card is the full-page view's, beside the provenance the decision
-   * wants. `deleteCard` stays — `deleteDraftCard` above still needs it, for the
+   * wants. `deleteCard` stays — `deleteDraftCard` below is it, for the
    * half-made card an attachment forces into existence.
    */
   return {
@@ -170,9 +162,11 @@ export function useViewPage<T extends BaseCard = BaseCard>(opts: ViewPageOptions
     selectedCard,
     openCardDetail,
     showCreateCard,
-    ensureCardForDraft,
+    // The panel makes a card early when a file is attached before Create, and
+    // throws it away if the form is then discarded.
+    ensureCardForDraft: createCardFromFormData,
     handleCreateCard,
     handleUpdateCard,
-    deleteDraftCard
+    deleteDraftCard: deleteCard
   }
 }

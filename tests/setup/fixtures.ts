@@ -110,6 +110,19 @@ export async function getList(user: TestUser, listIdOrSlug: string, opts?: { pro
   }
 }
 
+/**
+ * Add someone to a project as its owner would, by id or by email (an unknown
+ * email becomes an invitation). The one way setup code adds a member; tests of
+ * the endpoint itself call it directly.
+ */
+export async function addProjectMember(owner: TestUser, projectId: string, who: { userId: string } | { email: string }) {
+  return await $fetch(`/api/projects/${projectId}/members`, {
+    method: 'POST',
+    body: who,
+    headers: owner.headers
+  })
+}
+
 export async function createInvitation(user: TestUser, projectId: string, email: string) {
   return await $fetch(`/api/projects/${projectId}/members`, {
     method: 'POST',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { BaseCard, CardStatus, Member, SubtaskProgress, SubtaskRow, Tag } from '~/types/card'
+import type { BaseCard, CardFormData, CardStatus, Member, SubtaskProgress, SubtaskRow, Tag } from '~/types/card'
 import type { CardFilterState } from '~/utils/card-filters'
 
 const props = defineProps<{
@@ -45,7 +45,7 @@ const props = defineProps<{
    * changed: passing them costs a second request.
    */
   onUpdate?: (cardId: number, updates: Record<string, unknown>, tagIds?: string[]) => unknown
-  onEnsureCard?: (data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }) => Promise<number>
+  onEnsureCard?: (data: CardFormData) => Promise<number>
   /**
    * The host view's filters, so a card being created here can say up front that
    * it will not appear here. Absent on My Tasks and on the card's own page,
@@ -96,7 +96,7 @@ const open = computed({
 })
 
 const emit = defineEmits<{
-  create: [data: { title: string, description: string, priority: string, statusId: string, assigneeId: string | null, tagIds: string[], dueDate: string | null }]
+  create: [data: CardFormData]
   updateTags: [cardId: number, tagIds: string[]]
   deleteDraft: [cardId: number]
   navigate: [direction: 'prev' | 'next' | 'prevColumn' | 'nextColumn']

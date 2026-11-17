@@ -36,3 +36,40 @@ export function createWriteSequence<K = number>() {
     return () => latest.get(key) === seq
   }
 }
+
+/**
+ * Save card fields the way every card view does: paint the row first, then PUT,
+ * then take the server's row, or put the old one back and say so. One copy for
+ * the project views and My Tasks, which each had this line for line.
+ *
+ * `row` is the card as the view holds it, or null when it is not on screen;
+ * `resolve` repaints the nested objects (status, assignee) from the new ids;
+ * `isLatest` is from `createWriteSequence`, so an older write settling after a
+ * newer one changes nothing. The response has no `tags` or `attachmentCount`, so
+ * assigning it over the row leaves those intact. Rethrows, so the card panel can
+ * tell a failed save from a good one and keep the user's text.
+ */
+export async function putCardFields(opts: {
+  cardId: number
+  row: Record<string, unknown> | null
+  updates: Record<string, unknown>
+  resolve?: () => void
+  isLatest: () => boolean
+  onError: (e: unknown) => void
+}): Promise<Record<string, unknown>> {
+  const { cardId, row, updates, isLatest } = opts
+  const snapshot = row ? { ...row } : null
+  if (row) {
+    Object.assign(row, updates)
+    opts.resolve?.()
+  }
+  try {
+    const card = await $fetch<Record<string, unknown>>(`/api/cards/${cardId}`, { method: 'PUT', body: updates })
+    if (row && card && isLatest()) Object.assign(row, card)
+    return card
+  } catch (e) {
+    if (row && snapshot && isLatest()) Object.assign(row, snapshot)
+    opts.onError(e)
+    throw e
+  }
+}

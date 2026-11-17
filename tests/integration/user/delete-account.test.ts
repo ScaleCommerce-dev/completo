@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { $fetch, url, expectError } from '../../setup/server'
 import { registerTestUser, createAdminUser } from '../../setup/auth'
-import { createTestProject } from '../../setup/fixtures'
+import { createTestProject, addProjectMember } from '../../setup/fixtures'
 
 describe('DELETE /api/user/account', async () => {
   it('deletes account with correct password', async () => {
@@ -57,7 +57,7 @@ describe('DELETE /api/user/account', async () => {
 
     // With a second owner it goes through.
     const other = await registerTestUser()
-    await $fetch(`/api/projects/${project.id}/members`, { method: 'POST', body: { email: other.email }, headers: owner.headers })
+    await addProjectMember(owner, project.id, { email: other.email })
     await $fetch(`/api/projects/${project.id}/members/${other.id}`, { method: 'PATCH', body: { role: 'owner' }, headers: owner.headers })
     const ok = await $fetch<{ ok: boolean }>('/api/user/account', { method: 'DELETE', body: { password: 'ownerPass1' }, headers: owner.headers })
     expect(ok.ok).toBe(true)
@@ -91,11 +91,7 @@ describe('DELETE /api/user/account', async () => {
     const project = await createTestProject(owner)
 
     // Add member to project
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: member.email },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { email: member.email })
 
     // Verify member is listed
     const membersBefore = await $fetch(`/api/projects/${project.id}/members`, {

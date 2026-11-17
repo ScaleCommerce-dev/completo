@@ -1,5 +1,3 @@
-import { createEventStream } from 'h3'
-
 /**
  * Server-sent event stream of the signed-in user's notifications.
  *
@@ -16,35 +14,12 @@ import { createEventStream } from 'h3'
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
 
-  setResponseHeader(event, 'X-Accel-Buffering', 'no')
-
-  const stream = createEventStream(event)
-
-  // Same rule as the project view stream: a suspended or deleted user's open tab
-  // must stop receiving, so every push re-runs auth and a failure ends the stream.
-  let chain = Promise.resolve()
-  const send = (msg: { event: string, data: string }) => {
-    chain = chain.then(async () => {
-      if (!(await isStillAuthorized(event))) return cleanup()
-      await stream.push(msg)
-    }).catch(() => {})
-  }
-
-  const unsubscribe = subscribeAppEvents((evt) => {
-    if (evt.type !== 'notification' || evt.userId !== user.id) return
-    send({ event: 'notification', data: JSON.stringify(evt.payload ?? null) })
+  // A suspended or deleted user's open tab must stop receiving, so every push
+  // re-runs auth (`streamAppEvents`).
+  return streamAppEvents(event, {
+    select: evt => evt.type === 'notification' && evt.userId === user.id
+      ? { event: 'notification', data: JSON.stringify(evt.payload ?? null) }
+      : null,
+    allowed: () => isStillAuthorized(event)
   })
-
-  const heartbeat = setInterval(() => send({ event: 'ping', data: '1' }), 25_000)
-
-  // Shared by a dropped socket and a failed re-check, which ends the stream from
-  // our side; running it twice is harmless.
-  async function cleanup() {
-    clearInterval(heartbeat)
-    unsubscribe()
-    await stream.close()
-  }
-  stream.onClosed(cleanup)
-
-  return stream.send()
 })

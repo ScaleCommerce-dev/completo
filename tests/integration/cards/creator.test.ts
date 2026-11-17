@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch, expectError } from '../../setup/server'
 import { registerTestUser, type TestUser } from '../../setup/auth'
-import { createTestProject, createTestBoard, createTestList, createTestCard, getBoard, getList } from '../../setup/fixtures'
+import { createTestProject, createTestBoard, createTestList, createTestCard, getBoard, getList, addProjectMember } from '../../setup/fixtures'
 
 /**
  * The card creator is stored as `createdById` and exposed as a resolved `creator`
@@ -19,11 +19,7 @@ describe('Card creator', async () => {
 
   async function projectWithStatus(name: string) {
     const project = await createTestProject(owner, { name: `${name} ${Date.now()}` })
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: member.email },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { email: member.email })
     const board = await createTestBoard(owner, project.id)
     const fullBoard = await getBoard(owner, board.id)
     return { project, statusId: fullBoard.columns[0].id as string }

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch, url } from '../../setup/server'
 import { registerTestUser, type TestUser } from '../../setup/auth'
-import { createTestProject, createTestBoard, getBoard, createTestCard } from '../../setup/fixtures'
+import { createTestProject, createTestBoard, getBoard, createTestCard, addProjectMember } from '../../setup/fixtures'
 
 describe('Notifications', () => {
   let owner: TestUser
@@ -35,11 +35,7 @@ describe('Notifications', () => {
 
   describe('member_added notification', () => {
     it('creates notification when member is added to project', async () => {
-      await $fetch(`/api/projects/${project.id}/members`, {
-        method: 'POST',
-        body: { email: member.email },
-        headers: owner.headers
-      })
+      await addProjectMember(owner, project.id, { email: member.email })
 
       const notifications = await $fetch('/api/notifications', {
         headers: member.headers
@@ -149,11 +145,7 @@ describe('Notifications', () => {
       const testMember = await registerTestUser()
       const testProject = await createTestProject(testOwner)
 
-      await $fetch(`/api/projects/${testProject.id}/members`, {
-        method: 'POST',
-        body: { email: testMember.email },
-        headers: testOwner.headers
-      })
+      await addProjectMember(testOwner, testProject.id, { email: testMember.email })
 
       await $fetch(`/api/projects/${testProject.id}/members/${testMember.id}`, {
         method: 'DELETE',

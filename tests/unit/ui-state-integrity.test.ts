@@ -33,8 +33,12 @@ describe('a failed card save does not look saved', () => {
   })
 
   it('every host reports failure: the board and list rethrow, My Tasks too, the page returns false', () => {
-    expect(code('app/composables/useViewData.ts')).toMatch(/color: 'error' \}\)\s*throw e/)
-    expect(code('app/composables/useMyTasks.ts')).toMatch(/title: 'Failed to update card'[^\n]*\n\s*throw e/)
+    // Both views save through `putCardFields`, which reports and then rethrows.
+    expect(code('app/utils/write-sequence.ts')).toMatch(/opts\.onError\(e\)\s*throw e/)
+    for (const p of ['app/composables/useViewData.ts', 'app/composables/useMyTasks.ts']) {
+      expect(code(p), p).toMatch(/putCardFields\(\{/)
+      expect(code(p), p).not.toMatch(/catch \(e\) \{\s*\}/)
+    }
     expect(code('app/pages/projects/[slug]/cards/[cardId].vue')).toMatch(/syncProperties\(\)\s*return false/)
   })
 })

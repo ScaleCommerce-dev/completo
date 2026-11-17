@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch, url } from '../../setup/server'
 import { registerTestUser, type TestUser } from '../../setup/auth'
-import { createTestProject, createTestList, getList } from '../../setup/fixtures'
+import { createTestProject, createTestList, getList, addProjectMember } from '../../setup/fixtures'
 import { SORTABLE_LIST_FIELDS } from '../../../shared/utils/list-fields'
 
 describe('List sort fields (PUT /api/lists/:id)', async () => {
@@ -15,11 +15,7 @@ describe('List sort fields (PUT /api/lists/:id)', async () => {
     member = await registerTestUser()
     project = await createTestProject(owner, { name: `Sort Test ${Date.now()}` })
     // Add member
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { userId: member.id },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { userId: member.id })
     list = await createTestList(owner, project.id, { name: 'Sortable' })
   })
 

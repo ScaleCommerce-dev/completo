@@ -24,7 +24,6 @@ const {
   canModerateComments,
   canSaveSort,
   status,
-  refresh,
   createCard,
   updateCard,
   deleteCard,
@@ -35,7 +34,9 @@ const {
   removeColumn,
   reorderColumns,
   saveSort,
-  renameList
+  renameAndFollow,
+  deleteView,
+  deletingView
 } = useListView(listSlug, { projectSlug })
 watch(listError, (err) => {
   if (err) showError(err)
@@ -138,38 +139,6 @@ async function handleSort(field: string | null, direction: 'asc' | 'desc' | null
     await saveSort(field, direction)
   }
 }
-
-async function handleRenameList(name: string) {
-  try {
-    const newSlug = await renameList(name)
-    if (newSlug && newSlug !== listSlug) {
-      await navigateTo(`/projects/${projectSlug}/lists/${newSlug}`, { replace: true })
-    } else {
-      await refresh()
-    }
-  } catch {
-    // error already toasted
-  }
-}
-
-// Owned here rather than in ViewConfigModal: the request is ours, so the
-// pending state has to be ours too, or a failure leaves its spinner running.
-const deletingList = ref(false)
-
-async function handleDeleteList() {
-  if (!list.value) return
-  deletingList.value = true
-  try {
-    await $fetch(`/api/lists/${list.value.id}` as string, { method: 'DELETE' as const })
-    await navigateTo(`/projects/${route.params.slug}`)
-  } catch (e) {
-    // Nothing else toasts this — it is a bare `$fetch`, not one of `useViewData`'s
-    // wrapped mutations, and the comment that used to sit here said otherwise.
-    useToast().add({ title: 'Failed to delete list', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
-  } finally {
-    deletingList.value = false
-  }
-}
 </script>
 
 <template>
@@ -255,14 +224,14 @@ async function handleDeleteList() {
       :active-priority-filters="[...priorityFilters]"
       :show-subtasks="showSubtasks"
       :view-name="list?.name || ''"
-      :deleting-view="deletingList"
+      :deleting-view="deletingView"
       @add="addColumn"
       @delete="removeColumn"
       @reorder="reorderColumns"
       @update-filters="(filters) => { if (filters.tagFilters) activeTagFilters = new Set(filters.tagFilters); updateFilters(filters) }"
       @update-display="updateDisplay"
-      @rename="handleRenameList"
-      @delete-view="handleDeleteList"
+      @rename="renameAndFollow"
+      @delete-view="deleteView"
     />
 
     <CardModal

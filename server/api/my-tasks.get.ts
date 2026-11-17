@@ -57,13 +57,10 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // ─── Bulk-fetch tags, attachment counts & creators ───
-  const { tagsByCard, attachCountByCard, commentCountByCard } = fetchCardMetadata(visibleCards.map(c => c.id))
-  const creatorsById = fetchCardCreators(visibleCards)
-  const unreadCardIds = fetchUnreadCardIds(visibleCards.map(c => c.id), userId)
-  // Same fields `enrichCardsWithMetadata` adds, so a live event and this page agree.
-  const progress = subtaskProgress(visibleCards.map(c => c.id))
-  const parents = parentRefs(visibleCards.flatMap(c => (c.parentId ? [c.parentId] : [])))
+  // ─── Tags, counts, creators, progress, parents, unread ───
+  // The same enrichment every view uses, so a live event and this page agree; it
+  // used to be re-implemented here field by field.
+  const enriched = enrichCardsWithMetadata(visibleCards, { userId })
 
   // ─── Fetch projects, statuses ───
   const visibleProjectIds = [...new Set(visibleCards.map(c => c.projectId))]
@@ -94,18 +91,7 @@ export default defineEventHandler(async (event) => {
   const groups = allProjects.map((project) => {
     const projectStatuses = allStatuses.filter(s => s.projectId === project.id)
 
-    const projectCards = visibleCards.filter(c => c.projectId === project.id && !isExpiredDone(c, project))
-
-    const cardsWithTags = projectCards.map(card => ({
-      ...card,
-      tags: tagsByCard.get(card.id) || [],
-      attachmentCount: attachCountByCard.get(card.id) || 0,
-      commentCount: commentCountByCard.get(card.id) || 0,
-      subtasks: progress.get(card.id) ?? null,
-      parent: card.parentId ? parents.get(card.parentId) ?? null : null,
-      creator: card.createdById ? creatorsById.get(card.createdById) || null : null,
-      hasUnread: unreadCardIds.has(card.id)
-    }))
+    const cardsWithTags = enriched.filter(c => c.projectId === project.id && !isExpiredDone(c, project))
 
     return {
       project: {

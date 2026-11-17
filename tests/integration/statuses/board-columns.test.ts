@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch, expectError } from '../../setup/server'
 import { registerTestUser, createAdminUser, type TestUser } from '../../setup/auth'
-import { createTestProject, createTestBoard, getBoard, createTestCard } from '../../setup/fixtures'
+import { createTestProject, createTestBoard, getBoard, createTestCard, addProjectMember } from '../../setup/fixtures'
 
 describe('Board-level column operations', async () => {
   let user: TestUser
@@ -168,11 +168,7 @@ describe('Board column access authorization', async () => {
     const board = await createTestBoard(owner, project.id)
 
     // Add member to project
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: member.email },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { email: member.email })
 
     const newCol = await $fetch(`/api/boards/${board.id}/columns`, {
       method: 'POST',
@@ -187,11 +183,7 @@ describe('Board column access authorization', async () => {
     const project = await createTestProject(owner, { name: `Auth Reject Add ${Date.now()}` })
     const board = await createTestBoard(owner, project.id)
 
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: member.email },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { email: member.email })
 
     await expectError($fetch(`/api/boards/${board.id}/columns`, {
       method: 'POST',
@@ -204,11 +196,7 @@ describe('Board column access authorization', async () => {
     const project = await createTestProject(owner, { name: `Auth Reject Unlink ${Date.now()}` })
     const board = await createTestBoard(owner, project.id)
 
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: member.email },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { email: member.email })
 
     const full = await getBoard(owner, board.id)
     const col = full.columns[0]
@@ -223,11 +211,7 @@ describe('Board column access authorization', async () => {
     const project = await createTestProject(owner, { name: `Auth Reject Reorder ${Date.now()}` })
     const board = await createTestBoard(owner, project.id)
 
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: member.email },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { email: member.email })
 
     const full = await getBoard(owner, board.id)
 
@@ -242,11 +226,7 @@ describe('Board column access authorization', async () => {
     const project = await createTestProject(owner, { name: `Auth Reject Link ${Date.now()}` })
     const board = await createTestBoard(owner, project.id)
 
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: member.email },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { email: member.email })
 
     // Create an extra status at project level, then unlink it from the board
     await $fetch(`/api/projects/${project.id}/statuses`, {
@@ -273,11 +253,7 @@ describe('Board column access authorization', async () => {
     const project = await createTestProject(owner, { name: `Board Creator Auth ${Date.now()}` })
 
     // Add member to project first
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: member.email },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { email: member.email })
 
     // Member creates the board — they are the board creator
     const board = await createTestBoard(member, project.id, { name: 'Member Board' })
@@ -312,11 +288,7 @@ describe('Board column access authorization', async () => {
   it('board creator who is not an owner cannot create a new status through their board', async () => {
     const project = await createTestProject(owner, { name: `Creator Add ${Date.now()}` })
 
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: member.email },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { email: member.email })
 
     const board = await createTestBoard(member, project.id, { name: 'Member Board NC' })
 
@@ -330,11 +302,7 @@ describe('Board column access authorization', async () => {
   it('project owner can configure columns on any board', async () => {
     const project = await createTestProject(owner, { name: `Owner Override ${Date.now()}` })
 
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: member.email },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { email: member.email })
 
     // Member creates the board
     const board = await createTestBoard(member, project.id, { name: 'Member Board 2' })
@@ -366,11 +334,7 @@ describe('Board column access authorization', async () => {
     const project = await createTestProject(owner, { name: `Col Update Auth ${Date.now()}` })
     const board = await createTestBoard(owner, project.id)
 
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: member.email },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { email: member.email })
 
     const full = await getBoard(owner, board.id)
     const col = full.columns[0]
@@ -386,11 +350,7 @@ describe('Board column access authorization', async () => {
     const project = await createTestProject(owner, { name: `Col Delete Auth ${Date.now()}` })
     const board = await createTestBoard(owner, project.id)
 
-    await $fetch(`/api/projects/${project.id}/members`, {
-      method: 'POST',
-      body: { email: member.email },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, project.id, { email: member.email })
 
     const full = await getBoard(owner, board.id)
     const col = full.columns[0]

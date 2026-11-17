@@ -98,6 +98,7 @@
 ### Dev
 
 - CI runs with read-only permissions by default, on pull requests as well as pushes, and runs `go vet` and `go test` for the CLI; the release workflow grants write access only to the jobs that push images or publish the release.
+- Shared code where boards, lists and the two card views had copies: `server/utils/views.ts` (update fields and slug checks), `streamAppEvents` (both SSE endpoints), `putCardFields` (optimistic card saves), `useViewData.renameAndFollow`/`deleteView`, `useImagePicker` and `mentionRef` for both editors; My Tasks uses `enrichCardsWithMetadata`; tests add members through `addProjectMember`.
 - `public/swagger-ui` records its version in `VERSION` and is refreshed with `scripts/update-swagger-ui.sh <version>`.
 - Removed the `swagger-ui-dist` devDependency (nothing imported it) and the start-up incremental vacuum (it never freed anything: `auto_vacuum` only takes effect on an empty database, and the boot cleanup's full `VACUUM` already reclaims space).
 

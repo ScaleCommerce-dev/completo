@@ -23,7 +23,6 @@ const {
   canModerateComments,
   canAddColumns,
   status,
-  refresh,
   moveCard,
   createCard,
   updateCard,
@@ -36,7 +35,9 @@ const {
   updateCardTags,
   updateFilters,
   updateDisplay,
-  renameBoard
+  renameAndFollow,
+  deleteView,
+  deletingView
 } = useKanban(boardSlug, { projectSlug })
 watch(boardError, (err) => {
   if (err) showError(err)
@@ -232,38 +233,6 @@ function handleCardMoved(cardId: number, toColumnId: string, visibleIndex: numbe
     visibleIndex
   }))
 }
-
-async function handleRenameBoard(name: string) {
-  try {
-    const newSlug = await renameBoard(name)
-    if (newSlug && newSlug !== boardSlug) {
-      await navigateTo(`/projects/${projectSlug}/boards/${newSlug}`, { replace: true })
-    } else {
-      await refresh()
-    }
-  } catch {
-    // error already toasted
-  }
-}
-
-// Owned here rather than in ViewConfigModal: the request is ours, so the
-// pending state has to be ours too, or a failure leaves its spinner running.
-const deletingBoard = ref(false)
-
-async function handleDeleteBoard() {
-  if (!board.value) return
-  deletingBoard.value = true
-  try {
-    await $fetch(`/api/boards/${board.value.id}` as string, { method: 'DELETE' as const })
-    await navigateTo(`/projects/${route.params.slug}`)
-  } catch (e) {
-    // Nothing else toasts this — it is a bare `$fetch`, not one of `useViewData`'s
-    // wrapped mutations, and the comment that used to sit here said otherwise.
-    useToast().add({ title: 'Failed to delete board', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
-  } finally {
-    deletingBoard.value = false
-  }
-}
 </script>
 
 <template>
@@ -353,7 +322,7 @@ async function handleDeleteBoard() {
       :hidden-card-fields="hiddenCardFields"
       :show-subtasks="showSubtasks"
       :view-name="board?.name || ''"
-      :deleting-view="deletingBoard"
+      :deleting-view="deletingView"
       @add="addColumn"
       @update="updateColumn"
       @delete="deleteColumn"
@@ -361,8 +330,8 @@ async function handleDeleteBoard() {
       @link="linkColumn"
       @update-filters="(filters) => { if (filters.tagFilters) activeTagFilters = new Set(filters.tagFilters); updateFilters(filters) }"
       @update-display="updateDisplay"
-      @rename="handleRenameBoard"
-      @delete-view="handleDeleteBoard"
+      @rename="renameAndFollow"
+      @delete-view="deleteView"
     />
 
     <CardModal

@@ -104,3 +104,14 @@ export interface Mentionable extends Omit<Member, 'avatarUrl'> {
   avatarUrl?: string | null
   email?: string | null
 }
+
+/** What the card panel's create form hands its host: a new card, or a draft forced into existence by an attachment. */
+export interface CardFormData {
+  title: string
+  description: string
+  priority: string
+  statusId: string
+  assigneeId: string | null
+  tagIds: string[]
+  dueDate: string | null
+}

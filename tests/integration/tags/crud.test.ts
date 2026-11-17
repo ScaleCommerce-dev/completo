@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { $fetch, url } from '../../setup/server'
 import { registerTestUser, type TestUser } from '../../setup/auth'
-import { createTestProject, createTestTag } from '../../setup/fixtures'
+import { createTestProject, createTestTag, addProjectMember } from '../../setup/fixtures'
 
 describe('Tag CRUD', async () => {
   let owner: TestUser
@@ -16,11 +16,7 @@ describe('Tag CRUD', async () => {
     projectId = project.id
 
     // Add member
-    await $fetch(`/api/projects/${projectId}/members`, {
-      method: 'POST',
-      body: { userId: member.id },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, projectId, { userId: member.id })
   })
 
   // ─── POST /api/projects/:id/tags ───

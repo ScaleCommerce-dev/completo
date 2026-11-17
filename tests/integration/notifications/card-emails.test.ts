@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import { $fetch } from '../../setup/server'
 import { registerTestUser, type TestUser } from '../../setup/auth'
-import { createTestProject, createTestBoard, getBoard, createTestCard, createTestComment, mention } from '../../setup/fixtures'
+import { createTestProject, createTestBoard, getBoard, createTestCard, createTestComment, mention, addProjectMember } from '../../setup/fixtures'
 
 interface SentCardEmail { to: string, userId: string, kind: 'assigned' | 'mentioned', cardId: number, subject: string, text: string }
 
@@ -32,7 +32,7 @@ describe('Card activity emails', () => {
     outsider = await registerTestUser()
     project = await createTestProject(owner)
     for (const user of [member, second]) {
-      await $fetch(`/api/projects/${project.id}/members`, { method: 'POST', body: { userId: user.id }, headers: owner.headers })
+      await addProjectMember(owner, project.id, { userId: user.id })
     }
     const board = await createTestBoard(owner, project.id as string)
     statusId = (await getBoard(owner, board.id as string)).columns[0].id

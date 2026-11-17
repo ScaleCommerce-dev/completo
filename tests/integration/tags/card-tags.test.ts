@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import { $fetch, url } from '../../setup/server'
+import { url } from '../../setup/server'
 import { registerTestUser, type TestUser } from '../../setup/auth'
-import { createTestProject, createTestBoard, createTestCard, createTestTag, getBoard, setCardTags } from '../../setup/fixtures'
+import { createTestProject, createTestBoard, createTestCard, createTestTag, getBoard, setCardTags, addProjectMember } from '../../setup/fixtures'
 
 describe('PUT /api/cards/:id/tags', async () => {
   let owner: TestUser
@@ -22,11 +22,7 @@ describe('PUT /api/cards/:id/tags', async () => {
     projectId = project.id
 
     // Add member
-    await $fetch(`/api/projects/${projectId}/members`, {
-      method: 'POST',
-      body: { userId: member.id },
-      headers: owner.headers
-    })
+    await addProjectMember(owner, projectId, { userId: member.id })
 
     const board = await createTestBoard(owner, projectId)
     boardId = board.id

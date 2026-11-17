@@ -159,19 +159,6 @@ function closeMention() {
   mentionActive.value = false
 }
 
-/**
- * Shorten a user id to its first UUID group for the stored mention, so the raw
- * markdown stays readable in the textarea. Resolution is scoped to one project's
- * members, so 8 hex chars is ample. If another member we know about shares that
- * prefix, store the full id instead — the server refuses to resolve an ambiguous
- * ref rather than guess, which would mean a missed notification.
- */
-function mentionRef(userId: string): string {
-  const short = userId.slice(0, 8)
-  const clash = (props.members || []).some(m => m.id !== userId && m.id.startsWith(short))
-  return clash ? userId : short
-}
-
 function selectMention(item: { _type: 'user' | 'card', id: string | number, name?: string, title?: string }) {
   const el = editorRef.value?.textareaEl
   if (!el) return
@@ -180,7 +167,7 @@ function selectMention(item: { _type: 'user' | 'card', id: string | number, name
   if (item._type === 'user') {
     // Carries a user-id reference so notifications resolve by identity, not display
     // name — display names aren't unique and used to notify the wrong person.
-    mentionText = `@[${mentionLabel(item.name ?? '')}](${mentionRef(String(item.id))}) `
+    mentionText = `@[${mentionLabel(item.name ?? '')}](${mentionRef(String(item.id), props.members)}) `
   } else {
     const slug = `${props.projectKey}-${item.id}`
     mentionText = `[${item.title} (${slug})](/projects/${props.projectSlug}/cards/${slug}) `
@@ -243,32 +230,8 @@ function onTextareaKeydown(e: KeyboardEvent) {
 }
 
 // ─── Image Picker ───
-const imagePickerActive = ref(false)
-const imageAttachments = ref<Array<{ id: string, originalName: string, mimeType?: string }>>([])
-
-const imageUrlInput = ref('')
-
-async function openImagePicker() {
-  imagePickerActive.value = true
-  imageAttachments.value = []
-  imageUrlInput.value = ''
-  if (props.cardId) {
-    try {
-      const attachments = await $fetch<Array<{ id: string, originalName: string, mimeType?: string }>>(`/api/cards/${props.cardId}/attachments`)
-      imageAttachments.value = attachments.filter(a => a.mimeType?.startsWith('image/'))
-    } catch {
-      // ignore fetch errors
-    }
-  }
-}
-
-function closeImagePicker() {
-  imagePickerActive.value = false
-  imageAttachments.value = []
-  imageUrlInput.value = ''
-}
-
-function insertImage(alt: string, url: string) {
+/** Markdown at the caret, where the picker was opened from. */
+function insertImageMarkdown(alt: string, url: string) {
   const el = editorRef.value?.textareaEl
   if (!el) return
   const pos = el.selectionStart
@@ -277,22 +240,21 @@ function insertImage(alt: string, url: string) {
   const markdown = `![${alt}](${url})`
   description.value = before + markdown + after
   const newPos = before.length + markdown.length
-  closeImagePicker()
   el.focus()
   nextTick(() => {
     el.setSelectionRange(newPos, newPos)
   })
 }
 
-function selectAttachmentImage(att: { id: string, originalName: string }) {
-  insertImage(att.originalName, `/api/attachments/${att.id}/download`)
-}
-
-function insertUrlImage() {
-  const url = imageUrlInput.value.trim()
-  if (!url) return
-  insertImage('', url)
-}
+const {
+  open: imagePickerActive,
+  attachments: imageAttachments,
+  url: imageUrlInput,
+  openPicker: openImagePicker,
+  closePicker: closeImagePicker,
+  pickAttachment: selectAttachmentImage,
+  pickUrl: insertUrlImage
+} = useImagePicker(() => props.cardId, insertImageMarkdown)
 
 function onTextareaInput() {
   if (mentionActive.value) return

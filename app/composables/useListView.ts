@@ -32,33 +32,14 @@ interface ListView {
 }
 
 export function useListView(listSlugOrId: string, opts?: { projectSlug?: string }) {
+  const view = useViewData<ListView>('lists', listSlugOrId, opts)
   const {
     data: list,
-    error,
     viewId: listId,
-    status,
     refresh,
-    toast,
     mutate,
-    membersData,
-    tagsData,
-    tagFilters,
-    statusFilters,
-    assigneeFilters,
-    priorityFilters,
-    projectKey,
-    doneStatusId,
-    showSubtasks,
-    canConfigureColumns,
-    canModerateComments,
-    createCard,
-    updateCard,
-    deleteCard,
-    updateCardTags,
-    reorderColumns,
-    updateFilters,
-    updateDisplay
-  } = useViewData<ListView>('lists', listSlugOrId, opts)
+    canConfigureColumns
+  } = view
 
   const columnsData = computed(() => {
     return [...(list.value?.columns || [])].sort((a, b) => a.position - b.position)
@@ -100,64 +81,20 @@ export function useListView(listSlugOrId: string, opts?: { projectSlug?: string 
     await refresh()
   }
 
-  // Rename has custom error handling (409 slug conflict fallback)
-  async function renameList(name: string): Promise<string | null> {
-    const slug = generateSlug(name)
-    try {
-      await $fetch(`/api/lists/${listId.value}` as string, {
-        method: 'PUT' as const,
-        // A name with no latin letters or digits has no slug; it keeps the one it has.
-        body: slug ? { name, slug } : { name }
-      })
-      toast.add({ title: 'List renamed', color: 'success' })
-      return slug || list.value?.slug || null
-    } catch (e: unknown) {
-      const err = e as { data?: { statusCode?: number } }
-      if (err?.data?.statusCode === 409) {
-        await $fetch(`/api/lists/${listId.value}` as string, {
-          method: 'PUT' as const,
-          body: { name }
-        })
-        toast.add({ title: 'List renamed', color: 'success' })
-        return list.value?.slug || null
-      }
-      toast.add({ title: 'Failed to rename list', color: 'error' })
-      throw e
-    }
-  }
-
+  // Everything the shared view composable has, plus what only this view adds.
+  // The list of forty pass-through names it replaced had to be kept in step by
+  // hand, twice.
   return {
+    ...view,
     list,
-    error,
     columnsData,
     allCards,
     statusesData,
-    membersData,
-    tagsData,
-    tagFilters,
-    statusFilters,
-    assigneeFilters,
-    priorityFilters,
-    projectKey,
-    doneStatusId,
-    showSubtasks,
     sortField,
     sortDirection,
-    canConfigureColumns,
-    canModerateComments,
     canSaveSort,
-    status,
-    refresh,
-    createCard,
-    updateCard,
-    deleteCard,
-    updateCardTags,
-    updateFilters,
-    updateDisplay,
     addColumn,
     removeColumn,
-    reorderColumns,
-    saveSort,
-    renameList
+    saveSort
   }
 }

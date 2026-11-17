@@ -149,37 +149,25 @@ export function useMyTasks() {
 
   async function updateCard(cardId: number, updates: Record<string, unknown>) {
     const found = findCard(cardId)
-    const snapshot = found ? { ...found.card } : null
-    const isLatest = beginWrite(cardId)
-
-    if (found) {
-      Object.assign(found.card, updates)
-      resolveNested(found, updates)
+    const previousParentId = found?.card.parentId
+    const card = await putCardFields({
+      cardId,
+      row: (found?.card ?? null) as Record<string, unknown> | null,
+      updates,
+      resolve: () => found && resolveNested(found, updates),
+      isLatest: beginWrite(cardId),
+      onError: e => toast.add({ title: 'Failed to update card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+    })
+    if ('statusId' in updates || 'parentId' in updates) {
+      void refreshProgress([previousParentId, card?.parentId as number | null | undefined])
     }
-
-    try {
-      const card = await $fetch<Record<string, unknown>>(`/api/cards/${cardId}`, { method: 'PUT', body: updates })
-      // No `tags`/`attachmentCount` on the response, so assigning it over the
-      // row leaves those intact rather than blanking them.
-      if (found && card && isLatest()) Object.assign(found.card, card)
-      if ('statusId' in updates || 'parentId' in updates) {
-        void refreshProgress([snapshot?.parentId, card?.parentId as number | null | undefined])
-      }
-
-      // This view *is* "cards assigned to me" (see my-tasks.get.ts), so handing
-      // one to somebody else removes it. The refetch used to do that as a side
-      // effect of redoing everything; now it is the explicit rule.
-      if (found && 'assigneeId' in updates && updates.assigneeId !== currentUserId.value) {
-        dropCard(found)
-      }
-      return card
-    } catch (e) {
-      if (found && snapshot && isLatest()) Object.assign(found.card, snapshot)
-      toast.add({ title: 'Failed to update card', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
-      // Rethrown, as `useViewData.updateCard` does, so the card panel can tell a
-      // failed save from a good one and keep the user's text.
-      throw e
+    // This view *is* "cards assigned to me" (see my-tasks.get.ts), so handing
+    // one to somebody else removes it. The refetch used to do that as a side
+    // effect of redoing everything; now it is the explicit rule.
+    if (found && 'assigneeId' in updates && updates.assigneeId !== currentUserId.value) {
+      dropCard(found)
     }
+    return card
   }
 
   /**

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import { url, $fetch } from '../setup/server'
+import { url } from '../setup/server'
 import { registerTestUser, createTestToken, type TestUser } from '../setup/auth'
-import { createTestProject, createTestBoard, createTestCard, createTestComment, createInvitation, getBoard } from '../setup/fixtures'
+import { createTestProject, createTestBoard, createTestCard, createTestComment, createInvitation, getBoard, addProjectMember } from '../setup/fixtures'
 
 /**
  * The MCP endpoint, driven the way a client drives it: raw JSON-RPC over POST.
@@ -327,7 +327,7 @@ describe('POST /mcp', () => {
       // Creating a tag is owner-only. The card used to be made first, and the error
       // after it read as "nothing happened", so a retry made a second card.
       const member = await registerTestUser()
-      await $fetch(`/api/projects/${project.id}/members`, { method: 'POST', body: { email: member.email }, headers: user.headers })
+      await addProjectMember(user, project.id, { email: member.email })
       const memberHeaders = (await createTestToken(member)).headers
       const title = `Tagged by a member ${Date.now()}`
       const res = await call(memberHeaders, 'create_card', { project: project.slug, title, tags: ['Brand new tag'] })

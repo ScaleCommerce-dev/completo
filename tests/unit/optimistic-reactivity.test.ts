@@ -49,8 +49,12 @@ describe('optimistic card mutations', () => {
   })
 
   it('restores a snapshot when a mutation is rejected', () => {
-    expect(src).toMatch(/snapshot/)
-    expect(src).toMatch(/catch[\s\S]*?Object\.assign\(found\.card, snapshot\)/)
+    // The field save lives in `putCardFields`, which both card views call.
+    const put = readFileSync(join(ROOT, 'app/utils/write-sequence.ts'), 'utf8')
+    expect(put).toMatch(/const snapshot = row \? \{ \.\.\.row \}/)
+    expect(put).toMatch(/catch[\s\S]*?Object\.assign\(row, snapshot\)/)
+    expect(src).toMatch(/putCardFields\(\{/)
+    expect(src).toMatch(/row: \(found\?\.card/)
   })
 })
 

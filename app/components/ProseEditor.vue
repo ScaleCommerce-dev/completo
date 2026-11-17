@@ -533,19 +533,6 @@ function closeMention() {
   focusEditor()
 }
 
-/**
- * Shorten a user id to its first UUID group, so the stored Markdown stays readable
- * in a terminal. Resolution is scoped to one project's members, so 8 hex characters
- * is ample — but if another member we know about shares that prefix, store the full
- * id: the server refuses to resolve an ambiguous ref rather than guess, and a guess
- * would mean notifying the wrong person.
- */
-function mentionRef(userId: string): string {
-  const short = userId.slice(0, 8)
-  const clash = (props.members || []).some(m => m.id !== userId && m.id.startsWith(short))
-  return clash ? userId : short
-}
-
 function onMentionSelect(item: { _type: 'user', id: string, name: string } | { _type: 'card', id: number, title: string }) {
   const current = editor.value
   if (!current) return
@@ -561,7 +548,7 @@ function onMentionSelect(item: { _type: 'user', id: string, name: string } | { _
 
   if (item._type === 'user') {
     chain.insertContent([
-      { type: 'completoMention', attrs: { id: mentionRef(String(item.id)), label: item.name } },
+      { type: 'completoMention', attrs: { id: mentionRef(String(item.id), props.members), label: item.name } },
       { type: 'text', text: ' ' }
     ])
   } else {
@@ -605,39 +592,17 @@ function maybeOpenMention() {
 
 // ─── Images ──────────────────────────────────────────────────────────────────
 
-const imagePickerOpen = ref(false)
-const imageAttachments = ref<Array<{ id: string, originalName: string, mimeType?: string }>>([])
-const imageUrlInput = ref('')
-
-async function openImagePicker() {
-  imagePickerOpen.value = true
-  imageAttachments.value = []
-  imageUrlInput.value = ''
-  if (props.cardId) {
-    try {
-      const attachments = await $fetch<Array<{ id: string, originalName: string, mimeType?: string }>>(`/api/cards/${props.cardId}/attachments`)
-      imageAttachments.value = attachments.filter(a => a.mimeType?.startsWith('image/'))
-    } catch {
-      // A card whose attachments cannot be listed still has the URL field below.
-    }
-  }
-}
-
-function closeImagePicker() {
-  imagePickerOpen.value = false
-  imageAttachments.value = []
-  imageUrlInput.value = ''
-}
-
-function insertImage(alt: string, src: string) {
+const {
+  open: imagePickerOpen,
+  attachments: imageAttachments,
+  url: imageUrlInput,
+  openPicker: openImagePicker,
+  closePicker: closeImagePicker,
+  pickAttachment,
+  pickUrl: insertUrlImage
+} = useImagePicker(() => props.cardId, (alt, src) => {
   editor.value?.chain().focus().setImage({ src, alt }).run()
-  closeImagePicker()
-}
-
-function insertUrlImage() {
-  const url = imageUrlInput.value.trim()
-  if (url) insertImage('', url)
-}
+})
 
 // ─── Host API ────────────────────────────────────────────────────────────────
 
@@ -804,7 +769,7 @@ defineExpose({
                         type="button"
                         class="aspect-square rounded-md overflow-hidden border border-default hover:border-primary hover:ring-1 hover:ring-primary/30 transition-colors"
                         :title="att.originalName"
-                        @click="insertImage(att.originalName, `/api/attachments/${att.id}/download`)"
+                        @click="pickAttachment(att)"
                       >
                         <img
                           :src="`/api/attachments/${att.id}/download`"

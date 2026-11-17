@@ -114,3 +114,15 @@ export const ProseMention = Node.create({
     return `@[${mentionLabel(String(label ?? ''))}](${id})`
   }
 })
+
+/**
+ * The id a mention stores: the first UUID group, so the Markdown stays readable
+ * in a terminal. Resolution is scoped to one project's members, so 8 hex
+ * characters is ample; if another member shares that prefix, the full id, since
+ * the server refuses an ambiguous ref rather than guess, and a guess would
+ * notify the wrong person. Both editors use this.
+ */
+export function mentionRef(userId: string, members: Array<{ id: string }> = []): string {
+  const short = userId.slice(0, 8)
+  return members.some(m => m.id !== userId && m.id.startsWith(short)) ? userId : short
+}
