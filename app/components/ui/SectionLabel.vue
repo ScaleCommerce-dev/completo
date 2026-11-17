@@ -8,19 +8,28 @@
  * depending on which screen you were looking at.
  *
  * `count` renders a tabular figure after the label.
+ *
+ * `size="xs"` is the same label one step smaller, for the groups inside menus and
+ * pickers (the mention picker's Members and Cards, the image picker's sources),
+ * which had grown their own copy of this style in four files.
  */
 withDefaults(defineProps<{
   label?: string
   icon?: string
   count?: number | string | null
+  size?: 'sm' | 'xs'
 }>(), {
-  count: null
+  count: null,
+  size: 'sm'
 })
 </script>
 
 <template>
   <div class="flex items-center gap-2 min-w-0">
-    <span class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-label text-dimmed shrink-0">
+    <span
+      class="flex items-center gap-1.5 font-semibold uppercase tracking-label text-dimmed shrink-0"
+      :class="size === 'xs' ? 'text-2xs' : 'text-xs'"
+    >
       <UIcon
         v-if="icon"
         :name="icon"

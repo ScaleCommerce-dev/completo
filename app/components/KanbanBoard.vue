@@ -57,7 +57,7 @@ const showAddColumn = ref(false)
 const mode = ref<'pick' | 'create'>('pick')
 const newColumnName = ref('')
 const newColumnColor = ref(DEFAULT_COLOR)
-const nameInput = ref<HTMLInputElement>()
+const nameInput = ref<{ inputRef: HTMLInputElement | null }>()
 
 function openAddColumn() {
   showAddColumn.value = true
@@ -68,7 +68,7 @@ function openAddColumn() {
 
 function switchToCreate() {
   mode.value = 'create'
-  nextTick(() => nameInput.value?.focus())
+  nextTick(() => nameInput.value?.inputRef?.focus())
 }
 
 function linkExisting(columnId: string) {
@@ -369,15 +369,14 @@ function onCardClick(columnId: string, card: BoardCard) {
               />
               Back
             </button>
-            <input
+            <UInput
               ref="nameInput"
               v-model="newColumnName"
               aria-label="Column name"
-              type="text"
               placeholder="Column name"
-              class="w-full text-base font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-default rounded-lg px-2.5 py-1.5 transition-colors"
+              class="w-full"
               @keydown.escape="cancelAddColumn"
-            >
+            />
             <div class="flex items-center gap-2">
               <ColorSwatchPicker v-model="newColumnColor" />
               <span class="text-xs text-dimmed">Color</span>

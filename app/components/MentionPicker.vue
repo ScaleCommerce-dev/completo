@@ -199,9 +199,11 @@ onMounted(() => {
         role="group"
         :aria-label="group.label"
       >
-        <div class="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-label text-dimmed">
-          {{ group.label }}
-        </div>
+        <UiSectionLabel
+          size="xs"
+          :label="group.label"
+          class="px-3 pt-2 pb-1"
+        />
         <button
           v-for="(user, i) in group.users"
           :id="optionId(userIndex(group.key, i))"
@@ -233,9 +235,11 @@ onMounted(() => {
         role="group"
         aria-label="Cards"
       >
-        <div class="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-label text-dimmed">
-          Cards
-        </div>
+        <UiSectionLabel
+          size="xs"
+          label="Cards"
+          class="px-3 pt-2 pb-1"
+        />
         <button
           v-for="(c, i) in cardResults"
           :id="optionId(userResults.length + i)"

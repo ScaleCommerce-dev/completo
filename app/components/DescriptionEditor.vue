@@ -354,9 +354,11 @@ defineExpose({
           <div class="p-2">
             <!-- Card Attachments -->
             <template v-if="imageAttachments.length > 0">
-              <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-label text-dimmed">
-                Card Attachments
-              </div>
+              <UiSectionLabel
+                size="xs"
+                label="Card attachments"
+                class="px-1 pb-1.5"
+              />
               <div class="grid grid-cols-3 gap-1.5 mb-2">
                 <button
                   v-for="att in imageAttachments"
@@ -378,19 +380,21 @@ defineExpose({
             </template>
 
             <!-- External URL -->
-            <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-label text-dimmed">
-              External URL
-            </div>
+            <UiSectionLabel
+              size="xs"
+              label="External URL"
+              class="px-1 pb-1.5"
+            />
             <div class="flex items-center gap-1.5">
-              <input
+              <UInput
                 v-model="imageUrlInput"
-                type="text"
                 aria-label="Image URL"
                 placeholder="https://..."
-                class="flex-1 min-w-0 text-sm text-default placeholder:text-dimmed bg-muted border border-default rounded-md px-2 py-1.5 transition-colors"
+                size="sm"
+                class="flex-1 min-w-0"
                 @keydown.enter.prevent="insertUrlImage"
                 @keydown.escape.prevent="closeImagePicker"
-              >
+              />
               <UButton
                 label="Insert"
                 size="xs"

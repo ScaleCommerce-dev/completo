@@ -732,6 +732,12 @@ defineExpose({
                 />
               </UTooltip>
               <template #content>
+                <!-- The two popover fields in this editor stay native inputs. A
+                     `UInput` with any listener here, inside `UEditor`'s slot, makes
+                     vue-tsc lose that slot's `editor` variable further down
+                     (TS2304 on the table toolbar), though it builds and runs.
+                     DescriptionEditor's image field, outside such a slot, is a
+                     `UInput`. -->
                 <div class="p-2 flex items-center gap-1.5">
                   <input
                     v-model="linkUrl"
@@ -785,9 +791,11 @@ defineExpose({
               <template #content>
                 <div class="p-2">
                   <template v-if="imageAttachments.length > 0">
-                    <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-label text-dimmed">
-                      Card Attachments
-                    </div>
+                    <UiSectionLabel
+                      size="xs"
+                      label="Card attachments"
+                      class="px-1 pb-1.5"
+                    />
                     <div class="grid grid-cols-3 gap-1.5 mb-2">
                       <button
                         v-for="att in imageAttachments"
@@ -808,9 +816,11 @@ defineExpose({
                     <div class="border-t border-default mb-2" />
                   </template>
 
-                  <div class="px-1 pb-1.5 text-2xs font-semibold uppercase tracking-label text-dimmed">
-                    External URL
-                  </div>
+                  <UiSectionLabel
+                    size="xs"
+                    label="External URL"
+                    class="px-1 pb-1.5"
+                  />
                   <div class="flex items-center gap-1.5">
                     <input
                       v-model="imageUrlInput"

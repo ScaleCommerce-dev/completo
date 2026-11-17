@@ -23,8 +23,8 @@ function pickColor(color: string) {
   emit('update:modelValue', color)
 }
 
-function onHexInput(e: Event) {
-  const raw = (e.target as HTMLInputElement).value.trim()
+function onHexInput(value: string | number) {
+  const raw = String(value).trim()
   hexInput.value = raw
   const hex = raw.startsWith('#') ? raw : `#${raw}`
   if (isHexColor(hex)) {
@@ -71,17 +71,18 @@ function onHexBlur() {
         class="w-5 h-5 rounded-full shrink-0 ring-1 ring-default"
         :style="{ backgroundColor: modelValue }"
       />
-      <input
-        :value="hexInput"
-        type="text"
+      <UInput
+        :model-value="hexInput"
         aria-label="Hex colour"
         placeholder="#000000"
         maxlength="7"
-        class="flex-1 min-w-0 text-xs font-mono text-default placeholder:text-dimmed bg-muted border border-default rounded-md px-2 py-1 transition-colors"
-        @input="onHexInput"
+        size="xs"
+        class="flex-1 min-w-0"
+        :ui="{ base: 'font-mono' }"
+        @update:model-value="onHexInput"
         @blur="onHexBlur"
         @keydown.enter.prevent="onHexBlur"
-      >
+      />
     </div>
   </div>
 </template>

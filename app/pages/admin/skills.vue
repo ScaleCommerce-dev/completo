@@ -102,9 +102,9 @@ async function confirmDelete() {
   }
 }
 
-const scopeColors: Record<string, { text: string, bg: string }> = {
-  card: { text: 'text-primary', bg: 'bg-primary/10' },
-  board: { text: 'text-success', bg: 'bg-success/10' }
+const scopeColors: Record<string, 'primary' | 'success'> = {
+  card: 'primary',
+  board: 'success'
 }
 </script>
 
@@ -184,12 +184,12 @@ const scopeColors: Record<string, { text: string, bg: string }> = {
         </div>
 
         <!-- Scope badge -->
-        <span
-          class="inline-block text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full mb-2"
-          :class="[scopeColors[skill.scope]?.text, scopeColors[skill.scope]?.bg]"
-        >
-          {{ skill.scope }}
-        </span>
+        <UBadge
+          :label="skill.scope"
+          :color="scopeColors[skill.scope] ?? 'neutral'"
+          variant="soft"
+          class="mb-2"
+        />
 
         <!-- Prompt preview -->
         <p class="text-xs text-muted font-mono leading-relaxed line-clamp-3">

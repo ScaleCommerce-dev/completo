@@ -108,9 +108,9 @@ function confirm() {
           :label="`Type the ${confirmLabel || 'name'} to confirm`"
         >
           <template #label>
-            <span class="text-xs font-semibold uppercase tracking-label text-dimmed">
+            <UiSectionLabel>
               Type <span class="text-default normal-case tracking-normal font-bold">{{ confirmText }}</span> to confirm
-            </span>
+            </UiSectionLabel>
           </template>
           <UInput
             v-model="typed"

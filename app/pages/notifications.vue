@@ -119,9 +119,7 @@ const hasRead = computed(() => notifications.value.some(n => n.readAt))
       >
         <!-- Group label -->
         <div class="flex items-center gap-2 mb-2">
-          <span class="text-xs font-semibold uppercase tracking-label text-dimmed">
-            {{ group.label }}
-          </span>
+          <UiSectionLabel :label="group.label" />
           <div class="flex-1 h-px bg-elevated" />
           <span class="c2s-count">
             {{ group.items.length }}

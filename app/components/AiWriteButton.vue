@@ -106,15 +106,15 @@ function handleCustomPrompt() {
           <!-- Free-text input -->
           <div class="px-2.5 py-2">
             <div class="flex items-center gap-1.5">
-              <input
+              <UInput
                 v-model="customPrompt"
-                type="text"
                 aria-label="Custom AI prompt"
                 placeholder="Custom prompt..."
-                class="flex-1 min-w-0 px-2.5 py-1.5 text-sm text-default placeholder:text-dimmed bg-muted border border-default rounded-lg transition-colors"
+                size="sm"
+                class="flex-1 min-w-0"
                 @keydown.enter.prevent="handleCustomPrompt"
                 @keydown="(e: KeyboardEvent) => { if (e.key !== 'Escape') e.stopPropagation() }"
-              >
+              />
               <button
                 aria-label="Send prompt"
                 type="button"

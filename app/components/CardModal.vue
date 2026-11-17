@@ -708,10 +708,11 @@ watch(open, (isOpen) => {
             />
           </span>
         </div>
-        <span
+        <UiSectionLabel
           v-else
-          class="text-2xs font-semibold uppercase tracking-label text-dimmed"
-        >New card</span>
+          size="xs"
+          label="New card"
+        />
 
         <div class="ml-auto flex items-center gap-0.5 shrink-0">
           <!-- Walking the board, for the hand already on the mouse. The arrow

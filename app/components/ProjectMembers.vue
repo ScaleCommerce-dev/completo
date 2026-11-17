@@ -609,27 +609,18 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
             v-if="canChangeRole(m)"
             :items="roleMenuItems(m)"
           >
-            <button
-              type="button"
-              class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 transition hover:ring-2 hover:ring-primary/20 flex items-center gap-1"
-              :class="m.role === 'owner'
-                ? 'bg-primary/10 text-primary'
-                : 'bg-elevated text-muted'"
-              :disabled="changingRole === m.id"
-            >
-              <UIcon
-                v-if="changingRole === m.id"
-                name="i-lucide-loader-2"
-                class="text-2xs animate-spin"
-              />
-              <template v-else>
-                {{ m.role }}
-                <UIcon
-                  name="i-lucide-chevron-down"
-                  class="text-2xs opacity-60"
-                />
-              </template>
-            </button>
+            <!-- The badge beside it in a button's clothes: the same soft colours,
+                 and a chevron because it opens a menu. A hand-built pill until
+                 the primitives could do it. -->
+            <UButton
+              :label="m.role"
+              :color="m.role === 'owner' ? 'primary' : 'neutral'"
+              variant="soft"
+              size="xs"
+              trailing-icon="i-lucide-chevron-down"
+              :loading="changingRole === m.id"
+              class="shrink-0"
+            />
           </UDropdownMenu>
           <UBadge
             v-else
@@ -654,24 +645,15 @@ function invitationMenuItems(inv: ProjectInvitation): DropdownMenuItem[][] {
             </span>
             <span class="text-sm text-muted flex-1 truncate">{{ inv.email }}</span>
             <UDropdownMenu :items="invitationMenuItems(inv)">
-              <button
-                type="button"
-                class="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0 transition hover:ring-2 hover:ring-warning/20 flex items-center gap-1 bg-warning/10 text-warning"
-                :disabled="resendingInvitation === inv.id || cancellingInvitation === inv.id"
-              >
-                <UIcon
-                  v-if="resendingInvitation === inv.id || cancellingInvitation === inv.id"
-                  name="i-lucide-loader-2"
-                  class="text-2xs animate-spin"
-                />
-                <template v-else>
-                  Pending
-                  <UIcon
-                    name="i-lucide-chevron-down"
-                    class="text-2xs opacity-60"
-                  />
-                </template>
-              </button>
+              <UButton
+                label="Pending"
+                color="warning"
+                variant="soft"
+                size="xs"
+                trailing-icon="i-lucide-chevron-down"
+                :loading="resendingInvitation === inv.id || cancellingInvitation === inv.id"
+                class="shrink-0"
+              />
             </UDropdownMenu>
           </li>
         </template>

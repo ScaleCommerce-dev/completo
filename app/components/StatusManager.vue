@@ -22,11 +22,11 @@ const emit = defineEmits<{
 const newColName = ref('')
 const newColColor = ref(DEFAULT_COLOR)
 const showAddColPopover = ref(false)
-const newColNameInput = ref<HTMLInputElement | null>(null)
+const newColNameInput = ref<{ inputRef: HTMLInputElement | null } | null>(null)
 
 watch(showAddColPopover, (open) => {
   if (open) {
-    nextTick(() => newColNameInput.value?.focus())
+    nextTick(() => newColNameInput.value?.inputRef?.focus())
   }
 })
 const editingColId = ref<string | null>(null)
@@ -428,15 +428,15 @@ async function setDoneStatus(statusId: string | null) {
               v-model="newColColor"
               size="md"
             />
-            <input
+            <UInput
               ref="newColNameInput"
               v-model="newColName"
               aria-label="New status name"
-              type="text"
               placeholder="Status name..."
-              class="flex-1 min-w-0 text-sm font-medium text-highlighted placeholder:text-dimmed bg-transparent border border-default rounded-md px-2 py-1 transition-colors"
+              size="sm"
+              class="flex-1 min-w-0"
               @keydown.enter.prevent="addProjectStatus(); showAddColPopover = false"
-            >
+            />
           </div>
           <UButton
             type="submit"

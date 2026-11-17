@@ -406,7 +406,7 @@ describe('one spelling per idiom', () => {
     // they have to wear the label's type rather than grow a fourth spelling of
     // it: the weight, case and tracking are read off UiSectionLabel itself, and
     // the 12px comes from the tabs' `xs` size.
-    const labelType = tokens(read('app/components/ui/SectionLabel.vue').match(/<span class="([^"]*uppercase[^"]*)"/)?.[1] ?? '')
+    const labelType = tokens(read('app/components/ui/SectionLabel.vue').match(/<span\s+class="([^"]*uppercase[^"]*)"/)?.[1] ?? '')
       .filter(t => /^(font-|uppercase$|tracking-)/.test(t))
     const comments = strip(read('app/components/CommentList.vue'))
     const tabs = comments.slice(comments.indexOf('<UTabs'), comments.indexOf('</UTabs>'))
