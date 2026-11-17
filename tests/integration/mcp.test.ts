@@ -225,6 +225,39 @@ describe('POST /mcp', () => {
       expect(withComments.data.comments.map((c: { body: string }) => c.body)).toEqual(['Looks good'])
     })
 
+    it('refuses a project name that fits two projects rather than picking one', async () => {
+      const name = `Twin ${Date.now()}`
+      const a = await createTestProject(user, { name })
+      const b = await createTestProject(user, { name })
+      const res = await rpc(headers, 'tools/call', { name: 'list_cards', arguments: { project: name } })
+      const result = res.result as { isError: boolean, content: Array<{ text: string }> }
+      expect(result.isError).toBe(true)
+      expect(result.content[0]!.text).toContain(a.slug)
+      expect(result.content[0]!.text).toContain(b.slug)
+      // The key still names one.
+      expect((await call(headers, 'list_cards', { project: a.key })).isError).toBe(false)
+    })
+
+    it('pages list_cards, cuts long descriptions there, and caps list_comments', async () => {
+      const owned = await createTestProject(user, { name: `MCP paging ${Date.now()}` })
+      const long = 'x'.repeat(800)
+      for (let i = 0; i < 3; i++) await call(headers, 'create_card', { project: owned.key, title: `Page ${i}`, description: long })
+      const first = await call(headers, 'list_cards', { project: owned.key, limit: 2 })
+      const next = await call(headers, 'list_cards', { project: owned.key, limit: 2, offset: 2 })
+      expect(first.data.length).toBe(2)
+      expect(next.data.length).toBe(1)
+      expect(new Set([...first.data, ...next.data].map((c: { ticket: string }) => c.ticket)).size).toBe(3)
+      expect(first.data[0].descriptionTruncated).toBe(true)
+      expect(first.data[0].description.length).toBeLessThan(long.length)
+      const full = await call(headers, 'get_card', { card: first.data[0].ticket })
+      expect(full.data.description).toBe(long)
+
+      const ticket = first.data[0].ticket
+      for (let i = 0; i < 4; i++) await call(headers, 'add_comment', { card: ticket, body: `c${i}` })
+      const latest = await call(headers, 'list_comments', { card: ticket, limit: 2 })
+      expect(latest.data.map((c: { body: string }) => c.body)).toEqual(['c2', 'c3'])
+    })
+
     it('get_card shows the latest comments without clearing the caller\'s unread dot', async () => {
       const other = await registerTestUser()
       const owned = await createTestProject(user, { name: `MCP unread ${Date.now()}` })

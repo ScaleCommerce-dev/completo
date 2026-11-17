@@ -13,7 +13,7 @@ interface GitHubEmail {
   verified: boolean
 }
 
-export default defineOAuthGitHubEventHandler({
+export default withReturnPath(defineOAuthGitHubEventHandler({
   config: {
     emailRequired: true
   },
@@ -38,4 +38,4 @@ export default defineOAuthGitHubEventHandler({
   onError(event) {
     return sendRedirect(event, '/login?error=oauth')
   }
-})
+}))

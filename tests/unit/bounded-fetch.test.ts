@@ -1,7 +1,7 @@
 import http from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { BoundedCache, FetchLimitError, fetchJsonBounded, readTextCapped } from '../../server/utils/bounded-fetch'
+import { BoundedCache, FetchLimitError, fetchJsonBounded, isInternalAddress } from '../../server/utils/bounded-fetch'
 
 /**
  * `server/utils/bounded-fetch.ts`, which fetches OAuth client metadata documents
@@ -75,15 +75,31 @@ describe('fetchJsonBounded', () => {
   it('follows no redirect', async () => {
     await expect(fetchJsonBounded(`${base}/redirect`, { maxBytes: 1024, timeoutMs: 2000 })).rejects.toThrow()
   })
+
+  // The server above is on the loopback, so these reach a live listener: a refusal
+  // here is the address check, not a name that failed to resolve.
+  it('refuses to connect to an internal address, by literal and by name', async () => {
+    const opts = { maxBytes: 1024, timeoutMs: 2000, refuseAddress: isInternalAddress }
+    await expect(fetchJsonBounded(`${base}/ok`, opts)).rejects.toBeInstanceOf(FetchLimitError)
+    const byName = base.replace('127.0.0.1', 'localhost')
+    await expect(fetchJsonBounded(`${byName}/ok`, opts)).rejects.toBeInstanceOf(FetchLimitError)
+    // And the same request without the check gets through, so the refusal is the check's.
+    expect(await fetchJsonBounded(`${byName}/ok`, { maxBytes: 1024, timeoutMs: 2000 })).toEqual({ client_id: 'x' })
+  })
 })
 
-describe('readTextCapped', () => {
-  it('reads a body within the cap', async () => {
-    expect(await readTextCapped(new Response('hello'), 5)).toBe('hello')
+describe('isInternalAddress', () => {
+  it.each([
+    ['10.0.0.5', 4], ['127.0.0.1', 4], ['169.254.169.254', 4], ['100.64.0.1', 4],
+    ['::1', 6], ['fd00::1', 6], ['::ffff:10.0.0.5', 6],
+    // NAT64 and 6to4 embed an IPv4 address.
+    ['64:ff9b::a00:5', 6], ['64:ff9b:1::1', 6], ['2002:a00:5::1', 6]
+  ])('refuses %s', (address, family) => {
+    expect(isInternalAddress(address, family)).toBe(true)
   })
 
-  it('refuses one byte over', async () => {
-    await expect(readTextCapped(new Response('hello!'), 5)).rejects.toBeInstanceOf(FetchLimitError)
+  it.each([['93.184.215.14', 4], ['2606:4700::1111', 6]])('allows public %s', (address, family) => {
+    expect(isInternalAddress(address, family)).toBe(false)
   })
 })
 

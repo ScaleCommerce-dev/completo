@@ -3,10 +3,28 @@ import { resolve } from 'node:path'
 
 const AI_LOG_FILE = resolve(process.cwd(), 'ai-debug.log')
 
+let aiLogAnnounced = false
+
+/**
+ * `DEBUG_AI_LOG=true` only. The file holds every prompt in full, which carries card
+ * descriptions, comments and project briefings, so it is created owner-only and
+ * the server says once where it is going: a debug switch left on in production
+ * otherwise collects project content in plain text with nobody aware of it.
+ */
 function aiLog(label: string, data: string) {
+  if (!aiLogAnnounced) {
+    aiLogAnnounced = true
+    console.warn(`[ai] DEBUG_AI_LOG is on: full prompts and responses are written to ${AI_LOG_FILE}. Turn it off outside debugging.`)
+  }
   const timestamp = new Date().toISOString()
   const separator = '─'.repeat(60)
-  appendFileSync(AI_LOG_FILE, `\n${separator}\n[${timestamp}] ${label}\n${separator}\n${data}\n`)
+  try {
+    appendFileSync(AI_LOG_FILE, `\n${separator}\n[${timestamp}] ${label}\n${separator}\n${data}\n`, { mode: 0o600 })
+  } catch (err) {
+    // The production image runs as a user that cannot write to /app: a debug log
+    // must never be the reason an AI request fails.
+    console.warn(`[ai] could not write ${AI_LOG_FILE}: ${(err as Error).message}`)
+  }
 }
 
 interface AiMessage {

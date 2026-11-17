@@ -76,7 +76,7 @@ docker run -p 3000:3000 \
 If you skip these env vars, no admin is created. You can still provision one ad-hoc against a running container:
 
 ```bash
-docker exec <container> node scripts/user-create.ts you@example.com pass "You" admin
+docker exec -u completo <container> node scripts/user-create.ts you@example.com pass "You" admin
 ```
 
 ## CLI Scripts
@@ -86,18 +86,20 @@ Run scripts inside a container using the same `/data` volume:
 ```bash
 # Seed demo data
 docker run --rm -v completo-data:/data completo \
-  node scripts/db-seed.ts
+  su-exec completo node scripts/db-seed.ts
 
 # Create a user
 docker run --rm -v completo-data:/data completo \
-  node scripts/user-create.ts user@example.com password123 "User Name"
+  su-exec completo node scripts/user-create.ts user@example.com password123 "User Name"
 
 # Run migrations only
 docker run --rm -v completo-data:/data completo \
-  node scripts/db-migrate.ts
+  su-exec completo node scripts/db-migrate.ts
 ```
 
 Those invoke the `.ts` files directly. Node strips TypeScript natively (default since 22.18), so the image carries no tsx and needs no package manager — the dev container runs these exact same commands, which is why the two stay in sync.
+
+The server and its scripts run as the `completo` user, not root, and own `/data`. Run anything that opens the database as that user too (`su-exec completo …` in `docker run`, `-u completo` in `docker exec`): a root process creates SQLite's `-wal`/`-shm` files as root, which the server then cannot write. If it happens anyway, the next restart hands every file in `/data` back to `completo`.
 
 Passing a command to `docker run` overrides the empty `CMD`, which switches zpinit to exec mode: it still runs the `entrypoint.d/` scripts first (so migrations apply), then runs your command once instead of supervising the server.
 

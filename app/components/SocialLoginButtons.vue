@@ -1,17 +1,35 @@
 <script setup lang="ts">
+import { safeReturnPath } from '#shared/utils/return-path'
+
+const props = defineProps<{
+  /** Where to land after signing in: the login page's `redirect`, such as a pending MCP consent. */
+  returnTo?: unknown
+}>()
+
 const { data: providers } = await useFetch('/api/auth/providers')
+
+/**
+ * The provider round trip leaves the site, so the destination rides along as a
+ * query the sign-in route keeps in a cookie (`server/utils/oauth.ts`). Without
+ * it every social sign-in landed on /projects, and an MCP client waiting on the
+ * consent page never got its answer.
+ */
+const query = computed(() => {
+  const target = safeReturnPath(props.returnTo, '')
+  return target ? `?redirect=${encodeURIComponent(target)}` : ''
+})
 
 const enabledProviders = computed(() => {
   if (!providers.value) return []
   const list: { key: string, label: string, href: string }[] = []
   if (providers.value.github) {
-    list.push({ key: 'github', label: 'GitHub', href: '/auth/github' })
+    list.push({ key: 'github', label: 'GitHub', href: `/auth/github${query.value}` })
   }
   if (providers.value.google) {
-    list.push({ key: 'google', label: 'Google', href: '/auth/google' })
+    list.push({ key: 'google', label: 'Google', href: `/auth/google${query.value}` })
   }
   if (providers.value.microsoft) {
-    list.push({ key: 'microsoft', label: 'Microsoft', href: '/auth/microsoft' })
+    list.push({ key: 'microsoft', label: 'Microsoft', href: `/auth/microsoft${query.value}` })
   }
   return list
 })

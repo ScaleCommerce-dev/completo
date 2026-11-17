@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { safeReturnPath } from '#shared/utils/return-path'
+
 definePageMeta({ layout: 'auth' })
 
 const route = useRoute()
@@ -110,7 +112,7 @@ async function resendVerification() {
       <AuthErrorBanner :message="oauthError" />
 
       <!-- Social login buttons -->
-      <SocialLoginButtons />
+      <SocialLoginButtons :return-to="route.query.redirect" />
 
       <UFormField
         label="Email"

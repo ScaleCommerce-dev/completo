@@ -141,6 +141,13 @@
       "when": 1794854089985,
       "tag": "0019_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1794877818346,
+      "tag": "0020_curly_dreadnoughts",
+      "breakpoints": true
     }
   ]
 }

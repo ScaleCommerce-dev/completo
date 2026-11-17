@@ -28,11 +28,9 @@
  * routes on the prefix. Only hashes are stored.
  */
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
-import { lookup } from 'node:dns/promises'
-import { BlockList } from 'node:net'
 import { eq, sql } from 'drizzle-orm'
 import type { H3Event } from 'h3'
-import { BoundedCache, fetchJsonBounded } from './bounded-fetch'
+import { BoundedCache, fetchJsonBounded, isInternalAddress } from './bounded-fetch'
 
 export const ACCESS_TOKEN_PREFIX = 'dzoa_'
 export const REFRESH_TOKEN_PREFIX = 'dzor_'
@@ -105,34 +103,6 @@ function seconds(fromNow: number): Date {
 
 function isLoopback(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
-}
-
-// Every range a metadata-document fetch has no business reaching: loopback, private,
-// link-local (cloud metadata lives at 169.254.169.254), CGNAT, ULA, multicast, reserved.
-const INTERNAL = new BlockList()
-for (const [net, bits] of [['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16],
-  ['172.16.0.0', 12], ['192.0.0.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15], ['224.0.0.0', 4], ['240.0.0.0', 4]] as const) {
-  INTERNAL.addSubnet(net, bits, 'ipv4')
-}
-for (const [net, bits] of [['::', 128], ['::1', 128], ['fc00::', 7], ['fe80::', 10], ['ff00::', 8]] as const) {
-  INTERNAL.addSubnet(net, bits, 'ipv6')
-}
-
-/** True when any address the name resolves to is internal, or when it does not resolve. */
-async function resolvesToInternalAddress(hostname: string): Promise<boolean> {
-  let addresses: Array<{ address: string, family: number }>
-  try {
-    addresses = await lookup(hostname, { all: true })
-  } catch {
-    return true
-  }
-  return !addresses.length || addresses.some(({ address, family }) => {
-    // An IPv4-mapped IPv6 address (`::ffff:10.0.0.5`) is the IPv4 address.
-    const mapped = family === 6 && address.toLowerCase().startsWith('::ffff:') && address.includes('.')
-    return mapped
-      ? INTERNAL.check(address.slice(7), 'ipv4')
-      : INTERNAL.check(address, family === 6 ? 'ipv6' : 'ipv4')
-  })
 }
 
 /** `https://…`, or `http://` on the loopback only, which is where a desktop client listens for its callback. */
@@ -243,15 +213,18 @@ async function fetchMetadataClient(clientId: string): Promise<OAuthClient> {
 
   let doc: Record<string, unknown> | undefined
   try {
-    // The string checks above say nothing about where the name points, so resolve it
-    // and refuse an internal address. Not pinned — a rebinding resolver can still
-    // answer differently on the fetch — but the fetch below follows no redirect and
-    // its result is never shown, so what remains is a blind GET at the time of a race.
-    if (await resolvesToInternalAddress(u.hostname)) throw new Error('internal address')
-    // One deadline over headers and body, a byte cap, and no redirect followed: a
-    // public document answering `302 Location: http://10.0.0.5/` made the server
-    // fetch the internal address after all (`bounded-fetch.ts`).
-    doc = await fetchJsonBounded(clientId, { maxBytes: METADATA_MAX_BYTES, timeoutMs: METADATA_TIMEOUT_MS }) as Record<string, unknown>
+    // The string checks above say nothing about where the name points, so the
+    // address the connection is opened to is checked, inside its own lookup: one
+    // resolution, so a rebinding resolver cannot answer public to a check and
+    // internal to the connect. One deadline over headers and body, a byte cap, and
+    // no redirect followed: a public document answering `302 Location:
+    // http://10.0.0.5/` made the server fetch the internal address after all
+    // (`bounded-fetch.ts`).
+    doc = await fetchJsonBounded(clientId, {
+      maxBytes: METADATA_MAX_BYTES,
+      timeoutMs: METADATA_TIMEOUT_MS,
+      refuseAddress: isInternalAddress
+    }) as Record<string, unknown>
   } catch {
     // Unreachable, internal, redirecting, slow or not JSON: all the same answer below.
   }
@@ -439,7 +412,22 @@ export function exchangeCode(event: H3Event, client: OAuthClient, body: Record<s
 export function refreshGrant(client: OAuthClient, body: Record<string, unknown>): IssuedTokens {
   const refresh = typeof body.refresh_token === 'string' ? body.refresh_token : ''
   if (!refresh) throw new OAuthError('invalid_request', 'refresh_token is required')
-  const grant = db.select().from(schema.oauthGrants).where(eq(schema.oauthGrants.refreshTokenHash, hashToken(refresh))).get()
+  const hash = hashToken(refresh)
+  const grant = db.select().from(schema.oauthGrants).where(eq(schema.oauthGrants.refreshTokenHash, hash)).get()
+  if (!grant) {
+    // A refresh token already exchanged once: whoever presents it again is not the
+    // only holder, and which of the two is the thief cannot be told. Rotation alone
+    // let a thief who refreshed first keep the grant rolling for 30 days while the
+    // owner's client merely failed; revoking it ends both, and the owner signs in
+    // again (RFC 9700 §4.14.2).
+    const reused = db.select({ id: schema.oauthGrants.id, clientId: schema.oauthGrants.clientId })
+      .from(schema.oauthGrants)
+      .where(eq(schema.oauthGrants.previousRefreshTokenHash, hash))
+      .get()
+    if (reused && reused.clientId === client.id) {
+      db.delete(schema.oauthGrants).where(eq(schema.oauthGrants.id, reused.id)).run()
+    }
+  }
   if (!grant || grant.clientId !== client.id || grant.refreshExpiresAt.getTime() < Date.now()) {
     throw new OAuthError('invalid_grant', 'The refresh token is invalid, expired, or was issued to another client')
   }
@@ -449,7 +437,8 @@ export function refreshGrant(client: OAuthClient, body: Record<string, unknown>)
     accessTokenHash: hashToken(access),
     accessExpiresAt: seconds(ACCESS_TOKEN_TTL_S),
     refreshTokenHash: hashToken(nextRefresh),
-    refreshExpiresAt: seconds(REFRESH_TOKEN_TTL_S)
+    refreshExpiresAt: seconds(REFRESH_TOKEN_TTL_S),
+    previousRefreshTokenHash: hash
   }).where(eq(schema.oauthGrants.id, grant.id)).run()
   return issuedTokens(access, nextRefresh)
 }

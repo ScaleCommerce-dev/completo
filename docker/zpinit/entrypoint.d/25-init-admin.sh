@@ -1,5 +1,7 @@
 #!/bin/sh
 # Delegate to the shared shell wrapper used by both Docker and dev
 # (see scripts/init-admin.sh). Kept as a thin shim so the actual logic
-# has a single home.
+# has a single home. As the app user, like every script that opens the
+# database (see 10-mkdirs.sh).
+if [ "$(id -u)" = 0 ]; then exec su-exec completo /app/scripts/init-admin.sh; fi
 exec /app/scripts/init-admin.sh

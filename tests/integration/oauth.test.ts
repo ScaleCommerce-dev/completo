@@ -254,13 +254,27 @@ describe('OAuth for MCP', () => {
     expect(refreshed.body.access_token).not.toBe(tokens.access_token)
     expect(refreshed.body.refresh_token).not.toBe(tokens.refresh_token)
 
-    const again = await token({ grant_type: 'refresh_token', refresh_token: tokens.refresh_token, client_id: client.client_id as string })
-    expect(again.body.error).toBe('invalid_grant')
-
     const old = await mcp(tokens.access_token)
     expect(old.status).toBe(401)
     expect(old.headers.get('www-authenticate')).toContain('error="invalid_token"')
     expect((await mcp(refreshed.body.access_token as string)).status).toBe(200)
+
+    // The old refresh token is spent. Presenting it again also ends the grant (next test).
+    const again = await token({ grant_type: 'refresh_token', refresh_token: tokens.refresh_token, client_id: client.client_id as string })
+    expect(again.body.error).toBe('invalid_grant')
+  })
+
+  it('revokes the grant when a used refresh token comes back', async () => {
+    // Two holders of one grant: whichever refreshed second shows the token is out.
+    const { client, tokens } = await signIn(user)
+    const refresh = (t: string) => token({ grant_type: 'refresh_token', refresh_token: t, client_id: client.client_id as string })
+    const first = await refresh(tokens.refresh_token)
+    expect(first.status).toBe(200)
+    const replay = await refresh(tokens.refresh_token)
+    expect(replay.body.error).toBe('invalid_grant')
+    // The rotated pair died with it, not only the replayed token.
+    expect((await refresh(first.body.refresh_token as string)).body.error).toBe('invalid_grant')
+    expect((await mcp(first.body.access_token as string)).status).toBe(401)
   })
 
   it('requires the secret of a confidential client', async () => {

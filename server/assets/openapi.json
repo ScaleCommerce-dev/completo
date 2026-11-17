@@ -3,7 +3,7 @@
   "info": {
     "title": "Completo API",
     "version": "1.0.0",
-    "description": "REST API for Completo \u2014 Kanban board management.\n\nThis spec covers endpoints useful for headless (non-browser) API usage. Browser-only flows are omitted: sign-in provider redirects, registration, email verification and password reset under /auth, and the HTML docs page. The endpoints the app itself uses (slug and key checks, list and My Tasks columns, notifications, live event streams, the OAuth consent page) are documented as well.\n\nAuthenticate via session cookie (POST /auth/login) or Bearer token (create one at POST /api/user/tokens)."
+    "description": "REST API for Completo — Kanban board management.\n\nThis spec covers endpoints useful for headless (non-browser) API usage. Browser-only flows are omitted: sign-in provider redirects, registration, email verification and password reset under /auth, and the HTML docs page. The endpoints the app itself uses (slug and key checks, list and My Tasks columns, notifications, live event streams, the OAuth consent page) are documented as well.\n\nAuthenticate via session cookie (POST /auth/login) or Bearer token (create one at POST /api/user/tokens)."
   },
   "servers": [
     {
@@ -2876,7 +2876,7 @@
           "Cards"
         ],
         "summary": "Search cards across projects",
-        "description": "Searches title and description (LIKE, case-insensitive) and card ID across every project the caller can see \u2014 their memberships, or all projects for an instance admin. Supports ticket slugs (e.g. \"TK-42\"). Text queries need 2 characters; a bare card ID may be shorter. Returns at most 10 \u2014 exact ID matches first, then title matches, each most-recently-updated first.",
+        "description": "Searches title and description (LIKE, case-insensitive) and card ID across every project the caller can see — their memberships, or all projects for an instance admin. Supports ticket slugs (e.g. \"TK-42\"). Text queries need 2 characters; a bare card ID may be shorter. Returns at most 10 — exact ID matches first, then title matches, each most-recently-updated first.",
         "operationId": "searchCards",
         "parameters": [
           {
@@ -4174,9 +4174,12 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "description": "Too many password attempts"
           }
         },
-        "description": "Agents have no password (403)."
+        "description": "Agents have no password (403). Ten attempts per 15 minutes per account, then 429. Revokes the caller's API tokens, OAuth grants and pending authorization codes, and their agents' tokens."
       }
     },
     "/api/user/account": {
@@ -4185,7 +4188,7 @@
           "User"
         ],
         "summary": "Delete own account",
-        "description": "Permanently deletes the authenticated user's account. Requires password confirmation. Admin accounts cannot self-delete. Agents cannot delete themselves (403). Suspends every agent the caller manages: they keep their memberships, lose their tokens, and have no manager until an admin transfers them.",
+        "description": "Permanently deletes the authenticated user's account. Requires password confirmation. Admin accounts cannot self-delete. Agents cannot delete themselves (403). Suspends every agent the caller manages: they keep their memberships, lose their tokens, and have no manager until an admin transfers them. Refused with 409, naming the projects, while the caller is the only owner of any project. Ten password attempts per 15 minutes per account, then 429.",
         "operationId": "deleteOwnAccount",
         "requestBody": {
           "required": true,
@@ -4224,6 +4227,12 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "description": "The caller is the only owner of one or more projects"
+          },
+          "429": {
+            "description": "Too many password attempts"
           }
         }
       }
@@ -5718,7 +5727,7 @@
           "Comments"
         ],
         "summary": "Edit a comment",
-        "description": "Only the comment author may edit it \u2014 not project owners or admins, since a rewritten comment would stay attributed to its original author. Editing notifies newly added mentions only.",
+        "description": "Only the comment author may edit it — not project owners or admins, since a rewritten comment would stay attributed to its original author. Editing notifies newly added mentions only.",
         "operationId": "updateComment",
         "parameters": [
           {
@@ -8431,7 +8440,7 @@
           },
           "mimeType": {
             "type": "string",
-            "description": "Server-determined content type, derived from the file extension. The Content-Type sent with the upload is not preserved \u2014 an unrecognised extension becomes application/octet-stream."
+            "description": "Server-determined content type, derived from the file extension. The Content-Type sent with the upload is not preserved — an unrecognised extension becomes application/octet-stream."
           },
           "size": {
             "type": "integer",
@@ -9091,7 +9100,7 @@
         }
       },
       "Unauthorized": {
-        "description": "Unauthorized \u2014 authentication required",
+        "description": "Unauthorized — authentication required",
         "content": {
           "application/json": {
             "schema": {
@@ -9101,7 +9110,7 @@
         }
       },
       "Forbidden": {
-        "description": "Forbidden \u2014 insufficient permissions",
+        "description": "Forbidden — insufficient permissions",
         "content": {
           "application/json": {
             "schema": {
@@ -9121,7 +9130,7 @@
         }
       },
       "Conflict": {
-        "description": "Conflict \u2014 resource already exists",
+        "description": "Conflict — resource already exists",
         "content": {
           "application/json": {
             "schema": {

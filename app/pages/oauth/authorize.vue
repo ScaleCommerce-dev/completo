@@ -101,8 +101,9 @@ async function decide(decision: 'allow' | 'deny') {
               {{ user?.email }}
             </div>
           </div>
+          <!-- Back here once the right account signs in: the client is still waiting. -->
           <NuxtLink
-            to="/logout"
+            :to="{ path: '/logout', query: { redirect: route.fullPath } }"
             class="text-xs font-medium text-dimmed hover:text-toned transition-colors shrink-0"
           >
             Not you?

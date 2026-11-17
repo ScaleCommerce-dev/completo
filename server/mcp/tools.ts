@@ -162,7 +162,13 @@ async function loadProject(ctx: ToolContext, ref: string): Promise<ApiProject> {
     // Not a slug or id: try the project key ("TK") or the name.
     const all = await ctx.get<ApiProjectSummary[]>('/api/projects')
     const w = ref.trim().toLowerCase()
-    const hit = all.find(p => p.key.toLowerCase() === w) ?? all.find(p => p.name.toLowerCase() === w)
+    // Keys are unique; names are not, so two projects called "Website" were
+    // resolved to whichever the list returned first, and the write went there.
+    const byName = all.filter(p => p.name.toLowerCase() === w)
+    if (byName.length > 1 && !all.some(p => p.key.toLowerCase() === w)) {
+      throw new ToolError(`"${ref}" names more than one project: ${byName.map(p => `${p.slug} (${p.key})`).join(', ')}. Use the slug or key.`)
+    }
+    const hit = all.find(p => p.key.toLowerCase() === w) ?? byName[0]
     if (!hit) {
       const names = all.map(p => `${p.slug} (${p.key})`).join(', ')
       throw new ToolError(`${(direct as Error).message}. Your projects: ${names || 'none'}`)
@@ -193,8 +199,17 @@ function cardUrl(ctx: ToolContext, slug: string, ticket: string) {
   return `${ctx.origin}/projects/${slug}/cards/${ticket}`
 }
 
-function cardView(ctx: ToolContext, card: ApiCard, project: ApiProjectRef, statuses?: ApiStatus[]) {
+/**
+ * How much of each description `list_cards` carries. Two hundred full descriptions
+ * filled a model's context with text it rarely needs to pick a card; `get_card`
+ * has the rest.
+ */
+const LIST_DESCRIPTION_CHARS = 500
+
+function cardView(ctx: ToolContext, card: ApiCard, project: ApiProjectRef, statuses?: ApiStatus[], opts: { descriptionChars?: number } = {}) {
   const ticket = `${project.key}-${card.id}`
+  const fullDescription = card.description ?? ''
+  const cut = opts.descriptionChars !== undefined && fullDescription.length > opts.descriptionChars
   return {
     ticket,
     title: card.title,
@@ -207,7 +222,8 @@ function cardView(ctx: ToolContext, card: ApiCard, project: ApiProjectRef, statu
     // A parent is always in the same project, so its ticket is the card's key.
     ...(card.parentId ? { parent: `${project.key}-${card.parentId}` } : {}),
     ...(card.subtasks ? { subtaskProgress: card.subtasks } : {}),
-    description: card.description ?? '',
+    description: cut ? `${fullDescription.slice(0, opts.descriptionChars)}…` : fullDescription,
+    ...(cut ? { descriptionTruncated: true } : {}),
     project: project.slug,
     url: cardUrl(ctx, project.slug, ticket),
     createdAt: card.createdAt,
@@ -222,6 +238,13 @@ function cardView(ctx: ToolContext, card: ApiCard, project: ApiProjectRef, statu
  * `get`.
  */
 const CARD_COMMENT_LIMIT = 10
+
+/**
+ * `list_comments` was every comment a card ever had, in one tool result; a long
+ * thread is mostly superseded, and the newest are the ones that matter.
+ */
+const LIST_COMMENTS_DEFAULT = 50
+const LIST_COMMENTS_MAX = 200
 
 function commentView(c: ApiComment) {
   // updatedAt is set on insert too, so its presence says nothing; an edit is a
@@ -316,7 +339,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'list_cards',
-    description: 'Cards in a project, filtered by status, assignee, priority, tag, due date or parent. Sorted by board position by default, so the first card of a status is the top of its column. Sub-tasks are included and name their parent; parent lists one card\'s sub-tasks, or "none" leaves sub-tasks out. Done cards older than the project\'s retention window are left out unless includeDone is set.',
+    description: 'Cards in a project, filtered by status, assignee, priority, tag, due date or parent. Sorted by board position by default, so the first card of a status is the top of its column. Sub-tasks are included and name their parent; parent lists one card\'s sub-tasks, or "none" leaves sub-tasks out. Done cards older than the project\'s retention window are left out unless includeDone is set. Descriptions are cut at 500 characters (descriptionTruncated); get_card has the whole card.',
     inputSchema: schema({
       project: PROJECT_REF,
       status: { type: 'string', description: 'Status name, e.g. "To Do".' },
@@ -329,7 +352,8 @@ const TOOLS: Tool[] = [
       includeDone: { type: 'boolean' },
       sort: { type: 'string', enum: ['position', 'priority', 'dueDate', 'createdAt', 'updatedAt', 'title'] },
       order: { type: 'string', enum: ['asc', 'desc'] },
-      limit: { type: 'integer', minimum: 1, maximum: 200, description: 'Default 50.' }
+      limit: { type: 'integer', minimum: 1, maximum: 200, description: 'Default 50.' },
+      offset: { type: 'integer', minimum: 0, description: 'Skip this many, for the next page when a page came back full.' }
     }, ['project']),
     annotations: { readOnlyHint: true },
     run: async (ctx, args) => {
@@ -352,8 +376,9 @@ const TOOLS: Tool[] = [
       if (parent) query.parentId = parent.toLowerCase() === 'none' ? 'none' : cardNumber(parent)
       if (args.includeDone === true) query.includeDone = 'true'
       if (typeof args.limit === 'number') query.limit = args.limit
+      if (typeof args.offset === 'number') query.offset = args.offset
       const cards = await ctx.get<ApiCard[]>(`/api/projects/${project.id}/cards`, query)
-      return cards.map(c => cardView(ctx, c, project))
+      return cards.map(c => cardView(ctx, c, project, undefined, { descriptionChars: LIST_DESCRIPTION_CHARS }))
     }
   },
   {
@@ -550,13 +575,17 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'list_comments',
-    description: 'The discussion on a card, oldest first. Reading it marks the card as read for the caller.',
-    inputSchema: schema({ card: CARD_REF }, ['card']),
+    description: `The discussion on a card, oldest first: its latest ${LIST_COMMENTS_DEFAULT} comments, or up to ${LIST_COMMENTS_MAX} with limit. Reading it marks the card as read for the caller.`,
+    inputSchema: schema({
+      card: CARD_REF,
+      limit: { type: 'integer', minimum: 1, maximum: LIST_COMMENTS_MAX, description: `How many of the newest comments. Default ${LIST_COMMENTS_DEFAULT}.` }
+    }, ['card']),
     annotations: { readOnlyHint: true },
     run: async (ctx, args) => {
       const card = await loadCard(ctx, need(args, 'card'))
       const comments = await ctx.get<ApiComment[]>(`/api/cards/${card.id}/comments`)
-      return comments.map(commentView)
+      const limit = typeof args.limit === 'number' ? Math.min(Math.max(Math.floor(args.limit), 1), LIST_COMMENTS_MAX) : LIST_COMMENTS_DEFAULT
+      return comments.slice(-limit).map(commentView)
     }
   },
   {

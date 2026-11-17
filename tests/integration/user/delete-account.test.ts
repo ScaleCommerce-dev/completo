@@ -44,6 +44,36 @@ describe('DELETE /api/user/account', async () => {
     }), 400)
   })
 
+  it('refuses while the account is the only owner of a project, and says which', async () => {
+    const owner = await registerTestUser({ password: 'ownerPass1' })
+    const project = await createTestProject(owner, { name: `Stranded ${Date.now()}` })
+    const res = await fetch(url('/api/user/account'), {
+      method: 'DELETE',
+      headers: { ...owner.headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ password: 'ownerPass1' })
+    })
+    expect(res.status).toBe(409)
+    expect((await res.json()).message).toContain(project.name)
+
+    // With a second owner it goes through.
+    const other = await registerTestUser()
+    await $fetch(`/api/projects/${project.id}/members`, { method: 'POST', body: { email: other.email }, headers: owner.headers })
+    await $fetch(`/api/projects/${project.id}/members/${other.id}`, { method: 'PATCH', body: { role: 'owner' }, headers: owner.headers })
+    const ok = await $fetch<{ ok: boolean }>('/api/user/account', { method: 'DELETE', body: { password: 'ownerPass1' }, headers: owner.headers })
+    expect(ok.ok).toBe(true)
+  })
+
+  it('stops guessing the password after ten tries', async () => {
+    const user = await registerTestUser({ password: 'rightPass1' })
+    const attempt = () => fetch(url('/api/user/account'), {
+      method: 'DELETE',
+      headers: { ...user.headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ password: 'wrongPass1' })
+    })
+    for (let i = 0; i < 10; i++) expect((await attempt()).status).toBe(401)
+    expect((await attempt()).status).toBe(429)
+  })
+
   it('blocks admin self-deletion', async () => {
     const admin = await createAdminUser()
 

@@ -9,60 +9,113 @@
  * buffered until the process ran out of memory.
  */
 
-export class FetchLimitError extends Error {}
+import { request as httpRequest } from 'node:http'
+import { request as httpsRequest } from 'node:https'
+import { lookup as dnsLookup, type LookupAddress } from 'node:dns'
+import { BlockList, isIP, type LookupFunction } from 'node:net'
 
-/** Read a response body as text, refusing more than `maxBytes`. */
-export async function readTextCapped(res: Response, maxBytes: number): Promise<string> {
-  const declared = Number(res.headers.get('content-length'))
-  if (Number.isFinite(declared) && declared > maxBytes) {
-    throw new FetchLimitError(`Response declares ${declared} bytes, over ${maxBytes}`)
-  }
-  if (!res.body) return ''
-  const reader = res.body.getReader()
-  const chunks: Uint8Array[] = []
-  let total = 0
-  try {
-    for (;;) {
-      const { done, value } = await reader.read()
-      if (done) break
-      total += value.byteLength
-      if (total > maxBytes) throw new FetchLimitError(`Response is over ${maxBytes} bytes`)
-      chunks.push(value)
-    }
-  } catch (e) {
-    // Stop the transfer rather than leave the connection draining.
-    await reader.cancel().catch(() => {})
-    throw e
-  }
-  const bytes = new Uint8Array(total)
-  let at = 0
-  for (const c of chunks) {
-    bytes.set(c, at)
-    at += c.byteLength
-  }
-  return new TextDecoder().decode(bytes)
-}
+export class FetchLimitError extends Error {}
 
 /**
  * GET a JSON document with one deadline for headers *and* body, a byte cap, and
  * no redirects followed (a public URL answering `302` to an internal address
  * would otherwise be fetched after all).
+ *
+ * `refuseAddress` is asked about the address the connection is actually opened
+ * to, inside the socket's own DNS lookup. Checking the name with a separate
+ * lookup first and then letting `fetch` resolve it again left a window a
+ * rebinding resolver could use: public on the check, internal on the connect.
+ * Node's `fetch` takes no lookup hook, hence `node:http(s)` here.
  */
-export async function fetchJsonBounded(url: string, opts: { maxBytes: number, timeoutMs: number }): Promise<unknown> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), opts.timeoutMs)
-  try {
-    const res = await fetch(url, {
-      redirect: 'error',
-      signal: controller.signal,
-      headers: { accept: 'application/json' }
-    })
-    if (!res.ok) throw new FetchLimitError(`HTTP ${res.status}`)
-    return JSON.parse(await readTextCapped(res, opts.maxBytes))
-  } finally {
-    clearTimeout(timer)
-    controller.abort()
+export async function fetchJsonBounded(url: string, opts: {
+  maxBytes: number
+  timeoutMs: number
+  refuseAddress?: (address: string, family: number) => boolean
+}): Promise<unknown> {
+  const u = new URL(url)
+  const request = u.protocol === 'https:' ? httpsRequest : u.protocol === 'http:' ? httpRequest : null
+  if (!request) throw new FetchLimitError(`Unsupported protocol ${u.protocol}`)
+  const refuse = opts.refuseAddress
+
+  // An IP literal never reaches `lookup`, so it is checked here.
+  const literal = u.hostname.replace(/^\[|\]$/g, '')
+  if (refuse && isIP(literal) && refuse(literal, isIP(literal))) {
+    throw new FetchLimitError('Refused address')
   }
+
+  const lookup: LookupFunction | undefined = refuse
+    ? (hostname, options, callback) => {
+        dnsLookup(hostname, { ...options, all: true }, (err, addresses) => {
+          if (err) return callback(err, '', 0)
+          const list = addresses as unknown as LookupAddress[]
+          if (!list.length || list.some(a => refuse(a.address, a.family))) {
+            return callback(new FetchLimitError('Refused address'), '', 0)
+          }
+          if (options.all) return (callback as unknown as (e: null, a: LookupAddress[]) => void)(null, list)
+          callback(null, list[0]!.address, list[0]!.family)
+        })
+      }
+    : undefined
+
+  return await new Promise<unknown>((resolve, reject) => {
+    const req = request(u, { method: 'GET', headers: { accept: 'application/json' }, lookup }, (res) => {
+      const status = res.statusCode ?? 0
+      if (status < 200 || status >= 300) {
+        res.resume()
+        return req.destroy(new FetchLimitError(`HTTP ${status}`))
+      }
+      const declared = Number(res.headers['content-length'])
+      if (Number.isFinite(declared) && declared > opts.maxBytes) {
+        return req.destroy(new FetchLimitError(`Response declares ${declared} bytes, over ${opts.maxBytes}`))
+      }
+      const chunks: Buffer[] = []
+      let total = 0
+      res.on('data', (chunk: Buffer) => {
+        total += chunk.byteLength
+        if (total > opts.maxBytes) return req.destroy(new FetchLimitError(`Response is over ${opts.maxBytes} bytes`))
+        chunks.push(chunk)
+      })
+      res.on('end', () => {
+        clearTimeout(timer)
+        try {
+          resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')))
+        } catch (e) {
+          reject(e)
+        }
+      })
+      res.on('error', reject)
+    })
+    const timer = setTimeout(() => req.destroy(new FetchLimitError(`No complete response within ${opts.timeoutMs} ms`)), opts.timeoutMs)
+    req.on('error', (e) => {
+      clearTimeout(timer)
+      reject(e)
+    })
+    req.end()
+  })
+}
+
+// Every range a metadata-document fetch has no business reaching: loopback, private,
+// link-local (cloud metadata lives at 169.254.169.254), CGNAT, ULA, multicast, reserved.
+const INTERNAL = new BlockList()
+for (const [net, bits] of [['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16],
+  ['172.16.0.0', 12], ['192.0.0.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15], ['224.0.0.0', 4], ['240.0.0.0', 4]] as const) {
+  INTERNAL.addSubnet(net, bits, 'ipv4')
+}
+// NAT64 (`64:ff9b::/96`, and the local-use `64:ff9b:1::/48`) and 6to4 (`2002::/16`)
+// carry an IPv4 address inside an IPv6 one, so on a network that routes them,
+// `64:ff9b::a00:5` is 10.0.0.5. Refused whole: no metadata document lives there.
+for (const [net, bits] of [['::', 128], ['::1', 128], ['fc00::', 7], ['fe80::', 10], ['ff00::', 8],
+  ['64:ff9b::', 96], ['64:ff9b:1::', 48], ['2002::', 16]] as const) {
+  INTERNAL.addSubnet(net, bits, 'ipv6')
+}
+
+/** True for an address a metadata-document fetch must not connect to. */
+export function isInternalAddress(address: string, family: number): boolean {
+  // An IPv4-mapped IPv6 address (`::ffff:10.0.0.5`) is the IPv4 address.
+  const mapped = family === 6 && address.toLowerCase().startsWith('::ffff:') && address.includes('.')
+  return mapped
+    ? INTERNAL.check(address.slice(7), 'ipv4')
+    : INTERNAL.check(address, family === 6 ? 'ipv6' : 'ipv4')
 }
 
 /**

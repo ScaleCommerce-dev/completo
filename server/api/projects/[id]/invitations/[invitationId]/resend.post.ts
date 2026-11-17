@@ -16,6 +16,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Invitation not found' })
   }
 
+  if (isEmailEnabled()) checkInvitationMailBudget(event, user.id)
+
   // Generate fresh token and reset expiry (works even on expired invitations)
   const token = crypto.randomUUID()
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days

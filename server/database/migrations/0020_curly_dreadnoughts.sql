@@ -1,0 +1,2 @@
+ALTER TABLE `oauth_grants` ADD `previous_refresh_token_hash` text;--> statement-breakpoint
+CREATE UNIQUE INDEX `oauth_grants_previous_refresh_token_hash_unique` ON `oauth_grants` (`previous_refresh_token_hash`);

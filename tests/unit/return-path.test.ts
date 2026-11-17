@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { safeReturnPath } from '../../app/utils/return-path'
+import { safeReturnPath } from '../../shared/utils/return-path'
 
 describe('safeReturnPath', () => {
   it('returns a same-site path as given', () => {

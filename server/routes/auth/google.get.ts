@@ -5,7 +5,7 @@
  * Gmail and Workspace addresses are always verified. See microsoft.get.ts for the
  * same rule where the provider makes it harder.
  */
-export default defineOAuthGoogleEventHandler({
+export default withReturnPath(defineOAuthGoogleEventHandler({
   async onSuccess(event, { user }) {
     if (!user.email || user.email_verified !== true) {
       return sendRedirect(event, '/login?error=oauth-unverified')
@@ -20,4 +20,4 @@ export default defineOAuthGoogleEventHandler({
   onError(event) {
     return sendRedirect(event, '/login?error=oauth')
   }
-})
+}))

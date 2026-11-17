@@ -44,7 +44,11 @@ RUN cd scripts && npm install --omit=dev
 # `node -p process.versions.modules` matches the builder before moving it.
 FROM alpine:3.24 AS runtime
 
-RUN apk add --no-cache nodejs
+# su-exec (10 KB) drops to the app user in the entrypoint scripts; the server
+# itself drops through zpinit's `user =` (services/10_app.toml).
+RUN apk add --no-cache nodejs su-exec \
+ && addgroup -S completo \
+ && adduser -S -D -H -G completo completo
 
 # zpinit + zpctl as PID 1 (replaces tini + entrypoint.sh + supervisord).
 # Pinned rather than :latest so image builds stay reproducible.
@@ -68,8 +72,12 @@ COPY docker/zpinit/ /etc/zpinit/
 RUN chmod +x /etc/zpinit/entrypoint.d/*.sh \
  && zpinit --check-config /etc/zpinit/
 
-# Create data directory for SQLite + uploads
-RUN mkdir -p /data
+# Create data directory for SQLite + uploads. The server runs as `completo`,
+# not root: a compromise of the Node process then owns /data and nothing else
+# in the container. zpinit stays root as PID 1 so `10-mkdirs.sh` can hand an
+# existing root-owned volume over to the app user on the first boot after an
+# upgrade.
+RUN mkdir -p /data && chown completo:completo /data
 
 # Environment defaults
 ENV DATABASE_URL=/data/sqlite.db

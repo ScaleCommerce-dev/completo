@@ -60,6 +60,7 @@ export default defineEventHandler(async (event) => {
       return { added: true }
     }
 
+    if (isEmailEnabled()) checkInvitationMailBudget(event, user.id)
     db.insert(schema.projectMembers).values({
       projectId: project.id,
       userId: targetUser.id,
@@ -115,6 +116,8 @@ export default defineEventHandler(async (event) => {
   if (existingInvitation) {
     throw createError({ statusCode: 409, message: 'An invitation has already been sent to this email' })
   }
+
+  if (isEmailEnabled()) checkInvitationMailBudget(event, user.id)
 
   // Create invitation
   const token = crypto.randomUUID()

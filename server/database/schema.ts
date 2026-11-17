@@ -425,6 +425,9 @@ export const oauthGrants = sqliteTable('oauth_grants', {
   accessExpiresAt: integer('access_expires_at', { mode: 'timestamp' }).notNull(),
   refreshTokenHash: text('refresh_token_hash').notNull().unique(),
   refreshExpiresAt: integer('refresh_expires_at', { mode: 'timestamp' }).notNull(),
+  // The refresh token this one replaced. Presented again, it means two parties
+  // hold the grant's tokens, and the grant is revoked (`refreshGrant`).
+  previousRefreshTokenHash: text('previous_refresh_token_hash').unique(),
   resource: text('resource'),
   lastUsedAt: integer('last_used_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())

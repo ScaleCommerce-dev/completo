@@ -56,3 +56,23 @@ export function checkRateLimit(event: H3Event, options: RateLimitOptions) {
     throw createError({ statusCode: 429, message: 'Too many requests. Please try again later.' })
   }
 }
+
+/**
+ * Guesses at a signed-in person's own password: changing it and deleting the
+ * account both ask for it, and both are reachable with an API token, so without
+ * this a leaked token was an unthrottled oracle for the password behind it. Per
+ * account, every attempt counted, which no real person comes near.
+ */
+export function checkCurrentPasswordAttempt(event: H3Event, userId: string) {
+  checkRateLimit(event, { name: 'current-password', max: 10, windowSeconds: 900, key: userId })
+}
+
+/**
+ * Invitation and "added you" emails one person may cause per hour. The project
+ * name and the sender's display name are theirs to choose and land in a mail
+ * sent from this server, so an unbounded loop over addresses made it a relay.
+ * Only checked when mail is configured: with none, nothing is sent.
+ */
+export function checkInvitationMailBudget(event: H3Event, userId: string) {
+  checkRateLimit(event, { name: 'invitation-mail', max: 30, windowSeconds: 3600, key: userId })
+}

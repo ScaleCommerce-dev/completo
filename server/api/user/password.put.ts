@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'User not found' })
   }
 
+  checkCurrentPasswordAttempt(event, user.id)
   const valid = await verifyPassword(userRecord.passwordHash, currentPassword)
   if (!valid) {
     throw createError({ statusCode: 401, message: 'Current password is incorrect' })

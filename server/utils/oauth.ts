@@ -1,5 +1,5 @@
-import { eq } from 'drizzle-orm'
-import type { H3Event } from 'h3'
+import { eq, and, gt } from 'drizzle-orm'
+import type { EventHandler, H3Event } from 'h3'
 
 interface OAuthUserInfo {
   email: string
@@ -8,9 +8,44 @@ interface OAuthUserInfo {
   provider: string
 }
 
+/** Where the sign-in started, kept across the provider round trip. */
+const RETURN_COOKIE = 'completo_oauth_return'
+
+/**
+ * Wrap a provider route so a `?redirect=` on the first request (the one that
+ * leaves for the provider) survives until the callback: the provider sends the
+ * browser back without it. Checked by `safeReturnPath` on the way in and again on
+ * the way out, so the cookie can only ever hold a path on this site.
+ */
+export function withReturnPath(handler: EventHandler): EventHandler {
+  return defineEventHandler((event) => {
+    const query = getQuery(event)
+    if (!query.code && typeof query.redirect === 'string') {
+      const target = safeReturnPath(query.redirect, '')
+      if (target) setCookie(event, RETURN_COOKIE, target, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 600 })
+    }
+    return handler(event)
+  })
+}
+
+function takeReturnPath(event: H3Event): string {
+  const target = getCookie(event, RETURN_COOKIE)
+  if (target) deleteCookie(event, RETURN_COOKIE, { path: '/' })
+  return safeReturnPath(target)
+}
+
+/** Whether an unexpired project invitation names this address. */
+function hasPendingInvitation(email: string): boolean {
+  return !!db.select({ id: schema.projectInvitations.id })
+    .from(schema.projectInvitations)
+    .where(and(eq(schema.projectInvitations.email, email), gt(schema.projectInvitations.expiresAt, new Date())))
+    .get()
+}
+
 /**
  * Shared handler for all OAuth providers.
- * Finds or creates a user by email, sets the session, and redirects to /projects.
+ * Finds or creates a user by email, sets the session, and redirects to where the
+ * sign-in started (`withReturnPath`), else /projects.
  * Redirects to /login?error=<code> on failure (suspended, domain-blocked, etc.).
  */
 export async function handleOAuthUser(event: H3Event, info: OAuthUserInfo) {
@@ -63,12 +98,15 @@ export async function handleOAuthUser(event: H3Event, info: OAuthUserInfo) {
 
     await setAuthSession(event, existing, { avatarUrl: info.avatarUrl ?? existing.avatarUrl })
 
-    return sendRedirect(event, '/projects')
+    return sendRedirect(event, takeReturnPath(event))
   }
 
-  // New user — check domain allowlist
+  // New user — check domain allowlist. It restricts self-registration only: an
+  // invited address is let in, as the invitation link on /register lets it in.
+  // The provider has verified the address, so holding the invitation's address is
+  // the same proof the emailed link gives.
   const allowedDomains = getSetting<string[]>(SETTINGS_KEYS.ALLOWED_EMAIL_DOMAINS, [])
-  if (allowedDomains.length > 0) {
+  if (allowedDomains.length > 0 && !hasPendingInvitation(email)) {
     const emailDomain = email.split('@')[1]
     if (!emailDomain || !allowedDomains.includes(emailDomain)) {
       return sendRedirect(event, '/login?error=oauth-domain')
@@ -98,5 +136,5 @@ export async function handleOAuthUser(event: H3Event, info: OAuthUserInfo) {
     isAdmin: false
   })
 
-  return sendRedirect(event, '/projects')
+  return sendRedirect(event, takeReturnPath(event))
 }

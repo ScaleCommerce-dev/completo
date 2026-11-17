@@ -34,6 +34,11 @@
 - **Changing your password revokes your API tokens and connected apps**, as a reset already did, so nothing minted by whoever else knew the old password outlives the change. The profile says how many went. A connection to an MCP client that was approved but not yet completed when the password changed can no longer complete.
 - **A password reset also revokes your agents' tokens.** Whoever held your account could have given an agent a token and kept acting in your projects. The agents keep their projects and history; generate new tokens for the ones you recognise.
 - **Deleting a project deletes its attachment files**, instead of leaving them on disk.
+- **Connecting Claude or another MCP client works with Google, GitHub and Microsoft sign-in.** Signing in with a provider from the connection's approval page went to your projects instead of back to the approval, so the connection never finished; "Not you?" on that page lost it the same way. Both now return to the approval.
+- **Invited people can sign in with Google, GitHub or Microsoft even when sign-up is limited to certain email domains.** The domain list blocked them, although it is meant for self-registration only and an emailed invitation already let them in.
+- **You cannot delete your account while you are the only owner of a project.** The project was left with nobody able to manage it. The message names the projects: make someone else an owner, or delete them, first.
+- **A connected MCP app whose sign-in was copied is disconnected.** When a refresh token that was already used comes back, the connection is revoked, so a copy of it cannot keep working alongside the real app. The app asks you to sign in again.
+- **Over MCP, a project name that matches two projects is refused** instead of picking one, `list_cards` pages with `offset` and shortens long descriptions (`get_card` has them in full), and `list_comments` returns the newest 50 unless asked for more.
 - **The cards API refuses an unknown `priority` filter** with a 400 that lists the allowed values. `priority=bogus` used to return every card as if it had matched.
 - **Removing someone who is not a member of a project is refused**, instead of succeeding and sending them a "removed you from" notification.
 
@@ -66,6 +71,7 @@
 
 ### Upgrading
 
+- **The Docker image runs the server as the `completo` user, not root.** On the first start it hands `/data` over to that user, so existing volumes keep working. Run commands that open the database as that user too: `docker exec -u completo …`, or `su-exec completo …` in `docker run` (see `docker/README.md`).
 - **`ALLOW_TEST_ENDPOINTS` is on only when set to exactly `1`.** Any other value, including `false` and `0`, now leaves it off; before, any non-empty value turned on the test endpoints, which reveal sign-in tokens, and turned off rate limiting.
 - **Behind more than one proxy, set `TRUSTED_PROXY_HOPS`.** Rate limits now trust `X-Forwarded-For` only as far as one proxy on a private or loopback address. With a CDN in front of your reverse proxy, set it to `2`, or every visitor shares one limit. See `docker/README.md`.
 - **`PUT /api/boards/{id}/cards/reorder` is removed.** Nothing in Completo used it, and it let a card with open sub-tasks into Done. Move cards one at a time with `PUT /api/cards/{id}/move`.

@@ -5,6 +5,9 @@
 # with capped-exponential backoff if it crashes, and answers `zpctl`.
 command = ["node", ".output/server/index.mjs"]
 cwd = "/app"
+# Not root: see the Dockerfile. /data is handed to this user by 10-mkdirs.sh.
+user = "completo"
+group = "completo"
 restart = "always"
 
 # Nitro handles SIGTERM; the extra headroom lets SQLite checkpoint its WAL

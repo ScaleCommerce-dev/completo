@@ -33,7 +33,7 @@ function idTokenClaims(idToken: unknown): MicrosoftIdClaims | null {
   }
 }
 
-export default defineOAuthMicrosoftEventHandler({
+export default withReturnPath(defineOAuthMicrosoftEventHandler({
   config: {
     // From NUXT_OAUTH_MICROSOFT_TENANT when set. This used to be hardcoded, and
     // the handler's config wins over runtime config, so the env var did nothing.
@@ -58,4 +58,4 @@ export default defineOAuthMicrosoftEventHandler({
   onError(event) {
     return sendRedirect(event, '/login?error=oauth')
   }
-})
+}))
