@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## v0.19.0
 
 ### App
 
-- **Paste screenshots straight into a card.** Copy an image or take a screenshot to the clipboard, then press ⌘V (Ctrl+V) in the description or a comment: it is uploaded as an attachment and shown where the cursor is, with no saving and uploading by hand. A screenshot gets a dated name such as `screenshot-2026-11-18-13-25-04.png` instead of `image.png`. Copied text from Excel or Word is still pasted as text.
+- **Search, notifications and your account are in the top bar.** The search field (⌘K) and the bell moved there from the sidebar, beside your avatar. The avatar opens the account menu, which now shows your name and email and holds the theme as Auto, Light and Dark; the separate theme switch is gone, and "System" is called "Auto" everywhere. On a narrow window the search shrinks to its icon.
+- **Paste screenshots straight into a card.** Copy an image or take a screenshot to the clipboard, then press ⌘V (Ctrl+V) in the description or a comment: it is uploaded as an attachment and shown where the cursor is, with no saving and uploading by hand. A screenshot gets a dated name such as `screenshot-2026-11-18-13-25-04.png` instead of `image.png`. Copied text from Excel or Word is still pasted as text. Thanks to iz-scale for [#6](https://github.com/ScaleCommerce-dev/completo/pull/6).
 - **No more images that only the author could see.** In Safari, or when pasting from Word, a pasted picture could be saved into a description as a link to the author's own browser or disk: it showed while editing, vanished from the card, and nobody else ever saw it. Such links are now left out of the paste.
 
 ## v0.18.0
