@@ -90,7 +90,7 @@ it('a comment AI suggestion never streams into the saved draft', () => {
 })
 
 it('the theme controls save the choice to the account, not only to this browser', () => {
-  for (const p of ['app/components/ThemeSwitch.vue', 'app/layouts/default.vue']) {
+  for (const p of ['app/components/AccountMenu.vue', 'app/layouts/default.vue']) {
     const src = code(p)
     expect(src, p).toMatch(/setTheme\(/)
     expect(src, p).not.toMatch(/colorMode\.preference\s*=[^=]/)

@@ -12,9 +12,9 @@ Evidenz nach `01-grundsaetze.md`: **B** im Browser geprüft, **T** technisch gep
 | Theme-Modell | `class="c2s-theme" data-theme` auf `<html>`, daher erben alle Portale (Dialoge, Menüs, Tooltips) das Theme | B |
 | Schriften | Plus Jakarta Sans 400–800 + kursiv 400, DM Mono 400/500, Inter 400–700, lokal über `@nuxt/fonts`; `font-synthesis: none` | B |
 | Shell | Sidebar und Topbar immer dunkel, Inhaltsfläche `--c2s-canvas` mit 18px-Ecke, Innenabstände nach den vier Breakpoints | B |
-| Sidebar | 224px, 204px bis 1150px, eingeklappt 64px, Breite animiert 200ms; Einträge 12px auf 13×12px; aktiv ist der Eintrag mit dem längsten passenden Pfad; gleitender Aktivindikator je Gruppe (kein Flug zwischen Gruppen, Erstplatzierung statisch); Zähler als 10px-Pille; Einklappen-Schalter unten | B |
+| Sidebar | 224px, 204px bis 1150px, eingeklappt 64px, Breite animiert 200ms; Einträge 13px/500 in 40px-Zeilen, Icons 18px, aktiv 600; keine Suche und keine Benachrichtigungen (beide in der Topbar); aktiv ist der Eintrag mit dem längsten passenden Pfad; gleitender Aktivindikator je Gruppe (kein Flug zwischen Gruppen, Erstplatzierung statisch); Zähler als 10px-Pille; Einklappen-Schalter unten | B |
 | Mobile Navigation | Sidebar ab 980px als modaler Dialog in Shell-Farben | B |
-| Topbar | 52px (Phone 64px), Breadcrumb aus der Seitenspur, Theme-Schalter 64×36, Trenner 1×22px, Kontomenü mit Profil, Anmeldung und Sicherheit, API docs, Abmelden | B |
+| Topbar | 52px (Phone 64px), Breadcrumb aus der Seitenspur; rechts Suche als Feld (⌘K, 256px, Fläche `--c2s-shell-hover`, Radius 9px, Text und Icon `--c2s-shell-label`, Tasten umrandet ohne Fläche; unter `md` nur Icon), Trenner 1×22px, Glocke mit Zähler, Konto als Avatar mit Chevron ohne Namen; alle drei 36px auf einer Mittellinie, auf jeder Breite an derselben Stelle. Keine Suche und keine Benachrichtigungen in der Sidebar. Kontomenü in der Reihenfolge der Guideline: Kopf mit Avatar, Name und E-Mail, Profil, Anmeldung und Sicherheit, API docs, Theme als eine Segmentzeile (Auto, Hell, Dunkel mit Icon und Namen; Standard Auto), Abmelden, Version als Fußzeile 12px `--c2s-muted`; kein Theme-Schalter in der Topbar | B |
 | Seitenkopf | h1 26px / −0,9px, Beschreibung, Aktionen rechts, 30px zum Inhalt, umbrechend | B |
 | Scrollen | ein Scroller pro Ebene; bis 620px scrollt die ganze Inhaltsfläche unter fester Topbar; Scrollbars 8px, Thumb `--c2s-scroll-thumb`, auf Mausgeräten nur bei Hover, Forced Colors systemeigen | B |
 | Inhaltsnavigation | Profil: 240px, sticky, folgt der Scrollposition, `aria-current="location"`, weiches Scrollen, ersetzt nur den Hash | B |
@@ -26,18 +26,18 @@ Evidenz nach `01-grundsaetze.md`: **B** im Browser geprüft, **T** technisch gep
 | Dialoge | eine Breite `min(510px, 100% − 32px)`, Radius 16px, 32px Innenabstand (Phone 24px) für Kopf, Inhalt und Aktionen über ein Token, keine Trennlinie über den Aktionen, Aktionen 28px über dem Ende, Titel 22px, Text 14px/1,8, Felder und Aktionen 44px, Schatten, Backdrop mit Blur, Ein 280ms / Aus 180ms; Löschbestätigung mit 52px-Danger-Kachel, Bestätigung im Dialog auf Danger-Soft; „Discard changes?" mit „Keep editing" / „Discard" | B |
 | Karten-Panel (`CardModal`) | Fläche, Dialogschatten und Backdrop-Tönung wie Dialoge, 32px Innenabstand, Titel 22px, Ein 280ms / Aus 180ms; Anhänge als Dropzone 1,5px gestrichelt | B |
 | Karten-Detailseite | Kartentitel ist der 26px-Seitentitel (an Ort und Stelle bearbeitbar), Ticket-ID als kopierbare Metadaten davor; Hauptspalte und Eigenschaften als Karten auf der Inhaltsfläche | B |
-| Kontomenü | Einträge 44px, min. 210px, Chevron dreht 180° in 200ms | B |
+| Kontomenü | Einträge 44px, 256px breit (die Theme-Zeile braucht Platz für drei benannte Segmente), Chevron dreht 180° in 200ms | B |
 | Zähler | Zähler neben Titeln (Abschnitte, Board-Spalten) als Pille auf `--c2s-badge` | B |
 | Status- und Rollenmarken | alle `UBadge` als Pille (Radius 999px) wie die Rollenmarken der Projektkarten | B |
 | Seitenkopf-Aktionen | Sekundäraktionen (Members, Settings, Mark all read, Clean up) als Sekundär-Button mit `--c2s-button-border` | B |
-| Menüs | min. 210px, Einträge 12×10px, Löschen in `--c2s-danger` | B |
+| Menüs | min. 210px, Einträge 12×10px, Löschen in `--c2s-danger`; eine linke Kante: Überschriften und Fußzeilen auf der Textkante der Einträge (`app.config.ts` › `dropdownMenu` › `label`, auch Feldmenüs und Fälligkeitsauswahl); Segment-Schalter im Menü ohne Rahmen, aktives Segment neutral, ohne Gewichtswechsel | B |
 | Befehlspalette | Dialog-Hülle (Radius 16px, Dialogschatten, Backdrop mit Blur), Suchfeld 44px, Gruppenlabels 10px uppercase, Zeilen 12×10px, Hervorhebung `--c2s-surface-subtle`, aktuelle Seite 600 | B |
 | Suche in Toolbars | 44px, max. 360px | B |
 | Feedback | Erfolg/Fehler auf Soft-Fläche mit Rahmen und Textfarbe, Radius 10px, 16px, 14px/1,6; Anzeigedauer nach Regel (5s / 10s / 2,5s + 300ms je Wort / Fehler bleiben), ohne Fortschrittsbalken bei bleibenden Meldungen | B, T |
 | Leerzustände | „Noch nichts vorhanden" auf `--c2s-brand-card-background` mit Primäraktion; „Keine Treffer" schlicht mit Weg zu den Filtern | B |
 | Zugangsseiten | Formularspalte links, dunkler Bildbereich rechts, bis 780px nur Formular; Titel 36px/800/−1,4px (Phone 34px). Bildbereich: echte Board-Ansicht (Demo-Projekt „Spring Launch", Dark Mode, `public/auth/board-preview.jpg`) über den Rand hinaus, darüber eine Karte im Ziehen mit Ghost-Platz, wie das Board sie zeichnet; Eintritt nach Motion-Katalog „große Vorschau" | B |
 | Zugang, Routing | Nach der Anmeldung zurück zum ursprünglichen Ziel (nur Pfade dieser Site) | T |
-| Motion | Sammlungseintritt 420ms, Staffel 36ms bis 180ms; Tab-Inhalt 280ms; Dialog; Theme-Schalter 180ms; Reduced Motion schaltet alles ab | Q |
+| Motion | Sammlungseintritt 420ms, Staffel 36ms bis 180ms; Tab-Inhalt 280ms; Dialog; Reduced Motion schaltet alles ab | Q |
 | Anmelde-/Abmeldeübergang | gemeinsame Zeitachse über `useAuthTransition`, Doppelauslösung gesperrt, Reduced Motion 140ms Überblendung | B (Reduced Motion), Q (volle Bewegung) |
 | Fokus | Eingabeart-Modul: Tastatur 2px `--c2s-focus` Offset 2px, Maus 1px neutral nur auf Textfeldern, Shell weiß Offset 3px, `data-focus-field` für zusammengesetzte Felder, Forced Colors `Highlight` | B, T |
 | Skip-Link | erster fokussierbarer Punkt, springt zur Inhaltsfläche | B |

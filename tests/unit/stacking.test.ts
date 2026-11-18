@@ -41,8 +41,8 @@ const CSS = blankComments(readFileSync(MAIN_CSS, 'utf8'))
 
 /** The class the layout hands `UDashboardSearch`, read rather than assumed. */
 const MARKER = readFileSync(LAYOUT, 'utf8')
-  // `\s` and not `[\s\S]`: `<UDashboardSearchButton` sits above it in the same
-  // file and would otherwise match first, swallowing everything up to the first
+  // `\s` and not `[\s\S]`, so that a `<UDashboardSearchButton` in this file
+  // could never match first and swallow everything up to the first
   // self-closing tag inside its slot.
   .match(/<UDashboardSearch\s[\s\S]*?\/>/)?.[0]
   .match(/\sclass="([^"]*)"/)?.[1]

@@ -164,7 +164,7 @@ watch(() => props.profileData?.emailNotifications, (value) => {
         <div class="flex items-center px-3 py-2.5 bg-default">
           <div class="flex items-center gap-2 w-28 shrink-0">
             <UIcon
-              name="i-lucide-sun-moon"
+              name="i-lucide-palette"
               class="text-sm text-dimmed"
             />
             <span class="text-sm font-medium text-muted">Theme</span>
@@ -173,7 +173,7 @@ watch(() => props.profileData?.emailNotifications, (value) => {
                toggle were clipped by the box's `overflow-hidden`. -->
           <div class="flex flex-wrap gap-1">
             <button
-              v-for="option in [{ value: 'system', label: 'System', icon: 'i-lucide-monitor' }, { value: 'light', label: 'Light', icon: 'i-lucide-sun' }, { value: 'dark', label: 'Dark', icon: 'i-lucide-moon' }]"
+              v-for="option in [{ value: 'system', label: 'Auto', icon: 'i-lucide-monitor' }, { value: 'light', label: 'Light', icon: 'i-lucide-sun' }, { value: 'dark', label: 'Dark', icon: 'i-lucide-moon' }]"
               :key="option.value"
               type="button"
               class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors"

@@ -79,7 +79,7 @@ const trail = computed<Crumb[]>(() => {
   <!--
     The connect2scale shell (handoff `03-layout-navigation.md`):
 
-      ┌ topbar ─ breadcrumb ················· bell · theme │ account ┐  shell, always dark
+      ┌ topbar ─ breadcrumb ·············· search │ bell · account ┐  shell, always dark
       ╭ content ─────────────────────────────────────────────────────┤  canvas, rounded top-left
       │ page header  h1 26px · description ············ meta · actions│
       │ toolbar                                                       │
@@ -133,17 +133,54 @@ const trail = computed<Crumb[]>(() => {
       </template>
 
       <template #right>
-        <!-- Below `lg` the sidebar is behind the menu button, so the bell
-             comes back here. Wrapped: the bell's root is a UTooltip, which
-             renders no element of its own to take a class. -->
-        <span class="flex lg:hidden">
-          <NotificationBell />
-        </span>
-        <ThemeSwitch />
+        <!-- Product actions, a divider, then the person's own: notifications
+             and account (handoff `03` › Topbar). Search was the sidebar's first
+             row; it is global like the rest, and the topbar is where every
+             other app on the guideline keeps it. Below `md` it collapses to
+             its glyph, because the breadcrumb needs the width. -->
+        <!-- Dressed as a field, not a button: it opens a palette, but what
+             people look for is a search field. A recessed fill one step above
+             the shell (`bg-muted`, the shell's hover tint) instead of an
+             outline on the bar, the field radius, and placeholder-quiet text
+             and glyph (`text-dimmed`, the shell label colour); measured against
+             another app on the guideline, where the outlined version read as a
+             command. 36px, the bell's height, not the 44px every button gets:
+             that left 4px of air in the 52px topbar. -->
+        <UDashboardSearchButton
+          label="Search"
+          variant="ghost"
+          class="w-64 min-h-9 py-1.5 rounded-field bg-muted hover:bg-elevated ring ring-inset ring-default font-normal text-dimmed max-md:hidden"
+        >
+          <!-- Its own `kbds` prop renders ⌘ as a character, and no font on any
+               platform we checked carries ⌘, ↵, ← and → together, so the glyph
+               came from a system fallback and looked different in every
+               browser. The `#trailing` slot replaces them with drawn keys. -->
+          <template #trailing>
+            <!-- Transparent and muted: a hint inside the field, not two
+                 blocks on it. The outline variant fills with the shell colour,
+                 which punched dark holes in the field's tint. -->
+            <UiKey
+              value="meta"
+              variant="outline"
+              class="bg-transparent text-muted"
+            />
+            <UiKey
+              value="k"
+              variant="outline"
+              class="bg-transparent text-muted"
+            />
+          </template>
+        </UDashboardSearchButton>
+        <UDashboardSearchButton
+          collapsed
+          variant="ghost"
+          class="md:hidden"
+        />
         <span
-          class="h-5.5 w-px bg-accented"
+          class="h-5.5 w-px bg-accented mx-1"
           aria-hidden="true"
         />
+        <NotificationBell />
         <AccountMenu />
       </template>
     </UDashboardNavbar>

@@ -1,7 +1,10 @@
 <script setup lang="ts">
 /**
- * The header bell, below `lg` only: from `lg` up, notifications are a sidebar
- * row (see `ui/Page.vue`). The fallback poll moved to the layout with them.
+ * The topbar bell, at every width, directly left of the account menu (handoff
+ * `03` › Topbar). It was a sidebar row from `lg` up and this bell below, so
+ * the feature moved when the window was resized; the sidebar holds areas you
+ * work in, not signals. The fallback poll lives in the layout, which never
+ * remounts.
  */
 const { unreadCount } = useUnreadCount()
 
@@ -17,15 +20,14 @@ const label = computed(() => unreadCount.value > 0 ? `Notifications, ${unreadCou
     <!-- One control, a link: `UButton` with `to` renders the `<a>` itself. It was
          a button inside a `NuxtLink`, which is invalid nesting and two tab stops.
 
-         `md` and square, the size of every page action beside it (New project,
-         Settings). It was `xs`, a 20px box with a 12px glyph next to 32px
-         buttons with 20px glyphs, and the navbar's right edge stepped in height
-         from one control to the next. -->
+         36px square, the guideline's icon button (handoff `04` › Buttons),
+         and the height of the search field and account button beside it in
+         the topbar: the global 44px minimum made it the tallest thing there. -->
     <UButton
       to="/notifications"
       variant="ghost"
       color="neutral"
-      class="relative notification-bell"
+      class="relative notification-bell min-h-9 min-w-9 justify-center p-0"
       square
       :aria-label="label"
     >

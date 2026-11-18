@@ -26,11 +26,12 @@ const { phase: authPhase } = useAuthTransition()
 useNotificationStream()
 
 /**
- * The unread count rides on the sidebar's Notifications row. The 30s poll is the
- * stream's fallback (see `useNotificationStream`) and lives here because the
- * sidebar is the one place that never remounts.
+ * The unread count rides on the topbar bell (`NotificationBell`). The 30s poll
+ * is the stream's fallback (see `useNotificationStream`) and lives here because
+ * the layout never remounts, while the bell remounts with every page's
+ * `UiPage`.
  */
-const { unreadCount, refreshUnreadCount } = useUnreadCount()
+const { refreshUnreadCount } = useUnreadCount()
 let unreadPoll: ReturnType<typeof setInterval> | undefined
 onMounted(() => {
   unreadPoll = setInterval(refreshUnreadCount, 30000)
@@ -61,18 +62,9 @@ function withActive(items: NavigationMenuItem[]): NavigationMenuItem[] {
   return items.map(item => ({ ...item, active: item.to === activeTo.value }))
 }
 
-/** `slot` routes the row to `#notifications-leading`, which hangs the collapsed rail's dot. */
 const sidebarSections = computed(() => navSections.value.map(section => ({
   ...section,
-  items: withActive(section.items.map(item => item.to === '/notifications'
-    ? {
-        ...item,
-        slot: 'notifications',
-        badge: unreadCount.value > 0
-          ? { label: unreadCount.value > 99 ? '99+' : String(unreadCount.value), color: 'primary' as const, variant: 'soft' as const }
-          : undefined
-      }
-    : item))
+  items: withActive(section.items)
 })))
 
 /**
@@ -112,7 +104,7 @@ onUnmounted(() => window.removeEventListener('resize', placeIndicators))
 
 /** The three states `UColorModeButton` cycles, as command-palette rows. */
 const COLOR_MODES = [
-  { value: 'system', label: 'System theme', icon: 'i-lucide-monitor' },
+  { value: 'system', label: 'Auto theme', icon: 'i-lucide-monitor' },
   { value: 'light', label: 'Light theme', icon: 'i-lucide-sun' },
   { value: 'dark', label: 'Dark theme', icon: 'i-lucide-moon' }
 ] as const
@@ -323,26 +315,6 @@ watch(searchOpen, (open) => {
       </template>
 
       <template #default="{ collapsed }">
-        <!-- Its own `kbds` prop renders ⌘ as a character, and no font on any
-             platform we checked carries ⌘, ↵, ← and → together — so the glyph
-             came from a system fallback and looked different in every browser.
-             The `#trailing` slot replaces them with drawn keys. See UiKey. -->
-        <UDashboardSearchButton
-          :collapsed="collapsed"
-          variant="outline"
-        >
-          <template #trailing>
-            <UiKey
-              value="meta"
-              variant="subtle"
-            />
-            <UiKey
-              value="k"
-              variant="subtle"
-            />
-          </template>
-        </UDashboardSearchButton>
-
         <template
           v-for="(section, i) in sidebarSections"
           :key="i"
@@ -360,22 +332,7 @@ watch(searchOpen, (open) => {
             orientation="vertical"
             class="nav-group"
             :ui="{ link: 'font-medium' }"
-          >
-            <!-- Collapsed, the rail has no room for the count badge, so unread
-                 shows as a dot on the glyph instead. -->
-            <template #notifications-leading="{ item, ui, active }">
-              <UChip
-                :show="collapsed && unreadCount > 0"
-                size="sm"
-                inset
-              >
-                <UIcon
-                  :name="(item as NavigationMenuItem).icon!"
-                  :class="ui.linkLeadingIcon({ active })"
-                />
-              </UChip>
-            </template>
-          </UNavigationMenu>
+          />
           <!--
             An empty section says how to fill it rather than vanishing — as a
             caption under its heading, not as a row. Dressed as a nav link in dim

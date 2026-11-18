@@ -54,11 +54,9 @@ export function useNavigation() {
   const toast = useToast()
 
   const topItems = computed<NavItem[]>(() => [
-    // Here, not in the page header: they are the signed-in person's, on every
-    // page, and in the header they sat between a project's name and its
-    // Settings as if they belonged to the project. The unread count is added
-    // by the layout, which owns the poll.
-    { label: 'Notifications', icon: 'i-lucide-bell', to: '/notifications' },
+    // Notifications are not here: the sidebar holds areas you work in, and
+    // notifications are a signal, so they are the topbar bell beside the
+    // account (handoff `03` › Topbar), at every width.
     { label: 'My Tasks', icon: 'i-lucide-check-square', to: '/my-tasks' },
     { label: 'All Projects', icon: 'i-lucide-layout-grid', to: '/projects' },
     // In the top group rather than under Admin: people an admin allows
@@ -114,6 +112,8 @@ export function useNavigation() {
    * that is not.
    */
   const paletteItems = computed<NavItem[]>(() => [
+    // Not a sidebar row any more, but still a place ⌘K can take you.
+    { label: 'Notifications', icon: 'i-lucide-bell', to: '/notifications' },
     ...topItems.value,
     ...(projects.value || []).map(projectItem),
     ...adminItems.value

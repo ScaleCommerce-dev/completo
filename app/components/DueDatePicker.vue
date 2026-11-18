@@ -49,7 +49,7 @@ function clear() {
           slot rather than approximated: a header that is a point off the others
           is worse than no header, since it reads as a different kind of thing.
         -->
-        <div class="w-full flex items-center font-semibold text-highlighted p-1.5 text-sm border-b border-default">
+        <div class="w-full flex items-center font-semibold text-highlighted p-1.5 px-2.5 text-sm border-b border-default">
           Due date
         </div>
 

@@ -471,18 +471,31 @@
   border-radius: var(--c2s-radius-pill);
 }
 
-/* Navigation entries (handoff `03` › Sidebar): 12px on 13×12px padding,
-   radius 8px, icon gap 11px. Active is a filled accent with white 700 text;
+/* Navigation entries (handoff `03` › Sidebar): 13px in 40px rows, 18px icons,
+   radius 8px, icon gap 11px. Active is a filled accent with white 600 text;
    hover is the shell's 4% white.
+
+   The guideline said 12px on 13×12px padding and 700 until it was changed to
+   match: 12px light-on-dark was the smallest text you click anywhere in the
+   app, and its 20px icons outweighed the words in 46px rows. 13px is the size of every
+   other entry (menus, the command palette); 14px, as a sibling app uses, would
+   match the body and cut user-named projects short in the 204px sidebar. 600
+   is what "selected" weighs everywhere else.
 
    Here rather than in `app.config.ts` because the sidebar is the only
    `UNavigationMenu` and these values are the shell's, not the menu's. Nuxt UI
    paints the active fill on `::before`, so that is what this colours. */
 .c2s-shell [data-slot='link'] {
-  font-size: 12px;
-  padding: 13px 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  min-height: 40px;
+  padding: 0 12px;
   gap: 11px;
   color: var(--c2s-shell-text);
+}
+.c2s-shell [data-slot='link'] [data-slot='linkLeadingIcon'] {
+  width: 18px;
+  height: 18px;
 }
 .c2s-shell [data-slot='link']::before {
   border-radius: var(--c2s-radius-md);
@@ -495,7 +508,7 @@
 }
 .c2s-shell [data-slot='link'][data-active] {
   color: #fff;
-  font-weight: 700;
+  font-weight: 600;
 }
 .c2s-shell [data-slot='link'][data-active]::before {
   background-color: var(--c2s-accent);

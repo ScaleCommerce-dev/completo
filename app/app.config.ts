@@ -405,9 +405,12 @@ export default defineAppConfig({
       variants: {
         size: {
           md: {
-            // Not `label`: the due-date picker hand-builds a header from the
-            // upstream label classes, and `menu-placement.test.ts` keeps it so.
-            item: 'px-2.5 py-3 text-sm gap-2.5'
+            item: 'px-2.5 py-3 text-sm gap-2.5',
+            // A heading or footer starts where the entries' content starts.
+            // Upstream pads a label 6px and an item 10px, so every menu header
+            // stood 4px left of the icons below it. The due-date picker builds
+            // its header by hand; `menu-placement.test.ts` folds this in.
+            label: 'px-2.5'
           }
         }
       }

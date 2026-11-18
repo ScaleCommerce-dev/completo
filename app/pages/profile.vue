@@ -1,8 +1,6 @@
 <script setup lang="ts">
 useSeoMeta({ title: 'Profile' })
 
-const { public: { appVersion } } = useRuntimeConfig()
-
 const { data: profileData, status: profileStatus, error: profileError, refresh: refreshProfile } = useFetch<{
   createdAt: string | null
   lastSeenAt: string | null
@@ -89,13 +87,6 @@ const SECTIONS = [
         >
           <ProfileDangerZone />
         </section>
-
-        <div
-          v-if="appVersion"
-          class="mt-6 mb-8 text-center text-xs text-dimmed"
-        >
-          Completo v{{ appVersion }}
-        </div>
       </div>
     </div>
   </UiPage>

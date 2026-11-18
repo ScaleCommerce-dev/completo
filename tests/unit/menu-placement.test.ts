@@ -83,28 +83,28 @@ describe('the due-date picker is headed like the field menus', () => {
     expect(picker).toContain('Due date')
   })
 
-  it('uses the label classes Nuxt UI renders for a menu label', () => {
-    // Set equality against upstream, minus the two deltas this header genuinely
-    // has: no `gap-1.5`, because there is no leading icon to space, and the divider
-    // the menu items get from their viewport's `divide-y`, which a hand-built
-    // header has to draw itself.
+  /**
+   * The app's own `label` override for the default size, from `app.config.ts`:
+   * menu headings start on the entries' text edge, so this header must too.
+   */
+  const config = readFileSync(join(ROOT, 'app/app.config.ts'), 'utf8')
+  const dropdownConfig = config.match(/dropdownMenu: \{([\s\S]*?)\n {4}\}/)?.[1] ?? ''
+  const configLabel = (dropdownConfig.match(/\blabel: '([^']*)'/)?.[1] ?? '').split(/\s+/).filter(Boolean)
+
+  it('uses the label classes a menu label renders with', () => {
+    // Set equality against upstream plus the app's override, minus the two
+    // deltas this header genuinely has: no `gap-1.5`, because there is no
+    // leading icon to space, and the divider the menu items get from their
+    // viewport's `divide-y`, which a hand-built header has to draw itself.
     //
     // As a set rather than as a pinned string in upstream's order: the previous
     // version could not tell an upstream change from a deliberate restyle here,
     // and failed on either.
     const header = picker.match(/<div class="([^"]*)">\s*\n\s*Due date/)?.[1] ?? ''
-    const expected = new Set([...upstreamLabel.filter(t => t !== 'gap-1.5'), 'border-b', 'border-default'])
+    const expected = new Set([...upstreamLabel.filter(t => t !== 'gap-1.5'), ...configLabel, 'border-b', 'border-default'])
 
     expect(upstreamLabel.length).toBeGreaterThan(0)
+    expect(configLabel.length).toBeGreaterThan(0)
     expect(new Set(header.split(/\s+/).filter(Boolean))).toEqual(expected)
-  })
-
-  it('is not restyled from app.config, which would make the comparison above a lie', () => {
-    // The app overrides `content` and `item` on this theme but not `label`. If that
-    // changes, the override has to be folded into `upstreamLabel`.
-    const config = readFileSync(join(ROOT, 'app/app.config.ts'), 'utf8')
-    const override = config.match(/dropdownMenu: \{([\s\S]*?)\n {4}\}/)?.[1] ?? ''
-
-    expect(override).not.toMatch(/\blabel:/)
   })
 })
