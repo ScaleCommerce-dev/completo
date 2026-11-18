@@ -256,6 +256,21 @@ const {
   pickUrl: insertUrlImage
 } = useImagePicker(() => props.cardId, insertImageMarkdown)
 
+/** See `ProseEditor`'s paste handling; here the image is written as Markdown. */
+const uploadPastedImage = inject(PASTE_IMAGE_UPLOADER, null)
+
+function onTextareaPaste(event: ClipboardEvent) {
+  const images = pastedImageFiles(event.clipboardData)
+  if (!images.length || !uploadPastedImage) return
+  event.preventDefault()
+  void (async () => {
+    for (const file of images) {
+      const image = await uploadPastedImage(namePastedImage(file))
+      if (image) insertImageMarkdown(image.alt, image.src)
+    }
+  })()
+}
+
 function onTextareaInput() {
   if (mentionActive.value) return
   const el = editorRef.value?.textareaEl
@@ -292,6 +307,7 @@ defineExpose({
     :overlay-open="mentionActive"
     @textarea-keydown="onTextareaKeydown"
     @textarea-input="onTextareaInput"
+    @textarea-paste="onTextareaPaste"
   >
     <template #toolbar-append>
       <UPopover

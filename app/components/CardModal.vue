@@ -275,13 +275,16 @@ let bodyChildren: MutationObserver | null = null
  * see `useFileDrop` for what that fixes.
  */
 const panelEl = ref<HTMLElement | null>(null)
-const attachmentsRef = ref<{ uploadFiles: (files: File[]) => Promise<void> } | null>(null)
+const attachmentsRef = ref<AttachmentListHandle | null>(null)
 
 const { dragging } = useFileDrop({
   root: () => panelEl.value,
   enabled: () => isEdit.value || !!props.onEnsureCard,
   onFiles: files => attachmentsRef.value?.uploadFiles(files)
 })
+
+/** A screenshot pasted into the description or a comment; see `utils/pasted-images.ts`. */
+providePasteImageUploader(attachmentsRef, () => isEdit.value || !!props.onEnsureCard)
 
 function updateBodyFade() {
   const el = bodyScroller

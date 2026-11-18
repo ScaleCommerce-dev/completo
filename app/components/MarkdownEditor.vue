@@ -31,6 +31,7 @@ const modelValue = defineModel<string>({ default: '' })
 const emit = defineEmits<{
   'textarea-keydown': [event: KeyboardEvent]
   'textarea-input': [event: Event]
+  'textarea-paste': [event: ClipboardEvent]
 }>()
 
 const editTab = ref<'write' | 'preview'>('write')
@@ -326,6 +327,7 @@ defineExpose({ textareaEl, editTab, startEditing })
         :style="{ minHeight: `${minHeight}px`, ...(maxHeight != null ? { maxHeight: `${maxHeight}px` } : {}) }"
         @keydown="onKeydown"
         @input="emit('textarea-input', $event)"
+        @paste="emit('textarea-paste', $event)"
       />
       <slot name="after-textarea" />
     </div>

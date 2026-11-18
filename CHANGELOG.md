@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **Paste screenshots straight into a card.** Copy an image or take a screenshot to the clipboard, then press ⌘V (Ctrl+V) in the description or a comment: it is uploaded as an attachment and shown where the cursor is, with no saving and uploading by hand. A screenshot gets a dated name such as `screenshot-2026-11-18-13-25-04.png` instead of `image.png`. Copied text from Excel or Word is still pasted as text.
+
 ## v0.18.0
 
 ### App
