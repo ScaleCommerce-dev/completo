@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user, project, membership } = await resolveProject(event)
@@ -34,17 +34,63 @@ export default defineEventHandler(async (event) => {
     statusToBoardIds.get(bc.statusId)!.add(bc.boardId)
   }
 
-  // Per-board stats (open cards only — exclude done status)
-  const boardCardCounts = new Map<string, number>()
+  // A view's count is what the view shows, less done: its saved filters and its
+  // sub-task setting decide that, and they differ per view, so the open cards
+  // are loaded — five narrow columns and their tag ids, not whole rows — and run
+  // through the same predicate the view itself filters with.
+  const openCards = db.select({
+    id: schema.cards.id,
+    statusId: schema.cards.statusId,
+    priority: schema.cards.priority,
+    assigneeId: schema.cards.assigneeId,
+    parentId: schema.cards.parentId
+  })
+    .from(schema.cards)
+    .where(and(
+      eq(schema.cards.projectId, project.id),
+      project.doneStatusId ? ne(schema.cards.statusId, project.doneStatusId) : undefined
+    ))
+    .all()
+  const tagsByCard = new Map<number, { id: string }[]>()
+  if (openCards.length) {
+    const tagRows = db.select({ cardId: schema.cardTags.cardId, tagId: schema.cardTags.tagId })
+      .from(schema.cardTags)
+      .innerJoin(schema.cards, eq(schema.cardTags.cardId, schema.cards.id))
+      .where(eq(schema.cards.projectId, project.id))
+      .all()
+    for (const row of tagRows) {
+      if (!tagsByCard.has(row.cardId)) tagsByCard.set(row.cardId, [])
+      tagsByCard.get(row.cardId)!.push({ id: row.tagId })
+    }
+  }
+  const filterableCards = openCards.map(c => ({ ...c, tags: tagsByCard.get(c.id) || [] }))
+
+  function viewCardCount(
+    view: { tagFilters: string | null, statusFilters: string | null, assigneeFilters: string | null, priorityFilters: string | null, showSubtasks: number },
+    inView: (card: { statusId: string }) => boolean = () => true
+  ): number {
+    const shown = filterableCards.filter(c => inView(c) && (view.showSubtasks || !c.parentId))
+    return filterCards(shown, {
+      statusIds: safeParseJson<string[]>(view.statusFilters, []),
+      priorities: safeParseJson<string[]>(view.priorityFilters, []),
+      assigneeIds: safeParseJson<string[]>(view.assigneeFilters, []),
+      tagIds: new Set(safeParseJson<string[]>(view.tagFilters, []))
+    }).length
+  }
+
+  const boardStatusIds = new Map<string, Set<string>>()
+  for (const bc of allBoardColumns) {
+    if (!boardStatusIds.has(bc.boardId)) boardStatusIds.set(bc.boardId, new Set())
+    boardStatusIds.get(bc.boardId)!.add(bc.statusId)
+  }
+
+  // Per-board last activity (done included: moving a card to done is activity)
   const boardLastActivity = new Map<string, Date | null>()
   for (const group of cardGroups) {
     const boardIdsForStatus = statusToBoardIds.get(group.statusId)
     if (!boardIdsForStatus) continue
     const updated = new Date(group.lastUpdated * 1000)
     for (const bid of boardIdsForStatus) {
-      if (group.statusId !== project.doneStatusId) {
-        boardCardCounts.set(bid, (boardCardCounts.get(bid) || 0) + group.count)
-      }
       const current = boardLastActivity.get(bid)
       if (!current || updated > current) {
         boardLastActivity.set(bid, updated)
@@ -71,7 +117,7 @@ export default defineEventHandler(async (event) => {
     hiddenCardFields: normalizeHiddenCardFields(safeParseJson(b.hiddenCardFields, [])),
     // A boolean, as `boards/[id]` returns it; the column stores 0 or 1.
     showSubtasks: !!b.showSubtasks,
-    cardCount: boardCardCounts.get(b.id) || 0,
+    cardCount: viewCardCount(b, c => !!boardStatusIds.get(b.id)?.has(c.statusId)),
     lastActivity: boardLastActivity.get(b.id)?.toISOString() || null,
     createdBy: b.createdById ? creatorsMap.get(b.createdById) || null : null
   }))
@@ -118,13 +164,11 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // List card count = all open project cards (not filtered by board columns)
-  const listCardCount = openCardCount
-
   const lists = projectLists.map(l => ({
     ...l,
     showSubtasks: !!l.showSubtasks,
-    cardCount: listCardCount,
+    // Every open card of the project, through the list's own filters
+    cardCount: viewCardCount(l),
     createdBy: l.createdById ? creatorsMap.get(l.createdById) || null : null
   }))
 

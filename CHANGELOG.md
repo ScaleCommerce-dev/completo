@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **The card count on each board and list in a project's overview now matches what that view shows.** Every list used to show the same number, the project's open cards, and boards ignored their filters. The count now follows each view's filters and its sub-task setting, and still leaves out done cards.
+
 ## v0.19.0
 
 ### App
