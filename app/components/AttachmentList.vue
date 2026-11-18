@@ -106,7 +106,27 @@ const dropRow = computed(() => {
   return { icon: 'i-lucide-paperclip', label: 'Add a file, or drop it here', spin: false }
 })
 
-defineExpose({ uploadFiles })
+/**
+ * One image pasted into an editor on this card. Unlike `uploadFiles` it hands the
+ * attachment back, because the editor has to write a link to it. It makes the
+ * draft card first in create mode, the same as a drop does.
+ */
+async function uploadImage(file: File) {
+  if (props.readonly) return null
+  try {
+    await ensureCard()
+  } catch {
+    return null // The card could not be created; the host has said so.
+  }
+  if (!cardIdRef.value) return null
+  try {
+    return (await upload(file)) ?? null
+  } catch {
+    return null // upload errors handled by composable
+  }
+}
+
+defineExpose({ uploadFiles, uploadImage })
 </script>
 
 <template>

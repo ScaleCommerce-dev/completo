@@ -78,13 +78,16 @@ const canModerateComments = computed(() => cardData.value?.role === 'owner')
  * browser navigate to `file:///…` and leave the page.
  */
 const dropRoot = ref<HTMLElement | null>(null)
-const attachmentsRef = ref<{ uploadFiles: (files: File[]) => Promise<void> } | null>(null)
+const attachmentsRef = ref<AttachmentListHandle | null>(null)
 
 const { dragging } = useFileDrop({
   root: () => dropRoot.value,
   enabled: () => !!card.value,
   onFiles: files => attachmentsRef.value?.uploadFiles(files)
 })
+
+/** A screenshot pasted into the description or a comment; see `utils/pasted-images.ts`. */
+providePasteImageUploader(attachmentsRef, () => !!card.value)
 
 /**
  * Properties save as they change, matching the board, the list and the card

@@ -352,6 +352,13 @@ const editorProps = {
    * onto a word is for.
    */
   handlePaste: (_view: unknown, event: ClipboardEvent) => {
+    const images = pastedImageFiles(event.clipboardData)
+    if (images.length && uploadPastedImage) {
+      event.preventDefault()
+      void insertPastedImages(images)
+      return true
+    }
+
     const text = event.clipboardData?.getData('text/plain')
     if (!text) return false
     if (event.clipboardData?.getData('text/html')) return false
@@ -367,6 +374,20 @@ const editorProps = {
     event.preventDefault()
     current.commands.insertContent(text, { contentType: 'markdown' })
     return true
+  }
+}
+
+/** Provided by the card surface; absent anywhere an upload has no card to go to. */
+const uploadPastedImage = inject(PASTE_IMAGE_UPLOADER, null)
+
+/**
+ * Each image goes in where the caret is once its upload returns, one after the
+ * other so several pasted together keep their order.
+ */
+async function insertPastedImages(files: File[]) {
+  for (const file of files) {
+    const image = await uploadPastedImage?.(namePastedImage(file))
+    if (image) editor.value?.chain().focus().setImage({ src: image.src, alt: image.alt }).run()
   }
 }
 
