@@ -34,6 +34,21 @@ export function pastedImageFiles(data: DataTransfer | null | undefined): File[] 
   return [...data.files].filter(file => file.type.startsWith('image/'))
 }
 
+/**
+ * Pasted or dropped HTML without the images that only exist on this machine.
+ *
+ * WebKit hands a pasted picture to the page as `<img src="blob:…">`, and Word
+ * points at `file:///…/clip_image001.png`. The editor took either as an ordinary
+ * image and saved it into the description: it showed in the author's own tab
+ * until a reload and never for anyone else, and the read view's sanitizer drops
+ * it, so it appeared only while editing. Measured on card 1 of the dev seed
+ * before PR #6. An image that should stay is uploaded instead, see
+ * `pastedImageFiles`.
+ */
+export function withoutLocalImages(html: string): string {
+  return html.replace(/<img\b[^>]*?\bsrc\s*=\s*["']?\s*(?:blob|file):[^>]*>/gi, '')
+}
+
 const EXTENSIONS: Record<string, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',

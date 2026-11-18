@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pastedImageFiles, namePastedImage } from '../../app/utils/pasted-images'
+import { pastedImageFiles, namePastedImage, withoutLocalImages } from '../../app/utils/pasted-images'
 
 /** The parts of a DataTransfer the paste handlers read. */
 function clipboard(files: File[], data: Record<string, string> = {}) {
@@ -46,5 +46,21 @@ describe('namePastedImage', () => {
   it('keeps a real file name', () => {
     const file = png('Wireframe Startseite.png')
     expect(namePastedImage(file, at)).toBe(file)
+  })
+})
+
+describe('withoutLocalImages', () => {
+  it('drops the blob: image WebKit makes of a pasted picture', () => {
+    expect(withoutLocalImages('<img src="blob:https://completo.0ploy.dev/9e96">')).toBe('')
+  })
+
+  it('drops a file: image from Word, whatever the quoting and attribute order', () => {
+    expect(withoutLocalImages('<p>a<img width=10 src=\'file:///Users/x/clip_image001.png\'>b</p>')).toBe('<p>ab</p>')
+    expect(withoutLocalImages('<IMG SRC=file:///tmp/x.png>')).toBe('')
+  })
+
+  it('keeps images every viewer can load, and the text around them', () => {
+    const html = '<p>see <img src="/api/attachments/1/download" alt="blob: notes"> and <img src="https://x/y.png"></p>'
+    expect(withoutLocalImages(html)).toBe(html)
   })
 })

@@ -374,7 +374,10 @@ const editorProps = {
     event.preventDefault()
     current.commands.insertContent(text, { contentType: 'markdown' })
     return true
-  }
+  },
+
+  /** Paste and drop both pass through here; see `withoutLocalImages`. */
+  transformPastedHTML: (html: string) => withoutLocalImages(html)
 }
 
 /** Provided by the card surface; absent anywhere an upload has no card to go to. */
