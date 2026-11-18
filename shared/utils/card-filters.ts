@@ -24,7 +24,7 @@ export type FilterField = 'status' | 'priority' | 'assignee' | 'tags'
  */
 export interface FilterableCard {
   statusId: string
-  priority: string
+  priority?: string | null
   assigneeId?: string | null
   tags?: { id: string }[]
 }
@@ -56,7 +56,7 @@ function activeFilters(f: CardFilterState): ActiveFilter[] {
   }
   if (f.priorities.length) {
     const set = new Set(f.priorities)
-    active.push({ field: 'priority', values: f.priorities, test: c => set.has(c.priority) })
+    active.push({ field: 'priority', values: f.priorities, test: c => !!c.priority && set.has(c.priority) })
   }
   if (f.assigneeIds.length) {
     const set = new Set(f.assigneeIds)
