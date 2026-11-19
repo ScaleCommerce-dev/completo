@@ -49,7 +49,7 @@ Evidenz nach `01-grundsaetze.md`: **B** im Browser geprüft, **T** technisch gep
 
 | Regel (Datei, Abschnitt) | Umsetzung in Completo | Grund | Freigabe | Testnachweis |
 |---|---|---|---|---|
-| `04` Buttons: Mindesthöhe aller Aktionen 44px | `md` und `lg` haben 44px; `xs`/`sm` bleiben dichte Inline-Bedienelemente auf Karten, Listenzellen und in Menüs | Ein Kanban-Board mit 44px-Zielen auf jeder Karte verliert etwa ein Drittel seiner sichtbaren Karten | offen | `app.config.ts` › `button` |
+| `04` Buttons: Mindesthöhe aller Aktionen 44px | `md` und `lg` haben 44px; `xs`/`sm` bleiben dichte Inline-Bedienelemente auf Karten, Listenzellen und in Menüs, und in der Toolbar über einer dichten Arbeitsfläche (Kalender) | Ein Kanban-Board mit 44px-Zielen auf jeder Karte verliert etwa ein Drittel seiner sichtbaren Karten. Über dem Kalender wogen 44px-Bedienelemente schwerer als der Inhalt, den sie steuern; Kalender-Apps setzen dort etwa 28 bis 32px | offen | `app.config.ts` › `button`; `CalendarPage.vue` › Toolbar |
 | `08` Texte: Deutsch | UI bleibt Englisch | Completo ist ein englischsprachiges Produkt; eine Übersetzung ist ein eigenes Projekt | offen | — |
 | `02` Farben: `--c2s-accent` als Akzent | Nuxt UIs `text-primary` ist im Dunkelmodus `--c2s-focus` (#ff8fc3), gefüllte Primäraktionen nutzen `bg-accent` (#d4006a) | Nuxt UI hat eine Variable für Text und Fläche; #d4006a als Text auf #252533 liegt unter 3:1 | offen | `design-tokens.test.ts` › focus contrast |
 | `02` Typografie: drei Textrollen | Nuxt UIs fünf Textstufen; `default` und `toned` interpoliert | Completo nutzt fünf Stufen | offen | `main.css` › CONNECT2SCALE |

@@ -576,13 +576,13 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
              controls fitted only while none was set, and wrapped exactly when
              the calendar was in use. One style for all of it, neutral outline
              at one height, where a black pill toggle, outlined arrows and
-             white selects had stood side by side. That height is the regular
-             44px, as the page header's: the styleguide's dense `sm` exception
-             covers cards, list cells and menus, not a toolbar, and a 32px row
-             under 44px header buttons made those look oversized. The month
-             itself is in the page title (see `#title`). -->
+             white selects had stood side by side. That height is `sm`, a
+             recorded deviation from the styleguide's 44px minimum
+             (`docs/connect2scale.md`): tried at 44px, the controls outweighed
+             the calendar they steer. The month itself is in the page title
+             (see `#title`). -->
         <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <UFieldGroup>
+          <UFieldGroup size="sm">
             <UButton
               icon="i-lucide-chevron-left"
               color="neutral"
@@ -609,6 +609,7 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
           <!-- The chosen one solid: a grey fill read as disabled, so the
                *other* option looked selected. -->
           <UFieldGroup
+            size="sm"
             role="group"
             aria-label="Week or month"
           >
@@ -633,6 +634,7 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
               label="Filter"
               color="neutral"
               variant="outline"
+              size="sm"
             >
               <template
                 v-if="activeFilters"
