@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"strings"
 	"time"
 )
@@ -43,6 +45,24 @@ func (e *APIError) Error() string {
 }
 
 func (c *Client) do(method, path string, body io.Reader) (*http.Response, error) {
+	contentType := ""
+	if body != nil {
+		contentType = "application/json"
+	}
+	return c.doWith(c.HTTPClient, method, path, body, contentType)
+}
+
+// transferTimeout bounds an upload or a download. The 30-second default suits a
+// JSON call; a 10 MB attachment on a slow link can take longer than that.
+const transferTimeout = 10 * time.Minute
+
+func (c *Client) transferClient() *http.Client {
+	hc := *c.HTTPClient
+	hc.Timeout = transferTimeout
+	return &hc
+}
+
+func (c *Client) doWith(hc *http.Client, method, path string, body io.Reader, contentType string) (*http.Response, error) {
 	// Don't use url.JoinPath - it escapes query parameters
 	u := c.BaseURL + path
 
@@ -51,11 +71,11 @@ func (c *Client) do(method, path string, body io.Reader) (*http.Response, error)
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.Token)
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
 	}
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := hc.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
@@ -116,3 +136,53 @@ func jsonBody(payload any) (io.Reader, error) {
 	}
 	return bytes.NewReader(b), nil
 }
+
+// PostFile uploads data as the multipart field `field`, named filename, and
+// returns the response body. The body is built in memory so the request carries
+// a Content-Length: the server refuses an oversized upload from that header
+// before reading it, which a chunked body would not allow.
+func (c *Client) PostFile(path, field, filename, contentType string, data []byte) (json.RawMessage, error) {
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, escapeQuotes(field), escapeQuotes(filename)))
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	h.Set("Content-Type", contentType)
+	part, err := w.CreatePart(h)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := part.Write(data); err != nil {
+		return nil, err
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+	resp, err := c.doWith(c.transferClient(), "POST", path, bytes.NewReader(buf.Bytes()), w.FormDataContentType())
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return json.RawMessage(b), nil
+}
+
+// Download streams the response body of path into dst and returns the byte count.
+func (c *Client) Download(path string, dst io.Writer) (int64, error) {
+	resp, err := c.doWith(c.transferClient(), "GET", path, nil, "")
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	return io.Copy(dst, resp.Body)
+}
+
+// escapeQuotes is mime/multipart's own escaping for a Content-Disposition value.
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string { return quoteEscaper.Replace(s) }

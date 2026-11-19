@@ -3033,6 +3033,10 @@
                     {
                       "type": "object",
                       "properties": {
+                        "attachmentCount": {
+                          "type": "integer",
+                          "description": "Number of files attached to the card"
+                        },
                         "assignee": {
                           "$ref": "#/components/schemas/UserSummary"
                         },

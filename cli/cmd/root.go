@@ -21,7 +21,14 @@ var rootCmd = &cobra.Command{
 	Use:   "completo",
 	Short: "CLI for Completo kanban board",
 	Long:  "Interact with your Completo instance from the command line or AI agents.",
+	// Errors are printed once, by Execute. Cobra's own copy came first, followed by
+	// the usage text and then Execute's copy, so a failed upload printed its error
+	// twice around a screen of flags.
+	SilenceErrors: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// Past argument and flag parsing, an error is the command's, not a usage
+		// mistake, so the usage text would only bury it.
+		cmd.SilenceUsage = true
 		// Skip config loading for config and version commands
 		if cmd.Name() == "config" || cmd.Name() == "version" || cmd.Name() == "self-update" {
 			return nil
@@ -37,7 +44,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
 }

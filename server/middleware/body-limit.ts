@@ -8,9 +8,16 @@
  * declare their length (a chunked body has none, and would be buffered blind);
  * every other route gets a generous one. Uploads are exempt: they check their own
  * limit (`cards/[id]/attachments.post.ts`).
+ *
+ * `/mcp` carries an attachment as base64 inside JSON (`add_attachment`), which is
+ * a third larger than the file, so its limit is the upload limit in base64 plus
+ * room for the JSON-RPC envelope. At the default limit a 10 MB file would have
+ * been refused at 1 MB, before the tool or the upload handler could say why.
  */
 const ANONYMOUS_MAX_BYTES = 16 * 1024
 const DEFAULT_MAX_BYTES = 1024 * 1024
+const MCP_ENVELOPE_BYTES = 64 * 1024
+const MCP_MAX_BYTES = Math.max(DEFAULT_MAX_BYTES, Math.ceil(UPLOAD_MAX_SIZE_BYTES / 3) * 4 + MCP_ENVELOPE_BYTES)
 const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 function isAnonymousRoute(path: string): boolean {
@@ -29,7 +36,7 @@ export default defineEventHandler((event) => {
   const lengthHeader = getRequestHeader(event, 'content-length')
   const declared = lengthHeader === undefined ? undefined : Number(lengthHeader)
   const anonymous = isAnonymousRoute(path)
-  const limit = anonymous ? ANONYMOUS_MAX_BYTES : DEFAULT_MAX_BYTES
+  const limit = anonymous ? ANONYMOUS_MAX_BYTES : path === '/mcp' ? MCP_MAX_BYTES : DEFAULT_MAX_BYTES
 
   if (declared === undefined) {
     if (anonymous && getRequestHeader(event, 'transfer-encoding')) {

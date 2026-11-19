@@ -32,9 +32,27 @@ export interface ToolDefinition {
 /** A failure the model can act on: surfaced as an `isError` result, never as a protocol error. */
 export class ToolError extends Error {}
 
+/**
+ * A result that is more than JSON: `get_attachment` hands an image back as an
+ * image block the model can look at, and a text file as its text, rather than a
+ * base64 string inside a JSON document. `structured` is what `structuredContent`
+ * carries, so a client that reads that field still gets the metadata.
+ */
+export class ToolContent {
+  readonly content: JsonObject[]
+  readonly structured: JsonObject
+  constructor(content: JsonObject[], structured: JsonObject) {
+    this.content = content
+    this.structured = structured
+  }
+}
+
 export interface ToolContext {
   get<T>(path: string, query?: JsonObject): Promise<T>
+  /** `body` may be a `FormData`, which goes out as multipart (attachments) instead of JSON. */
   send<T>(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T>
+  /** A response body as bytes, for an attachment download. */
+  getBytes(path: string): Promise<ArrayBuffer>
   /**
    * Where links point: `APP_URL` when set, as in emails and the OAuth metadata, so
    * a card link is the address people use rather than whatever host or forwarded
@@ -99,6 +117,14 @@ interface ApiCardDetail extends ApiCard {
   subtaskCards: Array<{ id: number, ticket: string, title: string, statusId: string, assignee: { name: string } | null }>
 }
 interface ApiComment { id: string, body: string, authorName: string | null, createdAt: string, updatedAt: string | null }
+interface ApiAttachment {
+  id: string
+  cardId: number
+  originalName: string
+  size: number
+  createdAt: string
+  uploader: { name: string } | null
+}
 interface ApiSearchHit {
   id: number
   title: string
@@ -219,6 +245,7 @@ function cardView(ctx: ToolContext, card: ApiCard, project: ApiProjectRef, statu
     dueDate: card.dueDate ? card.dueDate.slice(0, 10) : null,
     tags: (card.tags ?? []).map(t => t.name),
     ...(card.commentCount !== undefined ? { comments: card.commentCount } : {}),
+    ...(card.attachmentCount ? { attachments: card.attachmentCount } : {}),
     // A parent is always in the same project, so its ticket is the card's key.
     ...(card.parentId ? { parent: `${project.key}-${card.parentId}` } : {}),
     ...(card.subtasks ? { subtaskProgress: card.subtasks } : {}),
@@ -250,6 +277,80 @@ function commentView(c: ApiComment) {
   // updatedAt is set on insert too, so its presence says nothing; an edit is a
   // later timestamp.
   return { author: c.authorName, body: c.body, createdAt: c.createdAt, edited: !!c.updatedAt && c.updatedAt !== c.createdAt }
+}
+
+// ─── Attachments ─────────────────────────────────────────────────────────────
+
+/**
+ * Text a get_attachment result carries by default. A 10 MB log in one tool result
+ * buries everything else in the model's context; maxChars raises it when the
+ * whole file is the point.
+ */
+const ATTACHMENT_TEXT_DEFAULT_CHARS = 100_000
+const ATTACHMENT_TEXT_MAX_CHARS = 2_000_000
+
+/**
+ * Images get_attachment returns as an image block. Larger ones are refused by
+ * model clients anyway (Claude's limit is 5 MB per image), so they come back as
+ * metadata and a link instead of a payload the client throws away.
+ */
+const ATTACHMENT_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+
+/** Served types the model can read as text; everything else is binary to it. */
+function isTextType(contentType: string): boolean {
+  return contentType.startsWith('text/') || contentType === 'application/json' || contentType === 'application/xml'
+}
+
+/** Image types a model client renders. SVG is text that executes, not an image block. */
+const MODEL_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp'])
+
+function attachmentView(ctx: ToolContext, a: ApiAttachment) {
+  return {
+    id: a.id,
+    name: a.originalName,
+    size: a.size,
+    type: serveContentType(a.originalName),
+    uploadedBy: a.uploader?.name ?? null,
+    createdAt: a.createdAt,
+    url: `${ctx.origin}/api/attachments/${a.id}/download`
+  }
+}
+
+/**
+ * The attachment a ref names among one card's attachments: the id, a unique id
+ * prefix (the CLI prints eight characters), or the exact file name when only one
+ * attachment has it. Resolving inside the card keeps a guessed id from reaching
+ * another card's file; `/api/attachments/:id` takes a bare id with no card in it.
+ */
+function resolveAttachment(list: ApiAttachment[], ref: string, ticket: string): ApiAttachment {
+  const w = ref.trim()
+  const exact = list.find(a => a.id === w)
+  if (exact) return exact
+  const byPrefix = w.length >= 4 ? list.filter(a => a.id.startsWith(w)) : []
+  if (byPrefix.length === 1) return byPrefix[0]!
+  const byName = list.filter(a => a.originalName === w)
+  if (byName.length === 1) return byName[0]!
+  const names = list.map(a => `${a.id.slice(0, 8)} ${a.originalName}`).join(', ')
+  if (byPrefix.length > 1 || byName.length > 1) {
+    throw new ToolError(`"${ref}" matches more than one attachment on ${ticket}: ${names}. Use the id.`)
+  }
+  throw new ToolError(`No attachment "${ref}" on ${ticket}. Attachments: ${names || 'none'}`)
+}
+
+/** The file content add_attachment was given, as bytes: exactly one of text or base64. */
+function attachmentBytes(args: JsonObject): Uint8Array {
+  const text = args.text
+  const b64 = args.base64
+  if (text !== undefined && b64 !== undefined) throw new ToolError('Give text or base64, not both')
+  if (typeof text === 'string') return new TextEncoder().encode(text)
+  if (typeof b64 === 'string') {
+    const clean = b64.replace(/\s+/g, '')
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(clean) || clean.length % 4 !== 0) {
+      throw new ToolError('"base64" is not valid base64')
+    }
+    return new Uint8Array(Buffer.from(clean, 'base64'))
+  }
+  throw new ToolError('Give the file content as "text" (UTF-8) or "base64"')
 }
 
 function projectOf(card: ApiCardDetail): ApiProjectRef {
@@ -410,7 +511,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'get_card',
-    description: `A card in full: description (Markdown; checklist items are \`- [ ]\` lines), status, assignee, tags, due date, link, its parent or sub-tasks, and its latest ${CARD_COMMENT_LIMIT} comments, oldest first. Comments are newer than the description and override it where they disagree. When commentCount is higher, list_comments has the rest. Does not mark the card as read.`,
+    description: `A card in full: description (Markdown; checklist items are \`- [ ]\` lines), status, assignee, tags, due date, link, its parent or sub-tasks, its attachments (names; get_attachment reads one), and its latest ${CARD_COMMENT_LIMIT} comments, oldest first. Comments are newer than the description and override it where they disagree. When commentCount is higher, list_comments has the rest. Does not mark the card as read.`,
     inputSchema: schema({ card: CARD_REF }, ['card']),
     annotations: { readOnlyHint: true },
     run: async (ctx, args) => {
@@ -418,8 +519,12 @@ const TOOLS: Tool[] = [
       // Context for the model, not the person reading the card: markRead=false
       // keeps their unread dot, as `completo get` does.
       const comments = await ctx.get<ApiComment[]>(`/api/cards/${card.id}/comments?markRead=false`)
+      const attachments = card.attachmentCount
+        ? await ctx.get<ApiAttachment[]>(`/api/cards/${card.id}/attachments`)
+        : []
       return {
         ...cardView(ctx, card, projectOf(card), card.statuses),
+        ...(attachments.length ? { attachments: attachments.map(a => attachmentView(ctx, a)) } : {}),
         ...(card.subtaskCards.length
           ? {
               subtasks: card.subtaskCards.map(c => ({
@@ -599,6 +704,95 @@ const TOOLS: Tool[] = [
     }
   },
   {
+    name: 'list_attachments',
+    description: 'The files attached to a card: id, name, size, type, who uploaded it and a download link. get_attachment reads one.',
+    inputSchema: schema({ card: CARD_REF }, ['card']),
+    annotations: { readOnlyHint: true },
+    run: async (ctx, args) => {
+      const card = await loadCard(ctx, need(args, 'card'))
+      const list = await ctx.get<ApiAttachment[]>(`/api/cards/${card.id}/attachments`)
+      return list.map(a => attachmentView(ctx, a))
+    }
+  },
+  {
+    name: 'add_attachment',
+    description: `Attach a file to a card. Pass the content as "text" for a text file (CSV, Markdown, JSON, a log) or as "base64" for anything else; the name decides the type, so give it the right extension. Allowed: images, PDF, text, .md, .csv, .json, .xml, .zip and Office documents, up to the server's upload limit (${UPLOAD_MAX_SIZE_MB} MB by default).`,
+    inputSchema: schema({
+      card: CARD_REF,
+      filename: { type: 'string', description: 'File name with extension, e.g. report.csv.' },
+      text: { type: 'string', description: 'The file content as UTF-8 text. Use this or base64.' },
+      base64: { type: 'string', description: 'The file content, base64-encoded. Use this or text.' }
+    }, ['card', 'filename']),
+    run: async (ctx, args) => {
+      const card = await loadCard(ctx, need(args, 'card'))
+      const filename = need(args, 'filename').trim()
+      if (/[\\/]/.test(filename)) throw new ToolError('"filename" is a name, not a path')
+      const bytes = attachmentBytes(args)
+      const form = new FormData()
+      form.append('file', new Blob([bytes as BlobPart], { type: serveContentType(filename) }), filename)
+      const created = await ctx.send<ApiAttachment>('POST', `/api/cards/${card.id}/attachments`, form)
+      return { ticket: `${projectOf(card).key}-${card.id}`, ...attachmentView(ctx, created) }
+    }
+  },
+  {
+    name: 'get_attachment',
+    description: `Read a file attached to a card. A text file (CSV, Markdown, JSON, XML, a log) comes back as its text, the first ${ATTACHMENT_TEXT_DEFAULT_CHARS.toLocaleString('en')} characters unless maxChars asks for more; a PNG, JPEG, GIF or WebP image comes back as an image. Any other file comes back as its details and download link only.`,
+    inputSchema: schema({
+      card: CARD_REF,
+      attachment: { type: 'string', description: 'The attachment id (or its first 8 characters) or its exact file name, as list_attachments shows.' },
+      maxChars: { type: 'integer', minimum: 1, maximum: ATTACHMENT_TEXT_MAX_CHARS, description: `For a text file: how many characters to return. Default ${ATTACHMENT_TEXT_DEFAULT_CHARS}.` }
+    }, ['card', 'attachment']),
+    annotations: { readOnlyHint: true },
+    run: async (ctx, args) => {
+      const card = await loadCard(ctx, need(args, 'card'))
+      const ticket = `${projectOf(card).key}-${card.id}`
+      const list = await ctx.get<ApiAttachment[]>(`/api/cards/${card.id}/attachments`)
+      const a = resolveAttachment(list, need(args, 'attachment'), ticket)
+      const meta = { ticket, ...attachmentView(ctx, a) }
+      const type = meta.type
+      if (isTextType(type)) {
+        const text = new TextDecoder().decode(await ctx.getBytes(`/api/attachments/${a.id}/download`))
+        const limit = typeof args.maxChars === 'number'
+          ? Math.min(Math.max(Math.floor(args.maxChars), 1), ATTACHMENT_TEXT_MAX_CHARS)
+          : ATTACHMENT_TEXT_DEFAULT_CHARS
+        const cut = text.length > limit
+        const structured = { ...meta, chars: text.length, ...(cut ? { truncated: true, returnedChars: limit } : {}) }
+        return new ToolContent([
+          { type: 'text', text: JSON.stringify(structured, null, 2) },
+          { type: 'text', text: cut ? text.slice(0, limit) : text }
+        ], structured)
+      }
+      if (MODEL_IMAGE_TYPES.has(type) && a.size <= ATTACHMENT_IMAGE_MAX_BYTES) {
+        const bytes = await ctx.getBytes(`/api/attachments/${a.id}/download`)
+        return new ToolContent([
+          { type: 'text', text: JSON.stringify(meta, null, 2) },
+          { type: 'image', data: Buffer.from(bytes).toString('base64'), mimeType: type }
+        ], meta)
+      }
+      const why = MODEL_IMAGE_TYPES.has(type)
+        ? `The image is larger than ${ATTACHMENT_IMAGE_MAX_BYTES / 1024 / 1024} MB, so it is not returned.`
+        : 'This file type is not returned as content.'
+      return { ...meta, note: `${why} Download it from url, or with \`completo attachment ${ticket} download ${a.id.slice(0, 8)}\`.` }
+    }
+  },
+  {
+    name: 'delete_attachment',
+    description: 'Remove a file from a card. Cannot be undone.',
+    inputSchema: schema({
+      card: CARD_REF,
+      attachment: { type: 'string', description: 'The attachment id (or its first 8 characters) or its exact file name, as list_attachments shows.' }
+    }, ['card', 'attachment']),
+    annotations: { destructiveHint: true },
+    run: async (ctx, args) => {
+      const card = await loadCard(ctx, need(args, 'card'))
+      const ticket = `${projectOf(card).key}-${card.id}`
+      const list = await ctx.get<ApiAttachment[]>(`/api/cards/${card.id}/attachments`)
+      const a = resolveAttachment(list, need(args, 'attachment'), ticket)
+      await ctx.send('DELETE', `/api/attachments/${a.id}`)
+      return { ticket, deleted: { id: a.id, name: a.originalName } }
+    }
+  },
+  {
     name: 'my_tasks',
     description: 'Every open card assigned to the caller, grouped by project.',
     inputSchema: schema({}),
@@ -693,13 +887,24 @@ export function toolContext(event: H3Event, userId: string): ToolContext {
   // Untyped on purpose: Nuxt's typed routes try to match a dynamic path against
   // every route in the app and the compiler gives up ("Excessive stack depth").
   const fetch = event.$fetch as unknown as (path: string, init: Record<string, unknown>) => Promise<unknown>
-  const call = async <T>(path: string, init: { method?: string, body?: unknown, query?: JsonObject }): Promise<T> => {
+  const call = async <T>(path: string, init: { method?: string, body?: unknown, query?: JsonObject, bytes?: boolean }): Promise<T> => {
+    const headers: Record<string, string> = { accept: init.bytes ? '*/*' : 'application/json' }
+    let body = init.body
+    if (body instanceof FormData) {
+      // The in-process fetch drops a FormData body's multipart Content-Type, and the
+      // upload handler then cannot parse it. Encoding it here keeps the boundary in
+      // the header the handler reads.
+      const encoded = new Response(body)
+      headers['content-type'] = encoded.headers.get('content-type')!
+      body = new Uint8Array(await encoded.arrayBuffer())
+    }
     try {
       return await fetch(path, {
         method: init.method ?? 'GET',
-        body: init.body,
+        body,
         query: init.query,
-        headers: { accept: 'application/json' }
+        headers,
+        ...(init.bytes ? { responseType: 'arrayBuffer' } : {})
       }) as T
     } catch (err) {
       throw new ToolError(apiMessage(err))
@@ -708,6 +913,7 @@ export function toolContext(event: H3Event, userId: string): ToolContext {
   return {
     get: (path, query) => call(path, { query }),
     send: (method, path, body) => call(path, { method, body }),
+    getBytes: path => call<ArrayBuffer>(path, { bytes: true }),
     origin: publicOrigin(event),
     userId
   }
