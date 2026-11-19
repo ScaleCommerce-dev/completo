@@ -65,12 +65,13 @@ const hiddenTagCount = computed(() => Math.max(0, props.card.tags.length - TAG_L
 </script>
 
 <template>
-  <!-- Identity. The ticket is the handle people quote, so it leads in the
-       same mono face ticket IDs use everywhere else; recency sits at the far
-       end because "which of these is the live one" is the other question a
-       reader is asking while they scan. -->
+  <!-- Identity. The ticket is the handle people quote, so it leads, styled as
+       ticket IDs are everywhere else (`card-id`, neutral): it names the card,
+       it is not a signal, so it takes no colour. Recency sits at the far end
+       because "which of these is the live one" is the other question a reader
+       is asking while they scan. -->
   <div class="flex items-baseline gap-2 px-5 pt-4 pb-3 min-w-0">
-    <span class="font-mono text-xs font-semibold text-primary shrink-0">
+    <span class="card-id text-xs text-muted shrink-0">
       {{ formatTicketId(card.projectKey, card.id) }}
     </span>
     <span class="text-xs text-dimmed truncate">{{ card.projectName }}</span>
