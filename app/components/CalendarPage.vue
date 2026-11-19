@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { BaseCard } from '~/types/card'
 import type { CalendarCard, CalendarApiCard, CalendarResponse } from '~/types/calendar'
-import { CALENDAR_MODES, EMPTY_FILTERS, matchesCalendar, UNASSIGNED, type CalendarFilters, type CalendarMode } from '#shared/utils/calendar-filter'
+import { CALENDAR_MODES, EMPTY_FILTERS, matchesCalendar, normalizeName, UNASSIGNED, type CalendarFilters, type CalendarMode } from '#shared/utils/calendar-filter'
 import { calendarDays, cardDay, isDayKey, localDay, periodTitle, shiftAnchor, weekStart } from '~/utils/calendar-days'
 
 /**
@@ -198,9 +198,19 @@ const peopleItems = computed(() => [
   ...(data.value?.people ?? []).map(p => ({ value: p.id, label: p.name }))
 ])
 const projectItems = computed(() => (data.value?.projects ?? []).map(p => ({ value: p.id, label: p.name })))
-const statusItems = computed(() => [...new Set((data.value?.statuses ?? []).map(s => s.name.trim()))]
-  .sort((a, b) => a.localeCompare(b))
-  .map(name => ({ value: name, label: name })))
+// One entry per name *as the filter matches it* (case and outer spaces ignored),
+// in its first spelling, as the server does for tags: deduplicated by exact
+// spelling, "In Progress" and "In progress" were two entries filtering the
+// same cards.
+const statusItems = computed(() => {
+  const byName = new Map<string, string>()
+  for (const s of data.value?.statuses ?? []) {
+    if (!byName.has(normalizeName(s.name))) byName.set(normalizeName(s.name), s.name.trim())
+  }
+  return [...byName.values()]
+    .sort((a, b) => a.localeCompare(b))
+    .map(name => ({ value: name, label: name }))
+})
 
 function filterModel(key: 'tags' | 'people' | 'projects' | 'statuses') {
   return computed({
