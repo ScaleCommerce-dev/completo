@@ -2,6 +2,7 @@
 import type { CalendarMode } from '#shared/utils/calendar-filter'
 import type { CalendarCard } from '~/types/calendar'
 import { cardsByDay, type CalendarDay } from '~/utils/calendar-days'
+import { descriptionSnippet } from '#shared/utils/card-search'
 
 /**
  * The Calendar page's grid: seven columns, one week (tall days with room for a
@@ -35,6 +36,33 @@ const WEEKDAY_HEADS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const byDay = computed(() => cardsByDay(props.cards))
 const cardsOn = (day: CalendarDay) => byDay.value.get(day.key) ?? []
 
+// ─── Hover preview ───────────────────────────────────────────────────────────
+
+/**
+ * The chip carries a title; the preview (`CardPreview`) answers the rest without
+ * opening the panel: status by name, priority, who has it, the other tags (for
+ * a content plan, the channel) and the start of the description, which for a
+ * post is the post. A hover card, not a tooltip: Nuxt UI fixes a tooltip at one
+ * line high, and the three lines this once put in one spilled over the
+ * neighbouring days.
+ *
+ * - **Half a second before it opens,** so sweeping the pointer across a month
+ *   does not flash a preview per chip.
+ * - **Beside the chip,** never over its own day.
+ * - **Never while dragging:** it closes when a drag starts and stays shut until
+ *   the drag ends, or it would ride along over the day being aimed at.
+ * - **Pointer only.** The underlying hover card ignores touch, and nothing in it
+ *   is missing from the panel a tap opens.
+ */
+const preview = ref<number | null>(null)
+function setPreview(cardId: number, open: boolean) {
+  if (open) {
+    if (dragging.value === null) preview.value = cardId
+  } else if (preview.value === cardId) {
+    preview.value = null
+  }
+}
+
 // ─── Drag a chip to another day ──────────────────────────────────────────────
 
 const dragging = ref<number | null>(null)
@@ -43,6 +71,7 @@ const MIME = 'application/x-completo-card'
 
 function onDragStart(e: DragEvent, card: CalendarCard) {
   dragging.value = card.id
+  preview.value = null
   e.dataTransfer?.setData(MIME, String(card.id))
   if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
 }
@@ -120,50 +149,64 @@ const minWidth = computed(() => props.mode === 'week' ? '980px' : '770px')
             </span>
           </div>
 
-          <!-- No hover tooltip: a card face carries what it needs, as on the board,
-               and the panel is one click away. A tooltip repeated the chip, did not
-               exist on touch, and covered the neighbouring days while scanning. -->
-          <button
+          <UPopover
             v-for="card in (mode === 'month' ? cardsOn(day).slice(0, MONTH_CHIPS) : cardsOn(day))"
             :key="card.id"
-            type="button"
-            draggable="true"
-            class="relative overflow-hidden w-full text-left rounded-md border border-default bg-default px-1.5 py-1 hover:border-accented hover:bg-elevated transition-colors cursor-grab active:cursor-grabbing"
-            :class="[card.isDone ? 'opacity-50' : '', dragging === card.id ? 'opacity-40' : '', priorityBarClass(card.priority) ? 'accent-edge' : '']"
-            :aria-label="`${card.ticket}: ${card.title}, ${card.statusName}${priorityBarClass(card.priority) ? `, ${priorityLabel(card.priority)} priority` : ''}. Drag to another day to move its due date.`"
-            @click="emit('card-click', card)"
-            @dragstart="onDragStart($event, card)"
-            @dragend="onDragEnd"
+            mode="hover"
+            :open-delay="500"
+            :close-delay="100"
+            :open="preview === card.id"
+            :content="CARD_PREVIEW_PLACEMENT"
+            :ui="{ content: 'w-96 max-h-96 flex flex-col' }"
+            @update:open="(open: boolean) => setPreview(card.id, open)"
           >
-            <!-- Priority edge bar, as on the board (`KanbanCard`): high and urgent only. -->
-            <span
-              v-if="priorityBarClass(card.priority)"
-              class="absolute left-0 top-0 bottom-0 w-accent-bar"
-              :class="[priorityBarClass(card.priority), card.priority === 'urgent' ? 'priority-urgent-pulse' : '']"
-              aria-hidden="true"
-            />
-            <!-- Two lines in a week, where a day has room; one in a month. -->
-            <span
-              class="text-xs font-medium text-highlighted"
-              :class="mode === 'week' ? 'line-clamp-2 break-words' : 'block truncate'"
-            >{{ card.title }}</span>
-            <span
-              v-if="mode === 'week'"
-              class="flex items-center gap-1.5 mt-0.5 min-w-0 text-2xs text-dimmed"
+            <button
+              type="button"
+              draggable="true"
+              class="relative overflow-hidden w-full text-left rounded-md border border-default bg-default px-1.5 py-1 hover:border-accented hover:bg-elevated transition-colors cursor-grab active:cursor-grabbing"
+              :class="[card.isDone ? 'opacity-50' : '', dragging === card.id ? 'opacity-40' : '', priorityBarClass(card.priority) ? 'accent-edge' : '']"
+              :aria-label="`${card.ticket}: ${card.title}, ${card.statusName}${priorityBarClass(card.priority) ? `, ${priorityLabel(card.priority)} priority` : ''}. Drag to another day to move its due date.`"
+              @click="emit('card-click', card)"
+              @dragstart="onDragStart($event, card)"
+              @dragend="onDragEnd"
             >
-              <span class="font-mono shrink-0">{{ card.ticket }}</span>
-              <span class="truncate">{{ card.projectName }}</span>
-              <UiAvatar
-                v-if="card.assignee"
-                :src="card.assignee.avatarUrl || undefined"
-                :alt="card.assignee.name"
-                :kind="card.assignee.kind"
-                :color="card.assignee.color"
-                size="3xs"
-                class="ml-auto shrink-0"
+              <!-- Priority edge bar, as on the board (`KanbanCard`): high and urgent only. -->
+              <span
+                v-if="priorityBarClass(card.priority)"
+                class="absolute left-0 top-0 bottom-0 w-accent-bar"
+                :class="[priorityBarClass(card.priority), card.priority === 'urgent' ? 'priority-urgent-pulse' : '']"
+                aria-hidden="true"
               />
-            </span>
-          </button>
+              <!-- Two lines in a week, where a day has room; one in a month. -->
+              <span
+                class="text-xs font-medium text-highlighted"
+                :class="mode === 'week' ? 'line-clamp-2 break-words' : 'block truncate'"
+              >{{ card.title }}</span>
+              <span
+                v-if="mode === 'week'"
+                class="flex items-center gap-1.5 mt-0.5 min-w-0 text-2xs text-dimmed"
+              >
+                <span class="font-mono shrink-0">{{ card.ticket }}</span>
+                <span class="truncate">{{ card.projectName }}</span>
+                <UiAvatar
+                  v-if="card.assignee"
+                  :src="card.assignee.avatarUrl || undefined"
+                  :alt="card.assignee.name"
+                  :kind="card.assignee.kind"
+                  :color="card.assignee.color"
+                  size="3xs"
+                  class="ml-auto shrink-0"
+                />
+              </span>
+            </button>
+
+            <template #content>
+              <CardPreview
+                :card="card"
+                :snippet="descriptionSnippet(card.description, '')"
+              />
+            </template>
+          </UPopover>
 
           <button
             v-if="mode === 'month' && cardsOn(day).length > MONTH_CHIPS"

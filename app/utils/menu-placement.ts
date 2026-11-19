@@ -33,3 +33,20 @@ export const FIELD_MENU_PLACEMENT = {
  */
 export const FIELD_MENU_ALIGN_START = { ...FIELD_MENU_PLACEMENT, align: 'start' } as const
 export const FIELD_MENU_ALIGN_END = { ...FIELD_MENU_PLACEMENT, align: 'end' } as const
+
+/**
+ * Where a card preview opens: **beside** the thing it previews, not below it.
+ *
+ * Not a field menu, so not `FIELD_MENU_PLACEMENT`. A field menu opens below its
+ * control because the control is where the eye already is and the menu is the
+ * next step. A preview is read *instead of* the chip, and on the Calendar below
+ * a chip is the rest of the same day: opening there covered exactly the cards
+ * the reader was comparing it with. To the side it covers the neighbouring day
+ * at most, and `start` keeps its top line level with the chip's.
+ */
+export const CARD_PREVIEW_PLACEMENT = {
+  side: 'right',
+  align: 'start',
+  sideOffset: 8,
+  collisionPadding: 12
+} as const
