@@ -56,6 +56,7 @@ const WIDTHS = {
 const SECTIONS: Record<string, Crumb> = {
   'projects': { label: 'All Projects', to: '/projects' },
   'my-tasks': { label: 'My Tasks', to: '/my-tasks' },
+  'calendar': { label: 'Calendar', to: '/calendar' },
   'notifications': { label: 'Notifications', to: '/notifications' },
   'agents': { label: 'Agents', to: '/agents' },
   'admin': { label: 'Admin' },
