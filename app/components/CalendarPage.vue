@@ -232,32 +232,17 @@ function clearFilters() {
 
 const projectCount = computed(() => data.value?.projects.length ?? 0)
 
-// ─── Active filters, as chips ────────────────────────────────────────────────
+// ─── Filters ─────────────────────────────────────────────────────────────────
 
 /**
- * The filters sit behind one "Filter" button, so the toolbar stays one line at
- * any width: four selects beside the date controls fitted only while nothing
- * was chosen, and wrapped exactly when the calendar was in use. What is chosen
- * shows here instead, one removable chip per value, because a filtered calendar
- * has to say why it shows only these cards, and a saved one has to say what it
- * is. The row exists only while it has something in it.
+ * The filters sit behind one "Filter" button with a count, so the toolbar stays
+ * one line at any width: four selects beside the date controls fitted only
+ * while nothing was chosen, and wrapped exactly when the calendar was in use.
+ * What is chosen is not repeated as chips under the toolbar. Whoever saved a
+ * calendar knows what it filters, the count says that something is filtered,
+ * and one click shows what: a row of chips spent a line on every visit to
+ * answer a question asked rarely.
  */
-type FilterKey = 'tags' | 'people' | 'projects' | 'statuses'
-interface FilterChip { key: FilterKey, value: string, label: string }
-const filterChips = computed<FilterChip[]>(() => {
-  const labelOf = (items: Array<{ value: string, label: string }>, value: string) => items.find(i => i.value === value)?.label
-  const f = filters.value
-  return [
-    ...f.tags.map(value => ({ key: 'tags' as const, value, label: `Tag: ${value}` })),
-    // A linked calendar can name a person or project the viewer does not share.
-    ...f.people.map(value => ({ key: 'people' as const, value, label: `Person: ${labelOf(peopleItems.value, value) ?? 'someone else'}` })),
-    ...f.projects.map(value => ({ key: 'projects' as const, value, label: `Project: ${labelOf(projectItems.value, value) ?? 'not one of yours'}` })),
-    ...f.statuses.map(value => ({ key: 'statuses' as const, value, label: `Status: ${labelOf(statusItems.value, value) ?? value}` }))
-  ]
-})
-function removeFilter(chip: FilterChip) {
-  filters.value = { ...filters.value, [chip.key]: filters.value[chip.key].filter(v => v !== chip.value) }
-}
 const filterOpen = ref(false)
 
 // ─── Live ────────────────────────────────────────────────────────────────────
@@ -499,6 +484,20 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
     variant="surface"
     :crumbs="saved ? [{ label: 'Calendar', to: '/calendar' }] : undefined"
   >
+    <!-- The name, then the month it is showing, muted: the name says which
+         calendar this is, the month where in time, as Apple Calendar heads its
+         page with the month. One line instead of a page title and a separate
+         month heading in the toolbar. The tab title and the breadcrumb keep the
+         name alone (`title` above), so they do not change on every step. -->
+    <template #title>
+      <span class="block truncate">
+        {{ saved?.name ?? 'Calendar' }}
+        <span
+          v-if="!missing"
+          class="font-semibold text-muted"
+        >{{ title }}</span>
+      </span>
+    </template>
     <template #actions>
       <template v-if="calendarId && saved">
         <UButton
@@ -572,16 +571,14 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
       />
 
       <template v-else>
-        <!-- One toolbar line, the same at any width. On the left, everything
-             about *when*, read as one phrase: previous, Today, next, the month,
-             and how much of it. On the right, one Filter button: four filter
-             selects beside the date controls fitted only while none was set,
-             and wrapped exactly when the calendar was in use. One style for
-             all of it, neutral outline at one height, where a black pill
-             toggle, outlined arrows and white selects had stood side by side.
-             The month is the toolbar's title, not the page's: the page title
-             says where you are (and names a saved calendar), the month says
-             when, and changes with every step. -->
+        <!-- One toolbar line of controls only, the same at any width. On the
+             left, moving through time and how much of it to show; on the
+             right, one Filter button: four filter selects beside the date
+             controls fitted only while none was set, and wrapped exactly when
+             the calendar was in use. One style for all of it, neutral outline
+             at one height, where a black pill toggle, outlined arrows and
+             white selects had stood side by side. The month itself is in the
+             page title (see `#title`). -->
         <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
           <UFieldGroup size="sm">
             <UButton
@@ -607,9 +604,6 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
               @click="step(1)"
             />
           </UFieldGroup>
-          <h2 class="text-lg font-semibold tracking-heading text-highlighted whitespace-nowrap">
-            {{ title }}
-          </h2>
           <!-- The chosen one solid: a grey fill read as disabled, so the
                *other* option looked selected. -->
           <UFieldGroup
@@ -705,34 +699,20 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
                     class="w-full"
                   />
                 </UFormField>
+                <!-- Clearing lives with the filters it clears. -->
+                <UButton
+                  v-if="activeFilters"
+                  label="Clear filters"
+                  icon="i-lucide-x"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  class="self-start"
+                  @click="clearFilters"
+                />
               </div>
             </template>
           </UPopover>
-        </div>
-
-        <!-- What is filtered, removable one value at a time. Only while set. -->
-        <div
-          v-if="filterChips.length"
-          class="flex flex-wrap items-center gap-1.5"
-        >
-          <UButton
-            v-for="chip in filterChips"
-            :key="`${chip.key}:${chip.value}`"
-            :label="chip.label"
-            trailing-icon="i-lucide-x"
-            color="neutral"
-            variant="subtle"
-            size="xs"
-            :aria-label="`Remove filter ${chip.label}`"
-            @click="removeFilter(chip)"
-          />
-          <UButton
-            label="Clear"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            @click="clearFilters"
-          />
         </div>
 
         <UiLoadError
