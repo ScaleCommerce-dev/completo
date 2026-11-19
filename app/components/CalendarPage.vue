@@ -468,9 +468,15 @@ async function deleteCalendar() {
   }
 }
 
+/**
+ * Everything a saved calendar offers beyond looking at it, in one menu: none of
+ * it is the page's primary action, and a Copy link button beside the menu made
+ * the header the heaviest thing on the page. Copy link leads, being the one
+ * used most.
+ */
 const savedMenu = computed(() => [[
-  { label: 'Rename', icon: 'i-lucide-pencil', onSelect: () => { renameOpen.value = true } },
-  { label: 'Copy link', icon: 'i-lucide-link', onSelect: copyLink }
+  { label: 'Copy link', icon: 'i-lucide-link', onSelect: copyLink },
+  { label: 'Rename', icon: 'i-lucide-pencil', onSelect: () => { renameOpen.value = true } }
 ], [
   { label: 'Delete calendar', icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => { deleteOpen.value = true } }
 ]])
@@ -500,13 +506,6 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
     </template>
     <template #actions>
       <template v-if="calendarId && saved">
-        <UButton
-          icon="i-lucide-link"
-          label="Copy link"
-          color="neutral"
-          variant="outline"
-          @click="copyLink"
-        />
         <UDropdownMenu
           :items="savedMenu"
           :content="{ align: 'end' }"
@@ -577,10 +576,13 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
              controls fitted only while none was set, and wrapped exactly when
              the calendar was in use. One style for all of it, neutral outline
              at one height, where a black pill toggle, outlined arrows and
-             white selects had stood side by side. The month itself is in the
-             page title (see `#title`). -->
+             white selects had stood side by side. That height is the regular
+             44px, as the page header's: the styleguide's dense `sm` exception
+             covers cards, list cells and menus, not a toolbar, and a 32px row
+             under 44px header buttons made those look oversized. The month
+             itself is in the page title (see `#title`). -->
         <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <UFieldGroup size="sm">
+          <UFieldGroup>
             <UButton
               icon="i-lucide-chevron-left"
               color="neutral"
@@ -607,7 +609,6 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
           <!-- The chosen one solid: a grey fill read as disabled, so the
                *other* option looked selected. -->
           <UFieldGroup
-            size="sm"
             role="group"
             aria-label="Week or month"
           >
@@ -632,7 +633,6 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
               label="Filter"
               color="neutral"
               variant="outline"
-              size="sm"
             >
               <template
                 v-if="activeFilters"
