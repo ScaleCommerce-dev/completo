@@ -172,12 +172,13 @@ export default defineEventHandler(async (event) => {
     createdBy: l.createdById ? creatorsMap.get(l.createdById) || null : null
   }))
 
-  // Against real membership, not `membership`: that is a synthetic owner row for
-  // an admin, and a star left behind by a removed member must not count.
-  // `isMember` goes out too, because `role` cannot tell an admin who is not in the
-  // project from an owner, and only members may star.
+  // A star counts for a member and for an admin (who sees every project). A row
+  // left behind by a removed member who is not an admin must not count, so this is
+  // checked against real membership, not `membership`, which is a synthetic owner
+  // row for an admin. `isMember` goes out too, because `role` cannot tell an admin
+  // who is not in the project from an owner.
   const isMember = isProjectMember(project.id, user.id)
-  const starred = isMember && !!db.select({ id: schema.projectStars.id })
+  const starred = (isMember || user.isAdmin) && !!db.select({ id: schema.projectStars.id })
     .from(schema.projectStars)
     .where(and(eq(schema.projectStars.userId, user.id), eq(schema.projectStars.projectId, project.id)))
     .get()

@@ -378,7 +378,7 @@
                           },
                           "starred": {
                             "type": "boolean",
-                            "description": "Whether the caller has starred this project, which puts it in their sidebar. Always false where the caller is not a member, including an admin's non-member projects."
+                            "description": "Whether the caller has starred this project, which puts it in their sidebar. Counts where the caller is a member or an admin."
                           }
                         }
                       }
@@ -612,7 +612,7 @@
                         },
                         "starred": {
                           "type": "boolean",
-                          "description": "Whether the caller has starred this project, which puts it in their sidebar. Always false where the caller is not a member, including an admin's non-member projects."
+                          "description": "Whether the caller has starred this project, which puts it in their sidebar. Counts where the caller is a member or an admin."
                         }
                       }
                     }
@@ -756,7 +756,7 @@
           "Projects"
         ],
         "summary": "Star project",
-        "description": "Stars the project for the caller, which puts it in their sidebar. Idempotent. Members only: an admin who is not a member gets 403.",
+        "description": "Stars the project for the caller, which puts it in their sidebar. Idempotent. Open to the project's members and to admins.",
         "operationId": "starProject",
         "parameters": [
           {
@@ -782,9 +782,6 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"

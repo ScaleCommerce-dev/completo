@@ -46,9 +46,10 @@ export default defineEventHandler(async (event) => {
 
   const projectIds = projects.map(p => p.project.id)
 
-  // A star counts only where the caller is a real member: an admin's synthetic
-  // 'admin' role is not membership, and a removed member's row is left behind
-  // on purpose (see `projectStars` in the schema).
+  // A star counts for every project listed here, because the list is exactly the
+  // projects the caller can see (their memberships, or all of them for an admin).
+  // A removed member's row is left behind on purpose (see `projectStars` in the
+  // schema) and drops out with the project.
   const starredIds = new Set(db.select({ projectId: schema.projectStars.projectId })
     .from(schema.projectStars)
     .where(eq(schema.projectStars.userId, userId))
@@ -118,7 +119,7 @@ export default defineEventHandler(async (event) => {
   return projects.map(({ project, role }) => ({
     ...project,
     role,
-    starred: role !== 'admin' && starredIds.has(project.id),
+    starred: starredIds.has(project.id),
     boardCount: allBoards.filter(b => b.projectId === project.id).length,
     listCount: allLists.filter(l => l.projectId === project.id).length,
     totalCards: cardCountByProject.get(project.id) || 0,

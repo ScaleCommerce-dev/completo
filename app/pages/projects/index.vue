@@ -220,7 +220,6 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
                 />
               </UTooltip>
               <ProjectStarButton
-                v-if="project.role !== 'admin'"
                 :project-id="project.id"
                 :project-name="project.name"
                 :starred="project.starred"

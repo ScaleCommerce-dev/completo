@@ -232,11 +232,11 @@ async function confirmDeleteTag(tagId: string) {
       </span>
     </template>
 
-    <!-- The member check is on the slot, not the button: UiPage spaces the
-         description by whether this slot exists, so an empty one left an
-         admin outside the project with an 8px gap where 14 belongs. -->
+    <!-- Everyone who can open the project may star it, an admin outside it
+         included. The check stays on the slot, not the button: UiPage spaces the
+         description by whether this slot exists. -->
     <template
-      v-if="project?.isMember"
+      v-if="project"
       #title-trailing
     >
       <!-- No project key, for the reason on the All Projects card: this page
