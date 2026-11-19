@@ -553,7 +553,165 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
       </UPopover>
     </template>
 
-    <div class="flex-1 min-h-0 overflow-y-auto thin-scroll content-gutter-x content-gutter-bottom flex flex-col gap-3">
+    <template
+      v-if="!listFailed && !missing"
+      #toolbar
+    >
+      <!-- One toolbar line of controls only, the same at any width. On the
+             left, moving through time and how much of it to show; on the
+             right, one Filter button: four filter selects beside the date
+             controls fitted only while none was set, and wrapped exactly when
+             the calendar was in use. One style for all of it, neutral outline
+             at one height, where a black pill toggle, outlined arrows and
+             white selects had stood side by side. In the page's toolbar slot,
+             so it stays put while the calendar scrolls, as the styleguide
+             asks of a toolbar (`03` › Scrollen); inside the body it scrolled
+             away under a header that stayed. That height is `sm`, a
+             recorded deviation from the styleguide's 44px minimum
+             (`docs/connect2scale.md`): tried at 44px, the controls outweighed
+             the calendar they steer. The month itself is in the page title
+             (see `#title`). -->
+      <div class="w-full flex flex-wrap items-center gap-x-3 gap-y-2">
+        <UFieldGroup size="sm">
+          <UButton
+            icon="i-lucide-chevron-left"
+            color="neutral"
+            variant="outline"
+            :aria-label="mode === 'week' ? 'Previous week' : 'Previous month'"
+            @click="step(-1)"
+          />
+          <!-- Always enabled, as in Apple Calendar: greyed out on the
+                 current period it read as broken, and pressing it is harmless. -->
+          <UButton
+            label="Today"
+            color="neutral"
+            variant="outline"
+            @click="setDate(today)"
+          />
+          <UButton
+            icon="i-lucide-chevron-right"
+            color="neutral"
+            variant="outline"
+            :aria-label="mode === 'week' ? 'Next week' : 'Next month'"
+            @click="step(1)"
+          />
+        </UFieldGroup>
+        <!-- The chosen one solid: a grey fill read as disabled, so the
+               *other* option looked selected. -->
+        <UFieldGroup
+          size="sm"
+          role="group"
+          aria-label="Week or month"
+        >
+          <UButton
+            v-for="item in MODE_ITEMS"
+            :key="item.value"
+            :label="item.label"
+            color="neutral"
+            :variant="mode === item.value ? 'solid' : 'outline'"
+            :aria-pressed="mode === item.value"
+            @click="modeModel = item.value"
+          />
+        </UFieldGroup>
+
+        <UPopover
+          v-model:open="filterOpen"
+          :content="FIELD_MENU_ALIGN_END"
+          class="ml-auto"
+        >
+          <UButton
+            icon="i-lucide-list-filter"
+            label="Filter"
+            color="neutral"
+            variant="outline"
+            size="sm"
+          >
+            <template
+              v-if="activeFilters"
+              #trailing
+            >
+              <UBadge
+                :label="String(activeFilters)"
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              />
+            </template>
+          </UButton>
+          <template #content>
+            <div class="p-3 flex flex-col gap-3 w-72">
+              <UFormField label="Tags">
+                <USelectMenu
+                  v-model="tagsModel"
+                  :items="tagItems"
+                  value-key="value"
+                  multiple
+                  placeholder="Any"
+                  icon="i-lucide-tag"
+                  class="w-full"
+                >
+                  <template #item-leading="{ item }">
+                    <UiStatusDot
+                      :color="item.color"
+                      size="sm"
+                    />
+                  </template>
+                </USelectMenu>
+              </UFormField>
+              <UFormField label="People">
+                <USelectMenu
+                  v-model="peopleModel"
+                  :items="peopleItems"
+                  value-key="value"
+                  multiple
+                  placeholder="Any"
+                  icon="i-lucide-user"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField label="Projects">
+                <USelectMenu
+                  v-model="projectsModel"
+                  :items="projectItems"
+                  value-key="value"
+                  multiple
+                  placeholder="Any"
+                  icon="i-lucide-folder"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField label="Status">
+                <USelectMenu
+                  v-model="statusesModel"
+                  :items="statusItems"
+                  value-key="value"
+                  multiple
+                  placeholder="Any"
+                  icon="i-lucide-circle-dot"
+                  class="w-full"
+                />
+              </UFormField>
+              <!-- Clearing lives with the filters it clears. -->
+              <UButton
+                v-if="activeFilters"
+                label="Clear filters"
+                icon="i-lucide-x"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                class="self-start"
+                @click="clearFilters"
+              />
+            </div>
+          </template>
+        </UPopover>
+      </div>
+    </template>
+
+    <!-- `page-body-start`: the 30px under the toolbar every page keeps, inside
+         the scroller as `UiPage` puts it. Without it the grid sat flush under
+         the toolbar once the toolbar moved into its slot. -->
+    <div class="flex-1 min-h-0 overflow-y-auto thin-scroll content-gutter-x content-gutter-bottom page-body-start flex flex-col gap-3">
       <UiLoadError
         v-if="listFailed"
         what="your saved calendars"
@@ -570,153 +728,6 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
       />
 
       <template v-else>
-        <!-- One toolbar line of controls only, the same at any width. On the
-             left, moving through time and how much of it to show; on the
-             right, one Filter button: four filter selects beside the date
-             controls fitted only while none was set, and wrapped exactly when
-             the calendar was in use. One style for all of it, neutral outline
-             at one height, where a black pill toggle, outlined arrows and
-             white selects had stood side by side. That height is `sm`, a
-             recorded deviation from the styleguide's 44px minimum
-             (`docs/connect2scale.md`): tried at 44px, the controls outweighed
-             the calendar they steer. The month itself is in the page title
-             (see `#title`). -->
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <UFieldGroup size="sm">
-            <UButton
-              icon="i-lucide-chevron-left"
-              color="neutral"
-              variant="outline"
-              :aria-label="mode === 'week' ? 'Previous week' : 'Previous month'"
-              @click="step(-1)"
-            />
-            <!-- Always enabled, as in Apple Calendar: greyed out on the
-                 current period it read as broken, and pressing it is harmless. -->
-            <UButton
-              label="Today"
-              color="neutral"
-              variant="outline"
-              @click="setDate(today)"
-            />
-            <UButton
-              icon="i-lucide-chevron-right"
-              color="neutral"
-              variant="outline"
-              :aria-label="mode === 'week' ? 'Next week' : 'Next month'"
-              @click="step(1)"
-            />
-          </UFieldGroup>
-          <!-- The chosen one solid: a grey fill read as disabled, so the
-               *other* option looked selected. -->
-          <UFieldGroup
-            size="sm"
-            role="group"
-            aria-label="Week or month"
-          >
-            <UButton
-              v-for="item in MODE_ITEMS"
-              :key="item.value"
-              :label="item.label"
-              color="neutral"
-              :variant="mode === item.value ? 'solid' : 'outline'"
-              :aria-pressed="mode === item.value"
-              @click="modeModel = item.value"
-            />
-          </UFieldGroup>
-
-          <UPopover
-            v-model:open="filterOpen"
-            :content="FIELD_MENU_ALIGN_END"
-            class="ml-auto"
-          >
-            <UButton
-              icon="i-lucide-list-filter"
-              label="Filter"
-              color="neutral"
-              variant="outline"
-              size="sm"
-            >
-              <template
-                v-if="activeFilters"
-                #trailing
-              >
-                <UBadge
-                  :label="String(activeFilters)"
-                  color="neutral"
-                  variant="subtle"
-                  size="sm"
-                />
-              </template>
-            </UButton>
-            <template #content>
-              <div class="p-3 flex flex-col gap-3 w-72">
-                <UFormField label="Tags">
-                  <USelectMenu
-                    v-model="tagsModel"
-                    :items="tagItems"
-                    value-key="value"
-                    multiple
-                    placeholder="Any"
-                    icon="i-lucide-tag"
-                    class="w-full"
-                  >
-                    <template #item-leading="{ item }">
-                      <UiStatusDot
-                        :color="item.color"
-                        size="sm"
-                      />
-                    </template>
-                  </USelectMenu>
-                </UFormField>
-                <UFormField label="People">
-                  <USelectMenu
-                    v-model="peopleModel"
-                    :items="peopleItems"
-                    value-key="value"
-                    multiple
-                    placeholder="Any"
-                    icon="i-lucide-user"
-                    class="w-full"
-                  />
-                </UFormField>
-                <UFormField label="Projects">
-                  <USelectMenu
-                    v-model="projectsModel"
-                    :items="projectItems"
-                    value-key="value"
-                    multiple
-                    placeholder="Any"
-                    icon="i-lucide-folder"
-                    class="w-full"
-                  />
-                </UFormField>
-                <UFormField label="Status">
-                  <USelectMenu
-                    v-model="statusesModel"
-                    :items="statusItems"
-                    value-key="value"
-                    multiple
-                    placeholder="Any"
-                    icon="i-lucide-circle-dot"
-                    class="w-full"
-                  />
-                </UFormField>
-                <!-- Clearing lives with the filters it clears. -->
-                <UButton
-                  v-if="activeFilters"
-                  label="Clear filters"
-                  icon="i-lucide-x"
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                  class="self-start"
-                  @click="clearFilters"
-                />
-              </div>
-            </template>
-          </UPopover>
-        </div>
-
         <UiLoadError
           v-if="error"
           what="the calendar"

@@ -128,7 +128,12 @@ const minWidth = computed(() => props.mode === 'week' ? '980px' : '770px')
             i % 7 > 0 ? 'border-l border-default' : '',
             i >= 7 ? 'border-t border-default' : '',
             mode === 'week' ? 'min-h-96' : 'min-h-28',
-            dropTarget === day.key ? 'bg-primary/10' : day.isWeekend || !day.inPeriod ? 'bg-muted' : ''
+            // Shading means weekend, and only that. Days of the neighbouring
+            // months were shaded too, so a month's first and last rows were
+            // nearly all grey and where it began and ended did not show; they
+            // are told apart by their dimmed number instead, as Apple
+            // Calendar does.
+            dropTarget === day.key ? 'bg-primary/10' : day.isWeekend ? 'bg-muted' : ''
           ]"
           :data-day="day.key"
           @dragover="onDragOver($event, day)"
@@ -143,7 +148,7 @@ const minWidth = computed(() => props.mode === 'week' ? '980px' : '770px')
               class="text-xs font-medium tabular-nums"
               :class="day.key === today
                 ? 'flex items-center justify-center size-5 rounded-full bg-accent text-inverted'
-                : day.inPeriod ? 'text-muted' : 'text-dimmed'"
+                : day.inPeriod ? 'text-toned' : 'text-dimmed'"
             >
               {{ day.dayOfMonth }}
             </span>
