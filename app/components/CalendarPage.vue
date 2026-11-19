@@ -494,7 +494,7 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
         {{ saved?.name ?? 'Calendar' }}
         <span
           v-if="!missing"
-          class="font-semibold text-muted"
+          class="ms-2 font-semibold text-muted"
         >{{ title }}</span>
       </span>
     </template>
