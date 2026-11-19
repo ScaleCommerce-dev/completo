@@ -16,13 +16,13 @@
  *
  * The tools live in `server/mcp/tools.ts`; this file only speaks the protocol.
  */
-import { ToolError, findTool, toolContext, toolDefinitions } from '../mcp/tools'
+import { ToolContent, ToolError, findTool, toolContext, toolDefinitions } from '../mcp/tools'
 import type { JsonObject } from '../mcp/tools'
 
 /** Newest first. A client asking for one of these gets it back; anything else gets the newest. */
 const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']
 
-const INSTRUCTIONS = `Completo is a kanban app. Cards live in a project and have a status; a card is named by its ticket id, e.g. TK-42 (project key, dash, number). Boards and lists are views over the same cards: you move cards between statuses, never between boards. Statuses and tags are per project; when a name is uncertain, call get_project first rather than guess, and prefer the exact name it returns. A card's workflow is typically Backlog, To Do, In Progress, Review, Done. Done cards older than the project's retention window disappear from lists; that is expected. Descriptions are Markdown; checklist items are "- [ ]" lines. A card can have sub-tasks: cards of the same project with a parent, one level deep. A card with open sub-tasks cannot move to the done status until they are done.`
+const INSTRUCTIONS = `Completo is a kanban app. Cards live in a project and have a status; a card is named by its ticket id, e.g. TK-42 (project key, dash, number). Boards and lists are views over the same cards: you move cards between statuses, never between boards. Statuses and tags are per project; when a name is uncertain, call get_project first rather than guess, and prefer the exact name it returns. A card's workflow is typically Backlog, To Do, In Progress, Review, Done. Done cards older than the project's retention window disappear from lists; that is expected. Descriptions are Markdown; checklist items are "- [ ]" lines. A card can have sub-tasks: cards of the same project with a parent, one level deep. A card with open sub-tasks cannot move to the done status until they are done. Cards carry files: list_attachments shows them, get_attachment reads one (text as text, images as images), add_attachment attaches a file given as text or base64.`
 
 interface RpcRequest { jsonrpc?: string, id?: string | number | null, method?: string, params?: JsonObject }
 interface RpcResponse { jsonrpc: '2.0', id: string | number | null, result?: unknown, error?: { code: number, message: string, data?: unknown } }
@@ -140,6 +140,9 @@ async function handle(message: unknown, ctx: ReturnType<typeof toolContext>): Pr
       const args = (req.params?.arguments && typeof req.params.arguments === 'object' ? req.params.arguments : {}) as JsonObject
       try {
         const result = await tool.run(ctx, args)
+        if (result instanceof ToolContent) {
+          return reply(req.id, { content: result.content, structuredContent: result.structured, isError: false })
+        }
         return reply(req.id, {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
           structuredContent: Array.isArray(result) ? { items: result } : result,

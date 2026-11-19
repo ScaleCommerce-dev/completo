@@ -102,7 +102,7 @@ describe('POST /mcp', () => {
     const res = await rpc(headers, 'tools/list')
     const tools = res.result?.tools as Array<{ name: string, inputSchema: { type: string, required?: string[] } }>
     const names = tools.map(t => t.name)
-    for (const expected of ['list_projects', 'get_project', 'list_cards', 'search_cards', 'get_card', 'create_card', 'update_card', 'move_card', 'assign_card', 'tag_card', 'list_comments', 'add_comment', 'my_tasks', 'create_project']) {
+    for (const expected of ['list_projects', 'get_project', 'list_cards', 'search_cards', 'get_card', 'create_card', 'update_card', 'move_card', 'assign_card', 'tag_card', 'list_comments', 'add_comment', 'list_attachments', 'add_attachment', 'get_attachment', 'delete_attachment', 'my_tasks', 'create_project']) {
       expect(names).toContain(expected)
     }
     const move = tools.find(t => t.name === 'move_card')!
@@ -369,5 +369,110 @@ describe('POST /mcp', () => {
       const list = await call(stranger, 'list_cards', { project: project.slug })
       expect(list.isError).toBe(true)
     })
+  })
+})
+
+describe('MCP attachments', () => {
+  let headers: Record<string, string>
+  let ticket: string
+
+  // A 1x1 transparent PNG.
+  const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+
+  beforeAll(async () => {
+    const owner = await registerTestUser()
+    headers = (await createTestToken(owner)).headers
+    const project = await createTestProject(owner, { name: `MCP files ${Date.now()}` })
+    ticket = (await call(headers, 'create_card', { project: project.slug, title: 'Has files' })).data.ticket
+  })
+
+  it('attaches a text file, lists it, reads it back as text and shows it on the card', async () => {
+    const csv = 'cluster,gap_gb\ncalumet,1.52\nbabyone,2.14\n'
+    const added = await call(headers, 'add_attachment', { card: ticket, filename: 'session_gap.csv', text: csv })
+    expect(added.isError).toBe(false)
+    expect(added.data).toMatchObject({ ticket, name: 'session_gap.csv', size: csv.length, type: 'text/csv' })
+
+    const list = await call(headers, 'list_attachments', { card: ticket })
+    expect(list.data.map((a: { name: string }) => a.name)).toContain('session_gap.csv')
+
+    // By name, and by the 8-character id the CLI prints.
+    for (const ref of ['session_gap.csv', String(added.data.id).slice(0, 8)]) {
+      const got = await call(headers, 'get_attachment', { card: ticket, attachment: ref })
+      expect(got.isError, ref).toBe(false)
+      expect(got.content[1]).toEqual({ type: 'text', text: csv })
+      expect(got.data.chars).toBe(csv.length)
+    }
+
+    const card = await call(headers, 'get_card', { card: ticket })
+    expect(card.data.attachments).toEqual([expect.objectContaining({ name: 'session_gap.csv', type: 'text/csv' })])
+  })
+
+  it('cuts a long text file at maxChars and says so', async () => {
+    await call(headers, 'add_attachment', { card: ticket, filename: 'long.log', text: 'x'.repeat(500) })
+    const got = await call(headers, 'get_attachment', { card: ticket, attachment: 'long.log', maxChars: 100 })
+    expect(got.content[1]!.text).toHaveLength(100)
+    expect(got.data).toMatchObject({ truncated: true, returnedChars: 100, chars: 500 })
+  })
+
+  it('attaches base64 and hands an image back as an image block', async () => {
+    const added = await call(headers, 'add_attachment', { card: ticket, filename: 'pixel.png', base64: PNG_BASE64 })
+    expect(added.data.type).toBe('image/png')
+    const got = await call(headers, 'get_attachment', { card: ticket, attachment: 'pixel.png' })
+    expect(got.content[1]).toEqual({ type: 'image', data: PNG_BASE64, mimeType: 'image/png' })
+  })
+
+  it('returns a binary file as details and a link, not as content', async () => {
+    await call(headers, 'add_attachment', { card: ticket, filename: 'bundle.zip', base64: Buffer.from('PK\u0003\u0004').toString('base64') })
+    const got = await call(headers, 'get_attachment', { card: ticket, attachment: 'bundle.zip' })
+    expect(got.content).toHaveLength(1)
+    expect(got.data.url).toMatch(/\/api\/attachments\/[0-9a-f-]+\/download$/)
+    expect(got.data.note).toContain('download')
+  })
+
+  it('carries a file larger than the 1 MB body limit other routes have', async () => {
+    // Base64 inside JSON-RPC: 2 MB of file is about 2.7 MB of request.
+    const big = 'a'.repeat(2 * 1024 * 1024)
+    const added = await call(headers, 'add_attachment', { card: ticket, filename: 'big.txt', base64: Buffer.from(big).toString('base64') })
+    expect(added.isError).toBe(false)
+    expect(added.data.size).toBe(big.length)
+  })
+
+  it('refuses what the upload handler refuses, in its words', async () => {
+    const bad = await call(headers, 'add_attachment', { card: ticket, filename: 'run.exe', base64: 'TVo=' })
+    expect(bad.isError).toBe(true)
+    expect(bad.content[0]!.text).toContain('not allowed')
+  })
+
+  it('refuses unusable input before uploading anything', async () => {
+    for (const [args, message] of [
+      [{ filename: 'a.txt' }, 'text'],
+      [{ filename: 'a.txt', text: 'x', base64: 'eA==' }, 'not both'],
+      [{ filename: 'a.txt', base64: 'not base64!' }, 'not valid base64'],
+      [{ filename: '../etc/a.txt', text: 'x' }, 'not a path']
+    ] as const) {
+      const res = await call(headers, 'add_attachment', { card: ticket, ...args })
+      expect(res.isError, message).toBe(true)
+      expect(res.content[0]!.text).toContain(message)
+    }
+  })
+
+  it('deletes by name, and an unknown name lists what the card has', async () => {
+    await call(headers, 'add_attachment', { card: ticket, filename: 'gone.md', text: '# bye' })
+    const del = await call(headers, 'delete_attachment', { card: ticket, attachment: 'gone.md' })
+    expect(del.data.deleted.name).toBe('gone.md')
+    const miss = await call(headers, 'get_attachment', { card: ticket, attachment: 'gone.md' })
+    expect(miss.isError).toBe(true)
+    expect(miss.content[0]!.text).toContain('session_gap.csv')
+  })
+
+  it('does not reach another card\'s file by its id', async () => {
+    const other = await registerTestUser()
+    const otherHeaders = (await createTestToken(other)).headers
+    const otherProject = await createTestProject(other, { name: `MCP other ${Date.now()}` })
+    const otherTicket = (await call(otherHeaders, 'create_card', { project: otherProject.slug, title: 'Theirs' })).data.ticket
+    const theirs = await call(otherHeaders, 'add_attachment', { card: otherTicket, filename: 'secret.txt', text: 'secret' })
+    const res = await call(headers, 'get_attachment', { card: ticket, attachment: theirs.data.id })
+    expect(res.isError).toBe(true)
+    expect(res.content[0]!.text).not.toContain('secret\n')
   })
 })

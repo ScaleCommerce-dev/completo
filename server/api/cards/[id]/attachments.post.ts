@@ -15,7 +15,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 413, message: `File too large. Maximum size is ${UPLOAD_MAX_SIZE_MB}MB` })
   }
 
-  const formData = await readFormData(event)
+  // A body that is not multipart (or is cut off) makes `readFormData` throw a
+  // TypeError, which reached the client as a 500.
+  let formData: FormData
+  try {
+    formData = await readFormData(event)
+  } catch {
+    throw createError({ statusCode: 400, message: 'Expected a multipart/form-data body with a "file" field' })
+  }
   const file = formData.get('file')
   if (!file || !(file instanceof File)) {
     throw createError({ statusCode: 400, message: 'No file provided' })

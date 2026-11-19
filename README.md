@@ -209,7 +209,7 @@ claude mcp add --transport http completo https://completo.example.com/mcp \
   --header "Authorization: Bearer <your token>"
 ```
 
-The tools mirror the CLI: list and search cards, read a card with its comments, create, update, move, assign and tag cards, comment, see your own tasks, and create a project. Every call runs with the permissions of whoever signed in or owns the token, exactly as the API does.
+The tools mirror the CLI: list and search cards, read a card with its comments and attachments, create, update, move, assign and tag cards, comment, attach, read and delete files, see your own tasks, and create a project. `get_attachment` returns a text file as its text and an image as an image Claude can see. Every call runs with the permissions of whoever signed in or owns the token, exactly as the API does.
 
 ### The philosophy
 

@@ -98,6 +98,26 @@ describe('Card Attachments', async () => {
     expect(res.status).toBe(404)
   })
 
+  it('counts a card\'s attachments on the card itself', async () => {
+    const card = await createTestCard(user, projectId, statusId, { title: 'Counted' })
+    const before = await $fetch(`/api/cards/${card.id}`, { headers: user.headers }) as { attachmentCount: number }
+    expect(before.attachmentCount).toBe(0)
+    await uploadAttachment(user, card.id, { filename: 'a.txt', content: 'a' })
+    await uploadAttachment(user, card.id, { filename: 'b.txt', content: 'b' })
+    const after = await $fetch(`/api/cards/${card.id}`, { headers: user.headers }) as { attachmentCount: number }
+    expect(after.attachmentCount).toBe(2)
+  })
+
+  it('answers a body that is not multipart with 400, not a server error', async () => {
+    const res = await fetch(url(`/api/cards/${cardId}/attachments`), {
+      method: 'POST',
+      body: JSON.stringify({ file: 'x' }),
+      headers: { ...user.headers, 'content-type': 'application/json' }
+    })
+    expect(res.status).toBe(400)
+    expect((await res.json() as { message: string }).message).toContain('multipart/form-data')
+  })
+
   it('rejects non-member on upload', async () => {
     const res = await fetch(url(`/api/cards/${cardId}/attachments`), {
       method: 'POST',

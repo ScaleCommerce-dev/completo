@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **Claude can attach and read files over MCP.** Four new tools: `list_attachments`, `add_attachment` (the content as text, or base64 for any other file), `get_attachment` (a text file comes back as its text, an image as an image Claude can look at, anything else as its name and download link) and `delete_attachment`. `get_card` lists a card's files. A file can be as large as the upload limit; it used to stop at 1 MB, before the upload limit was ever checked.
+- **A broken upload is answered with "Expected a multipart/form-data body" (400)** instead of "Server Error" (500).
+
+### CLI
+
+- **`completo attachment TK-42` lists, adds, downloads and deletes a card's files.** `add` takes one or more files and checks that all of them are readable before uploading any; `download` saves under the file's own name, or where `-o` says (a directory, a path, or `-` for stdout), and refuses to overwrite without `--force`. Files are named by the 8-character ID the list prints or by their file name. `--json` works on every action.
+- **`completo get` shows the real number of attachments.** It printed `attachments: 0` for every card.
+- **A ticket ID with the wrong project key is refused** by every command, naming the card's real ticket. Card numbers are global, so `AB-42` used to act on card 42 in whatever project it belongs to.
+- **An error is printed once, without the usage text.** A failed request printed the error, then every flag of the command, then the error again. A mistyped command or flag still shows the usage.
+
 ## v0.19.2
 
 ### App

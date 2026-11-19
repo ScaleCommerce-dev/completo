@@ -241,6 +241,25 @@ Comments are the right place for a progress note, a link to a commit, or a quest
 prefer them over rewriting the description, which is the ticket's *specification* and should keep
 saying what the work is.
 
+## Attaching files
+
+```bash
+completo attachment TK-42                          # list files, with IDs
+completo attachment TK-42 add report.csv shot.png  # attach one or more files
+completo attachment TK-42 download 3f2a1b9c        # save to ./<file name>
+completo attachment TK-42 download report.csv -o /tmp/   # into a directory (or a path, or - for stdout)
+completo attachment TK-42 delete 3f2a1b9c
+```
+
+`download` and `delete` take the attachment ID as printed by the list (the 8-character form or any
+unambiguous prefix) or the exact file name. `download` refuses to overwrite an existing file unless
+you pass `--force`. `add` reads every file before it uploads any, so a typo in one name attaches
+nothing. The server decides what it accepts: by default images, PDF, text, Markdown, CSV, JSON,
+XML, zip and Office documents, up to 10 MB each; a refusal prints the server's reason.
+
+Attach data, logs or screenshots that back up a ticket instead of pasting them into the
+description or a comment.
+
 ## Creating projects
 
 ```bash
@@ -271,6 +290,7 @@ Run `completo <command> --help` for full, always-current flag lists. The essenti
 | `completo tags [project]` | List a project's tags (names are exact) |
 | `completo tag <ticket-id> [add\|remove\|set] [tags...]` | Show or change a card's tags (no action lists them) |
 | `completo comment <ticket-id> [add\|edit\|delete] [args...]` | Show or manage a card's comments (no action lists them) |
+| `completo attachment <ticket-id> [add\|download\|delete] [args...]` | Show or manage a card's files (no action lists them); `download -o <dir\|path\|->`, `--force` to overwrite |
 | `completo my-tasks` | Cards assigned to you |
 | `completo search <query> [--project slug]` | Search cards in the project from `.completo`, or the one named |
 | `completo project-create <name> [flags]` | Create a project (see above) |
@@ -278,14 +298,16 @@ Run `completo <command> --help` for full, always-current flag lists. The essenti
 | `completo config` / `version` / `self-update` | Configure credentials / print version / update the CLI |
 
 Read commands (`get`, `list`, `next`, `search`, `my-tasks`, `statuses`, `projects`, `create`,
-`project-create`, `briefing`, `tags`) accept `--json` for machine-readable output, as do `tag` and
-`comment` — which print the card's resulting tag or comment list after every change, so a mutation
-doubles as a read. `--env-file` overrides config on any command.
+`project-create`, `briefing`, `tags`) accept `--json` for machine-readable output, as do `tag`,
+`comment` and `attachment` — `tag` and `comment` print the card's resulting tag or comment list after
+every change, so a mutation doubles as a read. `--env-file` overrides config on any command.
 
 ## Notes
 
 - `update` can only change title/description/priority/due/parent. Use `move` for status, `assign`
-  for assignee, `tag` for tags and `comment` for comments — not `update`.
+  for assignee, `tag` for tags, `comment` for comments and `attachment` for files — not `update`.
+- A ticket ID whose project key does not match the card is refused (card numbers are global, so
+  `AB-42` would otherwise act on card 42 of another project).
 - `next`, `list`, `briefing`, `statuses` and `tags` take an optional positional project slug if
   you're not relying on `.completo`.
 - To scope work to a project without a `.completo` file, pass `--project` (on `create`) or the

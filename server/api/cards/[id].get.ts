@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const { user } = await resolveAuth(event)
@@ -72,8 +72,15 @@ export default defineEventHandler(async (event) => {
         .from(schema.cards).where(eq(schema.cards.id, row.cards.parentId)).get()
     : undefined
 
+  // The CLI's `get` prints this, and printed 0 for every card while it was missing.
+  const attachmentCount = db.select({ count: sql<number>`count(*)` })
+    .from(schema.attachments)
+    .where(eq(schema.attachments.cardId, id))
+    .get()?.count ?? 0
+
   return {
     ...row.cards,
+    attachmentCount,
     // The viewer's role in this project, as boards and lists already return, so the
     // client can show owner-only affordances (e.g. moderating others' comments).
     // Admins get a synthetic 'owner' — don't render it as a real project role.

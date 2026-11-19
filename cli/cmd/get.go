@@ -89,7 +89,25 @@ func fetchCard(client *internal.Client, ref string) (*cardResponse, error) {
 	if err := json.Unmarshal(data, &c); err != nil {
 		return nil, fmt.Errorf("failed to parse card: %w", err)
 	}
+	if err := checkTicketKey(ref, &c); err != nil {
+		return nil, err
+	}
 	return &c, nil
+}
+
+// checkTicketKey refuses a ref whose project key is not the card's. Card numbers
+// are global and the server reads only the number, so "AB-42" fetched card 42 of
+// whatever project it is in, and the next command wrote to it. The MCP tools
+// refuse the same way (server/mcp/tools.ts, loadCard).
+func checkTicketKey(ref string, c *cardResponse) error {
+	i := strings.LastIndex(ref, "-")
+	if i <= 0 || c.Project == nil || c.Project.Key == "" {
+		return nil
+	}
+	if key := ref[:i]; !strings.EqualFold(key, c.Project.Key) {
+		return fmt.Errorf("%s does not exist: card %d is %s. Check the ticket ID", ref, c.ID, c.ticket())
+	}
+	return nil
 }
 
 // ticket renders the card's display reference, falling back to the bare numeric
