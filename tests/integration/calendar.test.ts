@@ -7,7 +7,7 @@ interface Project { id: string, slug: string, statuses: Array<{ id: string, name
 interface CalCard { id: number, title: string, projectId: string, dueDate: string | null, parent: { title: string } | null, board: { name: string } | null }
 interface Calendar {
   cards: CalCard[]
-  undated: CalCard[]
+  undatedIds: number[]
   projects: Array<{ id: string }>
   tags: Array<{ name: string }>
   people: Array<{ id: string }>
@@ -87,9 +87,19 @@ describe('Calendar', () => {
       expect(cal.cards.map(card => card.title)).not.toContain('Next month')
     })
 
-    it('lists tagged cards without a due date separately, and only when a tag is chosen', async () => {
-      expect(ids((await calendar(owner, { tags: 'Redaktionsplan' })).undated)).toContain(undatedA)
-      expect((await calendar(owner, {})).undated).toEqual([])
+    it('draws only cards with a due date, and names the matching ones without one', async () => {
+      const tagged = await calendar(owner, { tags: 'Redaktionsplan' })
+      expect(ids(tagged.cards)).not.toContain(undatedA)
+      expect(tagged.undatedIds).toContain(undatedA)
+      // Not only with a tag: any filter counts its own cards without a date.
+      expect((await calendar(owner, { projects: a.id })).undatedIds).toContain(undatedA)
+      expect((await calendar(owner, { projects: b.id })).undatedIds).not.toContain(undatedA)
+      expect((await calendar(owner, { tags: 'Nonexistent' })).undatedIds).toEqual([])
+    })
+
+    it('leaves done cards out of the cards without a date', async () => {
+      const done = await createTestCard(owner, a.id, status(a, 'Done'), { title: 'Published, never dated' })
+      expect((await calendar(owner, { projects: a.id })).undatedIds).not.toContain(done.id)
     })
 
     it('shows every card due in the window when no tag is chosen', async () => {

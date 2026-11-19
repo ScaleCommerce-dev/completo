@@ -9,7 +9,8 @@ export type CalendarApiCard = BaseCard & {
 /** `GET /api/calendar` */
 export interface CalendarResponse {
   cards: CalendarApiCard[]
-  undated: CalendarApiCard[]
+  /** Cards passing the filters but without a due date, done ones left out: counted under the grid. */
+  undatedIds: number[]
   projects: Array<{ id: string, name: string, slug: string, key: string, doneStatusId: string | null }>
   statuses: Array<{ id: string, projectId: string, name: string, color: string | null }>
   tags: Array<{ name: string, color: string }>

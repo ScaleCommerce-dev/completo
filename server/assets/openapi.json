@@ -8108,7 +8108,7 @@
           "Calendar"
         ],
         "summary": "Cards due in a window, across your projects",
-        "description": "Cards due between `from` and `to` from every project the caller is a member of (not admin-elevated), passing the filters. Tags and statuses match by name, case-insensitively. Sub-tasks appear only with their own tag; expired done cards are left out. With a tag chosen, tagged cards without a due date come back as `undated`. Also returns each filter's choices.",
+        "description": "Cards due between `from` and `to` from every project the caller is a member of (not admin-elevated), passing the filters. Tags and statuses match by name, case-insensitively. Sub-tasks appear only with their own tag; expired done cards are left out. Cards passing the filters but without a due date are not returned, only their ids as `undatedIds`, done cards left out. Also returns each filter's choices.",
         "parameters": [
           {
             "name": "from",
@@ -8185,7 +8185,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Cards, undated cards, and the projects, statuses, tag names and people to filter by",
+            "description": "Cards, the ids of matching cards without a due date, and the projects, statuses, tag names and people to filter by",
             "content": {
               "application/json": {
                 "schema": {
@@ -8197,10 +8197,11 @@
                         "$ref": "#/components/schemas/Card"
                       }
                     },
-                    "undated": {
+                    "undatedIds": {
                       "type": "array",
+                      "description": "Cards passing the filters but without a due date, done cards left out",
                       "items": {
-                        "$ref": "#/components/schemas/Card"
+                        "type": "integer"
                       }
                     },
                     "projects": {

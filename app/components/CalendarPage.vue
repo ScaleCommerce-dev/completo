@@ -189,8 +189,6 @@ function decorate(card: CalendarApiCard): CalendarCard {
 }
 
 const cards = computed(() => (data.value?.cards ?? []).map(decorate))
-const undated = computed(() => (data.value?.undated ?? []).map(decorate))
-const showUndated = ref(false)
 
 // ─── Filter choices ──────────────────────────────────────────────────────────
 
@@ -243,12 +241,14 @@ function scheduleRefresh() {
 function dropCard(id: number) {
   if (!data.value) return
   data.value.cards = data.value.cards.filter(c => c.id !== id)
-  data.value.undated = data.value.undated.filter(c => c.id !== id)
+  data.value.undatedIds = data.value.undatedIds.filter(x => x !== id)
 }
 
 /**
  * Put a changed card where it now belongs, or take it away: the same test the
- * server applies, plus the window. Only that card is touched.
+ * server applies, plus the window. Only that card is touched, and the count of
+ * matching cards without a due date follows it, by the server's rule: done
+ * cards are not counted.
  */
 function applyCard(card: CalendarApiCard) {
   if (!data.value) return
@@ -257,15 +257,29 @@ function applyCard(card: CalendarApiCard) {
     scheduleRefresh()
     return
   }
-  const previous = data.value.cards.find(c => c.id === card.id) ?? data.value.undated.find(c => c.id === card.id)
+  const previous = data.value.cards.find(c => c.id === card.id)
   dropCard(card.id)
   const statusName = statusById.value.get(card.statusId)?.name
   if (!matchesCalendar(card, statusName, filters.value)) return
   const merged = { ...card, board: card.board ?? previous?.board ?? null }
   const day = cardDay(card.dueDate)
   if (day && day >= range.value.from && day <= range.value.to) data.value.cards.push(merged)
-  else if (!day && filters.value.tags.length) data.value.undated.push(merged)
+  else if (!day && !doneStatusIds.value.has(card.statusId)) data.value.undatedIds.push(card.id)
 }
+
+/**
+ * The cards the grid cannot draw, said in one quiet line rather than listed:
+ * a list was tried, and it could not schedule anything (see `calendar-cards.ts`).
+ * Gone at zero, so it never says "0 more cards".
+ */
+const undatedCount = computed(() => data.value?.undatedIds.length ?? 0)
+const undatedNote = computed(() => {
+  const n = undatedCount.value
+  const cards = n === 1 ? '1 more card' : `${n} more cards`
+  return activeFilters.value
+    ? `${cards} ${n === 1 ? 'matches' : 'match'} your filters but ${n === 1 ? 'has' : 'have'} no due date.`
+    : `${cards} in your projects ${n === 1 ? 'has' : 'have'} no due date.`
+})
 
 onMounted(() => {
   source = new EventSource('/api/events?scope=mine')
@@ -630,53 +644,12 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
           @move="moveCard"
           @open-day="openDay"
         />
-
-        <!-- With a tag chosen, its cards still to be scheduled -->
-        <div
-          v-if="undated.length"
-          class="rounded-xl border border-default bg-default"
+        <p
+          v-if="undatedCount"
+          class="px-1 text-xs text-dimmed"
         >
-          <button
-            type="button"
-            class="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-default hover:bg-elevated rounded-xl transition-colors"
-            :aria-expanded="showUndated"
-            @click="showUndated = !showUndated"
-          >
-            <UIcon
-              :name="showUndated ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
-              class="text-sm text-dimmed"
-            />
-            No date ({{ undated.length }})
-          </button>
-          <ul
-            v-if="showUndated"
-            class="border-t border-default divide-y divide-default"
-          >
-            <li
-              v-for="card in undated"
-              :key="card.id"
-            >
-              <button
-                type="button"
-                class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-elevated transition-colors"
-                @click="openCard(card.id)"
-              >
-                <UiStatusDot
-                  :color="card.statusColor"
-                  :done="card.isDone"
-                  size="sm"
-                />
-                <span class="min-w-0 flex-1">
-                  <span class="block truncate text-sm font-medium text-highlighted">{{ card.title }}</span>
-                  <span class="block truncate text-xs text-dimmed">
-                    {{ [card.projectName, card.board?.name].filter(Boolean).join(' / ') }}<template v-if="card.parent"> · ↳ {{ card.parent.title }}</template>
-                  </span>
-                </span>
-                <span class="font-mono text-xs text-dimmed">{{ card.ticket }}</span>
-              </button>
-            </li>
-          </ul>
-        </div>
+          {{ undatedNote }}
+        </p>
       </template>
     </div>
 

@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, isNull, lt, or } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, isNull, lt, notInArray } from 'drizzle-orm'
 import { matchesCalendar, normalizeName, type CalendarFilters } from '#shared/utils/calendar-filter'
 
 /**
@@ -12,9 +12,15 @@ import { matchesCalendar, normalizeName, type CalendarFilters } from '#shared/ut
  * - **Tags by name, on the card itself.** A sub-task appears when it carries the
  *   tag, not because its parent does.
  * - **No expired done cards,** the retention every view applies.
- * - **Cards without a due date** come back only when a tag is chosen: across
- *   every project they would be most of the database, while for "cards tagged
- *   Redaktionsplan" they are exactly the ones still to be scheduled.
+ * - **Only cards with a due date are drawn.** The ones that pass the filters but
+ *   have none come back as `undatedIds`, so the page can say how many the grid
+ *   cannot show. Ids, not a count, so a live update can add or remove one card
+ *   and keep the number exact without re-reading the page. Not a list: a "No
+ *   date" list was tried and removed, because it appeared only with a tag
+ *   chosen, which read as a bug with any other filter, and it could not
+ *   schedule anything, since a card could not be dragged from it onto a day.
+ *   Done cards are left out of it: the number answers "what is missing from the
+ *   plan", and a finished card without a date is not.
  *
  * With a tag, the path is tags by project (`tags_project_idx`), `card_tags` by
  * tag (`card_tags_tag_idx`), cards by key. Without one, cards by project and
@@ -54,24 +60,23 @@ export function calendarCards(userId: string, range: { from: string, to: string 
       return memberRows.map(member).sort((a, b) => a.name.localeCompare(b.name))
     })()
   }
-  if (!projectIds.length) return { ...pickers, cards: [], undated: [] }
+  if (!projectIds.length) return { ...pickers, cards: [], undatedIds: [] }
 
   const start = new Date(`${range.from}T00:00:00.000Z`)
   const end = new Date(Date.parse(`${range.to}T00:00:00.000Z`) + 86_400_000)
   const inRange = and(gte(schema.cards.dueDate, start), lt(schema.cards.dueDate, end))
 
-  let where
+  // The cards a chosen tag allows, as a subquery rather than ids read into JS:
+  // a tag in use for years has thousands of cards, and only a few are wanted.
+  let tagged
   if (filters.tags.length) {
     const wanted = new Set(filters.tags.map(normalizeName))
     const tagIds = tagRows.filter(t => wanted.has(normalizeName(t.name))).map(t => t.id)
-    if (!tagIds.length) return { ...pickers, cards: [], undated: [] }
-    // A subquery, not a list of ids read into JS: a tag in use for years has
-    // thousands of cards, and only the window's (and the undated) are wanted.
-    const tagged = db.select({ id: schema.cardTags.cardId }).from(schema.cardTags).where(inArray(schema.cardTags.tagId, tagIds))
-    where = and(inArray(schema.cards.id, tagged), inArray(schema.cards.projectId, projectIds), or(inRange, isNull(schema.cards.dueDate)))
-  } else {
-    where = and(inArray(schema.cards.projectId, projectIds), inRange)
+    if (!tagIds.length) return { ...pickers, cards: [], undatedIds: [] }
+    tagged = db.select({ id: schema.cardTags.cardId }).from(schema.cardTags).where(inArray(schema.cardTags.tagId, tagIds))
   }
+  const inScope = and(inArray(schema.cards.projectId, projectIds), tagged ? inArray(schema.cards.id, tagged) : undefined)
+  const where = and(inScope, inRange)
 
   const rows = db.select().from(schema.cards)
     .leftJoin(schema.users, eq(schema.cards.assigneeId, schema.users.id))
@@ -105,9 +110,19 @@ export function calendarCards(userId: string, range: { from: string, to: string 
   }
   const withBoard = enriched.map(c => ({ ...c, board: boardByStatus.get(`${c.projectId}:${c.statusId}`) ?? null }))
 
+  // Narrow rows: only what the filter test reads. The tag test already ran in
+  // SQL (`tagged`), so it is not repeated here with tags the rows do not carry.
+  const doneStatusIds = projects.map(p => p.doneStatusId).filter((id): id is string => !!id)
+  const undatedIds = db.select({ id: schema.cards.id, projectId: schema.cards.projectId, statusId: schema.cards.statusId, assigneeId: schema.cards.assigneeId })
+    .from(schema.cards)
+    .where(and(inScope, isNull(schema.cards.dueDate), doneStatusIds.length ? notInArray(schema.cards.statusId, doneStatusIds) : undefined))
+    .all()
+    .filter(c => matchesCalendar(c, statusName.get(c.statusId), { ...filters, tags: [] }))
+    .map(c => c.id)
+
   return {
     ...pickers,
-    cards: withBoard.filter(c => c.dueDate),
-    undated: withBoard.filter(c => !c.dueDate)
+    cards: withBoard,
+    undatedIds
   }
 }
