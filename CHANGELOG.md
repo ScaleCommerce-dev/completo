@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **Admins can star any project.** Starring was for members only, so an admin who looks after a project without being in it could not keep it in the sidebar. The star button now shows on every project an admin can open, on All Projects and on the project page.
+- **Becoming an admin takes effect without signing in again.** The app went on treating a newly made admin as a regular user until they signed out and back in: no admin menu, and no "Add people" in projects they were not a member of, although the server already allowed it. It now picks up the change on the next page load, and an admin who is demoted loses the admin controls the same way.
+
 ## v0.20.0
 
 ### App

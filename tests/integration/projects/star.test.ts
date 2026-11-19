@@ -73,28 +73,50 @@ describe('project stars', () => {
     await expectError(unstar(outsider, project.id), 404)
   })
 
-  it('refuses an admin who is not a member with 403, and never reports one as starred', async () => {
-    await expectError(star(admin, project.id), 403)
+  it('lets an admin who is not a member star it, and reports it starred', async () => {
+    // Admins see every project; one they look after without being in it belongs
+    // in their sidebar as much as their own.
+    const p = await createTestProject(owner)
+    expect(await star(admin, p.id)).toEqual({ starred: true })
 
-    const row = (await listed(admin)).find(p => p.id === project.id)
-    expect(row).toMatchObject({ role: 'admin', starred: false })
-    const detail = await $fetch(`/api/projects/${project.id}`, { headers: admin.headers }) as { starred: boolean, isMember: boolean }
-    expect(detail).toMatchObject({ starred: false, isMember: false })
+    expect((await listed(admin)).find(x => x.id === p.id)).toMatchObject({ role: 'admin', starred: true })
+    const detail = await $fetch(`/api/projects/${p.id}`, { headers: admin.headers }) as { starred: boolean, isMember: boolean }
+    expect(detail).toMatchObject({ starred: true, isMember: false })
+
+    expect(await unstar(admin, p.id)).toEqual({ starred: false })
+    expect((await listed(admin)).find(x => x.id === p.id)?.starred).toBe(false)
   })
 
-  it('stops counting a star once its owner leaves the project', async () => {
-    // An admin, so the project stays visible after removal: the read has to
-    // check membership, not just find the row that was left behind.
+  it('keeps an admin\'s star after they leave the project, since they still see it', async () => {
     const p = await createTestProject(owner)
     await addMember(owner, p.id, admin.id)
     await star(admin, p.id)
-    expect((await listed(admin)).find(x => x.id === p.id)?.starred).toBe(true)
-
     await $fetch(`/api/projects/${p.id}/members/${admin.id}`, { method: 'DELETE', headers: owner.headers })
 
-    expect((await listed(admin)).find(x => x.id === p.id)).toMatchObject({ role: 'admin', starred: false })
-    const detail = await $fetch(`/api/projects/${p.id}`, { headers: admin.headers }) as { starred: boolean }
-    expect(detail.starred).toBe(false)
+    expect((await listed(admin)).find(x => x.id === p.id)).toMatchObject({ role: 'admin', starred: true })
+  })
+
+  it('stops counting a star once its owner can no longer see the project', async () => {
+    // A star on a project the person was removed from, or starred as an admin who
+    // is no longer one, is left in the table; the read must not count it.
+    const removed = await createAdminUser()
+    const p = await createTestProject(owner)
+    await addMember(owner, p.id, removed.id)
+    await star(removed, p.id)
+    const q = await createTestProject(owner)
+    await star(removed, q.id)
+
+    await $fetch(`/api/projects/${p.id}/members/${removed.id}`, { method: 'DELETE', headers: owner.headers })
+    await $fetch(`/api/admin/users/${removed.id}`, { method: 'PATCH', body: { isAdmin: false }, headers: admin.headers })
+
+    const ids = (await listed(removed)).map(x => x.id)
+    expect(ids).not.toContain(p.id)
+    expect(ids).not.toContain(q.id)
+    await expectError($fetch(`/api/projects/${q.id}`, { headers: removed.headers }), 404)
+
+    // The row was kept on purpose, so re-admitted as a member they find it starred again.
+    await addMember(owner, p.id, removed.id)
+    expect((await listed(removed)).find(x => x.id === p.id)?.starred).toBe(true)
   })
 
   it('lists projects alphabetically, ignoring case and reading numbers as numbers', async () => {

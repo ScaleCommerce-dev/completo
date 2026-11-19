@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm'
 
 /**
- * `canManageAgents` on the client's session user, read fresh on every session fetch.
+ * `isAdmin` and `canManageAgents` on the client's session user, read fresh on every
+ * session fetch.
  *
  * The sidebar's Agents entry and the `/agents` route guard need to know whether
  * the signed-in person may create agents. The sealed session cookie cannot carry
@@ -12,10 +13,16 @@ import { eq } from 'drizzle-orm'
  * cookie, so it is as fresh as the last page load. The server still decides every
  * request on its own (`requireAgentCreator`, `resolveManagedAgent`); this only
  * decides what the client offers.
+ *
+ * `isAdmin` has the same problem and the cookie copy was all the client had: an
+ * admin granted after sign-in saw no admin menu, no "Add people" in projects they
+ * were not in, and no star, until they signed out and back in, while the server
+ * (which reads it fresh in `requireActiveSession`) already let them do all of it.
+ * A demoted admin kept the controls the server then refused.
  */
 export default defineNitroPlugin(() => {
   sessionHooks.hook('fetch', (session) => {
-    const user = session.user as { id?: string, canManageAgents?: boolean } | undefined
+    const user = session.user as { id?: string, canManageAgents?: boolean, isAdmin?: boolean } | undefined
     if (!user?.id) return
 
     const row = db.select({
@@ -29,5 +36,6 @@ export default defineNitroPlugin(() => {
       .get()
 
     user.canManageAgents = !!row && canManageAgents(row)
+    user.isAdmin = !!row && row.kind === 'human' && !!row.isAdmin
   })
 })

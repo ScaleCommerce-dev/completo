@@ -362,11 +362,12 @@ export const cardReads = sqliteTable('card_reads', {
   uniqueIndex('card_reads_user_card_unique').on(table.userId, table.cardId)
 ])
 
-// The projects a person keeps in their sidebar. Only members may star, and a
-// row outlives a membership on purpose: `starred` is computed against current
-// membership on every read (`/api/projects`, `/api/projects/[id]`), so a person
-// removed from a project loses it from the sidebar without every removal path —
-// member delete, agent pruning, transfers — having to remember this table.
+// The projects a person keeps in their sidebar. Anyone who can see a project may
+// star it (its members, and admins), and a row outlives that access on purpose:
+// `starred` is computed against current membership or admin rights on every read
+// (`/api/projects`, `/api/projects/[id]`), so a person removed from a project, or
+// no longer an admin, loses it from the sidebar without every removal path —
+// member delete, agent pruning, transfers, a demotion — having to remember this table.
 export const projectStars = sqliteTable('project_stars', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
