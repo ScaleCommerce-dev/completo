@@ -49,12 +49,12 @@ describe('weeks', () => {
     expect(days.every(d => d.inPeriod)).toBe(true)
   })
 
-  it('step by seven days and name their span, across months and years', () => {
+  it('step by seven days and name their month and year, not their days, across months and years', () => {
     expect(shiftAnchor('week', '2026-11-25', 1)).toBe('2026-11-30')
     expect(shiftAnchor('week', '2026-11-25', -1)).toBe('2026-11-16')
-    expect(periodTitle('week', '2026-11-25')).toBe('Nov 23 to 29, 2026')
-    expect(periodTitle('week', '2026-12-01')).toBe('Nov 30 to Dec 6, 2026')
-    expect(periodTitle('week', '2026-12-30')).toBe('Dec 28, 2026 to Jan 3, 2027')
+    expect(periodTitle('week', '2026-11-25')).toBe('November 2026')
+    expect(periodTitle('week', '2026-12-01')).toBe('Nov to Dec 2026')
+    expect(periodTitle('week', '2026-12-30')).toBe('Dec 2026 to Jan 2027')
   })
 })
 

@@ -543,14 +543,8 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
       <template v-else>
         <!-- Window and filters -->
         <div class="flex flex-wrap items-center gap-2">
-          <UButton
-            label="Today"
-            color="neutral"
-            variant="outline"
-            size="sm"
-            :disabled="isCurrent"
-            @click="setDate(today)"
-          />
+          <!-- Today between the arrows, as Apple Calendar has it: one control for
+               moving through time, with the way home in the middle. -->
           <UFieldGroup size="sm">
             <UButton
               icon="i-lucide-chevron-left"
@@ -558,6 +552,13 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
               variant="outline"
               :aria-label="mode === 'week' ? 'Previous week' : 'Previous month'"
               @click="step(-1)"
+            />
+            <UButton
+              label="Today"
+              color="neutral"
+              variant="outline"
+              :disabled="isCurrent"
+              @click="setDate(today)"
             />
             <UButton
               icon="i-lucide-chevron-right"

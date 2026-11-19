@@ -105,19 +105,24 @@ export function shiftAnchor(mode: CalendarMode, anchor: string, step: -1 | 1): s
   return cardDay(new Date(Date.UTC(y, m - 1 + step, 1)).toISOString())!
 }
 
-/** "Nov 23 to 29, 2026", "Nov 30 to Dec 6, 2026", or "November 2026". UI copy has no en dashes. */
+/**
+ * The month and year on screen: "November 2026", or for a week across two,
+ * "Nov to Dec 2026" and "Dec 2026 to Jan 2027". UI copy has no en dashes.
+ *
+ * No days: the grid already names every one ("Mon 23"), so a span of days here
+ * said it twice, as Apple Calendar does not. The month and year stay, because
+ * the grid shows neither.
+ */
 export function periodTitle(mode: CalendarMode, anchor: string): string {
   if (mode === 'month') {
     const [y, m] = parts(anchor)
     return `${MONTHS_LONG[m - 1]} ${y}`
   }
-  const start = weekStart(anchor)
-  const end = addDays(start, 6)
-  const [sy, sm, sd] = parts(start)
-  const [ey, em, ed] = parts(end)
-  if (sy !== ey) return `${MONTHS[sm - 1]} ${sd}, ${sy} to ${MONTHS[em - 1]} ${ed}, ${ey}`
-  if (sm !== em) return `${MONTHS[sm - 1]} ${sd} to ${MONTHS[em - 1]} ${ed}, ${ey}`
-  return `${MONTHS[sm - 1]} ${sd} to ${ed}, ${ey}`
+  const [sy, sm] = parts(weekStart(anchor))
+  const [ey, em] = parts(addDays(weekStart(anchor), 6))
+  if (sy !== ey) return `${MONTHS[sm - 1]} ${sy} to ${MONTHS[em - 1]} ${ey}`
+  if (sm !== em) return `${MONTHS[sm - 1]} to ${MONTHS[em - 1]} ${ey}`
+  return `${MONTHS_LONG[sm - 1]} ${sy}`
 }
 
 /** Cards by the day they are due, each day earliest-created first. */
