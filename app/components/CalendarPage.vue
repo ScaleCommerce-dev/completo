@@ -106,23 +106,42 @@ function filterQuery(f: CalendarFilters) {
   }
 }
 
-// Ad hoc: the address follows the filters. Saved: the calendar stores them.
-let saveTimer: ReturnType<typeof setTimeout> | null = null
-let pendingSave: (() => void) | null = null
+// Ad hoc, the address follows the filters. A saved calendar keeps its own
+// until "Save changes" (below).
 watch(filters, (f) => {
-  if (!props.calendarId) {
-    router.replace({ query: { date: route.query.date, ...filterQuery(f) } })
-    return
-  }
-  const cal = saved.value
-  if (!cal || JSON.stringify(cal.filters) === JSON.stringify(f)) return
-  if (saveTimer) clearTimeout(saveTimer)
-  pendingSave = () => {
-    pendingSave = null
-    void update(cal.id, { filters: f })
-  }
-  saveTimer = setTimeout(() => pendingSave?.(), 400)
+  if (!props.calendarId) router.replace({ query: { date: route.query.date, ...filterQuery(f) } })
 }, { deep: true })
+
+/**
+ * A saved calendar's filters change what is shown, and only "Save changes"
+ * stores them; "Reset" goes back, and so does leaving the page.
+ *
+ * A deliberate exception to the app's commit contract, which has an existing
+ * thing commit per field. They used to here, 400ms after each change, and the
+ * same Filter menu then meant two things: on the plain calendar a look ("only
+ * Anna's, for a moment"), on a saved one a silent, permanent rewrite of it.
+ * Filters on a saved view are mostly a look, so they are treated as one, the
+ * way Linear and Notion treat saved views. Week / Month is part of it, since a
+ * saved calendar stores the view it opens in.
+ */
+const canonical = (f: CalendarFilters) => JSON.stringify({
+  mode: f.mode,
+  tags: [...f.tags].sort(),
+  people: [...f.people].sort(),
+  projects: [...f.projects].sort(),
+  statuses: [...f.statuses].sort()
+})
+const isModified = computed(() => !!saved.value && canonical({ ...EMPTY_FILTERS, ...saved.value.filters }) !== canonical(filters.value))
+const savingChanges = ref(false)
+async function saveChanges() {
+  if (!saved.value || savingChanges.value) return
+  savingChanges.value = true
+  await update(saved.value.id, { filters: filters.value })
+  savingChanges.value = false
+}
+function resetChanges() {
+  if (saved.value) filters.value = { ...EMPTY_FILTERS, ...saved.value.filters }
+}
 
 const modeModel = computed({
   get: () => mode.value,
@@ -355,9 +374,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   source?.close()
   if (refreshTimer) clearTimeout(refreshTimer)
-  // A filter changed in the last moment is stored, not dropped with the page.
-  if (saveTimer) clearTimeout(saveTimer)
-  pendingSave?.()
   if (dayTimer) clearInterval(dayTimer)
 })
 
@@ -585,6 +601,24 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
         </UFieldGroup>
 
         <div class="ml-auto flex items-center gap-2">
+          <!-- A saved calendar whose filters were changed: keep them, or go back.
+               Left of Filter for the same reason as Save as. "Save changes" is the
+               commit, so it carries the accent, as Save does in the Save as form. -->
+          <template v-if="isModified">
+            <UButton
+              label="Reset"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              @click="resetChanges"
+            />
+            <UButton
+              label="Save changes"
+              size="sm"
+              :loading="savingChanges"
+              @click="saveChanges"
+            />
+          </template>
           <!-- Saving belongs to filtering, so it sits beside Filter and appears
            once there is something to save. To its left: the group is
            right-aligned, so appearing on the right pushed Filter, the button
