@@ -33,7 +33,7 @@ const props = defineProps<{
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
-const { calendars, create, update, remove } = useCalendars()
+const { calendars, status: calendarsStatus, refresh: refreshCalendars, create, update, remove } = useCalendars()
 
 // ─── Filters and window ──────────────────────────────────────────────────────
 
@@ -46,7 +46,9 @@ function filtersFromQuery(): CalendarFilters {
 }
 
 const saved = computed(() => props.calendarId ? calendars.value?.find(c => c.id === props.calendarId) ?? null : null)
-const missing = computed(() => !!props.calendarId && !!calendars.value && !saved.value)
+// Only once the list has arrived: it defaults to empty, which is not "not yours".
+const missing = computed(() => !!props.calendarId && calendarsStatus.value === 'success' && !saved.value)
+const listFailed = computed(() => !!props.calendarId && calendarsStatus.value === 'error')
 
 const filters = ref<CalendarFilters>(props.calendarId ? { ...EMPTY_FILTERS } : filtersFromQuery())
 
@@ -59,21 +61,41 @@ watch(saved, (cal) => {
   }
 }, { immediate: true })
 
+// Ad hoc, the address is the source: Back, Forward or the sidebar's Calendar
+// link change it without remounting the page, and the filters follow.
+if (!props.calendarId) {
+  watch(() => route.query, () => {
+    const next = filtersFromQuery()
+    if (JSON.stringify(next) !== JSON.stringify(filters.value)) filters.value = next
+  })
+}
+
 const today = ref(localDay())
 const anchor = computed(() => isDayKey(route.query.date) ? route.query.date : today.value)
-const days = computed(() => calendarDays(filters.value.mode, anchor.value))
+/**
+ * The mode on screen. "+N more" on a busy day opens that day's week without
+ * touching a saved calendar's stored mode, which only the Week / Month switch
+ * changes.
+ */
+const modeOverride = ref<CalendarMode | null>(null)
+const mode = computed(() => modeOverride.value ?? filters.value.mode)
+watch(() => props.calendarId, () => {
+  modeOverride.value = null
+})
+
+const days = computed(() => calendarDays(mode.value, anchor.value))
 const range = computed(() => ({ from: days.value[0]!.key, to: days.value.at(-1)!.key }))
-const title = computed(() => periodTitle(filters.value.mode, anchor.value))
+const title = computed(() => periodTitle(mode.value, anchor.value))
 
 function setDate(day: string) {
   router.replace({ query: { ...route.query, date: day === today.value ? undefined : day } })
 }
 
 function step(direction: -1 | 1) {
-  setDate(shiftAnchor(filters.value.mode, anchor.value, direction))
+  setDate(shiftAnchor(mode.value, anchor.value, direction))
 }
 
-const isCurrent = computed(() => filters.value.mode === 'week'
+const isCurrent = computed(() => mode.value === 'week'
   ? weekStart(anchor.value) === weekStart(today.value)
   : anchor.value.slice(0, 7) === today.value.slice(0, 7))
 
@@ -90,6 +112,7 @@ function filterQuery(f: CalendarFilters) {
 
 // Ad hoc: the address follows the filters. Saved: the calendar stores them.
 let saveTimer: ReturnType<typeof setTimeout> | null = null
+let pendingSave: (() => void) | null = null
 watch(filters, (f) => {
   if (!props.calendarId) {
     router.replace({ query: { date: route.query.date, ...filterQuery(f) } })
@@ -98,17 +121,26 @@ watch(filters, (f) => {
   const cal = saved.value
   if (!cal || JSON.stringify(cal.filters) === JSON.stringify(f)) return
   if (saveTimer) clearTimeout(saveTimer)
-  saveTimer = setTimeout(() => {
+  pendingSave = () => {
+    pendingSave = null
     void update(cal.id, { filters: f })
-  }, 400)
+  }
+  saveTimer = setTimeout(() => pendingSave?.(), 400)
 }, { deep: true })
 
 const modeModel = computed({
-  get: () => filters.value.mode,
-  set: (mode: CalendarMode) => {
-    filters.value = { ...filters.value, mode }
+  get: () => mode.value,
+  set: (next: CalendarMode) => {
+    modeOverride.value = null
+    filters.value = { ...filters.value, mode: next }
   }
 })
+
+function openDay(day: string) {
+  if (props.calendarId) modeOverride.value = 'week'
+  else filters.value = { ...filters.value, mode: 'week' }
+  setDate(day)
+}
 const MODE_ITEMS = [
   { value: 'week', label: 'Week' },
   { value: 'month', label: 'Month' }
@@ -237,6 +269,18 @@ function applyCard(card: CalendarApiCard) {
 
 onMounted(() => {
   source = new EventSource('/api/events?scope=mine')
+  // Events sent while the connection was down are gone (the bus keeps no
+  // backlog), so a reconnect re-reads the page once, as project views do.
+  let reconnecting = false
+  source.onerror = () => {
+    reconnecting = true
+  }
+  source.onopen = () => {
+    if (reconnecting) {
+      reconnecting = false
+      void refresh()
+    }
+  }
   source.addEventListener('card.upsert', (e) => {
     try {
       applyCard(JSON.parse((e as MessageEvent).data) as CalendarApiCard)
@@ -266,7 +310,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   source?.close()
   if (refreshTimer) clearTimeout(refreshTimer)
+  // A filter changed in the last moment is stored, not dropped with the page.
   if (saveTimer) clearTimeout(saveTimer)
+  pendingSave?.()
   if (dayTimer) clearInterval(dayTimer)
 })
 
@@ -451,8 +497,13 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
     </template>
 
     <div class="flex-1 min-h-0 overflow-y-auto thin-scroll content-gutter-x content-gutter-bottom flex flex-col gap-3">
+      <UiLoadError
+        v-if="listFailed"
+        what="your saved calendars"
+        @retry="refreshCalendars"
+      />
       <UAlert
-        v-if="missing"
+        v-else-if="missing"
         color="neutral"
         variant="subtle"
         icon="i-lucide-calendar-x"
@@ -477,14 +528,14 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
               icon="i-lucide-chevron-left"
               color="neutral"
               variant="outline"
-              :aria-label="filters.mode === 'week' ? 'Previous week' : 'Previous month'"
+              :aria-label="mode === 'week' ? 'Previous week' : 'Previous month'"
               @click="step(-1)"
             />
             <UButton
               icon="i-lucide-chevron-right"
               color="neutral"
               variant="outline"
-              :aria-label="filters.mode === 'week' ? 'Next week' : 'Next month'"
+              :aria-label="mode === 'week' ? 'Next week' : 'Next month'"
               @click="step(1)"
             />
           </UFieldGroup>
@@ -571,13 +622,13 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
         />
         <CalendarGrid
           v-else
-          :mode="filters.mode"
+          :mode="mode"
           :days="days"
           :today="today"
           :cards="cards"
           @card-click="card => openCard(card.id)"
           @move="moveCard"
-          @open-day="day => { filters = { ...filters, mode: 'week' }; setDate(day) }"
+          @open-day="openDay"
         />
 
         <!-- With a tag chosen, its cards still to be scheduled -->

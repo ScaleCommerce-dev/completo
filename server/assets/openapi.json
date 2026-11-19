@@ -7829,11 +7829,23 @@
           {
             "name": "projectId",
             "in": "query",
-            "required": true,
-            "description": "Project ID",
+            "required": false,
+            "description": "Project ID Required unless scope=mine.",
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "mine"
+              ]
+            },
+            "description": "`mine` streams every project the caller is a member of (the Calendar page), checking membership per event, instead of one projectId."
           }
         ],
         "responses": {

@@ -13,7 +13,7 @@ export interface SavedCalendar {
  * sidebar at once.
  */
 export function useCalendars() {
-  const { data: calendars, refresh } = useFetch<SavedCalendar[]>('/api/calendars', { key: 'calendars', default: () => [] })
+  const { data: calendars, refresh, status } = useFetch<SavedCalendar[]>('/api/calendars', { key: 'calendars', default: () => [] })
   const toast = useToast()
 
   async function create(name: string, filters: CalendarFilters): Promise<SavedCalendar | null> {
@@ -49,5 +49,5 @@ export function useCalendars() {
     }
   }
 
-  return { calendars, refresh, create, update, remove }
+  return { calendars, status, refresh, create, update, remove }
 }

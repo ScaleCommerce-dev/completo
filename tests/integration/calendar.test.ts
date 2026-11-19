@@ -130,6 +130,8 @@ describe('Calendar', () => {
       expect((await get('from=2026-11-29&to=2026-11-23')).status).toBe(400)
       expect((await get('from=2026-01-01&to=2026-06-01')).status).toBe(400)
       expect((await get('from=23.11.2026&to=29.11.2026')).status).toBe(400)
+      // Not a day at all, though Date.parse would roll it into March.
+      expect((await get('from=2026-02-30&to=2026-03-02')).status).toBe(400)
     })
   })
 

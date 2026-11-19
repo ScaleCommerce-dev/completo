@@ -368,6 +368,15 @@ export const cardReads = sqliteTable('card_reads', {
 // (`/api/projects`, `/api/projects/[id]`), so a person removed from a project, or
 // no longer an admin, loses it from the sidebar without every removal path —
 // member delete, agent pruning, transfers, a demotion — having to remember this table.
+export const projectStars = sqliteTable('project_stars', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+}, table => [
+  uniqueIndex('project_stars_user_project_unique').on(table.userId, table.projectId)
+])
+
 /**
  * A calendar someone saved: a name and the filters of the Calendar page
  * (`shared/schemas/calendar.ts`), such as "cards tagged Redaktionsplan, by
@@ -385,15 +394,6 @@ export const calendars = sqliteTable('calendars', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 }, table => [
   index('calendars_user_idx').on(table.userId)
-])
-
-export const projectStars = sqliteTable('project_stars', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
-}, table => [
-  uniqueIndex('project_stars_user_project_unique').on(table.userId, table.projectId)
 ])
 
 // ─── OAuth for MCP clients ───────────────────────────────────────────────────

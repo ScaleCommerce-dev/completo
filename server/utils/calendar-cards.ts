@@ -42,8 +42,13 @@ export function calendarCards(userId: string, range: { from: string, to: string 
     projects: projects.map(p => ({ id: p.id, name: p.name, slug: p.slug, key: p.key, doneStatusId: p.doneStatusId })),
     statuses,
     // One entry per name, in its first spelling, with that tag's colour.
-    tags: [...new Map(tagRows.map(t => [normalizeName(t.name), { name: t.name.trim(), color: t.color }])).values()]
-      .sort((a, b) => a.name.localeCompare(b.name)),
+    tags: (() => {
+      const byName = new Map<string, { name: string, color: string }>()
+      for (const t of tagRows) {
+        if (!byName.has(normalizeName(t.name))) byName.set(normalizeName(t.name), { name: t.name.trim(), color: t.color })
+      }
+      return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name))
+    })(),
     people: (() => {
       const { member } = createUserRefs(memberRows)
       return memberRows.map(member).sort((a, b) => a.name.localeCompare(b.name))
@@ -60,10 +65,10 @@ export function calendarCards(userId: string, range: { from: string, to: string 
     const wanted = new Set(filters.tags.map(normalizeName))
     const tagIds = tagRows.filter(t => wanted.has(normalizeName(t.name))).map(t => t.id)
     if (!tagIds.length) return { ...pickers, cards: [], undated: [] }
-    const cardIds = db.selectDistinct({ id: schema.cardTags.cardId }).from(schema.cardTags)
-      .where(inArray(schema.cardTags.tagId, tagIds)).all().map(r => r.id)
-    if (!cardIds.length) return { ...pickers, cards: [], undated: [] }
-    where = and(inArray(schema.cards.id, cardIds), inArray(schema.cards.projectId, projectIds), or(inRange, isNull(schema.cards.dueDate)))
+    // A subquery, not a list of ids read into JS: a tag in use for years has
+    // thousands of cards, and only the window's (and the undated) are wanted.
+    const tagged = db.select({ id: schema.cardTags.cardId }).from(schema.cardTags).where(inArray(schema.cardTags.tagId, tagIds))
+    where = and(inArray(schema.cards.id, tagged), inArray(schema.cards.projectId, projectIds), or(inRange, isNull(schema.cards.dueDate)))
   } else {
     where = and(inArray(schema.cards.projectId, projectIds), inRange)
   }
@@ -93,10 +98,12 @@ export function calendarCards(userId: string, range: { from: string, to: string 
         .orderBy(asc(schema.boards.position))
         .all()
     : []
-  const withBoard = enriched.map((c) => {
-    const b = boards.find(x => x.projectId === c.projectId && x.statusId === c.statusId)
-    return { ...c, board: b ? { id: b.id, name: b.name, slug: b.slug } : null }
-  })
+  const boardByStatus = new Map<string, { id: string, name: string, slug: string }>()
+  for (const b of boards) {
+    const key = `${b.projectId}:${b.statusId}`
+    if (!boardByStatus.has(key)) boardByStatus.set(key, { id: b.id, name: b.name, slug: b.slug })
+  }
+  const withBoard = enriched.map(c => ({ ...c, board: boardByStatus.get(`${c.projectId}:${c.statusId}`) ?? null }))
 
   return {
     ...pickers,

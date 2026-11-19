@@ -1,6 +1,7 @@
 import { calendarFiltersSchema } from '#shared/schemas/calendar'
 
-const DAY = /^\d{4}-\d{2}-\d{2}$/
+/** A real calendar day as `YYYY-MM-DD`: 2026-02-30 is not one, though `Date.parse` rolls it into March. */
+const isDay = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`)) && new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value
 /** Six weeks covers any month grid; a little more for a week either side. */
 const MAX_DAYS = 62
 
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
   const from = String(q.from ?? '')
   const to = String(q.to ?? '')
   const span = (Date.parse(to) - Date.parse(from)) / 86_400_000
-  if (!DAY.test(from) || !DAY.test(to) || Number.isNaN(span) || span < 0 || span > MAX_DAYS) {
+  if (!isDay(from) || !isDay(to) || Number.isNaN(span) || span < 0 || span > MAX_DAYS) {
     throw createError({ statusCode: 400, message: `from and to must be days (YYYY-MM-DD), from before to, at most ${MAX_DAYS} days apart` })
   }
   const parsed = calendarFiltersSchema.safeParse({

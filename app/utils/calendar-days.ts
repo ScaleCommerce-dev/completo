@@ -105,7 +105,7 @@ export function shiftAnchor(mode: CalendarMode, anchor: string, step: -1 | 1): s
   return cardDay(new Date(Date.UTC(y, m - 1 + step, 1)).toISOString())!
 }
 
-/** "Nov 23 – 29, 2026", "Nov 30 – Dec 6, 2026", or "November 2026". */
+/** "Nov 23 to 29, 2026", "Nov 30 to Dec 6, 2026", or "November 2026". UI copy has no en dashes. */
 export function periodTitle(mode: CalendarMode, anchor: string): string {
   if (mode === 'month') {
     const [y, m] = parts(anchor)
@@ -115,9 +115,9 @@ export function periodTitle(mode: CalendarMode, anchor: string): string {
   const end = addDays(start, 6)
   const [sy, sm, sd] = parts(start)
   const [ey, em, ed] = parts(end)
-  if (sy !== ey) return `${MONTHS[sm - 1]} ${sd}, ${sy} – ${MONTHS[em - 1]} ${ed}, ${ey}`
-  if (sm !== em) return `${MONTHS[sm - 1]} ${sd} – ${MONTHS[em - 1]} ${ed}, ${ey}`
-  return `${MONTHS[sm - 1]} ${sd} – ${ed}, ${ey}`
+  if (sy !== ey) return `${MONTHS[sm - 1]} ${sd}, ${sy} to ${MONTHS[em - 1]} ${ed}, ${ey}`
+  if (sm !== em) return `${MONTHS[sm - 1]} ${sd} to ${MONTHS[em - 1]} ${ed}, ${ey}`
+  return `${MONTHS[sm - 1]} ${sd} to ${ed}, ${ey}`
 }
 
 /** Cards by the day they are due, each day earliest-created first. */

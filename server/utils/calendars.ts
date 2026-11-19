@@ -1,10 +1,10 @@
 import { and, eq } from 'drizzle-orm'
 import type { H3Event } from 'h3'
-import type { CalendarFilters } from '#shared/utils/calendar-filter'
+import { EMPTY_FILTERS, type CalendarFilters } from '#shared/utils/calendar-filter'
 
 /** A saved calendar as the API hands it out, with its filters parsed. */
 export function calendarView(row: typeof schema.calendars.$inferSelect) {
-  return { id: row.id, name: row.name, position: row.position, filters: safeParseJson<CalendarFilters>(row.filters, { mode: 'week', tags: [], people: [], projects: [], statuses: [] }) }
+  return { id: row.id, name: row.name, position: row.position, filters: { ...EMPTY_FILTERS, ...safeParseJson<Partial<CalendarFilters>>(row.filters, {}) } }
 }
 
 /** The caller's own saved calendar, or 404: another person's is not theirs to see or change. */
