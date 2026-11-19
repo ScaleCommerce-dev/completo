@@ -208,11 +208,21 @@ const cards = computed(() => (data.value?.cards ?? []).map(decorate))
 // ─── Filter choices ──────────────────────────────────────────────────────────
 
 const tagItems = computed(() => (data.value?.tags ?? []).map(t => ({ value: t.name, label: t.name, color: t.color })))
-const peopleItems = computed(() => [
+const knownPeopleItems = computed(() => [
   { value: UNASSIGNED, label: 'Nobody' },
   ...(data.value?.people ?? []).map(p => ({ value: p.id, label: p.name }))
 ])
-const projectItems = computed(() => (data.value?.projects ?? []).map(p => ({ value: p.id, label: p.name })))
+const knownProjectItems = computed(() => (data.value?.projects ?? []).map(p => ({ value: p.id, label: p.name })))
+// A value from a shared link that this viewer cannot resolve (`unknownProjects`)
+// still needs an entry, or the picker shows its raw id.
+const peopleItems = computed(() => [
+  ...knownPeopleItems.value,
+  ...unknownPeople.value.map(id => ({ value: id, label: 'Someone you share no project with' }))
+])
+const projectItems = computed(() => [
+  ...knownProjectItems.value,
+  ...unknownProjects.value.map(id => ({ value: id, label: 'A project you are not in' }))
+])
 // One entry per name *as the filter matches it* (case and outer spaces ignored),
 // in its first spelling, as the server does for tags: deduplicated by exact
 // spelling, "In Progress" and "In progress" were two entries filtering the
@@ -325,10 +335,42 @@ const undatedNote = computed(() => {
  * footnotes to the calendar, read when comparing with a colleague or wondering
  * where a card went, not an introduction to it.
  */
+/**
+ * Filter values this viewer cannot resolve: a project they are not in, or a
+ * person they share no project with. They arrive with a shared link, which
+ * carries project and person ids, and on the sender's projects they meant
+ * something. They are kept, not dropped: the link said "only project X", and
+ * for someone outside X "nothing" is the honest answer, where dropping the
+ * filter would show them every card they have. But they are said, because the
+ * pickers cannot name them, so the calendar came up empty while the menu read
+ * "Any" and the Filter count said 1.
+ */
+const unknownProjects = computed(() => data.value
+  ? filters.value.projects.filter(id => !knownProjectItems.value.some(i => i.value === id))
+  : [])
+const unknownPeople = computed(() => data.value
+  ? filters.value.people.filter(id => !knownPeopleItems.value.some(i => i.value === id))
+  : [])
+const unknownCount = computed(() => unknownProjects.value.length + unknownPeople.value.length)
+const unknownNote = computed(() => {
+  const parts = [
+    unknownProjects.value.length && `${unknownProjects.value.length} ${unknownProjects.value.length === 1 ? 'project you are not a member of' : 'projects you are not a member of'}`,
+    unknownPeople.value.length && `${unknownPeople.value.length} ${unknownPeople.value.length === 1 ? 'person you share no project with' : 'people you share no project with'}`
+  ].filter(Boolean)
+  return parts.length ? `The filters include ${parts.join(' and ')}, which ${unknownCount.value === 1 ? 'matches' : 'match'} nothing for you.` : ''
+})
+function removeUnknown() {
+  filters.value = {
+    ...filters.value,
+    projects: filters.value.projects.filter(id => !unknownProjects.value.includes(id)),
+    people: filters.value.people.filter(id => !unknownPeople.value.includes(id))
+  }
+}
+
 const footnote = computed(() => {
   const n = projectCount.value
   const from = `From your ${n} ${n === 1 ? 'project' : 'projects'}; colleagues see their own.`
-  return undatedCount.value ? `${from} ${undatedNote.value}` : from
+  return [from, unknownNote.value, undatedCount.value ? undatedNote.value : ''].filter(Boolean).join(' ')
 })
 
 onMounted(() => {
@@ -739,6 +781,21 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
                     class="w-full"
                   />
                 </UFormField>
+                <!-- What the pickers above cannot show: see `unknownNote`. -->
+                <div
+                  v-if="unknownNote"
+                  class="flex flex-col items-start gap-1 text-xs text-muted"
+                >
+                  <span>{{ unknownNote }}</span>
+                  <UButton
+                    :label="unknownCount === 1 ? 'Remove it' : 'Remove them'"
+                    color="neutral"
+                    variant="link"
+                    size="xs"
+                    class="px-0"
+                    @click="removeUnknown"
+                  />
+                </div>
                 <!-- Clearing lives with the filters it clears. -->
                 <UButton
                   v-if="activeFilters"
