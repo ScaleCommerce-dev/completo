@@ -9,12 +9,21 @@
  * Tags and statuses are matched by **name**, ignoring case and outer spaces:
  * each project has its own, so "Redaktionsplan" in two projects is two tags and
  * "In Progress" two statuses, and picking one name has to mean all of them.
+ *
+ * **Done is the exception: a meaning, not a name.** Each project marks its done
+ * status by id (`doneStatusId`) and may call it anything, "Erledigt" or
+ * "Published", so filtering for the name "Done" missed every project that did
+ * not happen to use that word. `DONE_STATUS` stands for "each project's done
+ * status", the way `UNASSIGNED` stands for "nobody" in the people filter.
  */
 export const CALENDAR_MODES = ['week', 'month'] as const
 export type CalendarMode = typeof CALENDAR_MODES[number]
 
 /** The "Nobody" choice of the people filter. */
 export const UNASSIGNED = '__none__'
+
+/** The "Done" choice of the status filter: each project's done status, whatever it is called. */
+export const DONE_STATUS = '__done__'
 
 export interface CalendarFilters {
   mode: CalendarMode
@@ -34,8 +43,14 @@ export interface CalendarCardFacts {
   tags?: Array<{ name: string }>
 }
 
+/** A card's status as the filter reads it: its name, and whether it is its project's done status. */
+export interface CalendarStatusFacts {
+  name: string | null | undefined
+  isDone: boolean
+}
+
 /** Whether a card passes every filter that is set; an empty filter lets everything through. */
-export function matchesCalendar(card: CalendarCardFacts, statusName: string | null | undefined, f: CalendarFilters): boolean {
+export function matchesCalendar(card: CalendarCardFacts, status: CalendarStatusFacts, f: CalendarFilters): boolean {
   if (f.tags.length) {
     const wanted = new Set(f.tags.map(normalizeName))
     if (!(card.tags ?? []).some(t => wanted.has(normalizeName(t.name)))) return false
@@ -44,7 +59,9 @@ export function matchesCalendar(card: CalendarCardFacts, statusName: string | nu
   if (f.projects.length && !f.projects.includes(card.projectId)) return false
   if (f.statuses.length) {
     const wanted = new Set(f.statuses.map(normalizeName))
-    if (!statusName || !wanted.has(normalizeName(statusName))) return false
+    const byMeaning = status.isDone && wanted.has(DONE_STATUS)
+    const byName = !!status.name && wanted.has(normalizeName(status.name))
+    if (!byMeaning && !byName) return false
   }
   return true
 }

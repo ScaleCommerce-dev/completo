@@ -88,8 +88,10 @@ export function calendarCards(userId: string, range: { from: string, to: string 
   const live = rows.filter(r => !isExpiredDone(r.cards, projectById.get(r.cards.projectId)!))
   const { ref } = createUserRefs(live.map(r => r.users))
   const statusName = new Map(statuses.map(s => [s.id, s.name]))
+  const doneStatusIds = new Set(projects.flatMap(p => (p.doneStatusId ? [p.doneStatusId] : [])))
+  const statusFacts = (statusId: string) => ({ name: statusName.get(statusId), isDone: doneStatusIds.has(statusId) })
   const enriched = enrichCardsWithMetadata(live.map(r => ({ ...r.cards, assignee: ref(r.users) })), { userId })
-    .filter(c => matchesCalendar(c, statusName.get(c.statusId), filters))
+    .filter(c => matchesCalendar(c, statusFacts(c.statusId), filters))
 
   // Where a card "lives": the first board of its project, in board order, that
   // shows its status. A card is on every board whose columns include its
@@ -112,12 +114,11 @@ export function calendarCards(userId: string, range: { from: string, to: string 
 
   // Narrow rows: only what the filter test reads. The tag test already ran in
   // SQL (`tagged`), so it is not repeated here with tags the rows do not carry.
-  const doneStatusIds = projects.map(p => p.doneStatusId).filter((id): id is string => !!id)
   const undatedIds = db.select({ id: schema.cards.id, projectId: schema.cards.projectId, statusId: schema.cards.statusId, assigneeId: schema.cards.assigneeId })
     .from(schema.cards)
-    .where(and(inScope, isNull(schema.cards.dueDate), doneStatusIds.length ? notInArray(schema.cards.statusId, doneStatusIds) : undefined))
+    .where(and(inScope, isNull(schema.cards.dueDate), doneStatusIds.size ? notInArray(schema.cards.statusId, [...doneStatusIds]) : undefined))
     .all()
-    .filter(c => matchesCalendar(c, statusName.get(c.statusId), { ...filters, tags: [] }))
+    .filter(c => matchesCalendar(c, statusFacts(c.statusId), { ...filters, tags: [] }))
     .map(c => c.id)
 
   return {

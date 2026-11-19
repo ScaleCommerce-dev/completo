@@ -145,6 +145,26 @@ describe('Calendar', () => {
     })
   })
 
+  describe('the Done filter', () => {
+    // A week of its own, so these cards stay out of every other test's window.
+    const week = { from: '2027-01-04', to: '2027-01-10' }
+
+    it('means each project\'s done status, whatever the project calls it', async () => {
+      // Project B calls its done status "Erledigt"; A keeps "Done".
+      expect((await send(owner, `/api/statuses/${status(b, 'Done')}`, 'PUT', { name: 'Erledigt' })).status).toBe(200)
+      const doneA = await createTestCard(owner, a.id, status(a, 'Done'), { title: 'Published A', dueDate: '2027-01-05' })
+      const doneB = await createTestCard(owner, b.id, status(b, 'Done'), { title: 'Veröffentlicht B', dueDate: '2027-01-06' })
+      const openA = await createTestCard(owner, a.id, status(a, 'To Do'), { title: 'Still open', dueDate: '2027-01-07' })
+
+      const byMeaning = await calendar(owner, { ...week, statuses: '__done__' })
+      expect(ids(byMeaning.cards)).toEqual([doneA.id, doneB.id].sort((x, y) => x - y))
+      expect(ids(byMeaning.cards)).not.toContain(openA.id)
+
+      // The name alone still matches only the projects that use it.
+      expect(ids((await calendar(owner, { ...week, statuses: 'Done' })).cards)).toEqual([doneA.id])
+    })
+  })
+
   describe('saved calendars', () => {
     const filters = { mode: 'week', tags: ['Redaktionsplan'], people: [], projects: [], statuses: [] }
 

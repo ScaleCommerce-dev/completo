@@ -8180,7 +8180,7 @@
             },
             "style": "form",
             "explode": true,
-            "description": "Status names"
+            "description": "Status names. `__done__` means each project's done status, whatever it is called."
           }
         ],
         "responses": {
@@ -9461,7 +9461,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Status names, matched case-insensitively"
+            "description": "Status names, matched case-insensitively. `__done__` means each project's done status, whatever it is called."
           }
         }
       },

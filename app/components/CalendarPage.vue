@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { BaseCard } from '~/types/card'
 import type { CalendarCard, CalendarApiCard, CalendarResponse } from '~/types/calendar'
-import { CALENDAR_MODES, EMPTY_FILTERS, matchesCalendar, normalizeName, UNASSIGNED, type CalendarFilters, type CalendarMode } from '#shared/utils/calendar-filter'
+import { CALENDAR_MODES, DONE_STATUS, EMPTY_FILTERS, matchesCalendar, normalizeName, UNASSIGNED, type CalendarFilters, type CalendarMode } from '#shared/utils/calendar-filter'
 import { calendarDays, cardDay, isDayKey, localDay, periodTitle, shiftAnchor, weekStart } from '~/utils/calendar-days'
 
 /**
@@ -201,15 +201,19 @@ const projectItems = computed(() => (data.value?.projects ?? []).map(p => ({ val
 // One entry per name *as the filter matches it* (case and outer spaces ignored),
 // in its first spelling, as the server does for tags: deduplicated by exact
 // spelling, "In Progress" and "In progress" were two entries filtering the
-// same cards.
+// same cards. Each project's done status is the one exception: whatever it is
+// called, it is folded into a single "Done", which means "done in its own
+// project" (`DONE_STATUS`), so "Erledigt" is not left out of it.
 const statusItems = computed(() => {
+  const statuses = data.value?.statuses ?? []
   const byName = new Map<string, string>()
-  for (const s of data.value?.statuses ?? []) {
+  for (const s of statuses) {
+    if (doneStatusIds.value.has(s.id)) continue
     if (!byName.has(normalizeName(s.name))) byName.set(normalizeName(s.name), s.name.trim())
   }
-  return [...byName.values()]
-    .sort((a, b) => a.localeCompare(b))
-    .map(name => ({ value: name, label: name }))
+  const items = [...byName.values()].map(name => ({ value: name, label: name }))
+  if (statuses.some(s => doneStatusIds.value.has(s.id))) items.push({ value: DONE_STATUS, label: 'Done' })
+  return items.sort((a, b) => a.label.localeCompare(b.label))
 })
 
 function filterModel(key: 'tags' | 'people' | 'projects' | 'statuses') {
@@ -270,7 +274,7 @@ function applyCard(card: CalendarApiCard) {
   const previous = data.value.cards.find(c => c.id === card.id)
   dropCard(card.id)
   const statusName = statusById.value.get(card.statusId)?.name
-  if (!matchesCalendar(card, statusName, filters.value)) return
+  if (!matchesCalendar(card, { name: statusName, isDone: doneStatusIds.value.has(card.statusId) }, filters.value)) return
   const merged = { ...card, board: card.board ?? previous?.board ?? null }
   const day = cardDay(card.dueDate)
   if (day && day >= range.value.from && day <= range.value.to) data.value.cards.push(merged)
