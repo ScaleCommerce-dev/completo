@@ -518,39 +518,6 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
           />
         </UDropdownMenu>
       </template>
-      <UPopover
-        v-else-if="!calendarId"
-        v-model:open="saveOpen"
-        :content="{ align: 'end' }"
-      >
-        <UButton
-          icon="i-lucide-bookmark-plus"
-          label="Save as…"
-          :disabled="!activeFilters"
-        />
-        <template #content>
-          <form
-            class="p-3 flex flex-col gap-2 w-80"
-            @submit.prevent="saveAs"
-          >
-            <span class="text-sm font-medium text-highlighted">Save these filters as a calendar</span>
-            <UInput
-              v-model="saveName"
-              placeholder="e.g. Redaktionskalender"
-              aria-label="Calendar name"
-              autofocus
-            />
-            <span class="text-xs text-muted">It appears in the sidebar under Calendars. Only you see it; share it with Copy link.</span>
-            <UButton
-              type="submit"
-              label="Save"
-              block
-              :loading="saving"
-              :disabled="!saveName.trim()"
-            />
-          </form>
-        </template>
-      </UPopover>
     </template>
 
     <template
@@ -597,7 +564,9 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
           />
         </UFieldGroup>
         <!-- The chosen one solid: a grey fill read as disabled, so the
-               *other* option looked selected. -->
+               *other* option looked selected. `min-h-7`
+             matches the arrows' group, which its icon buttons stretch to 28px;
+             text alone came to 27px and sat a pixel off the line. -->
         <UFieldGroup
           size="sm"
           role="group"
@@ -610,101 +579,145 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
             color="neutral"
             :variant="mode === item.value ? 'solid' : 'outline'"
             :aria-pressed="mode === item.value"
+            class="min-h-7"
             @click="modeModel = item.value"
           />
         </UFieldGroup>
 
-        <UPopover
-          v-model:open="filterOpen"
-          :content="FIELD_MENU_ALIGN_END"
-          class="ml-auto"
-        >
-          <UButton
-            icon="i-lucide-list-filter"
-            label="Filter"
-            color="neutral"
-            variant="outline"
-            size="sm"
+        <div class="ml-auto flex items-center gap-2">
+          <UPopover
+            v-model:open="filterOpen"
+            :content="FIELD_MENU_ALIGN_END"
           >
-            <template
-              v-if="activeFilters"
-              #trailing
+            <UButton
+              icon="i-lucide-list-filter"
+              label="Filter"
+              color="neutral"
+              variant="outline"
+              size="sm"
             >
-              <UBadge
-                :label="String(activeFilters)"
-                color="neutral"
-                variant="subtle"
-                size="sm"
-              />
-            </template>
-          </UButton>
-          <template #content>
-            <div class="p-3 flex flex-col gap-3 w-72">
-              <UFormField label="Tags">
-                <USelectMenu
-                  v-model="tagsModel"
-                  :items="tagItems"
-                  value-key="value"
-                  multiple
-                  placeholder="Any"
-                  icon="i-lucide-tag"
-                  class="w-full"
-                >
-                  <template #item-leading="{ item }">
-                    <UiStatusDot
-                      :color="item.color"
-                      size="sm"
-                    />
-                  </template>
-                </USelectMenu>
-              </UFormField>
-              <UFormField label="People">
-                <USelectMenu
-                  v-model="peopleModel"
-                  :items="peopleItems"
-                  value-key="value"
-                  multiple
-                  placeholder="Any"
-                  icon="i-lucide-user"
-                  class="w-full"
-                />
-              </UFormField>
-              <UFormField label="Projects">
-                <USelectMenu
-                  v-model="projectsModel"
-                  :items="projectItems"
-                  value-key="value"
-                  multiple
-                  placeholder="Any"
-                  icon="i-lucide-folder"
-                  class="w-full"
-                />
-              </UFormField>
-              <UFormField label="Status">
-                <USelectMenu
-                  v-model="statusesModel"
-                  :items="statusItems"
-                  value-key="value"
-                  multiple
-                  placeholder="Any"
-                  icon="i-lucide-circle-dot"
-                  class="w-full"
-                />
-              </UFormField>
-              <!-- Clearing lives with the filters it clears. -->
-              <UButton
+              <template
                 v-if="activeFilters"
-                label="Clear filters"
-                icon="i-lucide-x"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                class="self-start"
-                @click="clearFilters"
-              />
-            </div>
-          </template>
-        </UPopover>
+                #trailing
+              >
+                <!-- `xs`: an `sm` badge made the button 4px taller than the rest of
+                     the toolbar, so setting a filter nudged the whole row down. -->
+                <UBadge
+                  :label="String(activeFilters)"
+                  color="neutral"
+                  variant="subtle"
+                  size="xs"
+                />
+              </template>
+            </UButton>
+            <template #content>
+              <div class="p-3 flex flex-col gap-3 w-72">
+                <UFormField label="Tags">
+                  <USelectMenu
+                    v-model="tagsModel"
+                    :items="tagItems"
+                    value-key="value"
+                    multiple
+                    placeholder="Any"
+                    icon="i-lucide-tag"
+                    class="w-full"
+                  >
+                    <template #item-leading="{ item }">
+                      <UiStatusDot
+                        :color="item.color"
+                        size="sm"
+                      />
+                    </template>
+                  </USelectMenu>
+                </UFormField>
+                <UFormField label="People">
+                  <USelectMenu
+                    v-model="peopleModel"
+                    :items="peopleItems"
+                    value-key="value"
+                    multiple
+                    placeholder="Any"
+                    icon="i-lucide-user"
+                    class="w-full"
+                  />
+                </UFormField>
+                <UFormField label="Projects">
+                  <USelectMenu
+                    v-model="projectsModel"
+                    :items="projectItems"
+                    value-key="value"
+                    multiple
+                    placeholder="Any"
+                    icon="i-lucide-folder"
+                    class="w-full"
+                  />
+                </UFormField>
+                <UFormField label="Status">
+                  <USelectMenu
+                    v-model="statusesModel"
+                    :items="statusItems"
+                    value-key="value"
+                    multiple
+                    placeholder="Any"
+                    icon="i-lucide-circle-dot"
+                    class="w-full"
+                  />
+                </UFormField>
+                <!-- Clearing lives with the filters it clears. -->
+                <UButton
+                  v-if="activeFilters"
+                  label="Clear filters"
+                  icon="i-lucide-x"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  class="self-start"
+                  @click="clearFilters"
+                />
+              </div>
+            </template>
+          </UPopover>
+          <!-- Saving belongs to filtering, so it sits beside Filter and appears
+           once there is something to save. In the page header it was the
+           primary action, greyed out on every visit until a filter was set,
+           which read as broken rather than as "set a filter first". As a
+           side action of filtering it is an outline button, not the accent. -->
+          <UPopover
+            v-if="!calendarId && activeFilters"
+            v-model:open="saveOpen"
+            :content="FIELD_MENU_ALIGN_END"
+          >
+            <UButton
+              icon="i-lucide-bookmark-plus"
+              label="Save as…"
+              color="neutral"
+              variant="outline"
+              size="sm"
+            />
+            <template #content>
+              <form
+                class="p-3 flex flex-col gap-2 w-80"
+                @submit.prevent="saveAs"
+              >
+                <span class="text-sm font-medium text-highlighted">Save these filters as a calendar</span>
+                <UInput
+                  v-model="saveName"
+                  placeholder="e.g. Redaktionskalender"
+                  aria-label="Calendar name"
+                  autofocus
+                />
+                <span class="text-xs text-muted">It appears in the sidebar under Calendars. Only you see it; share it with Copy link.</span>
+                <UButton
+                  type="submit"
+                  label="Save"
+                  block
+                  :loading="saving"
+                  :disabled="!saveName.trim()"
+                />
+              </form>
+            </template>
+          </UPopover>
+        </div>
       </div>
     </template>
 
