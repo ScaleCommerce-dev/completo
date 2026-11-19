@@ -8,8 +8,8 @@ import { cardsByDay, type CalendarDay } from '~/utils/calendar-days'
  * post's project) or a whole month (weeks as rows, compact chips, the rest of
  * a full day behind "+N more").
  *
- * A card is a chip in the day it is due, in its status colour (`.swatch-dot`,
- * from its own project), done cards faded. A chip can be dragged to another
+ * A card is a chip in the day it is due, with the board's priority edge bar
+ * for high and urgent, done cards faded. A chip can be dragged to another
  * day, which sets that day as its due date; the page saves it.
  *
  * Wider than the screen, the grid scrolls sideways inside its own container,
@@ -69,10 +69,6 @@ function onDragEnd() {
   dropTarget.value = null
 }
 
-function origin(card: CalendarCard) {
-  return [card.projectName, card.board?.name].filter(Boolean).join(' / ')
-}
-
 const minWidth = computed(() => props.mode === 'week' ? '980px' : '770px')
 </script>
 
@@ -124,60 +120,50 @@ const minWidth = computed(() => props.mode === 'week' ? '980px' : '770px')
             </span>
           </div>
 
-          <UTooltip
+          <!-- No hover tooltip: a card face carries what it needs, as on the board,
+               and the panel is one click away. A tooltip repeated the chip, did not
+               exist on touch, and covered the neighbouring days while scanning. -->
+          <button
             v-for="card in (mode === 'month' ? cardsOn(day).slice(0, MONTH_CHIPS) : cardsOn(day))"
             :key="card.id"
-            :delay-duration="300"
+            type="button"
+            draggable="true"
+            class="relative overflow-hidden w-full text-left rounded-md border border-default bg-default px-1.5 py-1 hover:border-accented hover:bg-elevated transition-colors cursor-grab active:cursor-grabbing"
+            :class="[card.isDone ? 'opacity-50' : '', dragging === card.id ? 'opacity-40' : '', priorityBarClass(card.priority) ? 'accent-edge' : '']"
+            :aria-label="`${card.ticket}: ${card.title}, ${card.statusName}${priorityBarClass(card.priority) ? `, ${priorityLabel(card.priority)} priority` : ''}. Drag to another day to move its due date.`"
+            @click="emit('card-click', card)"
+            @dragstart="onDragStart($event, card)"
+            @dragend="onDragEnd"
           >
-            <template #content>
-              <div class="flex flex-col gap-0.5 py-0.5 text-xs max-w-72">
-                <span class="font-medium text-highlighted">{{ card.title }}</span>
-                <span class="text-muted">{{ origin(card) }}<template v-if="card.parent"> · ↳ {{ card.parent.title }}</template></span>
-                <span class="flex items-center gap-1.5 text-muted">
-                  <UiStatusDot
-                    :color="card.statusColor"
-                    :done="card.isDone"
-                    size="sm"
-                  />
-                  {{ card.statusName }}<template v-if="card.assignee"> · {{ card.assignee.name }}</template>
-                </span>
-              </div>
-            </template>
-            <button
-              type="button"
-              draggable="true"
-              class="w-full text-left rounded-md border border-default bg-default px-1.5 py-1 hover:border-accented hover:bg-elevated transition-colors cursor-grab active:cursor-grabbing"
-              :class="[card.isDone ? 'opacity-50' : '', dragging === card.id ? 'opacity-40' : '']"
-              :aria-label="`${card.ticket}: ${card.title}, ${card.statusName}. Drag to another day to move its due date.`"
-              @click="emit('card-click', card)"
-              @dragstart="onDragStart($event, card)"
-              @dragend="onDragEnd"
+            <!-- Priority edge bar, as on the board (`KanbanCard`): high and urgent only. -->
+            <span
+              v-if="priorityBarClass(card.priority)"
+              class="absolute left-0 top-0 bottom-0 w-accent-bar"
+              :class="[priorityBarClass(card.priority), card.priority === 'urgent' ? 'priority-urgent-pulse' : '']"
+              aria-hidden="true"
+            />
+            <!-- Two lines in a week, where a day has room; one in a month. -->
+            <span
+              class="text-xs font-medium text-highlighted"
+              :class="mode === 'week' ? 'line-clamp-2 break-words' : 'block truncate'"
+            >{{ card.title }}</span>
+            <span
+              v-if="mode === 'week'"
+              class="flex items-center gap-1.5 mt-0.5 min-w-0 text-2xs text-dimmed"
             >
-              <span class="flex items-center gap-1.5 min-w-0">
-                <span
-                  class="swatch-dot size-2 rounded-full shrink-0"
-                  :style="{ '--swatch': card.statusColor || 'var(--ui-text-dimmed)' }"
-                />
-                <span class="truncate text-xs font-medium text-highlighted">{{ card.title }}</span>
-              </span>
-              <span
-                v-if="mode === 'week'"
-                class="flex items-center gap-1.5 mt-0.5 min-w-0 text-2xs text-dimmed"
-              >
-                <span class="font-mono shrink-0">{{ card.ticket }}</span>
-                <span class="truncate">{{ card.projectName }}</span>
-                <UiAvatar
-                  v-if="card.assignee"
-                  :src="card.assignee.avatarUrl || undefined"
-                  :alt="card.assignee.name"
-                  :kind="card.assignee.kind"
-                  :color="card.assignee.color"
-                  size="3xs"
-                  class="ml-auto shrink-0"
-                />
-              </span>
-            </button>
-          </UTooltip>
+              <span class="font-mono shrink-0">{{ card.ticket }}</span>
+              <span class="truncate">{{ card.projectName }}</span>
+              <UiAvatar
+                v-if="card.assignee"
+                :src="card.assignee.avatarUrl || undefined"
+                :alt="card.assignee.name"
+                :kind="card.assignee.kind"
+                :color="card.assignee.color"
+                size="3xs"
+                class="ml-auto shrink-0"
+              />
+            </span>
+          </button>
 
           <button
             v-if="mode === 'month' && cardsOn(day).length > MONTH_CHIPS"
