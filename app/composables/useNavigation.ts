@@ -52,12 +52,16 @@ export function useNavigation() {
   } = useFetch<ProjectListItem[]>('/api/projects', { key: 'projects' })
   const { user } = useUserSession()
   const toast = useToast()
+  // Saved calendars sit in the sidebar under their own heading, like starred
+  // projects: one click back to "Content calendar".
+  const { calendars } = useCalendars()
 
   const topItems = computed<NavItem[]>(() => [
     // Notifications are not here: the sidebar holds areas you work in, and
     // notifications are a signal, so they are the topbar bell beside the
     // account (handoff `03` › Topbar), at every width.
     { label: 'My Tasks', icon: 'i-lucide-check-square', to: '/my-tasks' },
+    { label: 'Calendar', icon: 'i-lucide-calendar-days', to: '/calendar' },
     { label: 'All Projects', icon: 'i-lucide-layout-grid', to: '/projects' },
     // In the top group rather than under Admin: people an admin allows
     // manage their own agents here too, and they have no Admin section.
@@ -89,6 +93,13 @@ export function useNavigation() {
   const navSections = computed<NavSection[]>(() => {
     const sections: NavSection[] = [{ items: topItems.value }]
 
+    if (calendars.value?.length) {
+      sections.push({
+        label: 'Calendars',
+        items: calendars.value.map(c => ({ label: c.name, icon: 'i-lucide-calendar-heart', to: `/calendar/${c.id}` }))
+      })
+    }
+
     // Not before the first response: an empty-state flash on every load would
     // tell people with stars that they have none.
     if (projects.value) {
@@ -115,6 +126,7 @@ export function useNavigation() {
     // Not a sidebar row any more, but still a place ⌘K can take you.
     { label: 'Notifications', icon: 'i-lucide-bell', to: '/notifications' },
     ...topItems.value,
+    ...(calendars.value ?? []).map(c => ({ label: c.name, icon: 'i-lucide-calendar-heart', to: `/calendar/${c.id}` })),
     ...(projects.value || []).map(projectItem),
     ...adminItems.value
   ])

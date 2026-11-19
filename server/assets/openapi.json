@@ -90,6 +90,10 @@
     {
       "name": "OAuth",
       "description": "OAuth 2.1 authorization server for the MCP endpoint: authorization code with PKCE (S256), refresh token rotation, dynamic client registration (RFC 7591), client ID metadata documents, and discovery (RFC 8414, RFC 9728). The consent page is /oauth/authorize in the app."
+    },
+    {
+      "name": "Calendar",
+      "description": "Cards by due date across the caller's projects, and saved filter sets"
     }
   ],
   "paths": {
@@ -7825,11 +7829,23 @@
           {
             "name": "projectId",
             "in": "query",
-            "required": true,
-            "description": "Project ID",
+            "required": false,
+            "description": "Project ID Required unless scope=mine.",
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "mine"
+              ]
+            },
+            "description": "`mine` streams every project the caller is a member of (the Calendar page), checking membership per event, instead of one projectId."
           }
         ],
         "responses": {
@@ -8082,6 +8098,304 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/calendar": {
+      "get": {
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Cards due in a window, across your projects",
+        "description": "Cards due between `from` and `to` from every project the caller is a member of (not admin-elevated), passing the filters. Tags and statuses match by name, case-insensitively. Sub-tasks appear only with their own tag; expired done cards are left out. Cards passing the filters but without a due date are not returned, only their ids as `undatedIds`, done cards left out. Also returns each filter's choices.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "First day, YYYY-MM-DD"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Last day, inclusive; at most 62 days after `from`"
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true,
+            "description": "Tag names; repeat for several"
+          },
+          {
+            "name": "people",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true,
+            "description": "User ids, or `__none__`"
+          },
+          {
+            "name": "projects",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true,
+            "description": "Project ids"
+          },
+          {
+            "name": "statuses",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true,
+            "description": "Status names. `__done__` means each project's done status, whatever it is called."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cards, the ids of matching cards without a due date, and the projects, statuses, tag names and people to filter by",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cards": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Card"
+                      }
+                    },
+                    "undatedIds": {
+                      "type": "array",
+                      "description": "Cards passing the filters but without a due date, done cards left out",
+                      "items": {
+                        "type": "integer"
+                      }
+                    },
+                    "projects": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "statuses": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "color": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "people": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MemberSummary"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid window or filters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/calendars": {
+      "get": {
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Your saved calendars",
+        "responses": {
+          "200": {
+            "description": "Saved calendars, in sidebar order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Calendar"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Save calendar filters under a name",
+        "description": "Personal: only the caller sees it. Share a calendar as a /calendar link with its filters.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "filters"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "filters": {
+                    "$ref": "#/components/schemas/CalendarFilters"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Calendar"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid name or filters"
+          }
+        }
+      }
+    },
+    "/api/calendars/{id}": {
+      "put": {
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Rename a saved calendar or store its filters",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "filters": {
+                    "$ref": "#/components/schemas/CalendarFilters"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Calendar"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or another person's"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Delete a saved calendar",
+        "description": "Only the saved filters go; no card is touched.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found, or another person's"
           }
         }
       }
@@ -9108,6 +9422,63 @@
             ],
             "nullable": true,
             "description": "For an agent actor, its manager"
+          }
+        }
+      },
+      "CalendarFilters": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "week",
+              "month"
+            ],
+            "default": "week"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tag names, matched case-insensitively across projects"
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "User ids; `__none__` for unassigned"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Status names, matched case-insensitively. `__done__` means each project's done status, whatever it is called."
+          }
+        }
+      },
+      "Calendar": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/CalendarFilters"
           }
         }
       }

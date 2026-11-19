@@ -377,6 +377,25 @@ export const projectStars = sqliteTable('project_stars', {
   uniqueIndex('project_stars_user_project_unique').on(table.userId, table.projectId)
 ])
 
+/**
+ * A calendar someone saved: a name and the filters of the Calendar page
+ * (`shared/schemas/calendar.ts`), such as "cards tagged Redaktionsplan, by
+ * week". Personal, like stars: it belongs to no project, and what it shows is
+ * always the owner's own projects. Sharing is a link, which the receiver saves
+ * as their own.
+ */
+export const calendars = sqliteTable('calendars', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  // JSON `CalendarFilters`.
+  filters: text('filters').notNull(),
+  position: integer('position').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
+}, table => [
+  index('calendars_user_idx').on(table.userId)
+])
+
 // ─── OAuth for MCP clients ───────────────────────────────────────────────────
 //
 // Completo is an OAuth 2.1 authorization server for exactly one resource: its
