@@ -137,7 +137,7 @@ function openDay(day: string) {
   else filters.value = { ...filters.value, mode: 'week' }
   setDate(day)
 }
-const MODE_ITEMS = [
+const MODE_ITEMS: Array<{ value: CalendarMode, label: string }> = [
   { value: 'week', label: 'Week' },
   { value: 'month', label: 'Month' }
 ]
@@ -231,10 +231,34 @@ function clearFilters() {
 }
 
 const projectCount = computed(() => data.value?.projects.length ?? 0)
-const description = computed(() => {
-  if (!data.value) return 'Cards due across your projects'
-  return `Cards from your ${projectCount.value} ${projectCount.value === 1 ? 'project' : 'projects'}. Everyone sees the cards of the projects they are in.`
+
+// ─── Active filters, as chips ────────────────────────────────────────────────
+
+/**
+ * The filters sit behind one "Filter" button, so the toolbar stays one line at
+ * any width: four selects beside the date controls fitted only while nothing
+ * was chosen, and wrapped exactly when the calendar was in use. What is chosen
+ * shows here instead, one removable chip per value, because a filtered calendar
+ * has to say why it shows only these cards, and a saved one has to say what it
+ * is. The row exists only while it has something in it.
+ */
+type FilterKey = 'tags' | 'people' | 'projects' | 'statuses'
+interface FilterChip { key: FilterKey, value: string, label: string }
+const filterChips = computed<FilterChip[]>(() => {
+  const labelOf = (items: Array<{ value: string, label: string }>, value: string) => items.find(i => i.value === value)?.label
+  const f = filters.value
+  return [
+    ...f.tags.map(value => ({ key: 'tags' as const, value, label: `Tag: ${value}` })),
+    // A linked calendar can name a person or project the viewer does not share.
+    ...f.people.map(value => ({ key: 'people' as const, value, label: `Person: ${labelOf(peopleItems.value, value) ?? 'someone else'}` })),
+    ...f.projects.map(value => ({ key: 'projects' as const, value, label: `Project: ${labelOf(projectItems.value, value) ?? 'not one of yours'}` })),
+    ...f.statuses.map(value => ({ key: 'statuses' as const, value, label: `Status: ${labelOf(statusItems.value, value) ?? value}` }))
+  ]
 })
+function removeFilter(chip: FilterChip) {
+  filters.value = { ...filters.value, [chip.key]: filters.value[chip.key].filter(v => v !== chip.value) }
+}
+const filterOpen = ref(false)
 
 // ─── Live ────────────────────────────────────────────────────────────────────
 
@@ -288,7 +312,19 @@ const undatedNote = computed(() => {
   const cards = n === 1 ? '1 more card' : `${n} more cards`
   return activeFilters.value
     ? `${cards} ${n === 1 ? 'matches' : 'match'} your filters but ${n === 1 ? 'has' : 'have'} no due date.`
-    : `${cards} in your projects ${n === 1 ? 'has' : 'have'} no due date.`
+    : `${cards} ${n === 1 ? 'has' : 'have'} no due date.`
+})
+
+/**
+ * One quiet line under the grid for what used to be the page description and
+ * the count: whose cards these are, and what the grid cannot show. Both are
+ * footnotes to the calendar, read when comparing with a colleague or wondering
+ * where a card went, not an introduction to it.
+ */
+const footnote = computed(() => {
+  const n = projectCount.value
+  const from = `From your ${n} ${n === 1 ? 'project' : 'projects'}; colleagues see their own.`
+  return undatedCount.value ? `${from} ${undatedNote.value}` : from
 })
 
 onMounted(() => {
@@ -460,7 +496,6 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
 <template>
   <UiPage
     :title="saved?.name ?? 'Calendar'"
-    :description="description"
     variant="surface"
     :crumbs="saved ? [{ label: 'Calendar', to: '/calendar' }] : undefined"
   >
@@ -537,112 +572,165 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
       />
 
       <template v-else>
-        <!-- Two rows, each with one job, rather than one row that wrapped
-             wherever the width ran out and left the filters hanging right under
-             the navigation. The first orients: which month, and the controls
-             for what and when, as Apple Calendar lays them out. Where it does
-             not fit, the controls move to their own line as one block: the
-             title is never truncated, since "Novembe…" was the one thing on
-             the line that had to stay readable. The second row narrows, read
-             from the left, and wraps from the left when it has to. -->
+        <!-- One toolbar line, the same at any width. On the left, everything
+             about *when*, read as one phrase: previous, Today, next, the month,
+             and how much of it. On the right, one Filter button: four filter
+             selects beside the date controls fitted only while none was set,
+             and wrapped exactly when the calendar was in use. One style for
+             all of it, neutral outline at one height, where a black pill
+             toggle, outlined arrows and white selects had stood side by side.
+             The month is the toolbar's title, not the page's: the page title
+             says where you are (and names a saved calendar), the month says
+             when, and changes with every step. -->
         <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <UFieldGroup size="sm">
+            <UButton
+              icon="i-lucide-chevron-left"
+              color="neutral"
+              variant="outline"
+              :aria-label="mode === 'week' ? 'Previous week' : 'Previous month'"
+              @click="step(-1)"
+            />
+            <!-- Always enabled, as in Apple Calendar: greyed out on the
+                 current period it read as broken, and pressing it is harmless. -->
+            <UButton
+              label="Today"
+              color="neutral"
+              variant="outline"
+              @click="setDate(today)"
+            />
+            <UButton
+              icon="i-lucide-chevron-right"
+              color="neutral"
+              variant="outline"
+              :aria-label="mode === 'week' ? 'Next week' : 'Next month'"
+              @click="step(1)"
+            />
+          </UFieldGroup>
           <h2 class="text-lg font-semibold tracking-heading text-highlighted whitespace-nowrap">
             {{ title }}
           </h2>
-          <div class="flex items-center gap-2 ml-auto shrink-0">
-            <UTabs
-              v-model="modeModel"
-              :items="MODE_ITEMS"
-              :content="false"
-              size="xs"
+          <!-- The chosen one solid: a grey fill read as disabled, so the
+               *other* option looked selected. -->
+          <UFieldGroup
+            size="sm"
+            role="group"
+            aria-label="Week or month"
+          >
+            <UButton
+              v-for="item in MODE_ITEMS"
+              :key="item.value"
+              :label="item.label"
               color="neutral"
-              aria-label="Week or month"
+              :variant="mode === item.value ? 'solid' : 'outline'"
+              :aria-pressed="mode === item.value"
+              @click="modeModel = item.value"
             />
-            <!-- Today between the arrows: one control for moving through
-                 time, with the way home in the middle. Always enabled, as in
-                 Apple Calendar: a greyed-out button in the middle of the group
-                 read as broken, and pressing it on the current period is
-                 harmless. -->
-            <UFieldGroup size="sm">
-              <UButton
-                icon="i-lucide-chevron-left"
-                color="neutral"
-                variant="outline"
-                :aria-label="mode === 'week' ? 'Previous week' : 'Previous month'"
-                @click="step(-1)"
-              />
-              <UButton
-                label="Today"
-                color="neutral"
-                variant="outline"
-                @click="setDate(today)"
-              />
-              <UButton
-                icon="i-lucide-chevron-right"
-                color="neutral"
-                variant="outline"
-                :aria-label="mode === 'week' ? 'Next week' : 'Next month'"
-                @click="step(1)"
-              />
-            </UFieldGroup>
-          </div>
+          </UFieldGroup>
+
+          <UPopover
+            v-model:open="filterOpen"
+            :content="FIELD_MENU_ALIGN_END"
+            class="ml-auto"
+          >
+            <UButton
+              icon="i-lucide-list-filter"
+              label="Filter"
+              color="neutral"
+              variant="outline"
+              size="sm"
+            >
+              <template
+                v-if="activeFilters"
+                #trailing
+              >
+                <UBadge
+                  :label="String(activeFilters)"
+                  color="neutral"
+                  variant="subtle"
+                  size="sm"
+                />
+              </template>
+            </UButton>
+            <template #content>
+              <div class="p-3 flex flex-col gap-3 w-72">
+                <UFormField label="Tags">
+                  <USelectMenu
+                    v-model="tagsModel"
+                    :items="tagItems"
+                    value-key="value"
+                    multiple
+                    placeholder="Any"
+                    icon="i-lucide-tag"
+                    class="w-full"
+                  >
+                    <template #item-leading="{ item }">
+                      <UiStatusDot
+                        :color="item.color"
+                        size="sm"
+                      />
+                    </template>
+                  </USelectMenu>
+                </UFormField>
+                <UFormField label="People">
+                  <USelectMenu
+                    v-model="peopleModel"
+                    :items="peopleItems"
+                    value-key="value"
+                    multiple
+                    placeholder="Any"
+                    icon="i-lucide-user"
+                    class="w-full"
+                  />
+                </UFormField>
+                <UFormField label="Projects">
+                  <USelectMenu
+                    v-model="projectsModel"
+                    :items="projectItems"
+                    value-key="value"
+                    multiple
+                    placeholder="Any"
+                    icon="i-lucide-folder"
+                    class="w-full"
+                  />
+                </UFormField>
+                <UFormField label="Status">
+                  <USelectMenu
+                    v-model="statusesModel"
+                    :items="statusItems"
+                    value-key="value"
+                    multiple
+                    placeholder="Any"
+                    icon="i-lucide-circle-dot"
+                    class="w-full"
+                  />
+                </UFormField>
+              </div>
+            </template>
+          </UPopover>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
-          <USelectMenu
-            v-model="tagsModel"
-            :items="tagItems"
-            value-key="value"
-            multiple
-            placeholder="Tags"
-            icon="i-lucide-tag"
-            size="sm"
-            class="w-40"
-          >
-            <template #item-leading="{ item }">
-              <UiStatusDot
-                :color="item.color"
-                size="sm"
-              />
-            </template>
-          </USelectMenu>
-          <USelectMenu
-            v-model="peopleModel"
-            :items="peopleItems"
-            value-key="value"
-            multiple
-            placeholder="People"
-            icon="i-lucide-user"
-            size="sm"
-            class="w-36"
-          />
-          <USelectMenu
-            v-model="projectsModel"
-            :items="projectItems"
-            value-key="value"
-            multiple
-            placeholder="Projects"
-            icon="i-lucide-folder"
-            size="sm"
-            class="w-36"
-          />
-          <USelectMenu
-            v-model="statusesModel"
-            :items="statusItems"
-            value-key="value"
-            multiple
-            placeholder="Status"
-            icon="i-lucide-circle-dot"
-            size="sm"
-            class="w-36"
+        <!-- What is filtered, removable one value at a time. Only while set. -->
+        <div
+          v-if="filterChips.length"
+          class="flex flex-wrap items-center gap-1.5"
+        >
+          <UButton
+            v-for="chip in filterChips"
+            :key="`${chip.key}:${chip.value}`"
+            :label="chip.label"
+            trailing-icon="i-lucide-x"
+            color="neutral"
+            variant="subtle"
+            size="xs"
+            :aria-label="`Remove filter ${chip.label}`"
+            @click="removeFilter(chip)"
           />
           <UButton
-            v-if="activeFilters"
-            :label="`Clear ${activeFilters}`"
-            icon="i-lucide-x"
+            label="Clear"
             color="neutral"
             variant="ghost"
-            size="sm"
+            size="xs"
             @click="clearFilters"
           />
         </div>
@@ -668,10 +756,10 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
           @open-day="openDay"
         />
         <p
-          v-if="undatedCount"
+          v-if="data"
           class="px-1 text-xs text-dimmed"
         >
-          {{ undatedNote }}
+          {{ footnote }}
         </p>
       </template>
     </div>
