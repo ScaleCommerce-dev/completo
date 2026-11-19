@@ -2,7 +2,7 @@
 import type { BaseCard } from '~/types/card'
 import type { CalendarCard, CalendarApiCard, CalendarResponse } from '~/types/calendar'
 import { CALENDAR_MODES, DONE_STATUS, EMPTY_FILTERS, matchesCalendar, normalizeName, UNASSIGNED, type CalendarFilters, type CalendarMode } from '#shared/utils/calendar-filter'
-import { calendarDays, cardDay, isDayKey, localDay, periodTitle, shiftAnchor, weekStart } from '~/utils/calendar-days'
+import { calendarDays, cardDay, isDayKey, localDay, periodTitle, shiftAnchor } from '~/utils/calendar-days'
 
 /**
  * The Calendar: cards due this week or month from every project you are a
@@ -94,10 +94,6 @@ function setDate(day: string) {
 function step(direction: -1 | 1) {
   setDate(shiftAnchor(mode.value, anchor.value, direction))
 }
-
-const isCurrent = computed(() => mode.value === 'week'
-  ? weekStart(anchor.value) === weekStart(today.value)
-  : anchor.value.slice(0, 7) === today.value.slice(0, 7))
 
 /** The filters as query parameters: the page's address, and the link you share. */
 function filterQuery(f: CalendarFilters) {
@@ -541,102 +537,114 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
       />
 
       <template v-else>
-        <!-- Window and filters -->
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- Today between the arrows, as Apple Calendar has it: one control for
-               moving through time, with the way home in the middle. -->
-          <UFieldGroup size="sm">
-            <UButton
-              icon="i-lucide-chevron-left"
+        <!-- Two rows, each with one job, rather than one row that wrapped
+             wherever the width ran out and left the filters hanging right under
+             the navigation. The first orients: which month, and the controls
+             for what and when, as Apple Calendar lays them out. Where it does
+             not fit, the controls move to their own line as one block: the
+             title is never truncated, since "Novembe…" was the one thing on
+             the line that had to stay readable. The second row narrows, read
+             from the left, and wraps from the left when it has to. -->
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h2 class="text-lg font-semibold tracking-heading text-highlighted whitespace-nowrap">
+            {{ title }}
+          </h2>
+          <div class="flex items-center gap-2 ml-auto shrink-0">
+            <UTabs
+              v-model="modeModel"
+              :items="MODE_ITEMS"
+              :content="false"
+              size="xs"
               color="neutral"
-              variant="outline"
-              :aria-label="mode === 'week' ? 'Previous week' : 'Previous month'"
-              @click="step(-1)"
+              aria-label="Week or month"
             />
-            <UButton
-              label="Today"
-              color="neutral"
-              variant="outline"
-              :disabled="isCurrent"
-              @click="setDate(today)"
-            />
-            <UButton
-              icon="i-lucide-chevron-right"
-              color="neutral"
-              variant="outline"
-              :aria-label="mode === 'week' ? 'Next week' : 'Next month'"
-              @click="step(1)"
-            />
-          </UFieldGroup>
-          <span class="text-base font-semibold text-highlighted tabular-nums">{{ title }}</span>
-          <UTabs
-            v-model="modeModel"
-            :items="MODE_ITEMS"
-            :content="false"
-            size="xs"
-            color="neutral"
-            aria-label="Week or month"
-            class="ml-2"
-          />
-
-          <div class="flex flex-wrap items-center gap-2 ml-auto">
-            <USelectMenu
-              v-model="tagsModel"
-              :items="tagItems"
-              value-key="value"
-              multiple
-              placeholder="Tags"
-              icon="i-lucide-tag"
-              size="sm"
-              class="w-40"
-            >
-              <template #item-leading="{ item }">
-                <UiStatusDot
-                  :color="item.color"
-                  size="sm"
-                />
-              </template>
-            </USelectMenu>
-            <USelectMenu
-              v-model="peopleModel"
-              :items="peopleItems"
-              value-key="value"
-              multiple
-              placeholder="People"
-              icon="i-lucide-user"
-              size="sm"
-              class="w-36"
-            />
-            <USelectMenu
-              v-model="projectsModel"
-              :items="projectItems"
-              value-key="value"
-              multiple
-              placeholder="Projects"
-              icon="i-lucide-folder"
-              size="sm"
-              class="w-36"
-            />
-            <USelectMenu
-              v-model="statusesModel"
-              :items="statusItems"
-              value-key="value"
-              multiple
-              placeholder="Status"
-              icon="i-lucide-circle-dot"
-              size="sm"
-              class="w-36"
-            />
-            <UButton
-              v-if="activeFilters"
-              :label="`Clear ${activeFilters}`"
-              icon="i-lucide-x"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              @click="clearFilters"
-            />
+            <!-- Today between the arrows: one control for moving through
+                 time, with the way home in the middle. Always enabled, as in
+                 Apple Calendar: a greyed-out button in the middle of the group
+                 read as broken, and pressing it on the current period is
+                 harmless. -->
+            <UFieldGroup size="sm">
+              <UButton
+                icon="i-lucide-chevron-left"
+                color="neutral"
+                variant="outline"
+                :aria-label="mode === 'week' ? 'Previous week' : 'Previous month'"
+                @click="step(-1)"
+              />
+              <UButton
+                label="Today"
+                color="neutral"
+                variant="outline"
+                @click="setDate(today)"
+              />
+              <UButton
+                icon="i-lucide-chevron-right"
+                color="neutral"
+                variant="outline"
+                :aria-label="mode === 'week' ? 'Next week' : 'Next month'"
+                @click="step(1)"
+              />
+            </UFieldGroup>
           </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <USelectMenu
+            v-model="tagsModel"
+            :items="tagItems"
+            value-key="value"
+            multiple
+            placeholder="Tags"
+            icon="i-lucide-tag"
+            size="sm"
+            class="w-40"
+          >
+            <template #item-leading="{ item }">
+              <UiStatusDot
+                :color="item.color"
+                size="sm"
+              />
+            </template>
+          </USelectMenu>
+          <USelectMenu
+            v-model="peopleModel"
+            :items="peopleItems"
+            value-key="value"
+            multiple
+            placeholder="People"
+            icon="i-lucide-user"
+            size="sm"
+            class="w-36"
+          />
+          <USelectMenu
+            v-model="projectsModel"
+            :items="projectItems"
+            value-key="value"
+            multiple
+            placeholder="Projects"
+            icon="i-lucide-folder"
+            size="sm"
+            class="w-36"
+          />
+          <USelectMenu
+            v-model="statusesModel"
+            :items="statusItems"
+            value-key="value"
+            multiple
+            placeholder="Status"
+            icon="i-lucide-circle-dot"
+            size="sm"
+            class="w-36"
+          />
+          <UButton
+            v-if="activeFilters"
+            :label="`Clear ${activeFilters}`"
+            icon="i-lucide-x"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            @click="clearFilters"
+          />
         </div>
 
         <UiLoadError
