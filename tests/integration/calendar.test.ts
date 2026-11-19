@@ -169,7 +169,7 @@ describe('Calendar', () => {
     const filters = { mode: 'week', tags: ['Redaktionsplan'], people: [], projects: [], statuses: [] }
 
     it('saves, lists, renames and deletes the caller\'s own calendars', async () => {
-      const res = await send(owner, '/api/calendars', 'POST', { name: 'Redaktionskalender', filters })
+      const res = await send(owner, '/api/calendars', 'POST', { name: 'Content calendar', filters })
       expect(res.status).toBe(201)
       const saved = await res.json() as { id: string, name: string, filters: typeof filters }
       expect(saved.filters).toEqual(filters)

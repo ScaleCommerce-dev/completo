@@ -585,6 +585,48 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
         </UFieldGroup>
 
         <div class="ml-auto flex items-center gap-2">
+          <!-- Saving belongs to filtering, so it sits beside Filter and appears
+           once there is something to save. To its left: the group is
+           right-aligned, so appearing on the right pushed Filter, the button
+           just used, out from under the pointer. In the page header it was the
+           primary action, greyed out on every visit until a filter was set,
+           which read as broken rather than as "set a filter first". As a
+           side action of filtering it is an outline button, not the accent. -->
+          <UPopover
+            v-if="!calendarId && activeFilters"
+            v-model:open="saveOpen"
+            :content="FIELD_MENU_ALIGN_END"
+          >
+            <UButton
+              icon="i-lucide-bookmark-plus"
+              label="Save as…"
+              color="neutral"
+              variant="outline"
+              size="sm"
+            />
+            <template #content>
+              <form
+                class="p-3 flex flex-col gap-2 w-80"
+                @submit.prevent="saveAs"
+              >
+                <span class="text-sm font-medium text-highlighted">Save these filters as a calendar</span>
+                <UInput
+                  v-model="saveName"
+                  placeholder="e.g. Content calendar"
+                  aria-label="Calendar name"
+                  autofocus
+                />
+                <span class="text-xs text-muted">It appears in the sidebar under Calendars. Only you see it; share it with Copy link.</span>
+                <UButton
+                  type="submit"
+                  label="Save"
+                  block
+                  :loading="saving"
+                  :disabled="!saveName.trim()"
+                />
+              </form>
+            </template>
+          </UPopover>
           <UPopover
             v-model:open="filterOpen"
             :content="FIELD_MENU_ALIGN_END"
@@ -675,46 +717,6 @@ useSeoMeta({ title: () => saved.value?.name ?? 'Calendar' })
                   @click="clearFilters"
                 />
               </div>
-            </template>
-          </UPopover>
-          <!-- Saving belongs to filtering, so it sits beside Filter and appears
-           once there is something to save. In the page header it was the
-           primary action, greyed out on every visit until a filter was set,
-           which read as broken rather than as "set a filter first". As a
-           side action of filtering it is an outline button, not the accent. -->
-          <UPopover
-            v-if="!calendarId && activeFilters"
-            v-model:open="saveOpen"
-            :content="FIELD_MENU_ALIGN_END"
-          >
-            <UButton
-              icon="i-lucide-bookmark-plus"
-              label="Save as…"
-              color="neutral"
-              variant="outline"
-              size="sm"
-            />
-            <template #content>
-              <form
-                class="p-3 flex flex-col gap-2 w-80"
-                @submit.prevent="saveAs"
-              >
-                <span class="text-sm font-medium text-highlighted">Save these filters as a calendar</span>
-                <UInput
-                  v-model="saveName"
-                  placeholder="e.g. Redaktionskalender"
-                  aria-label="Calendar name"
-                  autofocus
-                />
-                <span class="text-xs text-muted">It appears in the sidebar under Calendars. Only you see it; share it with Copy link.</span>
-                <UButton
-                  type="submit"
-                  label="Save"
-                  block
-                  :loading="saving"
-                  :disabled="!saveName.trim()"
-                />
-              </form>
             </template>
           </UPopover>
         </div>

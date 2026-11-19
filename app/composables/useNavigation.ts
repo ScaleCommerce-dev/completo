@@ -53,7 +53,7 @@ export function useNavigation() {
   const { user } = useUserSession()
   const toast = useToast()
   // Saved calendars sit in the sidebar under their own heading, like starred
-  // projects: one click back to "Redaktionskalender".
+  // projects: one click back to "Content calendar".
   const { calendars } = useCalendars()
 
   const topItems = computed<NavItem[]>(() => [

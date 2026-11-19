@@ -4,7 +4,7 @@
 
 ### App
 
-- **A calendar of what is due, across your projects.** Calendar sits beside My Tasks and shows every card with a due date from the projects you are a member of, by week or by month. Filter by tag, person, project or status; tags and statuses match by name, so "Redaktionsplan" collects that tag from every project, sub-tasks included when they carry it themselves. Drag a card to another day to change its due date, click it to open it. Cards that match your filters but have no due date are counted in a line below the calendar. Save a set of filters as a named calendar, such as "Redaktionskalender", to find it in the sidebar; it is yours alone, and Copy link shares it so others can save it too. Everyone sees the cards of their own projects, and the page says how many that is.
+- **A calendar of what is due, across your projects.** Calendar sits beside My Tasks and shows every card with a due date from the projects you are a member of, by week or by month. Filter by tag, person, project or status; tags and statuses match by name, so "Redaktionsplan" collects that tag from every project, sub-tasks included when they carry it themselves. Drag a card to another day to change its due date, click it to open it. Cards that match your filters but have no due date are counted in a line below the calendar. Save a set of filters as a named calendar, such as "Content calendar", to find it in the sidebar; it is yours alone, and Copy link shares it so others can save it too. Everyone sees the cards of their own projects, and the page says how many that is.
 
 ## v0.20.1
 
