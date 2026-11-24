@@ -1,11 +1,11 @@
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and, inArray, isNull } from 'drizzle-orm'
 
 /**
  * "My agents' work": cards assigned to the agents the caller manages, one flat
  * list across projects, each with its agent as `assignee` (`suspended` marks one
  * whose tokens are revoked) and its project. Only projects the caller can see
- * are included, and done cards past a project's retention are left out, as on
- * My Tasks itself. Not admin-elevated: it answers "my agents", not "all agents".
+ * are included, archived projects are not, and done cards past a project's
+ * retention are left out, as on My Tasks itself. Not admin-elevated: it answers "my agents", not "all agents".
  *
  * `agentCount` counts every agent the caller manages and
  * `agentsWithCards` those holding at least one of these cards, for "16 cards, 9 of 24 agents".
@@ -25,6 +25,9 @@ export default defineEventHandler(async (event) => {
     .leftJoin(schema.statuses, eq(schema.cards.statusId, schema.statuses.id))
     .where(and(
       inArray(schema.cards.assigneeId, agents.map(a => a.id)),
+      // Archived projects (CF-420) are left out, as in the caller's own My Tasks
+      // groups on the same page.
+      isNull(schema.projects.archivedAt),
       user.isAdmin
         ? undefined
         : inArray(schema.cards.projectId, db.select({ id: schema.projectMembers.projectId })

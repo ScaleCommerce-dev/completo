@@ -58,6 +58,12 @@ export const projects = sqliteTable('projects', {
   icon: text('icon'),
   doneStatusId: text('done_status_id').references((): AnySQLiteColumn => statuses.id, { onDelete: 'set null' }),
   doneRetentionDays: integer('done_retention_days'),
+  // Set while the project is archived (CF-420). Archiving hides a project from the
+  // places you go looking for work (All Projects' grid, the sidebar, ⌘K, My Tasks,
+  // Calendar) and changes nothing else: access, members, stars and cards all stay,
+  // so restoring is clearing this one column. `/api/projects` still lists it, with
+  // the timestamp, because the CLI and MCP resolve slugs through that list.
+  archivedAt: integer('archived_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 })
 

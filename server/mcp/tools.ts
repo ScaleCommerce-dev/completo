@@ -87,6 +87,7 @@ interface ApiProjectSummary extends ApiProjectRef {
   totalCards: number
   memberCount: number
   lastActivity: string | null
+  archivedAt: string | null
 }
 interface ApiCard {
   id: number
@@ -394,12 +395,14 @@ interface Tool extends ToolDefinition {
 const TOOLS: Tool[] = [
   {
     name: 'list_projects',
-    description: 'Projects the caller belongs to, with key, slug, role and open card count. Start here when a project is referred to by a name you have not resolved yet.',
+    description: 'Projects the caller belongs to, with key, slug, role and open card count. Archived projects are left out, though they can still be read by slug or key. Start here when a project is referred to by a name you have not resolved yet.',
     inputSchema: schema({}),
     annotations: { readOnlyHint: true },
     run: async (ctx) => {
       const all = await ctx.get<ApiProjectSummary[]>('/api/projects')
-      return all.map(p => ({
+      // Archived projects are not where work goes (CF-420). `loadProject` still
+      // resolves one by slug, key or name, so a named archived project works.
+      return all.filter(p => !p.archivedAt).map(p => ({
         name: p.name,
         key: p.key,
         slug: p.slug,

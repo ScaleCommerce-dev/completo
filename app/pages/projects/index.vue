@@ -26,6 +26,31 @@ function canEditProject(project: ProjectListItem) {
  * looking. The order catches up on the next visit, or when a project is added or
  * removed — the moments the grid is being re-read anyway.
  */
+/**
+ * Archived projects (CF-420) are not in the grid or the counts above it. They
+ * sit behind one quiet line under the grid, which reveals them as a plain list:
+ * an archived project is looked up to be restored or checked, not worked in, so
+ * it gets a row rather than a card competing with the live ones.
+ */
+const activeProjects = computed(() => (projects.value || []).filter(p => !p.archivedAt))
+const archivedProjects = computed(() => (projects.value || []).filter(p => p.archivedAt))
+const showArchived = ref(false)
+const unarchiving = ref<string | null>(null)
+const toast = useToast()
+
+async function unarchive(project: ProjectListItem) {
+  unarchiving.value = project.id
+  try {
+    await $fetch(`/api/projects/${project.id}/archive`, { method: 'DELETE' })
+    await refresh()
+    toast.add({ title: `Un-archived ${project.name}`, color: 'success' })
+  } catch (e) {
+    toast.add({ title: 'Could not un-archive project', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+  } finally {
+    unarchiving.value = null
+  }
+}
+
 const starredAtLoad = ref(new Set<string>())
 watch(
   () => (projects.value || []).map(p => p.id).join(),
@@ -33,7 +58,7 @@ watch(
   { immediate: true }
 )
 const orderedProjects = computed(() => {
-  const list = projects.value || []
+  const list = activeProjects.value
   return [
     ...list.filter(p => starredAtLoad.value.has(p.id)),
     ...list.filter(p => !starredAtLoad.value.has(p.id))
@@ -56,9 +81,9 @@ async function onProjectChanged() {
 }
 
 // Summary stats
-const totalProjects = computed(() => projects.value?.length || 0)
-const totalOpenCards = computed(() => projects.value?.reduce((sum, p) => sum + (p.openCards || 0), 0) || 0)
-const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.boardCount || 0), 0) || 0)
+const totalProjects = computed(() => activeProjects.value.length)
+const totalOpenCards = computed(() => activeProjects.value.reduce((sum, p) => sum + (p.openCards || 0), 0))
+const totalBoards = computed(() => activeProjects.value.reduce((sum, p) => sum + (p.boardCount || 0), 0))
 </script>
 
 <template>
@@ -299,11 +324,73 @@ const totalBoards = computed(() => projects.value?.reduce((sum, p) => sum + (p.b
       </NuxtLink>
     </div>
 
+    <!-- Archived projects: one quiet line, absent when there are none. -->
+    <div
+      v-if="status !== 'error' && archivedProjects.length"
+      class="flex flex-col gap-3"
+    >
+      <div>
+        <UButton
+          :label="showArchived ? 'Hide archived projects' : `${plural(archivedProjects.length, 'archived project')} not shown`"
+          :trailing-icon="showArchived ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+          variant="link"
+          color="neutral"
+          size="sm"
+          class="px-0 text-dimmed hover:text-toned"
+          :aria-expanded="showArchived"
+          aria-controls="archived-projects"
+          @click="showArchived = !showArchived"
+        />
+      </div>
+
+      <ul
+        v-if="showArchived"
+        id="archived-projects"
+        class="rounded-xl border border-default bg-default divide-y divide-default"
+      >
+        <li
+          v-for="project in archivedProjects"
+          :key="project.id"
+          class="flex items-center gap-3 px-card py-2.5"
+        >
+          <div
+            class="swatch flex items-center justify-center w-7 h-7 rounded-md shrink-0"
+            :style="{ '--swatch': accentFor(project) }"
+          >
+            <UIcon
+              :name="`i-lucide-${project.icon || 'folder'}`"
+              class="text-sm"
+            />
+          </div>
+          <NuxtLink
+            :to="`/projects/${project.slug}`"
+            class="min-w-0 flex-1 truncate text-sm font-medium text-toned hover:text-highlighted"
+          >
+            {{ project.name }}
+          </NuxtLink>
+          <span class="hidden sm:inline text-xs text-dimmed shrink-0">
+            Archived {{ relativeTime(project.archivedAt!) }}
+          </span>
+          <UButton
+            v-if="canEditProject(project)"
+            label="Un-archive"
+            icon="i-lucide-archive-restore"
+            variant="ghost"
+            color="neutral"
+            size="sm"
+            :loading="unarchiving === project.id"
+            @click="unarchive(project)"
+          />
+        </li>
+      </ul>
+    </div>
+
     <ProjectSettingsDialog
       v-model:open="showEditProject"
       :project="editTarget"
       @saved="onProjectChanged"
       @deleted="onProjectChanged"
+      @archived="onProjectChanged"
     />
   </UiPage>
 </template>

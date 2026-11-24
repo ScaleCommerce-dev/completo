@@ -18,17 +18,24 @@ const props = withDefaults(defineProps<{
   loadingStatuses?: boolean
   loading?: boolean
   deleting?: boolean
+  /** Edit mode: whether the project is archived, which turns Archive into Un-archive. */
+  archived?: boolean
+  archiving?: boolean
   error?: string
 }>(), {
   loadingStatuses: false,
   loading: false,
-  deleting: false
+  deleting: false,
+  archived: false,
+  archiving: false
 })
 
 const emit = defineEmits<{
   submit: [data: Record<string, unknown>]
   cancel: []
   delete: []
+  /** Edit mode: archive, or un-archive when `archived`. The host does the request. */
+  archive: []
 }>()
 
 // Default status names for create mode
@@ -510,7 +517,24 @@ function confirmDelete() {
         :disabled="!canSubmit"
         @destructive="showDeleteConfirm = true"
         @cancel="emit('cancel')"
-      />
+      >
+        <!-- No confirmation: archiving loses nothing and is undone from the same
+             place, so asking first would be the destroy contract on an act that
+             destroys nothing. The host's toast carries an Undo. -->
+        <template
+          v-if="mode === 'edit' && !showDeleteConfirm"
+          #start
+        >
+          <UButton
+            :label="archived ? 'Un-archive' : 'Archive'"
+            :icon="archived ? 'i-lucide-archive-restore' : 'i-lucide-archive'"
+            variant="ghost"
+            color="neutral"
+            :loading="archiving"
+            @click="emit('archive')"
+          />
+        </template>
+      </UiSaveBar>
     </div>
   </form>
 </template>

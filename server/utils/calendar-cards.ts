@@ -27,7 +27,18 @@ import { matchesCalendar, normalizeName, type CalendarFilters } from '#shared/ut
  * due date, within a window of at most a few weeks.
  */
 export function calendarCards(userId: string, range: { from: string, to: string }, filters: CalendarFilters) {
-  const projectIds = [...memberProjectIds(userId)]
+  // Archived projects (CF-420) contribute no cards and no picker entries. They
+  // are named apart (`archivedProjects`), because a saved calendar may filter by
+  // one: without them the page could only call it "a project you are not a
+  // member of", and offer to strip it from the filters for good.
+  const archived = archivedProjectIds()
+  const allMemberIds = [...memberProjectIds(userId)]
+  const projectIds = allMemberIds.filter(id => !archived.has(id))
+  const archivedMemberIds = allMemberIds.filter(id => archived.has(id))
+  const archivedProjects = archivedMemberIds.length
+    ? db.select({ id: schema.projects.id, name: schema.projects.name }).from(schema.projects)
+        .where(inArray(schema.projects.id, archivedMemberIds)).orderBy(asc(schema.projects.name)).all()
+    : []
   const projects = projectIds.length
     ? db.select().from(schema.projects).where(inArray(schema.projects.id, projectIds)).orderBy(asc(schema.projects.name)).all()
     : []
@@ -45,6 +56,7 @@ export function calendarCards(userId: string, range: { from: string, to: string 
     : []
 
   const pickers = {
+    archivedProjects,
     projects: projects.map(p => ({ id: p.id, name: p.name, slug: p.slug, key: p.key, doneStatusId: p.doneStatusId })),
     statuses,
     // One entry per name, in its first spelling, with that tag's colour.

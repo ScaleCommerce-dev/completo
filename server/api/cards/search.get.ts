@@ -37,7 +37,10 @@ export default defineEventHandler(async (event) => {
         .where(eq(schema.projectMembers.userId, user.id))
         .all().map(m => m.id)
 
-  const scope = onlyProject ? projectIds.filter(id => id === onlyProject) : projectIds
+  // Archived projects (CF-420) are left out of "where is that card", unless the
+  // search is scoped to one: inside an archived project, its own cards are found.
+  const archived = onlyProject ? new Set<string>() : archivedProjectIds()
+  const scope = onlyProject ? projectIds.filter(id => id === onlyProject) : projectIds.filter(id => !archived.has(id))
   if (!scope.length) return []
 
   const titleMatch = likeContains(schema.cards.title, q)

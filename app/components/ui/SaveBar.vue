@@ -98,6 +98,11 @@ const emit = defineEmits<{
       @click="emit('destructive')"
     />
 
+    <!-- Beside the destructive action, for a second action on the object itself
+         rather than on this form (Archive, in project settings): it acts at once,
+         so it belongs with Delete at the far end, not with Cancel and Save. -->
+    <slot name="start" />
+
     <span
       v-if="status"
       class="text-sm font-medium truncate text-dimmed"

@@ -18,9 +18,10 @@ export default defineEventHandler(async (event) => {
   // Every project the caller is a member of, for the Calendar page, which shows
   // cards from all of them. Membership is checked per event (one indexed lookup)
   // rather than once at connect, so a project left or joined meanwhile is honoured.
+  // An archived project is skipped the same way, since the Calendar leaves it out.
   if (scope === 'mine') {
     return streamAppEvents(event, {
-      select: evt => evt.projectId && isProjectMember(evt.projectId, user.id)
+      select: evt => evt.projectId && isProjectMember(evt.projectId, user.id) && !isProjectArchived(evt.projectId)
         ? { event: evt.type, data: JSON.stringify(evt.payload ?? null) }
         : null,
       allowed: () => isStillAuthorized(event)

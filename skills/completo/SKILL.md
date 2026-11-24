@@ -278,7 +278,7 @@ Run `completo <command> --help` for full, always-current flag lists. The essenti
 
 | Command | Purpose |
 |---------|---------|
-| `completo projects` | List accessible projects |
+| `completo projects [--archived]` | List accessible projects (archived ones only with `--archived`) |
 | `completo statuses [project]` | List a project's statuses (names are exact) |
 | `completo next [project] [--status X] [--all]` | Top card of a status, or up to 200 of them (`--all`) |
 | `completo list [project] [--status] [--priority] [--assignee] [--parent] [--limit]` | List/filter cards (limit default 50, max 200); `--assignee` takes an email, name or ID; `--parent TK-27` for its sub-tasks, `none` for top-level cards |
@@ -294,6 +294,7 @@ Run `completo <command> --help` for full, always-current flag lists. The essenti
 | `completo my-tasks` | Cards assigned to you |
 | `completo search <query> [--project slug]` | Search cards in the project from `.completo`, or the one named |
 | `completo project-create <name> [flags]` | Create a project (see above) |
+| `completo project-archive <project>` / `project-restore <project>` | Archive a project (hidden from lists and cross-project views, all data kept) or restore it; owners only |
 | `completo briefing [--file F ...] [--clear]` | View / upload / clear the project's AI briefing |
 | `completo config` / `version` / `self-update` | Configure credentials / print version / update the CLI |
 

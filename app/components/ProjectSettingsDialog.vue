@@ -27,6 +27,7 @@ export interface ProjectSettingsTarget {
   doneStatusId: string | null
   briefing?: string | null
   doneRetentionDays?: number | null
+  archivedAt?: string | null
 }
 
 const props = defineProps<{
@@ -36,11 +37,13 @@ const props = defineProps<{
 const emit = defineEmits<{
   saved: [project: { id: string, slug: string }]
   deleted: [projectId: string]
+  /** Archived or un-archived; `archivedAt` is the new value. */
+  archived: [project: { id: string, archivedAt: string | null }]
 }>()
 
 const open = defineModel<boolean>('open', { required: true })
 
-type FormData = Required<ProjectSettingsTarget>
+type FormData = Required<Omit<ProjectSettingsTarget, 'archivedAt'>>
 interface Status { id: string, name: string, color: string | null }
 
 const formData = ref<FormData | undefined>(undefined)
@@ -49,6 +52,8 @@ const loadingStatuses = ref(false)
 const error = ref('')
 const saving = ref(false)
 const deleting = ref(false)
+const archiving = ref(false)
+const toast = useToast()
 
 watch(open, async (isOpen) => {
   const p = props.project
@@ -56,6 +61,7 @@ watch(open, async (isOpen) => {
   error.value = ''
   saving.value = false
   deleting.value = false
+  archiving.value = false
   formData.value = {
     id: p.id,
     name: p.name,
@@ -117,6 +123,34 @@ async function remove() {
     deleting.value = false
   }
 }
+/**
+ * Archive or un-archive, then close: the dialog's other fields may hold unsaved
+ * edits, but this acts on the project rather than on the form, the way Delete
+ * does. The toast's Undo is the way back from a mis-click, since the archived
+ * project leaves the grid the dialog was opened from.
+ */
+async function setArchived(archive: boolean, { quiet = false } = {}) {
+  const p = props.project
+  if (!p) return
+  archiving.value = true
+  try {
+    const updated = await $fetch<{ archivedAt: string | null }>(`/api/projects/${p.id}/archive`, { method: archive ? 'PUT' : 'DELETE' })
+    open.value = false
+    emit('archived', { id: p.id, archivedAt: updated.archivedAt })
+    if (quiet) return
+    toast.add({
+      title: archive ? `Archived ${p.name}` : `Un-archived ${p.name}`,
+      color: 'success',
+      actions: [{ label: 'Undo', onClick: () => { setArchived(!archive, { quiet: true }) } }]
+    })
+  } catch (e: unknown) {
+    const message = getErrorMessage(e, archive ? 'Failed to archive project' : 'Failed to un-archive project')
+    if (open.value) error.value = message
+    else toast.add({ title: message, color: 'error' })
+  } finally {
+    archiving.value = false
+  }
+}
 </script>
 
 <template>
@@ -137,10 +171,13 @@ async function remove() {
         :loading-statuses="loadingStatuses"
         :loading="saving"
         :deleting="deleting"
+        :archived="!!project?.archivedAt"
+        :archiving="archiving"
         :error="error"
         @submit="save"
         @cancel="open = false"
         @delete="remove"
+        @archive="setArchived(!project?.archivedAt)"
       />
     </template>
   </UiModal>

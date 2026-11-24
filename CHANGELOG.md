@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### App
+
+- **Archive a project you are done with.** Project settings has an Archive button beside Delete. An archived project leaves the All Projects grid, the sidebar, ⌘K, My Tasks and the Calendar, and nothing in it is lost: its cards, statuses, tags, members and stars all stay, and it still opens at its own address with a note that it is archived. All Projects says how many archived projects it is not showing; click that line to see them and un-archive one. Archiving and un-archiving are for project owners and admins.
+
+### CLI
+
+- **`completo project-archive <project>` and `completo project-restore <project>`** archive and restore a project. `completo projects` leaves archived projects out; `--archived` lists them too, with a column saying which.
+
 ## v0.21.0
 
 ### App

@@ -12,6 +12,8 @@ export interface CalendarResponse {
   /** Cards passing the filters but without a due date, done ones left out: counted under the grid. */
   undatedIds: number[]
   projects: Array<{ id: string, name: string, slug: string, key: string, doneStatusId: string | null }>
+  /** The caller's archived projects (CF-420): never in the cards, named so a filter on one is not called foreign. */
+  archivedProjects: Array<{ id: string, name: string }>
   statuses: Array<{ id: string, projectId: string, name: string, color: string | null }>
   tags: Array<{ name: string, color: string }>
   people: Member[]

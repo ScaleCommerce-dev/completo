@@ -830,6 +830,76 @@
         }
       }
     },
+    "/api/projects/{id}/archive": {
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Archive project",
+        "description": "Archives the project by setting `archivedAt`. Nothing else changes: statuses, cards, tags, members and stars are kept, and the project stays reachable at its URL and through this API. Idempotent: archiving an archived project keeps its first timestamp. Owners and admins.",
+        "operationId": "archiveProject",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project after the call",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Restore project",
+        "description": "Restores an archived project by clearing `archivedAt`. Idempotent. Owners and admins.",
+        "operationId": "restoreProject",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project after the call",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
     "/api/projects/{id}/members": {
       "get": {
         "tags": [
@@ -8210,6 +8280,22 @@
                         "type": "object"
                       }
                     },
+                    "archivedProjects": {
+                      "type": "array",
+                      "description": "The caller's archived projects. They contribute no cards and are not in `projects`; listed so a filter naming one can be shown as archived rather than unknown.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
                     "statuses": {
                       "type": "array",
                       "items": {
@@ -8492,6 +8578,12 @@
           "doneRetentionDays": {
             "type": "integer",
             "nullable": true
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the project was archived, or null. An archived project keeps working at its own URL and API; it is left out of the All Projects grid, the sidebar, My Tasks, Calendar and cross-project search."
           },
           "createdAt": {
             "type": "string",

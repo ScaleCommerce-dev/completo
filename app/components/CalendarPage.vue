@@ -221,6 +221,7 @@ const peopleItems = computed(() => [
 ])
 const projectItems = computed(() => [
   ...knownProjectItems.value,
+  ...filteredArchivedProjects.value.map(p => ({ value: p.id, label: `${p.name} (archived)` })),
   ...unknownProjects.value.map(id => ({ value: id, label: 'A project you are not in' }))
 ])
 // One entry per name *as the filter matches it* (case and outer spaces ignored),
@@ -345,8 +346,21 @@ const undatedNote = computed(() => {
  * pickers cannot name them, so the calendar came up empty while the menu read
  * "Any" and the Filter count said 1.
  */
+/**
+ * Filtered projects that are the viewer's own but archived (CF-420). Not
+ * unknown: the viewer is a member, and the project comes back on un-archive, so
+ * they are said as archived and not offered for removal, which on a saved
+ * calendar would drop the project from its filters for good.
+ */
+const filteredArchivedProjects = computed(() => (data.value?.archivedProjects ?? [])
+  .filter(p => filters.value.projects.includes(p.id)))
+const archivedNote = computed(() => {
+  const n = filteredArchivedProjects.value.length
+  return n ? `The filters include ${n} archived ${n === 1 ? 'project, which shows' : 'projects, which show'} nothing until un-archived.` : ''
+})
 const unknownProjects = computed(() => data.value
-  ? filters.value.projects.filter(id => !knownProjectItems.value.some(i => i.value === id))
+  ? filters.value.projects.filter(id => !knownProjectItems.value.some(i => i.value === id)
+    && !filteredArchivedProjects.value.some(p => p.id === id))
   : [])
 const unknownPeople = computed(() => data.value
   ? filters.value.people.filter(id => !knownPeopleItems.value.some(i => i.value === id))
@@ -370,7 +384,7 @@ function removeUnknown() {
 const footnote = computed(() => {
   const n = projectCount.value
   const from = `From your ${n} ${n === 1 ? 'project' : 'projects'}; colleagues see their own.`
-  return [from, unknownNote.value, undatedCount.value ? undatedNote.value : ''].filter(Boolean).join(' ')
+  return [from, archivedNote.value, unknownNote.value, undatedCount.value ? undatedNote.value : ''].filter(Boolean).join(' ')
 })
 
 onMounted(() => {

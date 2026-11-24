@@ -47,7 +47,10 @@ export default defineEventHandler(async (event) => {
    */
   const roleByProject = new Map(memberships.map(m => [m.projectId, m.role]))
 
-  const visibleCards = myCards.filter(c => memberProjectIds.has(c.projectId))
+  // An archived project's cards are not work in progress (CF-420), so My Tasks
+  // leaves them out; they come back with the project when it is restored.
+  const archived = archivedProjectIds()
+  const visibleCards = myCards.filter(c => memberProjectIds.has(c.projectId) && !archived.has(c.projectId))
 
   if (!visibleCards.length) {
     return {

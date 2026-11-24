@@ -16,6 +16,7 @@ interface ProjectDetail {
   /** `role` reports owner-level access for an admin outside the project; this does not. */
   isMember: boolean
   starred: boolean
+  archivedAt: string | null
   openCards: number
   statuses: Array<{ id: string, name: string, color: string | null }>
   tags: Array<{ id: string, name: string, color: string }>
@@ -52,6 +53,29 @@ async function onSettingsSaved({ slug: newSlug }: { slug: string }) {
     return
   }
   await refresh()
+}
+
+// ─── Archive (CF-420) ───
+// An archived project still opens and works; the page only says so, and offers
+// the way back to whoever may take it.
+const unarchiving = ref(false)
+
+async function onArchived() {
+  refreshProjects()
+  await refresh()
+}
+
+async function unarchive() {
+  if (!project.value) return
+  unarchiving.value = true
+  try {
+    await $fetch(`/api/projects/${project.value.id}/archive`, { method: 'DELETE' })
+    await onArchived()
+  } catch (e) {
+    toast.add({ title: 'Could not un-archive project', description: getErrorMessage(e, 'Unknown error'), color: 'error' })
+  } finally {
+    unarchiving.value = false
+  }
 }
 
 // Derived data
@@ -284,6 +308,7 @@ async function confirmDeleteTag(tagId: string) {
         :project="project"
         @saved="onSettingsSaved"
         @deleted="navigateTo('/projects', { replace: true })"
+        @archived="onArchived"
       />
     </template>
 
@@ -303,6 +328,18 @@ async function confirmDeleteTag(tagId: string) {
     </template>
 
     <template v-else>
+      <UAlert
+        v-if="project.archivedAt"
+        icon="i-lucide-archive"
+        color="neutral"
+        variant="subtle"
+        title="This project is archived"
+        description="It is left out of All Projects, the sidebar, search, My Tasks and the Calendar. Everything in it still works."
+        :actions="isOwnerOrAdmin
+          ? [{ label: 'Un-archive', icon: 'i-lucide-archive-restore', color: 'neutral', variant: 'outline', loading: unarchiving, onClick: unarchive }]
+          : undefined"
+      />
+
       <!-- Statuses / Tags config bar -->
       <div class="rounded-xl bg-default border border-default overflow-hidden">
         <!-- Tab header -->

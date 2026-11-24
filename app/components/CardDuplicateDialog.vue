@@ -133,7 +133,9 @@ watch(open, async (isOpen) => {
   error.value = ''
   targetProjectSlug.value = undefined
   try {
-    projects.value = await $fetch<Array<{ slug: string, name: string }>>('/api/projects')
+    // Not into an archived project (CF-420), unless it is the one the card is in.
+    const all = await $fetch<Array<{ slug: string, name: string, archivedAt: string | null }>>('/api/projects')
+    projects.value = all.filter(p => !p.archivedAt || p.slug === props.projectSlug)
   } catch (e: unknown) {
     error.value = getErrorMessage(e, 'Failed to load your projects')
   }

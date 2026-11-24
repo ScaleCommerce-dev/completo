@@ -22,6 +22,8 @@ export interface ProjectListItem {
   memberCount: number
   memberAvatars: Array<{ name: string, avatarUrl: string | null, kind?: 'human' | 'agent', color?: string | null }>
   lastActivity: string | null
+  /** Set while archived (CF-420): such a project is listed, but only All Projects shows it, behind its own line. */
+  archivedAt: string | null
 }
 
 type Project = Pick<ProjectListItem, 'id' | 'name' | 'slug' | 'icon' | 'starred'>
@@ -105,7 +107,9 @@ export function useNavigation() {
     if (projects.value) {
       sections.push({
         label: 'Starred',
-        items: projects.value.filter(p => p.starred).map(projectItem),
+        // An archived project keeps its stars, so it comes back to the same
+        // sidebars on restore, but is not shown while archived.
+        items: projects.value.filter(p => p.starred && !p.archivedAt).map(projectItem),
         empty: { to: '/projects' }
       })
     }
@@ -120,14 +124,15 @@ export function useNavigation() {
   /**
    * The command palette's "Go to" group. Built from every project, not from the
    * sidebar: stars decide what is *pinned*, and ⌘K is how you reach everything
-   * that is not.
+   * that is not. Archived projects are left out: they are reached from All
+   * Projects, or at their URL.
    */
   const paletteItems = computed<NavItem[]>(() => [
     // Not a sidebar row any more, but still a place ⌘K can take you.
     { label: 'Notifications', icon: 'i-lucide-bell', to: '/notifications' },
     ...topItems.value,
     ...(calendars.value ?? []).map(c => ({ label: c.name, icon: 'i-lucide-calendar-heart', to: `/calendar/${c.id}` })),
-    ...(projects.value || []).map(projectItem),
+    ...(projects.value || []).filter(p => !p.archivedAt).map(projectItem),
     ...adminItems.value
   ])
 
