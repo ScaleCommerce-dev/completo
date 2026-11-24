@@ -64,7 +64,7 @@ You didn't want that. You wanted a board with columns and cards. So that's what 
 - **Screenshots** — `⌘V`. Paste one into a description or a comment and it's attached to the card. No saving it to the desktop first.
 - **Comments** — Discuss the work where the work is. Markdown, `@mentions`, notifications. No second tool.
 - **History**: Every card shows who moved, assigned, retitled or retagged it, and when, right beside the comments.
-- **Projects** — Separate your work. Invite your team. Keep things tidy. Star the ones you work in, and the sidebar shows only those.
+- **Projects** — Separate your work. Invite your team. Keep things tidy. Star the ones you work in, and the sidebar shows only those. Archive the ones you're done with: out of sight, nothing lost.
 - **My Tasks** — One checklist. Everything assigned to you. Across all projects. Check it off. Go home.
 - **Calendar** — Everything due this week or this month, across your projects. Filter by tag, person or status, save it as "Content calendar", drag a card to move its date.
 - **Search** — `⌘K`. Title, description or ticket ID, across every project you're in. Type `TK-42` and you're there.
